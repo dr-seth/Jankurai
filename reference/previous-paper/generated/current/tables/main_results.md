@@ -1,0 +1,8 @@
+| issue                                | condition   |   runs |   successes |   solve_rate |   hidden_pass_rate |   median_successful_total_tokens |   expected_tokens_to_success |   median_duration_seconds |
+|:-------------------------------------|:------------|-------:|------------:|-------------:|-------------------:|---------------------------------:|-----------------------------:|--------------------------:|
+| ISSUE-01-entitlement-grace           | bare        |      3 |           3 |     1        |           1        |                           176039 |              181648          |                        24 |
+| ISSUE-01-entitlement-grace           | proof-full  |      3 |           3 |     1        |           1        |                           219220 |              194770          |                        29 |
+| ISSUE-03-webhook-incident            | bare        |      3 |           3 |     1        |           1        |                           275134 |              277192          |                        39 |
+| ISSUE-03-webhook-incident            | proof-full  |      3 |           3 |     1        |           1        |                           301651 |              266301          |                        37 |
+| ISSUE-04-entitlement-recovery-replay | bare        |      3 |           3 |     1        |           1        |                           921621 |                   1.0344e+06 |                        72 |
+| ISSUE-04-entitlement-recovery-replay | proof-full  |      3 |           2 |     0.666667 |           0.666667 |                           962158 |              962158          |                        67 |

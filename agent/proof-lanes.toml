@@ -1,0 +1,24 @@
+[[lane]]
+name = "fast"
+command = "just fast"
+purpose = "run the humanlint audit quickly with JSON and Markdown on stdout"
+
+[[lane]]
+name = "audit"
+command = "just score"
+purpose = "write repo-score.json and repo-score.md"
+
+[[lane]]
+name = "paper"
+command = "just paper"
+purpose = "build paper/humanlint.pdf from paper/humanlint.tex and paper/main.md"
+
+[[lane]]
+name = "security"
+command = "just security"
+purpose = "document and later run secret, dependency, SBOM, and workflow checks"
+
+[[lane]]
+name = "full"
+command = "just check"
+purpose = "run audit and paper build"

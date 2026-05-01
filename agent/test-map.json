@@ -1,0 +1,33 @@
+{
+  "workspace": "humanlint",
+  "tests": {
+    "AGENTS.md": {
+      "command": "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md",
+      "purpose": "verify agent instruction routing is visible to the audit"
+    },
+    "agent/": {
+      "command": "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md",
+      "purpose": "verify machine-readable maps and policy remain scannable"
+    },
+    "docs/": {
+      "command": "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md",
+      "purpose": "verify docs remain agent-readable and routed"
+    },
+    "paper/humanlint.tex": {
+      "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
+      "purpose": "build the paper"
+    },
+    "assets/": {
+      "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
+      "purpose": "verify paper image assets render"
+    },
+    "paper/": {
+      "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
+      "purpose": "build the paper"
+    },
+    "tools/humanlint.py": {
+      "command": "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md",
+      "purpose": "score the workspace"
+    }
+  }
+}

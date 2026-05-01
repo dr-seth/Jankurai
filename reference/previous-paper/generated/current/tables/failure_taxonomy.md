@@ -1,0 +1,3 @@
+| issue                                | condition   |   failed_runs | failure_cause            | representative_message   |
+|:-------------------------------------|:------------|--------------:|:-------------------------|:-------------------------|
+| ISSUE-04-entitlement-recovery-replay | proof-full  |             1 | compile_or_runtime_error | compile_or_runtime_error |

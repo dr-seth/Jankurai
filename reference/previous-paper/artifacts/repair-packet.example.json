@@ -1,0 +1,21 @@
+{
+  "id": "repair-2026-04-23-001",
+  "owner": "crates/domain/src/entitlement.rs",
+  "failure_kind": "contract_regression",
+  "error_code": "ENTITLEMENT_REPLAY_004",
+  "symptom": "recovery replay grants entitlement twice",
+  "evidence": [
+    {
+      "command": "cargo nextest run -p domain entitlement_replay",
+      "exit_code": 101,
+      "summary_path": ".agent/proofs/domain-replay.summary.txt",
+      "raw_path": ".agent/proofs/domain-replay.raw.txt"
+    }
+  ],
+  "allowed_edit_paths": [
+    "crates/domain/src/entitlement.rs",
+    "crates/domain/tests/entitlement_replay.rs"
+  ],
+  "required_lane": "medium",
+  "widen_rule": "Only widen to application layer if the domain API cannot represent the replay state."
+}

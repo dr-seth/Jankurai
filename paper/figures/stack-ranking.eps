@@ -1,0 +1,70 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%Title: humanlint Stack Ranking
+%%Creator: humanlint manual PostScript figure
+%%BoundingBox: 0 0 840 470
+%%HiResBoundingBox: 0 0 840 470
+%%DocumentFonts: Helvetica Helvetica-Bold
+%%EndComments
+
+/F { /Helvetica findfont exch scalefont setfont } bind def
+/FB { /Helvetica-Bold findfont exch scalefont setfont } bind def
+/bar {
+  /b exch def /g exch def /r exch def /h exch def /w exch def /y exch def /x exch def
+  gsave r g b setrgbcolor newpath x y moveto w 0 rlineto 0 h rlineto w neg 0 rlineto closepath fill grestore
+} bind def
+/grid {
+  /txt exch def /x exch def
+  gsave 0.88 setgray 0.6 setlinewidth newpath x 114 moveto x 364 lineto stroke grestore
+  8 F 0.28 setgray x 92 moveto txt show
+} bind def
+
+gsave
+1 1 1 setrgbcolor newpath 0 0 moveto 840 0 lineto 840 470 lineto 0 470 lineto closepath fill
+grestore
+
+0.10 setgray
+18 FB
+48 432 moveto (Agent-Native Stack Ranking) show
+10 F
+48 410 moveto (Scores out of 100. Horizontal axis starts at 69.6, equal to 80% of the lowest score.) show
+
+0.50 setgray 0.8 setlinewidth
+newpath 350 114 moveto 780 114 lineto stroke
+350 (69.6) grid
+441.42 (75) grid
+526.06 (80) grid
+610.71 (85) grid
+695.35 (90) grid
+780 (95) grid
+
+9 F
+0.20 setgray
+690 72 moveto (Score) show
+
+10 F
+0.13 setgray
+48 340 moveto (Rust core + TS/React/Vite + PostgreSQL) show
+48 290 moveto (Go services + TS/React/Vite + PostgreSQL) show
+48 240 moveto (C#/.NET + TS/React/Vite + PostgreSQL/SQL Server) show
+48 190 moveto (TS product plane + Rust/Go compute cells + PostgreSQL) show
+48 140 moveto (Kotlin/Java JVM + TS/React/Vite + PostgreSQL/Kafka) show
+
+350 326 413.07 28 1.000 0.290 0.290 bar
+350 276 345.35 28 0.000 0.720 0.660 bar
+350 226 328.43 28 1.000 0.690 0.000 bar
+350 176 311.50 28 0.480 0.380 1.000 bar
+350 126 294.57 28 0.945 0.357 0.710 bar
+
+0.10 setgray
+10 FB
+773.07 334 moveto (94) show
+705.35 284 moveto (90) show
+688.43 234 moveto (89) show
+671.50 184 moveto (88) show
+654.57 134 moveto (87) show
+
+0.72 setgray 0.6 setlinewidth
+newpath 350 114 moveto 350 364 lineto stroke
+
+showpage
+%%EOF

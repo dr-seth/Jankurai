@@ -1,0 +1,7 @@
+issue,condition,median_files_edited,median_crates_edited,median_validation_commands,median_changed_lines
+ISSUE-01-entitlement-grace,bare,1.0,1.0,1.0,8.0
+ISSUE-01-entitlement-grace,proof-full,1.0,1.0,2.0,6.0
+ISSUE-03-webhook-incident,bare,1.0,1.0,1.0,37.0
+ISSUE-03-webhook-incident,proof-full,1.0,1.0,3.0,33.0
+ISSUE-04-entitlement-recovery-replay,bare,5.0,3.0,2.0,27.0
+ISSUE-04-entitlement-recovery-replay,proof-full,5.0,3.0,1.0,22.5

@@ -1,0 +1,42 @@
+# Citation Index
+
+Status labels:
+- `Evidence-backed`: direct claim from a primary or official source.
+- `Project claim`: vendor or project assertion; useful, but not independent proof.
+- `Evidence-backed + doctrine`: source-backed fact used to justify a recommendation.
+- `Proposed doctrine`: paper recommendation or synthesis, not empirical proof.
+
+| Claim ID | Claim | Status | Evidence / Basis |
+| --- | --- | --- | --- |
+| HB-01 | GitHub's 2025 Octoverse reports TypeScript as the top language on GitHub, with Python second. | Evidence-backed | GitHub Octoverse 2025 |
+| HB-02 | GitHub's 2025 Octoverse says generative AI is now standard in development, with more than 1.1M public repositories importing an LLM SDK. | Evidence-backed | GitHub Octoverse 2025 |
+| HB-03 | DORA 2025 says AI acts as an amplifier, magnifying an organization's existing strengths and weaknesses, so tool adoption alone does not deliver the gains. | Evidence-backed | DORA State of AI-assisted Software Development 2025 |
+| HB-04 | NSA/CISA guidance says memory-safe languages reduce memory-related vulnerabilities through language-level protections, tooling, and training, and adoption can be incremental rather than a full rewrite. | Evidence-backed | NSA/CISA Memory Safe Languages guidance |
+| HB-05 | Veracode's 2025 GenAI Code Security Report found a 55% secure pass rate, a 45% known-flaw rate, and little security improvement even as syntactic correctness improved. | Evidence-backed | Veracode 2025 GenAI Code Security Report |
+| HB-06 | GitGuardian's 2026 secrets-sprawl report found 28,649,024 new secrets in public GitHub commits in 2025, a 34% year-over-year increase, and roughly 2x leaked secrets in AI-assisted commits. | Evidence-backed | GitGuardian State of Secrets Sprawl 2026 report and official blog summary |
+| HB-07 | The 2025 Go Developer Survey shows AI-tool use is widespread but quality concerns remain, with 53% using AI tools daily, 17% using them primarily as unsupervised agents, and 53% citing non-functional code as the main problem. | Evidence-backed | Go Developer Survey 2025 |
+| HB-08 | Python 3.14.0 is the stable release, officially supports free-threaded Python, adds multiple interpreters, and includes an experimental JIT path. | Evidence-backed | Python 3.14.0 release page |
+| HB-09 | OpenTelemetry is a vendor-neutral open-source observability framework for traces, metrics, and logs. | Evidence-backed | OpenTelemetry documentation |
+| HB-10 | Microsoft says TypeScript 7.0 Beta, ported to Go, is often about 10x faster than TypeScript 6.0 and uses `tsgo` via `@typescript/native-preview`. | Project claim | TypeScript 7.0 Beta announcement |
+| HB-11 | Vite 8 says its Rolldown-based bundler can deliver up to 10-30x faster builds while preserving plugin compatibility. | Project claim | Vite 8 announcement |
+| HB-12 | The winning stack should be Rust core plus TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and a bounded Python AI/data service. | Proposed doctrine | Synthesis of HB-01 through HB-11 |
+| HB-13 | The stack rubric should prioritize agent-verifiable correctness, security, runtime cost, concurrency, contract integrity, review surface, observability, data safety, and product velocity. | Proposed doctrine | Source-plan rubric |
+| HB-14 | Product and service boundaries should be contract-generated and typed so wrong code is rejected at the edge instead of diffusing across the repo. | Proposed doctrine | Source-plan synthesis |
+| HB-15 | Python should stay bounded to AI/data-service roles and should not own product truth or direct production DB writes. | Proposed doctrine | Python 3.14 plus AI/security evidence |
+| HB-16 | OpenTelemetry should be the default observability substrate for the winner stack. | Evidence-backed + doctrine | OpenTelemetry docs plus stack synthesis |
+| HB-17 | Repo scoring should cap readiness when security gates, deterministic fast lanes, generated-contract validation, or Python containment are missing. | Proposed doctrine | Source-plan rubric |
+| HB-18 | Rust is a strong core choice when mistake cost dominates because memory-safe languages reduce memory-related vulnerabilities and prevent entire bug classes. | Evidence-backed + doctrine | NSA/CISA Memory Safe Languages guidance |
+| HB-19 | AI-assisted code should be treated as suspect until security and secret checks pass because syntactically correct output can still be insecure and secret sprawl is accelerating. | Evidence-backed + doctrine | Veracode 2025 GenAI Code Security Report; GitGuardian State of Secrets Sprawl 2026 |
+| HB-20 | Codex supports hierarchical `AGENTS.md` project guidance with root-to-local precedence and a default project-doc size limit. | Evidence-backed | OpenAI Codex AGENTS.md guide |
+| HB-21 | Claude Code supports project instructions in `CLAUDE.md` or `.claude/CLAUDE.md`, local instructions, hierarchical loading, and scoped project rules; vague or conflicting instructions reduce reliability. | Evidence-backed | Claude Code memory documentation |
+| HB-22 | GitHub Copilot supports repository-wide instructions, path-specific instruction files, and agent instruction files such as `AGENTS.md`, with nearest `AGENTS.md` precedence for Copilot agents. | Evidence-backed | GitHub Copilot custom instructions documentation |
+| HB-23 | Cursor rules support project-scoped rule files and metadata such as globs and always-apply behavior. | Evidence-backed | Cursor rules documentation |
+| HB-24 | Playwright's official best practices prioritize role/text/test-id locators, web-first assertions, isolated tests, and avoiding manual assertions that do not wait. | Evidence-backed | Playwright best practices |
+| HB-25 | OpenTelemetry semantic conventions reserve exception and error attributes such as `exception.type`, `exception.message`, `exception.stacktrace`, and `error.type`. | Evidence-backed | OpenTelemetry semantic conventions |
+| HB-26 | RFC 9457 problem details provide a standardized shape for machine-readable HTTP API error payloads. | Evidence-backed + doctrine | RFC 9457 |
+| HB-27 | Agent benchmarks and open-source agents show setup reliability, context retrieval, and interface design are central bottlenecks for autonomous software engineering. | Evidence-backed + doctrine | SWE-agent; SWE-bench; SetupBench; ContextBench; SWE-Effi; OpenHands; Aider |
+| HB-28 | humanlint should use `AGENTS.md` plus tool-specific adapters rather than separate, divergent instruction systems. | Proposed doctrine | Synthesis of HB-20 through HB-23 |
+| HB-29 | Token minimization should be treated as repository design: short root instructions, scoped docs, maps, and filtered command output with raw-output escape hatches. | Evidence-backed + doctrine | Codex AGENTS.md guide; Claude memory docs; Copilot instruction docs; ContextBench; SWE-Effi |
+| HB-30 | The humanlint audit should emit JSON plus Markdown, include a standard version and target stack, and produce an ordered agent fix queue. | Proposed doctrine | humanlint audit rubric and scorer contract |
+| HB-31 | Julia directly targeted the scientific two-language problem by combining high-level numerical programming with performance-oriented compilation and multiple dispatch. | Evidence-backed | Bezanson et al., "Julia: A Fresh Approach to Numerical Computing" |
+| HB-32 | The humanlint audit should treat future-hostile/dead-language markers such as `legacy`, `deprecated`, `temporary`, `fallback`, `stub`, and `TODO` as hard repair signals in product/runtime code unless they are product copy or documented exceptions. | Proposed doctrine | humanlint audit rubric and scorer contract |

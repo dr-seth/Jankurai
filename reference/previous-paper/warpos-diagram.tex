@@ -1,0 +1,100 @@
+%% WarpOS architecture and dataflow diagram (TikZ).
+%%
+%% Intended use: \input{warpos-diagram} from main.tex inside a figure*
+%% environment. A standalone compile wrapper lives in
+%% warpos-diagram-standalone.tex (same diagram, with a minimal preamble so it
+%% can be built on its own and handed to an outside editor).
+%%
+%% Relies on the following TikZ libraries already loaded in main.tex:
+%%   \usetikzlibrary{positioning,patterns}
+%% and on the colors accent, accentSoft, tableStripe, tableHeaderBg, and the
+%% envBar0/1/2/3 ramp used elsewhere in the paper.
+\begin{tikzpicture}[
+    x=1mm, y=1mm,
+    every node/.style  = {font=\footnotesize, align=center, inner sep=0pt},
+    box/.style         = {draw=black!60, line width=0.45pt, rounded corners=3pt,
+                          inner sep=3pt, fill=white},
+    actor/.style       = {box, fill=accentSoft, draw=accent!50, text=accent,
+                          minimum width=40mm, minimum height=12mm},
+    service/.style     = {box, fill=tableStripe, draw=black!70,
+                          minimum width=40mm, minimum height=12mm},
+    store/.style       = {box, fill=white, draw=black!50, dashed,
+                          minimum width=150mm, minimum height=16mm},
+    services/.style    = {box, fill=tableHeaderBg, draw=accent!40, text=accent,
+                          minimum width=150mm, minimum height=16mm},
+    stage/.style       = {box, minimum width=24mm, minimum height=8mm,
+                          font=\scriptsize\bfseries},
+    arrow/.style       = {-latex, draw=black!60, line width=0.5pt},
+    ctlarrow/.style    = {-latex, draw=accent!80, line width=0.55pt, dashed},
+    lbl/.style         = {font=\scriptsize, fill=white, text=black!65,
+                          inner sep=1.2pt},
+  ]
+
+  %% Row 1: network layer (y = 130)
+  \node[actor]   (agent)    at ( 22,130) {\textbf{agent client}\\Claude, Codex,\\Cursor, Antigravity};
+  \node[service] (proxy)    at ( 90,130) {\textbf{warpos-proxy}\\MITM, extraction,\\compaction};
+  \node[actor]   (provider) at (158,130) {\textbf{model provider}\\Anthropic, OpenAI,\\Google};
+
+  %% Row 2: OS layer (y = 100)
+  %% Deliberate asymmetry: tap is shifted LEFT of proxy and sentinel is
+  %% shifted RIGHT so the proxy -> store arrow can drop straight down the
+  %% centerline without crossing any row-2 node.
+  \node[service] (shell)    at ( 22,100) {\textbf{user shell}\\cargo, nextest,\\git, rg, bash};
+  \node[service] (tap)      at ( 60,100) {\textbf{warpos-tap}\\+ warpos-tls-tap\\eBPF, pty, TLS};
+  \node[service] (sentinel) at (120,100) {\textbf{warpos-runtime-sentinel}\\tripwires,\\exceptions};
+
+  %% Row 3: session store (y = 70)
+  \node[store] (store) at (90,70)
+    {\textbf{session store: NDJSON streams + content-addressed payload blobs}\\[1pt]
+     \footnotesize http\_transaction \textperiodcentered{} llm\_call \textperiodcentered{} llm\_segment \textperiodcentered{} tls\_event \textperiodcentered{} exception\_event\\
+     \footnotesize command\_execution \textperiodcentered{} file\_event \textperiodcentered{} process\_exec \textperiodcentered{} terminal\_io \textperiodcentered{} payloads/};
+
+  %% Row 4: mediation services (y = 42)
+  \node[services] (services) at (90,42)
+    {\textbf{mediation services}\\[1pt]
+     \footnotesize warpos-extraction \textperiodcentered{} warpos-compactor \textperiodcentered{} warpos-semantic-checkpoint\\
+     \footnotesize warpos-wastegate \textperiodcentered{} warpos-waste-model \textperiodcentered{} warpos-invariant-guard};
+
+  %% Row 5: five cascade stages (y = 20)
+  \node[stage, fill=envBar2!30]  (s1) at ( 30,20) {Suppress};
+  \node[stage, fill=envBar1!35]  (s2) at ( 60,20) {Compress};
+  \node[stage, fill=envBar0!25]  (s3) at ( 90,20) {Reuse};
+  \node[stage, fill=envBar3!25]  (s4) at (120,20) {Steer};
+  \node[stage, fill=accentSoft]  (s5) at (150,20) {Guard};
+
+  %% Row 1 horizontal arrows (two-way, offset vertically so labels stack)
+  \draw[arrow] ([yshift= 2mm]agent.east)    -- ([yshift= 2mm]proxy.west);
+  \draw[arrow] ([yshift=-2mm]proxy.west)    -- ([yshift=-2mm]agent.east);
+  \node[lbl] at (56,132.5) {HTTPS};
+  \node[lbl] at (56,127.5) {response};
+
+  \draw[arrow] ([yshift= 2mm]proxy.east)    -- ([yshift= 2mm]provider.west);
+  \draw[arrow] ([yshift=-2mm]provider.west) -- ([yshift=-2mm]proxy.east);
+  \node[lbl] at (124,132.5) {upstream};
+  \node[lbl] at (124,127.5) {SSE / JSON};
+
+  %% Row 2 horizontal arrows
+  \draw[arrow] (shell.east) -- (tap.west);
+  \draw[arrow] (tap.east)   -- (sentinel.west);
+
+  %% Three parallel vertical arrows into the session store.
+  \draw[arrow] (proxy.south)    -- node[lbl, right=1mm]{decoded segments + raw bodies}
+                                   (store.north -| proxy.south);
+  \draw[arrow] (tap.south)      -- node[lbl, right=1mm]{OS events}
+                                   (store.north -| tap.south);
+  \draw[arrow] (sentinel.south) -- node[lbl, right=1mm]{sentinels}
+                                   (store.north -| sentinel.south);
+
+  %% Store -> mediation services
+  \draw[arrow] (store.south) -- node[lbl, right=1mm]{joined timeline keyed on session\_id + turn\_id}
+                                (services.north);
+
+  %% Services -> cascade row (a single short drop; cascade boxes float below)
+  \draw[arrow] (services.south) -- ($(services.south)+(0,-6)$);
+
+  %% Intervention-control loop. Routed outside the main flow:
+  %% services.east -> right margin -> up over the top -> down into proxy.north
+  \draw[ctlarrow] (services.east) -- (180,42) -- (180,142) -- (90,142) -- (proxy.north);
+  \node[lbl] at (135,144) {\itshape intervention control};
+
+\end{tikzpicture}

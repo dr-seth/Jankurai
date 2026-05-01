@@ -1,0 +1,7 @@
+issue,condition,runs,first_correct_owner_edit,median_first_correct_owner_edit_command_index,median_wrong_turn_tax,median_wrong_owner_edit_count,median_wrong_owner_touch_count,median_duplicate_validation_loop_count,median_search_command_count,owner_convergence_rate
+ISSUE-01-entitlement-grace,bare,3,crates/billing-domain/src/lib.rs,6.0,92097.0,0.0,0.0,0.0,4.0,1.0
+ISSUE-01-entitlement-grace,proof-full,3,crates/billing-domain/src/lib.rs,8.0,146147.0,0.0,0.0,0.0,2.0,1.0
+ISSUE-03-webhook-incident,bare,3,crates/billing-service/src/lib.rs,11.0,211642.0,0.0,0.0,0.0,5.0,1.0
+ISSUE-03-webhook-incident,proof-full,3,crates/billing-service/src/lib.rs,13.0,219561.0,0.0,0.0,0.0,2.0,1.0
+ISSUE-04-entitlement-recovery-replay,bare,3,crates/reconciliation-core/src/lib.rs,46.0,821299.0,4.0,4.0,0.0,11.0,1.0
+ISSUE-04-entitlement-recovery-replay,proof-full,3,crates/reconciliation-core/src/lib.rs,49.0,875044.0,4.0,4.0,0.0,11.0,1.0

@@ -1,0 +1,26 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# LaTeX intermediates
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.luabridge.lua
+paper/_markdown_main/
+
+# Audit outputs
+repo-score.json
+repo-score.md
+*-score.json
+*-score.md
+
+# Build directories
+target/
+dist/
+build/

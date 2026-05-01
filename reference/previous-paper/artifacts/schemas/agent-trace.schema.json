@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/agent-rust/agent-trace.schema.json",
+  "title": "Agent Trace for ARI-D",
+  "type": "object",
+  "required": ["task_id", "agent", "events", "outcome"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "agent": { "type": "string" },
+    "model": { "type": "string" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ts", "kind"],
+        "properties": {
+          "ts": { "type": "string" },
+          "kind": { "enum": ["read", "search", "edit", "command", "diagnostic", "widen", "handoff"] },
+          "path": { "type": "string" },
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "tokens_in": { "type": "integer", "minimum": 0 },
+          "tokens_out": { "type": "integer", "minimum": 0 },
+          "owner": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "required": ["visible_pass", "hidden_pass", "secure_pass"],
+      "properties": {
+        "visible_pass": { "type": "boolean" },
+        "hidden_pass": { "type": "boolean" },
+        "secure_pass": { "type": "boolean" },
+        "illegal_touch_count": { "type": "integer", "minimum": 0 },
+        "wrong_turn_tax_tokens": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

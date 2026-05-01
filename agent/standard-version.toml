@@ -1,0 +1,7 @@
+standard = "humanlint"
+standard_version = "0.2.0"
+paper_edition = "2026.05-ed1"
+auditor_version = "0.2.0"
+schema_version = "1.0.0"
+target_stack = "rust-ts-vite-react-postgres-bounded-python"
+published = "2026-05-01"

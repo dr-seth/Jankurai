@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/agent-rust/token-budget.schema.json",
+  "title": "Agent Rust Token Budget",
+  "type": "object",
+  "required": ["task_id", "owner", "risk_class", "required_lane", "buckets", "raw_outputs"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "owner": { "type": "string" },
+    "risk_class": { "enum": ["low", "medium", "high", "security-sensitive"] },
+    "required_lane": { "enum": ["fast", "medium", "deep", "security", "release"] },
+    "buckets": {
+      "type": "object",
+      "required": ["instructions", "navigation", "file_reads", "reasoning", "patch", "proof_output", "wrong_turns", "recovery", "handoff"],
+      "properties": {
+        "instructions": { "$ref": "#/$defs/bucket" },
+        "navigation": { "$ref": "#/$defs/bucket" },
+        "file_reads": { "$ref": "#/$defs/bucket" },
+        "reasoning": { "$ref": "#/$defs/bucket" },
+        "patch": { "$ref": "#/$defs/bucket" },
+        "proof_output": { "$ref": "#/$defs/bucket" },
+        "wrong_turns": { "$ref": "#/$defs/bucket" },
+        "recovery": { "$ref": "#/$defs/bucket" },
+        "handoff": { "$ref": "#/$defs/bucket" }
+      },
+      "additionalProperties": false
+    },
+    "raw_outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["command", "exit_code", "summary_path", "raw_path"],
+        "properties": {
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "summary_path": { "type": "string" },
+          "raw_path": { "type": "string" },
+          "redacted": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "bucket": {
+      "type": "object",
+      "required": ["budget_tokens", "actual_tokens"],
+      "properties": {
+        "budget_tokens": { "type": "integer", "minimum": 0 },
+        "actual_tokens": { "type": "integer", "minimum": 0 },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

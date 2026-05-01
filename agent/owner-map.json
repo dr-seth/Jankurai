@@ -1,0 +1,16 @@
+{
+  "workspace": "humanlint",
+  "owners": {
+    "AGENTS.md": "agent",
+    "README.md": "workspace",
+    "Justfile": "workspace",
+    ".github/": "ops",
+    "agent/": "agent",
+    "assets/": "paper",
+    "docs/": "standard",
+    "paper/": "paper",
+    "reference/": "read-only",
+    "tips/": "paper",
+    "tools/": "tools"
+  }
+}
