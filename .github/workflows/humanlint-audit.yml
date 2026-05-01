@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check audit versions
+        run: cargo run -p humanlint -- versions
       - name: humanlint audit
-        run: python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
+        run: cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
       - name: Security lane placeholders
         run: |
           echo "gitleaks detect --source ."

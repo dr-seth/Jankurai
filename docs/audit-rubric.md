@@ -47,7 +47,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | generated contracts or public API drift untested | 80 | generate clients and gate drift in CI |
 | Python owns product truth or DB ownership | 72 | move truth/authz/workflows into Rust and DB migrations |
 | no secret or dependency scan in CI | 78 | add gitleaks/detect-secrets plus dependency review or equivalent |
-| no humanlint audit lane in CI | 82 | run `tools/humanlint.py` in every PR and publish JSON/Markdown |
+| no humanlint audit lane in CI | 82 | run `humanlint` in every PR and publish JSON/Markdown |
 | non-optimal product language found | 74 | migrate product runtime code to Rust, TypeScript, SQL, contracts, or bounded Python |
 | too much Python in product surface | 72 | box Python into model/data service and move durable behavior to Rust |
 | vibe placeholders in product code | 68 | replace TODO/stub/unimplemented/unreachable with real behavior or typed exceptions |
@@ -168,7 +168,7 @@ Rust should prefer enum error types with `thiserror` or equivalent plus structur
 Every repository adopting this standard should run:
 
 ```bash
-python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
 ```
 
 The JSON is the machine contract. The Markdown is the review surface. CI should upload both artifacts and fail when score or hard-cap policy crosses the team threshold.

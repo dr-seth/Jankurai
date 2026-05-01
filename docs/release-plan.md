@@ -8,7 +8,7 @@ humanlint must ship as a paper, a standard, an auditor, and a set of agent-ready
 | --- | --- | --- | --- |
 | Paper edition | `paper/humanlint.tex`, `paper/tex/`, PDF, Markdown companion | engineering leaders, researchers, senior developers | citations and argument may change by edition |
 | Standard spec | repo layout, ownership rules, audit rubric | teams adopting humanlint | semantic versioning |
-| Audit tool | `tools/humanlint.py` | CI, agents, maintainers | semantic versioning plus output schema version |
+| Audit tool | `crates/humanlint/` | CI, agents, maintainers | semantic versioning plus output schema version |
 | Agent artifacts | `AGENTS.md`, `CLAUDE.md`, Cursor rules, Copilot instructions, generated-zone manifests | coding agents and IDEs | versioned rule packs |
 | CI integrations | GitHub Action, reusable workflow, pre-commit hook, local `just`/`make` targets | platform teams | backwards-compatible minor releases |
 | Templates | greenfield repo template, migration template, exception catalog template | teams starting or converting repos | versioned with the standard |
@@ -93,7 +93,7 @@ Minimum CI lanes:
 
 | Lane | Required command shape |
 | --- | --- |
-| `audit` | `python3 tools/humanlint.py . --json repo-score.json --md repo-score.md` |
+| `audit` | `cargo run -p humanlint -- . --json repo-score.json --md repo-score.md` |
 | `fast` | one deterministic command for local agent edits |
 | `contracts` | generated API/schema drift check |
 | `security` | secret scan, dependency scan, SBOM/SCA where available |
@@ -262,7 +262,7 @@ The paper should include a ranking graph, a concrete winner architecture, and th
 The first public experience should be:
 
 ```bash
-python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
 ```
 
 No bootstrap. No service. No API key. No dependency install. Immediate findings.

@@ -27,7 +27,7 @@ Use it in two steps: audit now, then ratchet toward conformance. The audit works
 Install the audit CLI from GitHub:
 
 ```bash
-python3 -m pip install "git+https://github.com/jeppsontaylor/humanlint.git"
+cargo install --git https://github.com/jeppsontaylor/humanlint --package humanlint --locked
 humanlint . --json repo-score.json --md repo-score.md
 ```
 
@@ -36,17 +36,17 @@ From a checkout:
 ```bash
 git clone https://github.com/jeppsontaylor/humanlint.git
 cd humanlint
-python3 -m pip install .
+cargo install --path crates/humanlint --locked
 humanlint /path/to/repo --json repo-score.json --md repo-score.md
 ```
 
 Without installing:
 
 ```bash
-python3 tools/humanlint.py /path/to/repo --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- /path/to/repo --json repo-score.json --md repo-score.md
 ```
 
-The Python audit path is dependency-free. It emits one machine-readable JSON report and one Markdown review surface.
+The Rust audit path is dependency-light. It emits one machine-readable JSON report and one Markdown review surface.
 
 Read the Markdown report first. Fix the highest-priority `agent_fix_queue` item, rerun the audit, and repeat until caps are gone. Scores below `70` usually mean the repo is not agent-operable; `70-84` is advisory/ratchet territory; `85+` is the target floor for standard-mode conformance.
 
@@ -120,11 +120,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python3 -m pip install "git+https://github.com/jeppsontaylor/humanlint.git"
-      - run: humanlint . --json repo-score.json --md repo-score.md
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo run -p humanlint -- versions
+      - name: Run humanlint
+        run: cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
+      - name: Add score and repair queue to the step summary
+        run: |
+          {
+            echo "### humanlint"
+            echo ""
+            echo "- score: $(jq -r '.score' repo-score.json)"
+            echo "- raw score: $(jq -r '.raw_score' repo-score.json)"
+            echo ""
+            echo "#### agent_fix_queue"
+            jq -r '.agent_fix_queue[] | "- [\(.priority)] \(.path): \(.task) — \(.why)"' repo-score.json
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: humanlint-score
@@ -178,8 +188,7 @@ The CLI expects a running app or preview URL. Reports include rule IDs, selector
 
 ## Repository Map
 
-- `humanlint/` - installable audit package
-- `tools/humanlint.py` - checkout-local launcher
+- `crates/humanlint/` - installable Rust audit package
 - `packages/ux-qa/` - optional Playwright rendered-UX geometry runtime
 - `agent/` - standard version, owner/test maps, generated zones, proof lanes
 - `docs/` - standard, rubric, testing doctrine, architecture, release plan

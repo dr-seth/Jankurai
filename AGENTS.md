@@ -12,7 +12,7 @@ This workspace is writing and validating the paper:
 - Treat `reference/` as read-only source material.
 - Do not hand-edit generated artifacts unless the generator/source is changed.
 - Keep root guidance short; put durable detail in `docs/` or `agent/`.
-- Use `python3 tools/humanlint.py . --json repo-score.json --md repo-score.md`
+- Use `cargo run -p humanlint -- . --json repo-score.json --md repo-score.md`
   for the audit lane.
 - Use `latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex`
   for the paper lane.

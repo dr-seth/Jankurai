@@ -104,7 +104,7 @@ just check
 The audit lane is:
 
 ```bash
-python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
 ```
 
 The paper lane is:

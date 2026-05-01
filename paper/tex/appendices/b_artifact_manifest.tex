@@ -47,4 +47,4 @@ kind = "agent-brief"
 version_field = "standard_version"
 \end{lstlisting}
 
-\texttt{tools/check\_versions.py} verifies that \texttt{VERSION}, \texttt{pyproject.toml}, package metadata, CLI constants, standard documents, companion Markdown, artifact bindings, and generated-zone registration agree.
+\texttt{cargo run -p humanlint -- versions} verifies that \texttt{VERSION}, \texttt{crates/humanlint/Cargo.toml}, CLI constants, standard documents, companion Markdown, artifact bindings, and generated-zone registration agree.

@@ -1,8 +1,8 @@
 ## Automatic Scorer: Scoring Repos Against The Standard
 
-`tools/humanlint.py` is the reference implementation of the audit in Section 8. The scorer is not a benchmark harness and not style police. It is a fast local filter for the question that matters in the AI era: does this repo make wrong code easy to reject, localize, prove, audit, and repair, or does it hide drift until it becomes expensive?
+`crates/humanlint/` contains the reference implementation of the audit in Section 8. The scorer is not a benchmark harness and not style police. It is a fast local filter for the question that matters in the AI era: does this repo make wrong code easy to reject, localize, prove, audit, and repair, or does it hide drift until it becomes expensive?
 
-The script is intentionally fast and dependency-free. It is a plain Python 3 tool with no third-party packages, so it can scan an arbitrary checkout immediately and emit the same contract in a clean environment or a messy one.
+The implementation is intentionally fast and dependency-light. It is a Rust binary, so it can scan an arbitrary checkout immediately and emit the same contract in a clean environment or a messy one without a Python bootstrap step.
 
 The current auditor line is `0.2.0`. It is intentionally strict for one target stack only:
 
@@ -143,8 +143,8 @@ The scanner should prefer direct evidence over inference. If it flags a repo, it
 ### Command contract
 
 ```bash
-python3 tools/humanlint.py /path/to/repo --json repo-score.json --md repo-score.md
-python3 tools/humanlint.py /path/to/repo --changed src/foo.rs contracts/api.yaml
+cargo run -p humanlint -- /path/to/repo --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- /path/to/repo --changed src/foo.rs contracts/api.yaml
 ```
 
 The first command scores the whole repository and writes both output files. The second narrows the scan to changed paths when a diff-sensitive pass is enough.
@@ -156,7 +156,7 @@ The contract is simple on purpose. If a repo needs extra packages, extra setup, 
 Changed-path mode does not excuse repo-level checks. It narrows file-scoped inspection while still checking root evidence such as instructions, CI, security lanes, and test maps.
 
 ```bash
-python3 tools/humanlint.py . --changed apps/web/src/foo.ts contracts/openapi/public.yaml
+cargo run -p humanlint -- . --changed apps/web/src/foo.ts contracts/openapi/public.yaml
 ```
 
 Agents should use changed mode for local repair loops and full mode before merge.

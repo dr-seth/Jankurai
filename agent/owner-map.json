@@ -10,7 +10,7 @@
     "agent/": "agent",
     "assets/": "paper",
     "docs/": "standard",
-    "humanlint/": "tools",
+    "crates/humanlint/": "tools",
     "packages/ux-qa/": "tools",
     "paper/": "paper",
     "reference/": "read-only",

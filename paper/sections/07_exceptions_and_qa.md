@@ -64,7 +64,7 @@ Agent-native testing is an evidence routing system:
 | Contracts | generation and backward compatibility | OpenAPI/Protobuf/JSON Schema checks |
 | Python AI service | eval fixtures, model IO contracts, reproducibility | typed contract tests, golden evals |
 | Ops/security | secrets, dependencies, SBOM, provenance, workflow lint | gitleaks, dependency review, Syft/Grype, SLSA, Zizmor |
-| Audit | standard compliance and agent repair queue | `tools/humanlint.py` |
+| Audit | standard compliance and agent repair queue | `cargo run -p humanlint --` |
 
 Playwright is the default browser tool for this stack because its official guidance aligns with agent-friendly QA: isolate tests, use user-visible locators, prefer role/text/test-id locators, use web-first assertions, avoid brittle implementation selectors, and capture traces/screenshots/videos on failure.
 

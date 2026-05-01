@@ -1,13 +1,13 @@
 # humanlint Repo Scorer
 
-Use `tools/humanlint.py` or the installed `humanlint` command to score a repository against humanlint `0.2.0`.
+Use the installed `humanlint` command or `cargo run -p humanlint --` to score a repository against humanlint `0.2.0`.
 
 Target stack only: Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service. This is not a generic linter.
 
 ## Contract
 
-- Fast and dependency-free Python 3 script
-- No third-party packages
+- Fast Rust binary with low-overhead filesystem traversal
+- No Python runtime dependency for the audit lane
 - Runs on arbitrary checkouts without bootstrap drama
 - Emits JSON and Markdown
 - Reads repo structure and local evidence, not build artifacts
@@ -19,20 +19,20 @@ Target stack only: Rust core + TypeScript/React/Vite + PostgreSQL + generated co
 
 ```bash
 humanlint /path/to/repo --json repo-score.json --md repo-score.md
-python3 tools/humanlint.py /path/to/repo --json repo-score.json --md repo-score.md
-python3 tools/humanlint.py /path/to/repo --changed src/foo.rs contracts/api.yaml
+cargo run -p humanlint -- /path/to/repo --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- /path/to/repo --changed src/foo.rs contracts/api.yaml
 ```
 
 Install the checkout-local command with:
 
 ```bash
-./install.sh
+cargo install --path crates/humanlint --locked
 ```
 
 Or install the package entrypoint:
 
 ```bash
-python3 -m pip install .
+cargo install --git https://github.com/jeppsontaylor/humanlint --package humanlint --locked
 humanlint /path/to/repo --json repo-score.json --md repo-score.md
 ```
 
@@ -41,7 +41,7 @@ humanlint /path/to/repo --json repo-score.json --md repo-score.md
 Run the scorer in every PR:
 
 ```bash
-python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
 ```
 
 Upload both files. The JSON is the machine contract; the Markdown is the human review surface. Teams can fail CI on score, caps, or selected severities.

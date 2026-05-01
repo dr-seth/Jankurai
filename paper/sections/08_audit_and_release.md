@@ -111,7 +111,7 @@ Every finding needs path, evidence, and repair text. A score without repair guid
 Every adopting repo should run:
 
 ```bash
-python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
 ```
 
 CI should upload both outputs and fail when policy thresholds are crossed. Adoption can be phased:

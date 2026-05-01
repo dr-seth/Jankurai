@@ -16,7 +16,7 @@ Testing is routed proof. Agents should not guess which tests matter.
 
 For this workspace:
 
-- `just versions` checks version and artifact bindings.
+- `just versions` checks version and artifact bindings through the Rust auditor.
 - `just ux-qa` builds and tests the optional Playwright geometry runtime.
 - `just fast` runs the scorer on stdout.
 - `just score` writes `repo-score.json` and `repo-score.md`.
