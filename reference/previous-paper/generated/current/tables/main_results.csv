@@ -1,7 +1,0 @@
-issue,condition,runs,successes,solve_rate,hidden_pass_rate,median_successful_total_tokens,expected_tokens_to_success,median_duration_seconds
-ISSUE-01-entitlement-grace,bare,3,3,1.0,1.0,176039.0,181648.0,24.0
-ISSUE-01-entitlement-grace,proof-full,3,3,1.0,1.0,219220.0,194770.0,29.0
-ISSUE-03-webhook-incident,bare,3,3,1.0,1.0,275134.0,277192.3333333333,39.0
-ISSUE-03-webhook-incident,proof-full,3,3,1.0,1.0,301651.0,266301.3333333333,37.0
-ISSUE-04-entitlement-recovery-replay,bare,3,3,1.0,1.0,921621.0,1034398.6666666666,72.0
-ISSUE-04-entitlement-recovery-replay,proof-full,3,2,0.6666666666666666,0.6666666666666666,962157.5,962157.5,67.0
