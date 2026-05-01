@@ -13,6 +13,18 @@
       "command": "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md",
       "purpose": "verify docs remain agent-readable and routed"
     },
+    "humanlint/": {
+      "command": "python3 -m py_compile humanlint/*.py tools/*.py && python3 tools/humanlint.py . --json repo-score.json --md repo-score.md",
+      "purpose": "verify the audit package compiles and still emits JSON/Markdown"
+    },
+    "package.json": {
+      "command": "npm ci && npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
+      "purpose": "verify the npm workspace and UX QA runtime"
+    },
+    "packages/ux-qa/": {
+      "command": "npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
+      "purpose": "verify the Playwright geometry runtime"
+    },
     "paper/humanlint.tex": {
       "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
       "purpose": "build the paper"

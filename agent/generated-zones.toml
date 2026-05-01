@@ -11,6 +11,12 @@ command = "epstopdf paper/figures/stack-ranking.eps --outfile=paper/figures/stac
 read_only = true
 
 [[zone]]
+path = "paper/humanlint.pdf"
+source = "paper/humanlint.tex"
+command = "just paper"
+read_only = true
+
+[[zone]]
 path = "repo-score.json"
 source = "tools/humanlint.py"
 command = "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md"
@@ -21,3 +27,9 @@ path = "repo-score.md"
 source = "tools/humanlint.py"
 command = "python3 tools/humanlint.py . --json repo-score.json --md repo-score.md"
 read_only = false
+
+[[zone]]
+path = "package-lock.json"
+source = "package.json and packages/*/package.json"
+command = "npm install"
+read_only = true

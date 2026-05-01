@@ -1,0 +1,27 @@
+\section{Exceptions, Observability, and Repair Receipts}
+
+Exceptions are where teams should pool hard-earned repair knowledge. A normal exception tells a human that something failed. An agent-friendly exception tells a repair system what invariant was protected, why it failed, where to read the rule, and what repairs are usually legal.
+
+The shape should combine language-native errors with standardized machine-readable fields. HTTP APIs should use RFC 9457 problem details for boundary errors \cite{rfc9457ProblemDetails2023}. Observability should emit OpenTelemetry exception attributes such as exception type, message, stack trace, and error type \cite{otelSemanticConventions2026,otelExceptionAttributes2026}. TypeScript can preserve underlying causes with \texttt{Error.cause} \cite{mdnErrorCause2026}. Rust should prefer typed errors for domain/application code, using context wrappers only at boundaries where opaque provider detail is acceptable \cite{rustByExampleError2026,anyhowDocs2026}.
+
+\begin{table}[t]
+\caption{Minimum repair receipt fields.}
+\label{tab:repair-receipts}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.30\columnwidth} Y}
+\toprule
+\textbf{Field} & \textbf{Purpose} \\
+\midrule
+\texttt{rule\_id} & Stable humanlint rule or exception ID. \\
+\texttt{owner} & Owning path, team, or layer. \\
+\texttt{failure} & What invariant or proof lane failed. \\
+\texttt{changed\_paths} & Exact edit surface. \\
+\texttt{proof\_lane} & Command or CI job that accepted the repair. \\
+artifact versions & Standard, auditor, schema, paper, and generated artifact bindings. \\
+\texttt{next\_repair} & Bounded follow-up when the fix is partial. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Every controlled error that can reach logs, API responses, background jobs, or tests should expose a stable name, stable code, purpose, reason, common fixes, documentation URL, safe user message, correlation ID, and source cause when safe. The point is not verbosity. The point is to make a failing test or production trace directly actionable for the next agent.

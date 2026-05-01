@@ -18,8 +18,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Iterator
 
+from .ux_readiness import ux_qa_status
+
 
 STANDARD_VERSION = "0.2.0"
+AUDITOR_VERSION = "0.2.0"
+SCHEMA_VERSION = "1.0.0"
+PAPER_EDITION = "2026.05-ed1"
+TARGET_STACK_ID = "rust-ts-vite-react-postgres-bounded-python"
 TARGET_STACK = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service"
 
 WEIGHTS = {
@@ -53,6 +59,7 @@ CAPS = [
     ("generated-zone-mutation-risk", 76),
     ("direct-db-access-from-wrong-layer", 66),
     ("missing-web-e2e-lane", 82),
+    ("missing-rendered-ux-qa-lane", 84),
     ("missing-rust-property-or-integration-tests", 82),
     ("no-agent-friendly-exception-pattern", 76),
     ("missing-agent-readable-docs", 80),
@@ -217,6 +224,7 @@ ALLOWED_PYTHON_ROOTS = {
     "benchmarks",
     "docs",
     "examples",
+    "humanlint",
     "paper",
     "python/ai-service",
     "reference",
@@ -274,6 +282,7 @@ NON_OPTIMAL_CODE_SUFFIXES = {
 
 ANALYSIS_EXCLUDED_PREFIXES = (
     "docs/",
+    "humanlint/",
     "paper/",
     "reference/",
     "scripts/",
@@ -638,7 +647,7 @@ FUTURE_HOSTILE_FINDING_LIMIT = 64
 MAX_CAPTURE_CHARS = 120_000
 
 
-@dataclass(slots=True)
+@dataclass
 class FileInfo:
     rel_path: str
     abs_path: Path
@@ -669,7 +678,7 @@ class FileInfo:
         return self.suffix in CODE_EXTS
 
 
-@dataclass(slots=True)
+@dataclass
 class DimensionResult:
     name: str
     weight: int
@@ -679,7 +688,7 @@ class DimensionResult:
     notes: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
+@dataclass
 class Finding:
     severity: str
     category: str
@@ -687,6 +696,7 @@ class Finding:
     problem: str
     agent_fix: str
     evidence: list[str]
+    rule_id: str | None = None
     line: int | None = None
     matched_term: str | None = None
     reason: str | None = None
@@ -702,10 +712,11 @@ class Finding:
             "reason": self.reason or self.problem,
             "agent_fix": self.agent_fix,
             "evidence": self.evidence,
+            "rule_id": self.rule_id,
         }
 
 
-@dataclass(slots=True)
+@dataclass
 class RepoContext:
     root: Path
     all_files: list[FileInfo]
@@ -1296,7 +1307,15 @@ def large_brace_functions(file: FileInfo) -> list[dict]:
 
 
 def has_web_surface(ctx: RepoContext) -> bool:
-    return has_prefix(ctx, "apps/web") or any(file.suffix in {".tsx", ".ts"} and starts_with_any(file.rel_path, ("frontend/", "ui/")) for file in ctx.all_files)
+    if any(has_prefix(ctx, prefix) for prefix in ("apps/web", "web", "frontend", "ui", "packages/web", "packages/ui")):
+        return True
+    package_text = lower_join(file for file in ctx.all_files if file.name == "package.json")
+    if has_any(package_text, {"react", "vite", "next", "storybook"}):
+        return True
+    return any(
+        file.suffix in {".tsx", ".ts"} and starts_with_any(file.rel_path, ("frontend/", "ui/", "packages/web/", "packages/ui/"))
+        for file in ctx.all_files
+    )
 
 
 def has_rust_surface(ctx: RepoContext) -> bool:
@@ -1734,6 +1753,18 @@ def proof_lanes_dimension(ctx: RepoContext) -> DimensionResult:
     else:
         score -= 10
         notes.append("web surface lacks Playwright/Cypress e2e lane")
+
+    ux_qa = ux_qa_status(ctx, has_web_surface(ctx))
+    if ux_qa.has_rendered_ux_lane:
+        score += 6
+        evidence.append("rendered UX QA lane present or no web surface")
+    else:
+        score -= 6
+        notes.append("web surface lacks layered rendered UX QA")
+
+    if ux_qa.geometry_runtime:
+        score += 4
+        evidence.append("DOM geometry UX QA runtime found")
 
     if has_rust_property_tests(ctx) and has_rust_integration_tests(ctx):
         score += 8
@@ -2200,6 +2231,11 @@ def scan_repo(ctx: RepoContext) -> tuple[list[DimensionResult], list[Finding], l
         caps_applied.append("missing-web-e2e-lane")
         cap_limit = min(cap_limit, 82)
 
+    ux_qa = ux_qa_status(ctx, has_web_surface(ctx))
+    if ux_qa.web_surface and not ux_qa.has_rendered_ux_lane:
+        caps_applied.append("missing-rendered-ux-qa-lane")
+        cap_limit = min(cap_limit, 84)
+
     if has_rust_surface(ctx) and (not has_rust_property_tests(ctx) or not has_rust_integration_tests(ctx)):
         caps_applied.append("missing-rust-property-or-integration-tests")
         cap_limit = min(cap_limit, 82)
@@ -2232,6 +2268,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
         line: int | None = None,
         matched_term: str | None = None,
         reason: str | None = None,
+        rule_id: str | None = None,
     ) -> None:
         findings.append(
             Finding(
@@ -2241,6 +2278,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 problem=problem,
                 agent_fix=fix,
                 evidence=evidence,
+                rule_id=rule_id,
                 line=line,
                 matched_term=matched_term,
                 reason=reason,
@@ -2284,6 +2322,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "no fast lane markers found",
                 "no targeted fast validation command surfaced",
             ],
+            rule_id="HLT-004-UNMAPPED-PROOF",
         )
 
     if "no-security-lane-on-high-risk-repo" in caps_applied:
@@ -2297,6 +2336,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "no security lane markers found",
                 "repo contains executable/code surface",
             ],
+            rule_id="HLT-009-GENERATED-SECURITY",
         )
 
     if "generated-contracts-or-public-api-drift-untested" in caps_applied:
@@ -2310,6 +2350,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "contract surface exists",
                 "no generated contract evidence or API drift check found",
             ],
+            rule_id="HLT-007-HANDWRITTEN-CONTRACT",
         )
 
     if "python-direct-product-truth-or-db-ownership" in caps_applied:
@@ -2328,6 +2369,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 bad[0] if bad else "python path outside allowed roots",
                 "Python should stay away from product truth and production DB ownership",
             ],
+            rule_id="HLT-005-PYTHON-PRODUCT-TRUTH",
         )
 
     if "no-secret-or-dependency-scanning-in-ci" in caps_applied:
@@ -2341,6 +2383,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "no CI scan markers found",
                 "no secret/dependency scanning surfaced in automation",
             ],
+            rule_id="HLT-010-SECRET-SPRAWL",
         )
 
     if "no-humanlint-audit-lane-in-ci" in caps_applied:
@@ -2399,6 +2442,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 f"{first['path']}:{first['line']} {first['text']}",
                 "placeholders are hard failures in agent-native product code",
             ],
+            rule_id="HLT-001-DEAD-MARKER",
         )
 
     fallbacks = fallback_soup_hits(ctx)
@@ -2414,6 +2458,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 f"{first['path']}:{first['line']} {first['text']}",
                 f"{len(fallbacks)} fallback marker(s) found in scoped runtime code",
             ],
+            rule_id="HLT-001-DEAD-MARKER",
         )
 
     future_hostile = future_hostile_dead_language_hits(ctx)
@@ -2432,6 +2477,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 line=hit["line"],
                 matched_term=hit["matched_term"],
                 reason=hit["reason"],
+                rule_id="HLT-001-DEAD-MARKER",
             )
 
     duplicates = duplicate_blocks(ctx)
@@ -2462,6 +2508,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 f"{first['path']}:{first['line']} {first['text']}",
                 "generated files must be repaired from source contracts, not edited by hand",
             ],
+            rule_id="HLT-002-GENERATED-MUTATION",
         )
 
     strict_db = wrong_layer_db_hits(ctx)
@@ -2477,6 +2524,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 f"{first['path']}:{first['line']} {first['text']}",
                 "UI, API handlers, domain, and application layers must not own raw DB access",
             ],
+            rule_id="HLT-006-DIRECT-DB-WRONG-LAYER",
         )
 
     if "missing-web-e2e-lane" in caps_applied:
@@ -2490,6 +2538,19 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "web surface detected",
                 "no Playwright/Cypress/e2e marker found",
             ],
+            rule_id="HLT-013-RENDERED-UX-GAP",
+        )
+
+    if "missing-rendered-ux-qa-lane" in caps_applied:
+        ux_qa = ux_qa_status(ctx, True)
+        add_finding(
+            "high",
+            "ux-qa",
+            "apps/web",
+            "web surface lacks layered rendered UX QA evidence",
+            "add Storybook state coverage, Playwright screenshots, visual review or `@humanlint/ux-qa`, accessibility scans, CLS checks, generated mocks, and design tokens",
+            ux_qa.missing_categories or ["rendered UX QA lane missing"],
+            rule_id="HLT-013-RENDERED-UX-GAP",
         )
 
     if "missing-rust-property-or-integration-tests" in caps_applied:
@@ -2508,6 +2569,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "Rust surface detected",
                 f"missing: {', '.join(missing)}",
             ],
+            rule_id="HLT-008-FALSE-GREEN-RISK",
         )
 
     if "no-agent-friendly-exception-pattern" in caps_applied:
@@ -2521,6 +2583,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 "no error type with purpose/reason/common fixes/docs URL markers found",
                 "agents need structured repair hints instead of opaque failures",
             ],
+            rule_id="HLT-017-OPAQUE-OBSERVABILITY",
         )
 
     if "missing-agent-readable-docs" in caps_applied:
@@ -2607,6 +2670,7 @@ def build_agent_fix_queue(findings: list[Finding]) -> list[dict]:
             {
                 "path": finding.path,
                 "priority": finding.severity,
+                "rule_id": finding.rule_id,
                 "task": finding.agent_fix,
                 "why": finding.problem,
             }
@@ -2626,6 +2690,10 @@ def report_to_dict(
     return {
         "standard": "humanlint",
         "standard_version": STANDARD_VERSION,
+        "auditor_version": AUDITOR_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "paper_edition": PAPER_EDITION,
+        "target_stack_id": TARGET_STACK_ID,
         "target_stack": TARGET_STACK,
         "repo": str(ctx.root),
         "scope": {
@@ -2653,6 +2721,7 @@ def report_to_dict(
             }
             for dim in dimensions
         ],
+        "ux_qa": ux_qa_status(ctx, has_web_surface(ctx)).as_dict(),
         "findings": [finding.as_dict() for finding in findings],
         "agent_fix_queue": agent_fix_queue,
     }
@@ -2663,6 +2732,10 @@ def render_markdown(report: dict) -> str:
     lines.append("# humanlint Repo Score")
     lines.append("")
     lines.append(f"- Standard: `{report.get('standard', 'humanlint')} {report.get('standard_version', '')}`")
+    lines.append(f"- Auditor: `{report.get('auditor_version', '')}`")
+    lines.append(f"- Schema: `{report.get('schema_version', '')}`")
+    lines.append(f"- Paper edition: `{report.get('paper_edition', '')}`")
+    lines.append(f"- Target stack ID: `{report.get('target_stack_id', '')}`")
     lines.append(f"- Target stack: `{report.get('target_stack', TARGET_STACK)}`")
     lines.append(f"- Repo: `{report['repo']}`")
     scope = report.get("scope", {})
@@ -2693,6 +2766,15 @@ def render_markdown(report: dict) -> str:
             f"| {dim['name']} | {dim['weight']} | {dim['score']} | {dim['weighted_points']:.2f} | {evidence} |"
         )
     lines.append("")
+    ux_qa = report.get("ux_qa", {})
+    if ux_qa:
+        lines.append("## Rendered UX QA")
+        lines.append("")
+        lines.append(f"- Web surface: `{ux_qa.get('web_surface', False)}`")
+        lines.append(f"- Layered UX lane: `{ux_qa.get('has_rendered_ux_lane', False)}`")
+        missing = ux_qa.get("missing_categories") or []
+        lines.append(f"- Missing: `{', '.join(missing) if missing else 'none'}`")
+        lines.append("")
     lines.append("## Findings")
     lines.append("")
     if report["findings"]:
@@ -2701,6 +2783,8 @@ def render_markdown(report: dict) -> str:
             if finding.get("line"):
                 location = f"{location}:{finding['line']}"
             lines.append(f"{idx}. `{finding['severity']}` `{finding['category']}` `{location}`")
+            if finding.get("rule_id"):
+                lines.append(f"   Rule: `{finding['rule_id']}`")
             if finding.get("matched_term"):
                 lines.append(f"   Matched term: `{finding['matched_term']}`")
             lines.append(f"   Reason: {finding.get('reason') or finding['problem']}")
@@ -2714,7 +2798,8 @@ def render_markdown(report: dict) -> str:
     lines.append("")
     if report["agent_fix_queue"]:
         for idx, item in enumerate(report["agent_fix_queue"], start=1):
-            lines.append(f"{idx}. `{item['priority']}` `{item['path']}` - {item['task']}")
+            rule = f" `{item['rule_id']}`" if item.get("rule_id") else ""
+            lines.append(f"{idx}. `{item['priority']}`{rule} `{item['path']}` - {item['task']}")
     else:
         lines.append("No queued fixes.")
     return "\n".join(lines) + "\n"

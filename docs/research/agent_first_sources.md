@@ -429,7 +429,7 @@ Use only as directional signal:
 - Reddit Claude Code threads focus on memory placement, instruction size, and auto-memory confusion: https://www.reddit.com/r/ClaudeCode/
 - Reddit Codex threads focus on whether `AGENTS.md` was loaded and how to force reliable project guidance: https://www.reddit.com/r/codex/
 - Reddit Playwright threads reinforce official guidance against hard waits and brittle assertions: https://www.reddit.com/r/Playwright/
-- X/Twitter posts are useful for launch announcements and sentiment, but unstable for citation. Do not use X as evidence for the paper unless archived or mirrored by official docs/blogs.
+- X/Twitter posts are useful for launch announcements and sentiment, but unstable for citation. Do not use X as evidence for the paper unless mirrored by official docs/blogs.
 
 ## Suggested BibTeX Keys
 

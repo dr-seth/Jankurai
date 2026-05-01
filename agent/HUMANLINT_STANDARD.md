@@ -3,11 +3,12 @@
 Standard version: `0.2.0`
 Published: `2026-05-01`
 Full standard: `docs/agent-native-standard.md`
+Version manifest: `agent/standard-version.toml`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 
 ## Prime Directive
 
-Optimize for agent-verifiable engineering, not human comfort. Reject wrong code fast, localize failure, repair narrow scope, and leave evidence.
+Optimize for agent-verifiable engineering. Reject wrong code fast, localize failure, repair narrow scope, and leave evidence.
 
 Target stack:
 
@@ -19,17 +20,31 @@ Target stack:
 
 ## Start Ritual
 
-Before any edit:
+Before edits:
 
 - read this file
 - read `docs/agent-native-standard.md` when policy detail matters
 - inspect `agent/owner-map.json`
 - inspect `agent/test-map.json`
-- inspect `agent/generated-zones.toml` if present
-- check target file LOC before adding behavior
+- inspect `agent/generated-zones.toml`
+- inspect `agent/standard-version.toml` for versioned artifacts
+- check target file length before adding behavior
 - search for existing owner and duplicate behavior
 
 Do not edit outside the requested ownership scope.
+
+## Conformance
+
+Only repositories claiming humanlint conformance are bound by these levels:
+
+| Level | Gate |
+| --- | --- |
+| `HL0` | unscored or unrouted |
+| `HL1` | advisory audit |
+| `HL2` | guarded critical caps |
+| `HL3` | standard score floor plus high/critical blocking |
+| `HL4` | ratchet against regression |
+| `HL5` | release contract across audit, tests, security, contracts, DB, e2e, and versions |
 
 ## Hard Blocks
 
@@ -39,109 +54,61 @@ Stop or fix first when any condition is true:
 - no one-command fast validation
 - path has no owner-map entry
 - path has no test-map entry
-- non-generated file exceeds hard LOC max
+- non-generated file exceeds hard LOC max without an exception
 - generated file would need hand edit
 - public API/schema changes without contract regeneration
 - UI, Python, or domain code writes product truth directly
 - Python owns product authorization or production DB writes
 - new silent fallback, broad catch, disabled test, or duplicate behavior
-- product/runtime code contains future-hostile dead language such as `legacy`, `deprecated`, `temporary`, `fallback`, `stub`, `TODO`, `workaround`, or `shim` without an explicit allowlisted product-copy/docs/generated/vendor context
+- product/runtime code contains future-hostile markers without allowlisted docs/generated/vendor/product-copy context or dated exception
 - high-risk change lacks security lane
+- generated code changes auth/input/crypto/filesystem behavior without security proof
+- agent tool permissions are broader than the requested lane
+- user-facing UI changes lack rendered UX proof on critical surfaces
 
-## LOC Limits
+## Stable Rule IDs
 
-Generated files are exempt only when declared generated.
-
-| Artifact | Hard max |
-|---|---:|
-| Rust domain file | 350 LOC |
-| Rust application file | 400 LOC |
-| Rust adapter file | 450 LOC |
-| Rust function | 70 LOC |
-| TypeScript React component | 280 LOC |
-| TypeScript hook/helper | 220 LOC |
-| TypeScript route/page | 350 LOC |
-| TypeScript function | 60 LOC |
-| Python AI/data file | 300 LOC |
-| Python function | 60 LOC |
-| SQL migration | 350 LOC |
-| agent instruction markdown | 180 lines |
-| design markdown | 600 lines |
-
-If target exceeds limit, refactor by ownership before adding behavior.
-
-## Layout Contract
-
-```text
-repo/
-  AGENTS.md
-  agent/
-    HUMANLINT_STANDARD.md
-    owner-map.json
-    test-map.json
-    generated-zones.toml
-    repo-score.json
-  apps/
-    web/
-    api/
-  crates/
-    domain/
-    application/
-    adapters/
-    workers/
-  contracts/
-    openapi/
-    protobuf/
-    json-schema/
-    generated/
-  db/
-    migrations/
-    constraints/
-    seeds/
-  python/
-    ai-service/
-  ops/
-    ci/
-    observability/
-    security/
-  docs/
-    decisions/
-    exceptions/
-    runbooks/
-```
+| Rule | Meaning |
+| --- | --- |
+| `HLT-001-DEAD-MARKER` | future-hostile product/runtime marker |
+| `HLT-002-GENERATED-MUTATION` | generated output changed outside source regeneration |
+| `HLT-003-OWNERLESS-PATH` | path has no owner-map route |
+| `HLT-004-UNMAPPED-PROOF` | path has no test-map proof lane |
+| `HLT-005-PYTHON-PRODUCT-TRUTH` | Python owns durable product behavior |
+| `HLT-006-DIRECT-DB-WRONG-LAYER` | DB access appears outside adapters/db |
+| `HLT-007-HANDWRITTEN-CONTRACT` | public API/client contract is mirrored by hand |
+| `HLT-008-FALSE-GREEN-RISK` | passing lane does not prove changed behavior |
+| `HLT-009-GENERATED-SECURITY` | generated security-sensitive code lacks security proof |
+| `HLT-010-SECRET-SPRAWL` | secret-like value, env dump, fixture, or transcript leak |
+| `HLT-011-PROMPT-INJECTION` | untrusted context changes trusted policy/tool behavior |
+| `HLT-012-OVERBROAD-AGENCY` | agent/tool permissions exceed lane scope |
+| `HLT-013-RENDERED-UX-GAP` | user-facing UI lacks rendered proof |
+| `HLT-014-A11Y-GAP` | UI lacks accessibility proof for changed surface |
+| `HLT-015-CONTEXT-SETUP-GAP` | setup/context routing is not deterministic |
+| `HLT-016-SUPPLY-CHAIN-DRIFT` | dependency/provenance change lacks review evidence |
+| `HLT-017-OPAQUE-OBSERVABILITY` | boundary failure lacks repairable telemetry |
+| `HLT-018-PERF-CONCURRENCY-DRIFT` | performance/concurrency risk lacks proof |
 
 ## Ownership Boundaries
 
 | Layer | Owns | Never owns |
-|---|---|---|
-| `apps/web` | UI, forms, local validation, generated clients | secrets, durable truth, core authz, direct DB writes |
-| `apps/api` | HTTP/RPC edge, request/response mapping | domain rules, raw SQL decisions |
-| `crates/domain` | IDs, invariants, state machines, pure decisions | IO, env, time, random, DB, framework types |
+| --- | --- | --- |
+| `apps/web` | UI, forms, generated clients, browser tests | secrets, durable truth, core authz, direct DB |
+| `apps/api` | HTTP/RPC edge, extraction, response mapping | domain rules, raw SQL decisions |
+| `crates/domain` | IDs, invariants, pure decisions | IO, env, time, random, DB, framework types |
 | `crates/application` | commands, authz, idempotency, transactions | UI, external protocol details |
 | `crates/adapters` | DB, queues, external APIs, filesystem, env | domain rules |
-| `crates/workers` | jobs, backpressure, durable workflow glue | product truth outside application |
+| `crates/workers` | jobs, backpressure, workflow glue | product truth outside application |
 | `contracts` | OpenAPI/protobuf/JSON Schema and generated clients | handwritten drift |
 | `db` | migrations, constraints, indexes, RLS | app-only durable invariants |
 | `python/ai-service` | models, embeddings, evals, data transforms | product truth, authz, production DB writes |
 | `ops` | CI, OTel, SBOM, SCA, secrets, provenance | hidden manual gates |
 
-## Refactor Rules
-
-- split by owner cell, domain concept, use case, adapter, or UI surface
-- no new `utils`, `helpers`, `common`, `misc`, `legacy`, or `shared` junk drawers
-- no future-hostile markers in product/runtime code: `legacy`, `deprecated`, `depricated`, `obsolete`, `old`, `temporary`, `temp`, `workaround`, `shim`, `compat`, `backcompat`, `fallback`, `best effort`, `cleanup later`, `remove later`, `dead code`, `unused`, `stale`, `hack`, `todo`, `fixme`, `placeholder`, `stub`, or `dummy`
-- duplicate behavior on second appearance becomes one owning module or generated contract
-- third call site needs table/property tests
-- Rust domain stays pure
-- TypeScript uses generated API clients only
-- Python stays boxed under `python/ai-service`
-- every exception to these rules needs `docs/exceptions/<id>.md` with owner, reason, expiration, and migration plan
-
 ## Generated Zones
 
 Never hand-edit generated files. Change source contract and regenerate.
 
-Generated files must include:
+Generated files must declare:
 
 ```text
 Generated by: <tool> <version>
@@ -150,139 +117,53 @@ Command: <regen command>
 DO NOT EDIT BY HAND.
 ```
 
-## Test Lanes
+## Proof Lanes
 
-Use `agent/test-map.json` to select lane.
+Use `agent/test-map.json` to select the smallest credible lane.
 
-Required lanes:
+Required lane names:
 
 - `fast`: deterministic local proof under 2 minutes
 - `contract`: public API/schema compatibility
 - `db`: migrations, constraints, tenant/data rules
-- `web`: component/type/UI behavior
-- `e2e`: critical browser journeys, preferably Playwright
+- `web`: component/type/rendered UX behavior
+- `e2e`: critical browser journeys
 - `security`: secrets, dependencies, unsafe, SBOM/SCA
 - `observability`: traces, request IDs, structured errors
-- `audit`: humanlint standard audit
+- `audit`: humanlint JSON/Markdown report
 - `release`: all merge gates
 
-Run smallest mapped lane before final response. Report skipped lanes.
+## Audit Output
 
-## Agent-Friendly Exceptions
+Every audit should produce JSON and Markdown with:
 
-Boundary errors must carry:
+- `standard_version`
+- `auditor_version`
+- `schema_version`
+- `paper_edition`
+- `target_stack_id`
+- raw and final score
+- hard caps
+- dimension breakdown
+- findings with evidence
+- ordered `agent_fix_queue`
 
-- `name`
-- `purpose`
-- `reason_code`
-- `message` with no secrets
-- `common_fixes`
-- `docs_url`
-- `owner`
-- `retryable`
-- `severity`
-- `correlation_id`
-- `source`
-- `contract_version`
+## Repair Receipts
 
-Forbidden:
+For non-trivial fixes, leave enough evidence for the next agent:
 
-- string-only boundary errors
-- Python bare `except`
-- TypeScript `throw "message"`
-- catch-all without reason code
-- HTTP 500 without stable error payload
-- Rust `panic`, `unwrap`, or `expect` in production paths without documented invariant
+- changed paths
+- failed rule or lane
+- proof command
+- artifact versions
+- remaining exception or follow-up
 
-## CI Audit
+## Local Commands
 
-Every PR must run audit and produce:
-
-- JSON score
-- markdown summary
-- high finding annotations or PR comment
-- agent-friendly repair queue
-
-Fail PR when:
-
-- score below `85`
-- any hard cap below `80`
-- high finding lacks exception
-- generated drift exists
-- fast lane missing
-- high-risk repo lacks security lane
-- major standard update has no migration plan after 30 days
-
-## Vibe-Coding Failures To Reject
-
-Block or flag:
-
-- god files
-- mega functions
-- junk drawers
-- duplicate logic
-- handwritten API types
-- handwritten client drift
-- silent fallbacks
-- broad catches
-- uncontrolled retries
-- dead TODO/FIXME/HACK
-- disabled or no-assertion tests
-- snapshot-only tests
-- TypeScript `any` or `@ts-ignore` without exception
-- Rust unsafe/unwrap/expect/panic without ledger
-- too much Python
-- Python product truth
-- notebooks in production paths
-- direct DB from UI
-- IO in Rust domain
-- app-only durable invariants
-- unsafe migrations
-- secrets in code/logs
-- dependency spray
-- multiple package managers without reason
-- unpinned CI/runtime artifacts where policy requires pinning
-- missing traces/request IDs
-- context-bloated agent docs
-- orphan files
-- vague names
-- stale docs
-
-## Token Rules
-
-- keep root agent files short
-- keep this bootstrap short enough to load every session
-- put full detail in `docs/agent-native-standard.md`
-- use `rg`/symbol search/owner maps before broad reads
-- do not paste full logs; quote relevant lines
-- use filtered wrappers such as `rtk` when safe
-- ignore build outputs, generated outputs, vendored deps, and large artifacts
-- use path-scoped rules for tool-specific detail
-
-## Tool Adapters
-
-- Codex: root `AGENTS.md`; scoped `AGENTS.md` or `AGENTS.override.md` near specialized code.
-- Cursor: `.cursor/rules/`; prefer versioned project rules and short scoped files.
-- Claude: `CLAUDE.md` imports this file; use `.claude/rules/` for path-specific rules; verify with `/memory`.
-- Gemini: `GEMINI.md` imports this file when supported; verify with `/memory show`, `/memory list`, `/memory refresh`.
-- Antigravity: verify current rule loading for installed version; prefer shared `AGENTS.md`/`GEMINI.md`; require checkpoints before writes.
-- GitHub Copilot: `.github/copilot-instructions.md`; put critical rules in first 4,000 characters; use `.github/instructions/*.instructions.md` for path-specific details.
-
-## Version Policy
-
-- Treat this standard like a dependency.
-- Patch updates: adopt within 30 days.
-- Minor updates: adopt within 60 days or file exception.
-- Major updates: create migration plan before adoption.
-- CI warns on stale patch/minor.
-- CI fails on stale major after 30 days with no migration plan.
-
-## Final Response Contract
-
-Report:
-
-- files changed
-- validation run
-- validation skipped and why
-- audit score when audit ran
-- exceptions used or created
+```bash
+just versions
+just fast
+just score
+just paper
+just check
+```

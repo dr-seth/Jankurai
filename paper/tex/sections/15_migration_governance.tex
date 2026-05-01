@@ -1,0 +1,25 @@
+\section{Migration, Versioning, and Governance}
+
+Teams do not reach the default stack through rewrite fantasy. They move by shrinking ambiguity. First add the audit in advisory mode. Then add root instructions, owner maps, test maps, generated zones, version manifests, and proof lanes. Then generate contracts, isolate database access, move durable truth into PostgreSQL constraints and Rust application/domain code, box Python into AI/data boundaries, and add Playwright coverage for critical product paths. Only after the repo can route and prove changes should teams accelerate agent-driven migration.
+
+The standard must version quickly. The paper, audit script, agent artifacts, standard documents, generated artifacts, and CI policy should share a manifest. In this repo, \texttt{agent/standard-version.toml} binds \texttt{paper/humanlint.tex}, \texttt{paper/humanlint.pdf}, \texttt{paper/humanlint.md}, \texttt{docs/agent-native-standard.md}, and \texttt{agent/HUMANLINT\_STANDARD.md}. TeX remains the canonical paper source. The Markdown paper is an agent-friendly companion, not the source of truth.
+
+\begin{table}[t]
+\caption{CI adoption modes.}
+\label{tab:ci-modes}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.20\columnwidth} Y}
+\toprule
+\textbf{Mode} & \textbf{Merge behavior} \\
+\midrule
+Advisory & Emit JSON/Markdown reports and never block. \\
+Guarded & Block critical caps and malformed output. \\
+Standard & Block high and critical findings plus score-floor failure. \\
+Ratchet & Prevent score regression without a dated exception. \\
+Release & Gate shipped artifacts on audit, tests, security, contracts, DB, e2e, and versions. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Governance should separate empirical claims from policy choices. Scoring weights, hard caps, conformance levels, and rule IDs are versioned policy. Public source claims require citations. New audit output fields require schema versioning. Breaking compliance changes require migration notes and example repairs. The goal is not to freeze one 2026 opinion forever; it is to make the standard itself updatable without letting every repository invent a private dialect.

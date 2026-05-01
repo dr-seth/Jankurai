@@ -37,25 +37,27 @@ This is why the rubric punishes "vibe coding" even when the product seems to wor
 
 ### Top Five Stack Rankings
 
-| Rank | Stack | Score | Best role | Main reason |
+| Rank | Stack | ANSS | Best role | Main reason |
 | ---: | --- | ---: | --- | --- |
 | 1 | Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python | 94 | Best technical future stack | Strongest correctness/security loop with best product surface and durable truth |
 | 2 | Go services + TypeScript/React/Vite + PostgreSQL | 90 | Best practical default for many companies | Simple, fast, easy to standardize, excellent concurrency, weaker invariant encoding than Rust |
-| 3 | C#/.NET 10 + TypeScript/React/Vite + PostgreSQL/SQL Server | 89 | Best enterprise/regulatory stack | Mature platform, identity and enterprise tooling, strong operational story, more ceremony |
+| 3 | C#/.NET 10 + TypeScript/React/Vite + PostgreSQL | 89 | Best enterprise/regulatory stack | Mature platform, identity and enterprise tooling, strong operational story, more ceremony |
 | 4 | TypeScript product plane + Rust/Go compute cells + PostgreSQL | 88 | Best product-velocity hybrid | Fastest product iteration, good escape hatches, high boundary-drift risk |
-| 5 | Kotlin/Java 25 JVM + TypeScript/React/Vite + PostgreSQL/Kafka | 87 | Best JVM/mobile modernization stack | Strong ecosystem and concurrency options, but heavier platform and more legacy gravity |
+| 5 | Kotlin/Java 25 JVM + TypeScript/React/Vite + PostgreSQL | 87 | Necessary JVM/mobile modernization path | Strong ecosystem and concurrency options, but JVM runtime surface and legacy gravity keep it out of the standard |
 
 ```text
-Agent-native stack score
+Agent-Native Stack Score (ANSS)
 
 Rust + TS/Vite/React + PostgreSQL        94 | ##################################################
 Go + TS/Vite/React + PostgreSQL          90 | ###############################################
-C#/.NET + TS/Vite/React + SQL            89 | ###############################################
+C#/.NET + TS/Vite/React + PostgreSQL     89 | ###############################################
 TS product plane + Rust/Go cells         88 | ##############################################
 Kotlin/Java JVM + TS/Vite/React          87 | ##############################################
 ```
 
 The scores are synthesis scores, not laboratory measurements. The small gap between ranks two through five matters less than the large strategic gap between "good local choice" and "standard worth specifying globally."
+
+Kafka deserves a separate note because it is both strong and not the standard. It remains a serious event-streaming contender in brownfield systems: its semantics, ecosystem, and operational familiarity are real. But JVM-bound streaming infrastructure carries exactly the runtime and legacy surface this paper is trying to shrink. The humanlint position is therefore explicit: use Kafka when the system already needs it, treat it as necessary-evil infrastructure rather than stack identity, and expect the agent-native direction to move toward a Kafka-class, Rust-native replacement as AI compresses the cost of systems implementation.
 
 ### Why Rust Wins
 
@@ -81,11 +83,11 @@ TypeScript is indispensable at the product surface. GitHub Octoverse 2025, TypeS
 
 TypeScript should own UI, forms, route state, client-side validation, generated API clients, and product interaction. It should not own durable truth, core authorization, workflow state, billing truth, or database writes. A TypeScript-heavy product plane can be excellent when backed by Rust or Go compute cells and PostgreSQL. It becomes fragile when the BFF turns into the real backend by accident.
 
-### Why JVM Modernization Stays in the Top Five
+### Why JVM Modernization Is Only a Necessary Evil
 
-Kotlin/Java remains a serious answer because the JVM ecosystem is enormous, operationally mature, and deeply embedded in enterprise and mobile systems. Kotlin improves ergonomics, null-safety, and concurrency expression while preserving JVM reach. Java continues to modernize. Kafka and the broader JVM data ecosystem remain strong where streaming and integration dominate.
+Kotlin/Java remains a serious answer because the JVM ecosystem is enormous, operationally mature, and deeply embedded in enterprise and mobile systems. Kotlin improves ergonomics, null-safety, and concurrency expression while preserving JVM reach. Java continues to modernize. The broader JVM data ecosystem remains strong where streaming and integration dominate.
 
-The stack ranks fifth because legacy gravity is real. Agent-native work wants narrow, explicit ownership and fast proof. JVM organizations can absolutely build that, but they often start with more inherited surface area than a greenfield Rust or Go core.
+The stack ranks fifth as a migration concession, not as a future standard. Agent-native work wants narrow, explicit ownership, low runtime surface, and fast proof. JVM organizations can absolutely build that, but they often start with more inherited framework and operational gravity than a greenfield Rust or Go core. The standard should help teams escape that gravity rather than bless it.
 
 ### Specialist Override: Elixir/Phoenix
 

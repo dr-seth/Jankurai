@@ -1,0 +1,28 @@
+\section{Technical Promise Versus Standard Gravity}
+
+New languages emerge when an existing compression package stops matching the dominant pain. They fracture around runtime ceilings, ecosystem gaps, tooling weakness, migration cost, hiring constraints, interop friction, and fashion that lacks enforcement. A language can be technically excellent and still fail as a default company architecture if it lacks the operational surround: boring deployment, security scanning, observability, package maturity, database migration norms, and enough public examples for agents and humans to learn from.
+
+Julia is the cleanest example of legitimate promise without universal default status. Its multiple dispatch, JIT compilation, and scientific-computing focus attack the two-language problem in numerical work: prototype in a high-level language, then rewrite hot paths in C, C++, or Fortran \cite{bezansonJulia2017}. That is a real problem, and Julia remains a serious answer for many scientific domains. The adoption lesson is not that Julia is bad. The lesson is that solving an inner-loop expression problem does not automatically solve company-scale product engineering, cloud operations, security review, hiring, packaging, and cross-language contract discipline.
+
+\begin{table*}[t]
+\caption{Technical promise versus standard gravity.}
+\label{tab:standard-gravity}
+\centering
+\small
+\begin{tabularx}{\textwidth}{L{0.15\textwidth} Y Y Y}
+\toprule
+\textbf{Language or ecosystem} & \textbf{Real promise} & \textbf{Adoption limiter} & \textbf{Agent-era penalty} \\
+\midrule
+Julia & Scientific productivity with performance-oriented multiple dispatch. & Broader product engineering ecosystem and deployment defaults lag dominant stacks. & Thinner general-product corpus and more local conventions. \\
+D & Better C++-class systems ergonomics. & Could not displace entrenched C/C++ ecosystems and tooling gravity. & Smaller examples and weaker enterprise defaults. \\
+Nim and Crystal & Python/Ruby-like ergonomics with native compilation. & Smaller communities, fewer boring production patterns. & Agents get fewer canonical examples and fewer tool-enforced boundaries. \\
+Elm & Frontend reliability and no-runtime-exception ambition. & Ecosystem and interop constraints limited broad adoption. & Excellent lessons, but narrow hiring and corpus surface. \\
+Reason/OCaml frontend & Typed functional UI with serious compiler roots. & Tooling and community fragmentation. & Harder for general agents to infer local conventions. \\
+F\# and Clojure & High-leverage functional design on mature runtimes. & Strong niches, smaller mainstream product footprint. & Expert-friendly abstractions can become opaque to repair agents. \\
+Haskell and Scala & Powerful type-system and abstraction research translated to production niches. & Complexity and hiring/training friction. & Proof power helps only when conventions are explicit and common. \\
+Elixir/Phoenix & Fault tolerance, supervision, realtime systems on the BEAM. & Specialist fit rather than universal product default. & Wins realtime collaboration, not general stack standardization. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The shelf is not a graveyard of bad ideas. It is evidence that technical elegance and default-standard status are different things. Agent-native engineering rewards stacks where examples, tools, contracts, tests, and deployment conventions are abundant enough that agents can be constrained rather than merely prompted.

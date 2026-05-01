@@ -1,0 +1,54 @@
+\section{Rule IDs and Conformance Evidence}
+
+Stable rule identifiers make audit output durable enough for repair agents, CI annotations, and release notes.
+
+\begin{table*}[h]
+\caption{Initial humanlint rule identifiers.}
+\label{tab:rule-ids}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.34\textwidth} Y Y}
+\toprule
+\textbf{Rule ID} & \textbf{Required evidence} & \textbf{Default repair} \\
+\midrule
+\texttt{HLT-001-DEAD-MARKER} & Path, line, matched term, allowlist decision. & Rename to the real state, implement it, delete it, or create a dated exception. \\
+\texttt{HLT-002-GENERATED-MUTATION} & Generated path, source path, regeneration command, diff context. & Change the source contract or generator and regenerate. \\
+\texttt{HLT-003-OWNERLESS-PATH} & Changed path with no owner-map match. & Add owner-map entry or move code into owned path. \\
+\texttt{HLT-004-UNMAPPED-PROOF} & Changed path with no test-map lane. & Add or select deterministic proof command. \\
+\texttt{HLT-005-PYTHON-PRODUCT-TRUTH} & Python path owning product truth, authz, or production DB writes. & Move durable behavior to Rust/PostgreSQL or box Python as AI/data service. \\
+\texttt{HLT-006-DIRECT-DB-WRONG-LAYER} & SQL or DB client marker in UI/domain/application/Python truth path. & Move data access to adapters or migrations. \\
+\texttt{HLT-007-HANDWRITTEN-CONTRACT} & Mirrored DTO, local fetch wrapper, or hand-authored client drift. & Generate from OpenAPI/Protobuf/JSON Schema. \\
+\texttt{HLT-008-FALSE-GREEN-RISK} & Changed behavior accepted by unrelated, weak, skipped, or mock-only lane. & Route to owner lane and add semantic assertion. \\
+\texttt{HLT-009-GENERATED-SECURITY} & AI-generated code changes auth, input handling, crypto, deserialization, logging, or filesystem behavior without security proof. & Run security lane, add negative tests, and attach threat-model evidence. \\
+\texttt{HLT-010-SECRET-SPRAWL} & Secret-like value, broad env dump, unsafe fixture, prompt transcript leak, or missing secret scan. & Remove secret, rotate if needed, add scanner evidence and redaction tests. \\
+\texttt{HLT-011-PROMPT-INJECTION} & Untrusted issue, web, doc, or tool output changes trusted policy or tool behavior. & Preserve source hierarchy, isolate untrusted context, and record ignored instruction. \\
+\texttt{HLT-012-OVERBROAD-AGENCY} & Agent/tool lane allows broad shell, browser, network, migration, delete, or credential actions. & Add least-privilege permission profile and approval gate. \\
+\texttt{HLT-013-RENDERED-UX-GAP} & User-facing UI change lacks screenshot, trace, geometry, baseline, or viewport proof. & Add Storybook/Playwright/geometry evidence for changed surface. \\
+\texttt{HLT-014-A11Y-GAP} & UI lacks labels, keyboard path, focus visibility, target size, ARIA, or axe evidence. & Add accessibility checks and route semantic gaps to expert review. \\
+\texttt{HLT-015-CONTEXT-SETUP-GAP} & Repo lacks deterministic setup/context routing or agent follows stale surrounding context. & Add one-command setup, owner/test maps, local rules, and filtered output. \\
+\texttt{HLT-016-SUPPLY-CHAIN-DRIFT} & Dependency added without rationale, lockfile review, vulnerability scan, SBOM, or provenance. & Add dependency rationale, scanner result, and provenance evidence. \\
+\texttt{HLT-017-OPAQUE-OBSERVABILITY} & Boundary failure lacks stable code, trace/correlation ID, safe message, or repair hint. & Use problem details, OpenTelemetry attributes, and agent-friendly errors. \\
+\texttt{HLT-018-PERF-CONCURRENCY-DRIFT} & Patch adds polling, query duplication, unbounded concurrency, missing cancellation, or memory risk. & Add benchmark/query/load/backpressure evidence and trace the hot path. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The audit JSON should include the rule ID whenever a finding maps cleanly to one of these rules. Rules outside the initial set may use category IDs until they stabilize.
+
+\begin{lstlisting}[style=codebox]
+{
+  "standard_version": "0.2.0",
+  "auditor_version": "0.2.0",
+  "schema_version": "1.0.0",
+  "paper_edition": "2026.05-ed1",
+  "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
+  "agent_fix_queue": [
+    {
+      "rule_id": "HLT-002-GENERATED-MUTATION",
+      "path": "apps/web/src/generated/client.ts",
+      "priority": "high",
+      "task": "change contracts/openapi/api.yaml and regenerate"
+    }
+  ]
+}
+\end{lstlisting}

@@ -1,0 +1,24 @@
+\section{Security, Supply Chain, and Permissions}
+
+Agentic coding expands the write surface. The security posture must therefore be structural. CISA/NSA guidance pushes memory-safe languages as a way to reduce memory-related vulnerability classes \cite{cisaMemorySafeLanguages2025}. Veracode's GenAI security results show syntax success does not imply secure code \cite{veracodeGenaiCodeSecurity2025}. GitGuardian's secret-sprawl evidence shows AI-churned repositories need stronger secret gates, not more trust \cite{gitguardianSecretsSprawl2026}.
+
+\begin{table*}[t]
+\caption{Security controls for agent-native repositories.}
+\label{tab:security-controls}
+\centering
+\small
+\begin{tabularx}{\textwidth}{L{0.18\textwidth} Y Y}
+\toprule
+\textbf{Risk} & \textbf{Control} & \textbf{Repair evidence} \\
+\midrule
+Prompt injection and hostile context & Source hierarchy: root instructions, local owner rules, trusted docs, then untrusted issue/web text. & Receipt names ignored instruction, trusted rule, and resulting safe action. \\
+Secrets and credentials & Secret scanning, no secrets in UI or docs, redacted logs, no model prompt leakage. & Scanner artifact, redaction test, finding closure. \\
+Dependency sprawl & Lockfiles, SCA, SBOM/provenance, dependency rationale for new packages. & Package diff, risk reason, scanner result \cite{githubSecretScanning2026,osvScanner2026,slsaSpec2026}. \\
+Sandbox escape or tool overreach & Least-privilege tools, explicit write scope, generated-zone protections. & Changed-path report and policy decision. \\
+Unsafe code and FFI & Rust unsafe ledger, boundary tests, memory-safety review. & Ledger entry, invariant tests, owner approval. \\
+False-green security & Security lane mapped by path and risk, not by agent choice. & CI job link and report artifact. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Permission policy should be boring. Agents should not receive broad filesystem, network, or credential access merely because a task is urgent. High-risk actions need named lanes and evidence: dependency install, secret material, generated-zone writes, migrations, release artifacts, and browser automation against privileged surfaces. A good permission system makes the safe path fast and the dangerous path visible.

@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: humanlint audit
         run: python3 tools/humanlint.py . --json repo-score.json --md repo-score.md
       - name: Security lane placeholders
@@ -24,6 +27,18 @@ jobs:
           path: |
             repo-score.json
             repo-score.md
+
+  ux-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace @humanlint/ux-qa run build
+      - run: npm --workspace @humanlint/ux-qa run test
 
   paper:
     runs-on: ubuntu-latest

@@ -1,0 +1,25 @@
+{
+  "name": "@humanlint/ux-qa",
+  "version": "0.2.0",
+  "description": "Playwright DOM geometry checks for rendered UX quality.",
+  "type": "module",
+  "bin": {
+    "humanlint-ux-qa": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "playwright test"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.59.0"
+  }
+}

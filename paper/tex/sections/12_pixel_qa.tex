@@ -1,0 +1,54 @@
+\section{Rendered UX and Browser-Step QA}
+
+The browser is a real runtime, not a screenshot afterthought. Agents can create UI that compiles, passes component tests, and still fails through overlapping text, broken responsive layout, invisible controls, stale selectors, missing focus states, blank canvases, cramped buttons, clipped labels, sticky footer collisions, or layout shift. Playwright's official guidance emphasizes user-visible behavior, resilient locators, isolation, and web-first assertions, which fit agent repair better than brittle sleeps and CSS selectors \cite{playwrightBestPractices2026,playwrightWritingTests2026}.
+
+The human QA gap is rendered experience. A test can prove that a button exists and calls the correct API; it usually cannot prove that the button is too close to the viewport edge or that a German label breaks a card at 375px. A screenshot diff can prove that pixels changed, but not whether the change is intentional, harmful, or merely anti-aliasing noise. The standard therefore treats rendered UX as a layered proof system: design-system constraints, generated contracts, deterministic Storybook states, Playwright screenshots, DOM geometry rules, accessibility rules, visual regression, AI/CV triage, and human feedback labels.
+
+Open-source tools already solve real pieces of this. Storybook can turn every story into a visual baseline \cite{storybookVisualTests2026}. Playwright can compare screenshots with \texttt{toHaveScreenshot()} and warns that rendering environments must be stable for reliable baselines \cite{playwrightVisualComparisons2026}. Argos and BackstopJS provide visual review and screenshot-diff workflows \cite{argosVisualTesting2026,backstopJs2026}. Playwright can run axe-based accessibility checks, while its docs warn that automation cannot find every accessibility issue \cite{playwrightAccessibility2026}. MSW lets Storybook stories use deterministic network responses rather than live API luck \cite{storybookMsw2026}. The right open-source posture is composition: use those tools for capture, baselines, a11y, mocks, and review, while humanlint owns the policy layer they do not share. The missing core library is a repo-local geometry oracle: a deterministic rule set over DOM boxes, computed styles, accessibility names, scroll sizes, focus state, and viewport state.
+
+The feedback loop must also be structured. A human approval should label whether a delta is a true layout bug, intentional visual change, acceptable variance, design-system violation, accessibility defect, copy/content issue, responsive-only issue, browser-only issue, false positive, or product/design review item. Storing those labels with the route, viewport, screenshot crop, DOM selector, rule ID, owner, and expiration turns taste review into training data for future thresholds and exceptions.
+
+\begin{table*}[t]
+\caption{Rendered UX QA detectors for the TypeScript product surface.}
+\label{tab:rendered-ux-qa}
+\centering
+\small
+\begin{tabularx}{\textwidth}{L{0.20\textwidth} Y Y}
+\toprule
+\textbf{Detector} & \textbf{Machine signal} & \textbf{Merge behavior} \\
+\midrule
+Design-system constraints & Component imports, token use, no raw one-off spacing/color/z-index. & Block unapproved design-language drift. \\
+Storybook state coverage & Normal, loading, empty, error, long text, locale, theme, mobile, and role states. & Require stories for reusable components and key screens. \\
+Playwright screenshots & Component and flow screenshots under pinned browser, font, viewport, timezone, and locale settings. & Require review for protected baselines. \\
+DOM geometry rules & Bounding boxes, computed styles, scroll sizes, target spacing, overlap, clipping, wrapping, nested scrollbars, and fixed/sticky collisions. & Block objective layout failures before human QA. \\
+Accessibility checks & axe/WCAG checks, keyboard paths, focus visibility, form labels, ARIA names, and target size. & Block critical known violations; route ambiguous cases to expert review. \\
+Layout stability & CLS and late-shift evidence from Lighthouse or Web Vitals. & Block severe movement on product-critical pages. \\
+AI/CV triage & Semantic review of ambiguous visual deltas and screenshot crops. & Warn or route to humans; do not replace deterministic gates. \\
+Human feedback loop & Labels for true defect, intentional change, false positive, acceptable variance, missing rule, or design-system bug. & Improve thresholds, baselines, stories, and future rules. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Some criteria are already standards-backed. WCAG 2.2 target-size guidance defines a 24 by 24 CSS-pixel minimum or sufficient spacing exceptions for pointer targets \cite{wcagTargetSizeMinimum2026}. Core Web Vitals guidance recommends CLS of 0.1 or less for a good visual-stability experience \cite{webDevCls2025}. Humanlint should therefore treat target-size failures, clipped required text, horizontal overflow, sticky obstruction, missing focus visibility, severe CLS, and unapproved token violations as hard evidence, not as taste debates.
+
+Pixel QA is first-class but not exhaustive on every pull request. The standard risk-routes it. Critical flows, high-risk UI surfaces, visual diff baselines, payments, auth, admin actions, onboarding, and canvas/3D surfaces need browser-step proof in the PR lane. Full viewport and device matrices belong in nightly or release lanes unless the changed path directly touches those surfaces.
+
+\begin{table}[t]
+\caption{Browser-step QA routing.}
+\label{tab:browser-qa}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.23\columnwidth} Y}
+\toprule
+\textbf{Risk} & \textbf{Required proof} \\
+\midrule
+Critical user journey & Playwright path with role/text/test-id locators and trace artifact. \\
+Responsive layout & Desktop and mobile screenshots with overlap and clipping checks. \\
+Canvas, map, video, 3D & Pixel nonblank check plus interaction or animation evidence. \\
+Design-system component & Component tests plus one rendered browser state per variant class. \\
+Low-risk copy change & Component or lint proof; full matrix deferred unless release lane catches drift. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A repair receipt for UI should include the route, viewport, action sequence, screenshot or trace path, assertion, and changed files. This turns visual QA from ``a human clicked around'' into evidence a future agent can replay.

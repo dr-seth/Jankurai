@@ -5,7 +5,7 @@ Published: `2026-05-01`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
 
-This is an operational standard for coding agents and maintainers. Every adopted repository should point its root agent instructions to this file and to `agent/HUMANLINT_STANDARD.md`.
+This is an operational standard for coding agents and maintainers. Repositories do not need humanlint merely because they use AI. Repositories claiming humanlint conformance should point root agent instructions to this file and to `agent/HUMANLINT_STANDARD.md`.
 
 ## 1. Mission
 
@@ -25,13 +25,14 @@ Agent-native engineering treats "vibe coding" as a defect class: ambiguous owner
 
 ## 2. Adoption Contract
 
-Every compliant repository MUST include:
+Every repository claiming `HL3` or higher MUST include:
 
 - `AGENTS.md` at repo root with a short pointer to this standard.
 - `agent/HUMANLINT_STANDARD.md` copied or vendored from this standard.
 - `agent/owner-map.json` mapping paths to owners and allowed dependencies.
 - `agent/test-map.json` mapping paths to validation lanes.
 - `agent/generated-zones.toml` or equivalent generated-file manifest.
+- `agent/standard-version.toml` binding paper, standard, audit, schema, and artifact versions.
 - `agent/repo-score.json` produced by CI.
 - one command for fast validation.
 - one command for full validation.
@@ -46,6 +47,42 @@ Read `agent/HUMANLINT_STANDARD.md` first.
 For full policy, read `docs/agent-native-standard.md`.
 Do not edit outside requested ownership. Run the mapped test lane before final response.
 ```
+
+Conformance levels:
+
+| Level | Meaning |
+|---|---|
+| `HL0` | unscored or unrouted repository |
+| `HL1` | advisory audit emits JSON/Markdown |
+| `HL2` | guarded critical caps block merge |
+| `HL3` | standard score floor and high/critical blocking |
+| `HL4` | ratchet mode prevents score regression without exception |
+| `HL5` | release contract across audit, tests, security, contracts, DB, e2e, and versions |
+
+Stable rule IDs:
+
+| Rule | Meaning |
+|---|---|
+| `HLT-001-DEAD-MARKER` | future-hostile product/runtime marker |
+| `HLT-002-GENERATED-MUTATION` | generated output changed outside source regeneration |
+| `HLT-003-OWNERLESS-PATH` | path has no owner-map route |
+| `HLT-004-UNMAPPED-PROOF` | path has no test-map proof lane |
+| `HLT-005-PYTHON-PRODUCT-TRUTH` | Python owns durable product behavior |
+| `HLT-006-DIRECT-DB-WRONG-LAYER` | DB access appears outside adapters/db |
+| `HLT-007-HANDWRITTEN-CONTRACT` | public API/client contract is mirrored by hand |
+| `HLT-008-FALSE-GREEN-RISK` | passing lane does not prove changed behavior |
+| `HLT-009-GENERATED-SECURITY` | generated security-sensitive code lacks security proof |
+| `HLT-010-SECRET-SPRAWL` | secret-like value, env dump, fixture, or transcript leak |
+| `HLT-011-PROMPT-INJECTION` | untrusted context changes trusted policy/tool behavior |
+| `HLT-012-OVERBROAD-AGENCY` | agent/tool permissions exceed lane scope |
+| `HLT-013-RENDERED-UX-GAP` | user-facing UI lacks rendered proof |
+| `HLT-014-A11Y-GAP` | UI lacks accessibility proof for changed surface |
+| `HLT-015-CONTEXT-SETUP-GAP` | setup/context routing is not deterministic |
+| `HLT-016-SUPPLY-CHAIN-DRIFT` | dependency/provenance change lacks review evidence |
+| `HLT-017-OPAQUE-OBSERVABILITY` | boundary failure lacks repairable telemetry |
+| `HLT-018-PERF-CONCURRENCY-DRIFT` | performance/concurrency risk lacks proof |
+
+Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 
 ## 3. Hard Gates
 
@@ -226,7 +263,7 @@ Every repo MUST expose these lanes, even if some are initially empty with explic
 | `fast` | deterministic local proof under 2 minutes | `cargo test -p domain`, `pnpm test --run`, focused lint |
 | `contract` | prove public API/schema compatibility | OpenAPI/protobuf checks, generated client diff, consumer tests |
 | `db` | prove durable truth changes | migration apply/revert, constraint tests, query compile checks |
-| `web` | prove UI behavior without full browser where possible | Vitest, Testing Library, typecheck |
+| `web` | prove UI behavior and rendered UX where possible | Vitest, Testing Library, Storybook, humanlint UX QA |
 | `e2e` | prove critical user journeys | Playwright preferred for browser workflows |
 | `security` | secrets, dependency, SAST, unsafe, licenses | secret scan, SCA, cargo audit, npm audit policy, SBOM |
 | `observability` | request IDs, traces, structured error payloads | OTel smoke tests, log schema checks |
@@ -243,7 +280,7 @@ Coverage means behavior proof, not line count.
 - Application commands need authorization, idempotency, transaction, and failure tests.
 - Adapters need contract/integration tests against real or faithful services.
 - Database migrations need forward apply, rollback policy, constraint checks, and tenant isolation checks when multi-tenant.
-- TypeScript UI needs component tests for stateful behavior and Playwright for critical browser journeys.
+- TypeScript UI needs component tests, rendered UX geometry checks, visual/a11y evidence, and Playwright for critical browser journeys.
 - Python AI service needs golden evals, model IO contract tests, data-shape tests, and reproducibility seeds.
 - Bugs require regression tests in the owner cell that failed.
 - Every external boundary needs success, validation failure, retryable failure, and permanent failure coverage.
@@ -252,6 +289,21 @@ Coverage means behavior proof, not line count.
 - Skipped tests require owner, reason, issue link, and expiration date.
 
 Recommended browser lane: Playwright for end-to-end flows because it exercises real browser behavior, selectors, network boundaries, traces, screenshots, and videos. Use Testing Library for component behavior below the browser boundary.
+
+## 11.1 Rendered UX And Browser-Step QA
+
+Browser QA is first-class but risk-routed. Critical flows, auth, payments, admin actions, onboarding, canvas/3D surfaces, and layout-sensitive components SHOULD have Playwright traces or screenshots in the PR lane. Rendered UX proof SHOULD combine Storybook states, screenshots, accessibility scans, CLS checks, and DOM geometry rules for edge clearance, target size, overlap, clipping, wrapping, overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars. Full viewport/device matrices MAY run nightly or at release unless the changed path directly touches those surfaces.
+
+Required evidence for high-risk UI repairs:
+
+- route or story ID
+- viewport and browser
+- action sequence
+- assertion
+- screenshot, trace, or video artifact
+- changed files and proof lane
+
+Agents MUST NOT treat a passing typecheck as proof of visual correctness for changed critical UI flows.
 
 ## 12. Agent-Friendly Exception Contract
 
@@ -338,16 +390,26 @@ Forbidden:
 
 ## 13. CI Audit Requirements
 
-CI MUST run humanlint audit on every pull request and default branch push.
+CI MUST run humanlint audit on every pull request and default branch push for repositories claiming `HL3` or higher. Lower levels may run in advisory mode while they build the required controls.
 
 Minimum outputs:
 
 - `agent/repo-score.json`
 - markdown summary attached to CI job
 - PR comment or check annotation for high findings
-- optional SARIF for code scanning
+- optional SARIF for code scanning; SARIF is a planned output format for the v0.x auditor line
 
-Minimum gates:
+CI modes:
+
+| Mode | Merge behavior |
+|---|---|
+| advisory | emit JSON/Markdown, never block |
+| guarded | block critical caps and malformed output |
+| standard | block high/critical findings plus score-floor failure |
+| ratchet | prevent score regression without dated exception |
+| release | gate shipped artifacts on audit, tests, security, contracts, DB, e2e, and versions |
+
+Minimum `standard` gates:
 
 | Condition | Action |
 |---|---|
@@ -362,6 +424,7 @@ Minimum gates:
 
 Audit findings MUST include:
 
+- rule_id when stable
 - severity
 - category
 - path
@@ -373,9 +436,22 @@ Audit findings MUST include:
 - validation lane
 - docs link
 
+Audit JSON MUST include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, raw score, final score, hard caps, dimension breakdown, findings, and ordered `agent_fix_queue`.
+
 ## 14. Vibe-Coding Failure Catalog
 
 The audit MUST detect or require explicit exceptions for these problems.
+
+`TLR` means Top-Level Risk. Repair priority MUST account for TLR, not only finding count. Security, business truth, and contract/data-truth findings outrank easier style repairs.
+
+| TLR | Hard examples | Required evidence |
+|---|---|---|
+| Security, secrets, agency | generated insecure code, committed secret, prompt injection, overbroad tool permission, missing scan | security lane output, secret scan, permission receipt, threat-model note |
+| Business truth | false-green business rule, authorization drift, data-isolation drift | domain/application tests, role matrix, negative cases, DB constraint/RLS where useful |
+| Contracts and data truth | handwritten DTO, generated mutation, direct DB wrong layer, app-only invariant | generated contract diff, owner map, migration/constraint proof |
+| Verification and rendered UX | missing proof lane, shallow tests, pixel/accessibility gap | test-map lane, semantic assertions, screenshot/trace/geometry/a11y evidence |
+| Context and setup | setup hallucination, context retrieval failure, instruction drift | one-command setup, short root router, local rules, filtered command evidence |
+| Maintainability entropy | dead markers, fallback soup, mega functions/files, perf/concurrency drift | exception record, bounded retry policy, LOC split, benchmark/trace proof |
 
 | Failure | Hard rule |
 |---|---|
@@ -392,6 +468,10 @@ The audit MUST detect or require explicit exceptions for these problems.
 | Disabled test | skip/only/quarantine without issue and expiration |
 | No assertion test | test executes code but proves no behavior |
 | Snapshot abuse | snapshot without semantic assertion |
+| False-green business logic | code and tests pass while the product invariant is wrong |
+| Security flaw in generated code | generated auth, input handling, crypto, deserialization, filesystem, or logging change lacks security proof |
+| Prompt injection | untrusted context changes trusted instructions, tool calls, or policy |
+| Overbroad agent agency | terminal/browser/network/filesystem permission exceeds lane scope |
 | Any sprawl | TypeScript `any`, `@ts-ignore`, unchecked JSON, or loose mode without exception |
 | Unsafe sprawl | Rust `unsafe`, `unwrap`, `expect`, or `panic` in production path without ledger |
 | Python creep | Python outside `python/ai-service` or Python owning product APIs/truth |
@@ -402,9 +482,12 @@ The audit MUST detect or require explicit exceptions for these problems.
 | Migration hazard | destructive migration lacks rollback, lock, data backfill, and review note |
 | Secret risk | committed secret, broad env dump, missing secret scan |
 | Dependency spray | new dependency without rationale, owner, license, and security review |
+| Supply-chain drift | dependency, action, image, package, or provenance change lacks scan evidence |
 | Multiple package managers | lockfiles conflict without documented reason |
 | Unpinned action/image | CI action, Docker base, or install script unpinned where policy requires pinning |
 | Observability gap | no request ID, trace ID, structured error, or operation name across boundary |
+| Rendered UX gap | critical UI change lacks screenshot, trace, geometry, visual baseline, or accessibility proof |
+| Setup gap | repository lacks deterministic setup or local service proof |
 | Context bloat | root agent docs too long, duplicated policy, pasted logs, or generated docs in prompt path |
 | Orphan code | file not reachable from owner-map, build, tests, docs, or import graph |
 | Naming fog | vague names like `manager`, `processor`, `handler`, `data`, `new2`, `final`, `temp` |
@@ -470,11 +553,22 @@ This standard changes quickly. Repositories MUST track standard version explicit
 
 Required:
 
+- `agent/standard-version.toml` is the canonical manifest.
 - `agent/HUMANLINT_STANDARD.md` includes `Standard version`.
 - CI audit reads the version.
 - Repo pins the standard source URL or vendored commit when available.
 - `docs/decisions/` records adoption decision.
 - Standard upgrades are reviewed like dependency upgrades.
+
+Required artifact bindings for this workspace:
+
+| Artifact | Binding |
+|---|---|
+| `paper/humanlint.tex` | `paper-source`, version `paper_edition` |
+| `paper/humanlint.pdf` | `paper-render`, generated by `just paper` |
+| `paper/humanlint.md` | `paper-agent-md`, companion only |
+| `docs/agent-native-standard.md` | `coding-standard`, version `standard_version` |
+| `agent/HUMANLINT_STANDARD.md` | `agent-standard-brief`, source standard doc |
 
 Version rules:
 

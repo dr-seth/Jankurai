@@ -1,0 +1,26 @@
+\section{Definitions and Threat Model}
+
+The paper uses operational definitions rather than rhetorical labels. \emph{Vibe coding} is any development mode where plausible code is accepted without explicit ownership, proof routing, generated-boundary checks, security gates, and repair evidence. \emph{Agent-native engineering} is the inverse: the repository is structured so an agent can discover the owner, edit the smallest legal surface, run the mapped proof lane, and leave evidence. A \emph{proof lane} is a deterministic command or CI job tied to a path or change class. A \emph{generated zone} is an output path that is repaired by changing its source contract and regenerating. A \emph{repair receipt} is the durable record of what failed, why, what was changed, and which proof accepted the repair. \emph{Centerline drift} is the distance between the repository's actual structure and the standard it claims to follow.
+
+The threat model starts with false plausibility. Agents can produce code that looks idiomatic, compiles in isolation, and still violates architecture, security, data ownership, or runtime assumptions. DORA's amplifier finding matters here: AI improves strong systems and worsens weak ones \cite{doraStateAIAssistedSoftwareDevelopment2025}. The repo must therefore treat generated code as a hypothesis until proof lanes accept it.
+
+\begin{table*}[t]
+\caption{Threat model for agent-generated code.}
+\label{tab:threat-model}
+\centering
+\small
+\begin{tabularx}{\textwidth}{L{0.19\textwidth} Y Y}
+\toprule
+\textbf{Threat} & \textbf{Failure mode} & \textbf{humanlint control} \\
+\midrule
+False plausibility & Code looks correct but violates hidden ownership, security, or data rules. & Owner map, test map, small files, generated contracts, typed errors. \\
+Hostile context & README snippets, issues, web pages, docs, or comments instruct the agent to bypass policy. & Root and local agent instructions, permission policy, source-trust hierarchy. \\
+Tool overreach & Agent edits generated files, secrets, unrelated owners, or broad directories. & Generated-zone manifest, path ownership, diff scope, CI mode. \\
+Secret exposure & Prompted code commits tokens, logs secrets, or weakens scanners. & Secret scan, safe error payloads, no secrets in UI or docs, repair receipts. \\
+Dependency poisoning & Agent adds unreviewed packages or abandons lockfile discipline. & SCA, SBOM/provenance, dependency rationale, update policy. \\
+False-green tests & Tests pass because the wrong lane ran, assertions are weak, or mocks hide boundary drift. & Path-routed proof lanes, contract tests, Playwright critical paths, release matrix. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The standard does not claim every repository using AI must adopt humanlint. It claims a narrower and testable thing: a repository claiming humanlint conformance must expose enough machine-readable structure for the claim to be audited. Conformance is a public interface, not a vibe.

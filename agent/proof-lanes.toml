@@ -11,7 +11,7 @@ purpose = "write repo-score.json and repo-score.md"
 [[lane]]
 name = "paper"
 command = "just paper"
-purpose = "build paper/humanlint.pdf from paper/humanlint.tex and paper/main.md"
+purpose = "build paper/humanlint.pdf from paper/humanlint.tex and paper/tex/"
 
 [[lane]]
 name = "security"

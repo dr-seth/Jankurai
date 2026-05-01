@@ -49,6 +49,10 @@ Upload both files. The JSON is the machine contract; the Markdown is the human r
 ## Output
 
 - `standard_version`
+- `auditor_version`
+- `schema_version`
+- `paper_edition`
+- `target_stack_id`
 - `target_stack`
 - `score`
 - `raw_score`

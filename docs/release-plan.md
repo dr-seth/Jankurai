@@ -6,7 +6,7 @@ humanlint must ship as a paper, a standard, an auditor, and a set of agent-ready
 
 | Release line | Artifact | Audience | Compatibility promise |
 | --- | --- | --- | --- |
-| Paper edition | `paper/main.md`, `paper/humanlint.tex`, PDF | engineering leaders, researchers, senior developers | citations and argument may change by edition |
+| Paper edition | `paper/humanlint.tex`, `paper/tex/`, PDF, Markdown companion | engineering leaders, researchers, senior developers | citations and argument may change by edition |
 | Standard spec | repo layout, ownership rules, audit rubric | teams adopting humanlint | semantic versioning |
 | Audit tool | `tools/humanlint.py` | CI, agents, maintainers | semantic versioning plus output schema version |
 | Agent artifacts | `AGENTS.md`, `CLAUDE.md`, Cursor rules, Copilot instructions, generated-zone manifests | coding agents and IDEs | versioned rule packs |
@@ -31,8 +31,10 @@ Every audit output should include:
 ```json
 {
   "standard_version": "0.2.0",
-  "auditor_version": "0.2.3",
+  "auditor_version": "0.2.0",
   "schema_version": "1.0.0",
+  "paper_edition": "2026.05-ed1",
+  "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
 }
 ```
@@ -49,7 +51,19 @@ Every adopted repo should pin:
 }
 ```
 
-Suggested location for the pin file: `agent/humanlint-standard.json`.
+Canonical local manifest: `agent/standard-version.toml`.
+
+Required artifact bindings:
+
+| Artifact | Manifest ID | Source / command |
+| --- | --- | --- |
+| `paper/humanlint.tex` | `paper-source` | `paper/tex/`, `just paper` |
+| `paper/humanlint.pdf` | `paper-render` | source `paper/humanlint.tex`, command `just paper` |
+| `paper/humanlint.md` | `paper-agent-md` | companion to TeX, not canonical |
+| `docs/agent-native-standard.md` | `coding-standard` | version `standard_version` |
+| `agent/HUMANLINT_STANDARD.md` | `agent-standard-brief` | source `docs/agent-native-standard.md` |
+
+Paper artifacts MUST use the `humanlint.*` prefix. `main.md`, `main.tex`, and `main.pdf` are forbidden anywhere in this repository.
 
 ## Standard Channels
 
@@ -479,4 +493,3 @@ humanlint should be marketed plainly:
 The world does not need another vibe coding manifesto. It needs a versioned standard, a CI gate, a repair queue, and templates that make disciplined agent work cheaper than chaos.
 
 That is the release goal.
-

@@ -1,0 +1,58 @@
+\section{Stack Ranking, Sensitivity, and Exceptions}
+
+The top-five result is a default recommendation, not a metaphysical law. The scores assume durable product systems with web product surface, API/service behavior, operational security requirements, and long-running maintenance by agents and humans together.
+
+\begin{table}[t]
+\caption{Top-five stack results under the humanlint rubric.}
+\label{tab:stack-ranking}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.10\columnwidth} Y L{0.13\columnwidth}}
+\toprule
+\textbf{Rank} & \textbf{Stack} & \textbf{ANSS} \\
+\midrule
+1 & Rust core + TypeScript/React/Vite + PostgreSQL & 94 \\
+2 & Go services + TypeScript/React/Vite + PostgreSQL & 90 \\
+3 & C\#/.NET + TypeScript/React/Vite + PostgreSQL & 89 \\
+4 & TypeScript product plane + Rust/Go compute cells + PostgreSQL & 88 \\
+5 & Kotlin/Java JVM + TypeScript/React/Vite + PostgreSQL & 87 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\IfFileExists{paper/figures/stack-ranking.pdf}{%
+  \includegraphics[width=0.94\textwidth]{paper/figures/stack-ranking.pdf}%
+}{%
+  \includegraphics[width=0.94\textwidth]{figures/stack-ranking.pdf}%
+}
+\vspace{-0.4em}
+\caption{Top-five stack ranking by Agent-Native Stack Score (ANSS), the weighted humanlint 100-point rubric, with the x-axis starting at 85. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
+\label{fig:stack-ranking}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Representative score decomposition. Bands express policy uncertainty, not statistical confidence.}
+\label{tab:score-decomposition}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.24\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} Y}
+\toprule
+\textbf{Stack family} & \textbf{Proof} & \textbf{Sec.} & \textbf{Runtime} & \textbf{Boundary} & \textbf{Ops} & \textbf{Band} & \textbf{Exception logic} \\
+\midrule
+Rust + TS/Vite + Postgres & 18 & 16 & 13 & 11 & 36 & $\pm 3$ & Default when no stronger domain constraint exists. \\
+Go + TS/Vite + Postgres & 16 & 13 & 13 & 10 & 38 & $\pm 4$ & Strong cloud-service default where simplicity beats type-state power. \\
+.NET + TS/Vite + Postgres & 16 & 13 & 12 & 10 & 38 & $\pm 4$ & Strong regulated enterprise answer when Microsoft platform fit speeds proof. \\
+Full-stack Next.js + Postgres & 13 & 10 & 9 & 8 & 36 & $\pm 6$ & Excellent product loop; needs stricter backend/data partitioning to avoid truth drift. \\
+Python/FastAPI + Postgres & 10 & 8 & 8 & 7 & 34 & $\pm 7$ & Useful AI/data boundary; risky as durable product core. \\
+Rails + Postgres & 11 & 9 & 8 & 7 & 36 & $\pm 6$ & Fast CRUD app fit; needs generated contracts and stronger service boundaries. \\
+Elixir/Phoenix + Postgres & 14 & 11 & 11 & 8 & 37 & $\pm 5$ & Specialist override for realtime collaboration and supervision-heavy systems. \\
+JVM/Spring or Kotlin + Postgres & 15 & 11 & 11 & 10 & 40 & $\pm 5$ & Brownfield and enterprise fit can outweigh default-stack migration cost. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Sensitivity is concentrated in three weights: memory safety/security, ecosystem corpus strength, and runtime/concurrency. Increase ecosystem weight and Go, .NET, and JVM improve. Increase type-state and memory-safety weight and Rust separates. Increase product velocity and full-stack TypeScript rises, but it hits hard filters unless durable truth, generated contracts, and server ownership are explicit.
+
+Kafka deserves a separate note because it is both strong and not the standard. It remains a serious event-streaming contender in brownfield systems: its semantics, ecosystem, and operational familiarity are real. But JVM-bound streaming infrastructure carries exactly the runtime surface and migration gravity this paper is trying to shrink. The humanlint position is explicit: use Kafka when the system already needs it, treat it as necessary-evil workload infrastructure rather than stack identity, and expect agent-native systems work to push toward a Kafka-class Rust-native replacement as AI compresses implementation cost.

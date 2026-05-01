@@ -27,7 +27,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | --- | ---: | --- |
 | Ownership and navigation surface | 14 | root `AGENTS.md`, local routing docs, owner map, test map, short navigation |
 | Contract and boundary integrity | 14 | generated clients, checked API drift, strict TypeScript, Rust typed boundaries |
-| Proof lanes and test routing | 14 | one-command validation, deterministic fast lane, CI audit lane, e2e/property/integration tests |
+| Proof lanes and test routing | 14 | one-command validation, deterministic fast lane, CI audit lane, rendered UX, e2e/property/integration tests |
 | Security and supply-chain posture | 14 | lockfiles, secret scanning, dependency review, SBOM/provenance, workflow linting |
 | Code shape and semantic surface | 12 | small files/functions, low duplication, no placeholder/fallback behavior, specific names |
 | Data truth and workflow safety | 8 | migrations, constraints, DB isolated to adapters/db, no DB writes from wrong layers |
@@ -57,6 +57,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | generated zone mutation risk | 76 | add generated zone manifest and repair generated files from source contracts |
 | direct DB access from wrong layer | 66 | move SQL and DB clients to `crates/adapters` or `db/` |
 | missing web e2e lane | 82 | add Playwright or equivalent e2e tests for critical user flows |
+| missing rendered UX QA lane | 84 | add Storybook states, Playwright screenshots, visual review or `@humanlint/ux-qa`, a11y, CLS, MSW, and design-token evidence |
 | missing Rust property/integration tests | 82 | add invariant/property tests plus integration tests through cargo test/nextest |
 | no agent-friendly exception pattern | 76 | add typed errors with code, purpose, reason, common fixes, docs URL |
 | missing agent-readable docs | 80 | add concise architecture, boundary, testing, and audit docs |
@@ -64,6 +65,19 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 ## Known Vibe-Coding Insults
 
 These are hard repair signals, not style nits.
+
+## Top-Level Risk Mapping
+
+`TLR` means Top-Level Risk. The audit prioritizes findings by TLR before count, because a single authz or secret failure matters more than several style findings.
+
+| TLR | Hard findings | Soft findings |
+| --- | --- | --- |
+| Security, secrets, agency | generated code touches auth/input/crypto/filesystem without security proof; secret-like value; missing scan; overbroad terminal/browser/network permission | missing threat-model note, weak redaction evidence, broad env access, new dependency without rationale |
+| Business truth | false-green domain behavior; authz/data isolation in UI/API/Python; app-only durable invariant | missing role matrix, missing negative test, unclear owner of invariant |
+| Contracts and data truth | handwritten DTO/client; generated mutation; direct DB from wrong layer; missing generated-zone source | contract docs stale, generated-zone metadata incomplete |
+| Verification and rendered UX | missing proof lane; disabled/no-assertion/snapshot-only test; no rendered UX proof for critical UI | weak visual baseline governance, missing edge fixtures, missing accessibility expert review |
+| Context and setup | missing one-command setup; owner/test map gap; contradictory agent instructions | root docs too long, noisy command output, stale local guidance |
+| Maintainability entropy | dead markers, fallback soup, mega functions/files, uncontrolled retries | weak names, performance/cost risk without budget |
 
 | Insult | Why It Fails Agent-Native Engineering | Required Repair |
 | --- | --- | --- |
@@ -85,9 +99,15 @@ These are hard repair signals, not style nits.
 | missing audit CI lane | rules are advisory instead of enforced | run audit in every PR |
 | mutated generated zones | generated code becomes forked source | edit source contract, regenerate, verify |
 | no e2e web proof | UI regressions depend on human clicking | add Playwright critical-path tests |
+| no rendered UX proof | cramped, clipped, overlapping, unstable, or inaccessible UI still depends on taste review | add Storybook, screenshots, visual review, accessibility, CLS, generated mocks, tokens, and geometry checks |
 | no Rust property tests | invariants are example-only | add `proptest`/equivalent invariant tests |
 | no Rust integration tests | cross-crate behavior is unproved | add tests under crate or workspace `tests/` |
 | no security scan | AI-churned dependencies and secrets slip through | run secret/dependency/provenance gates |
+| generated insecure code | plausible code hides injection, XSS, unsafe deserialization, weak crypto, or bad logging | run security lane, add negative tests, attach threat-model evidence |
+| prompt injection / hostile context | untrusted issue, doc, page, or tool output can override trusted policy | enforce source hierarchy, isolate untrusted context, validate tool calls |
+| overbroad agent agency | broad terminal/browser/network/file permissions make unsafe actions easy | use least-privilege permission profiles and approval gates |
+| setup hallucination | unclear setup leads agents to install random tools or skip service proof | add deterministic setup and setup proof lane |
+| context retrieval failure | agents patch nearby stale patterns instead of owner code | keep root guidance short, route through owner/test maps, filter command output |
 | opaque exceptions | failures tell humans too little and agents nothing | standardize agent-friendly exceptions |
 | console/println debugging | production evidence is unstructured | use tracing, request IDs, and structured logs |
 | junk drawer folders | every patch becomes global search | replace with owned domain/adapters modules |
@@ -126,7 +146,7 @@ Rust should prefer enum error types with `thiserror` or equivalent plus structur
 | Rust domain | unit tests plus property tests for invariants/state machines |
 | Rust application | integration tests for authz, idempotency, transactions, workflows |
 | Rust adapters | DB integration tests, migration tests, external API contract tests or fakes |
-| TypeScript web | unit/component tests for pure UI logic plus Playwright e2e critical paths |
+| TypeScript web | unit/component tests for pure UI logic plus rendered UX QA and Playwright e2e critical paths |
 | Contracts | generation test, drift check, schema compatibility check |
 | PostgreSQL | migration apply/rollback where possible, constraint tests, seed validation |
 | Python AI/data | eval tests, contract tests, no product-truth tests that imply ownership |
@@ -147,12 +167,17 @@ The output must include:
 | Field | Purpose |
 | --- | --- |
 | `standard_version` | lets repos track standard upgrades |
+| `auditor_version` | identifies scanner implementation release |
+| `schema_version` | protects JSON/Markdown output compatibility |
+| `paper_edition` | binds findings to the paper edition that described the policy |
+| `target_stack_id` | stable machine ID for the target stack |
 | `target_stack` | prevents generic scoring drift |
 | `score` and `raw_score` | final capped score plus weighted score |
 | `caps_applied` | hard rule failures |
 | `dimensions` | weighted breakdown |
 | `findings` | actionable evidence with path, line, matched term, reason, problem, and repair |
 | `agent_fix_queue` | ordered repair work for coding agents |
+| `ux_qa` | rendered UX QA evidence, missing categories, and geometry-runtime readiness |
 
 ## Versioning
 

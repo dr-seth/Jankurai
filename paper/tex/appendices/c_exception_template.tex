@@ -1,0 +1,39 @@
+\section{Exception and Repair Templates}
+
+Exceptions are allowed only when they are named, scoped, owned, testable, and temporary enough for an agent to repair later.
+
+\begin{lstlisting}[style=codebox]
+docs/exceptions/<ID>.md
+
+# <ID>: <short name>
+
+Owner: <team or owner cell>
+Scope: <exact files, crates, services, contracts, or zones>
+Purpose: <what this exception permits>
+Reason: <why the normal standard cannot be followed now>
+Expiration: <date, milestone, or measurable exit condition>
+Allowed edits: <what agents may change without widening scope>
+Forbidden edits: <what agents must not touch>
+Required proof: <test-map lane names and commands>
+Common fixes:
+  - <first bounded repair pattern>
+  - <second bounded repair pattern>
+Audit behavior: <allowed term/path or score cap policy>
+\end{lstlisting}
+
+\begin{lstlisting}[style=codebox]
+docs/repair/<YYYY-MM-DD>-<short-id>.md
+
+Rule: <HLT rule id>
+Owner: <owner cell>
+Failure: <what failed and where>
+Changed paths:
+  - <path>
+Proof lane: <command or CI job>
+Artifacts:
+  - repo-score.json
+  - trace.zip
+  - screenshot.png
+Result: <accepted, rejected, partial>
+Next repair: <bounded follow-up or none>
+\end{lstlisting}

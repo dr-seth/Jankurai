@@ -106,6 +106,10 @@ It must run in every CI pipeline. It must fail fast. It must produce two outputs
 | `agent_fix` | give the next actionable repair |
 | `evidence` | show concrete scan hits |
 | `standard_version` | bind result to a versioned rule set |
+| `auditor_version` | bind result to an implementation release |
+| `schema_version` | bind result to output compatibility |
+| `paper_edition` | bind result to the paper argument in force |
+| `target_stack_id` | identify the scoring target without prose parsing |
 
 The audit should judge only the chosen stack. It is not a generic linter. It should reward Rust core, TypeScript product surface, PostgreSQL truth, generated contracts, bounded Python, and proof evidence. It should call out unnecessary Python, unbounded polyglot sprawl, direct DB access from the UI, handwritten contract mirrors, missing generated zones, and framework-driven business logic.
 
@@ -241,7 +245,7 @@ humanlint must version three things separately:
 | standard | semantic version | repos need stable compliance targets |
 | audit script | semantic version plus schema version | CI needs compatibility guarantees |
 
-Every audit result should include `standard_version`, `auditor_version`, and `schema_version`. Repos should pin a target version and check for newer releases. Breaking rule changes require a major version. New advisory checks can ship in minor versions. Copy edits and documentation clarifications can ship as patches.
+Every audit result should include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, and `target_stack_id`. Repos should pin a target version and check for newer releases. Breaking rule changes require a major version. New advisory checks can ship in minor versions. Copy edits and documentation clarifications can ship as patches.
 
 ## Public Evidence Base
 
@@ -324,4 +328,3 @@ The adoption path is:
 8. Publish benchmark results showing repair speed, token use, wrong-owner edits, and regression rate.
 
 Strong claim: human-first repositories are legacy infrastructure. Agent-native repositories are the next professional baseline. The teams that adapt will compound. The teams that keep accepting plausible code without proof will drown in generated debt.
-
