@@ -23,7 +23,9 @@ For this workspace:
 - `just paper` builds `paper/humanlint.pdf`.
 - `just check` runs version checks, audit, and paper build.
 
-Rendered UX QA combines Storybook states, Playwright screenshots, visual review, axe/WCAG checks, CLS checks, MSW/generated mocks, design tokens, and deterministic DOM geometry rules such as edge clearance, target size, overlap, clipping, wrapping, horizontal overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars.
+Rendered UX QA combines Storybook states, Playwright screenshots, ARIA snapshots, visual review, axe/WCAG checks, CLS checks, MSW/generated mocks, design tokens, and deterministic DOM geometry rules such as edge clearance, target size, overlap, clipping, wrapping, horizontal overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars.
+
+Critical UI proof must be artifact-backed. A useful receipt names the route or story, browser, viewport, action sequence, screenshot or crop path, ARIA snapshot path when available, rule IDs, selectors, owner, and merge decision. Deterministic rule violations block; visual diffs require baseline approval; AI/VLM opinions route to review unless backed by a deterministic rule.
 
 The full target-stack test doctrine lives in `docs/agent-native-standard.md`
 and the canonical TeX paper under `paper/tex/`.

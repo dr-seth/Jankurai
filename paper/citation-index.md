@@ -51,3 +51,7 @@ Status labels:
 | HB-41 | Stack Overflow's 2025 survey reports that developers' largest AI frustration is output that is almost right but not quite, followed by time-consuming debugging of AI-generated code. | Evidence-backed | Stack Overflow 2025 Developer Survey AI section |
 | HB-42 | OWASP's LLM Top 10 treats prompt injection, sensitive information disclosure, supply-chain risk, improper output handling, and excessive agency as first-order LLM application risks. | Evidence-backed | OWASP Top 10 for LLM Applications v2025 |
 | HB-43 | The TLR pie chart is a policy-weighted risk-priority model derived from the humanlint fault taxonomy, not an empirical incident-frequency chart. | Proposed doctrine | `paper/tex/sections/05_fault_taxonomy.tex` |
+| HB-44 | Playwright ARIA snapshots can compare the accessibility tree of a locator or page against a YAML template. | Evidence-backed | Playwright ARIA snapshot documentation |
+| HB-45 | The W3C Design Tokens Community Group announced a stable 2025.10 design-token specification for interoperable design decisions. | Evidence-backed | W3C Design Tokens Community Group |
+| HB-46 | Figma Code Connect maps design components to real code and feeds those mappings into Figma's MCP context for AI-enabled tools. | Evidence-backed | Figma Code Connect documentation |
+| HB-47 | Artifact-backed rendered UX proof should include route/story, browser, viewport, screenshots or crops, ARIA snapshot paths, rule IDs, selectors, owner, and merge decision. | Proposed doctrine | `@humanlint/ux-qa` report contract and UX QA tips |

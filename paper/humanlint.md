@@ -53,7 +53,8 @@ Appendices:
 - A repository claiming humanlint conformance must expose auditable ownership, proof routing, generated-zone policy, version metadata, and repair evidence.
 - Stack choice matters after the control plane exists. The default winner is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python.
 - Hard caps and score weights are versioned policy, not final empirical truth.
-- Rendered UX QA is first-class for critical UI flows: Storybook states, screenshots, accessibility, CLS, visual review, and DOM geometry rules should catch routine layout defects before human taste review.
+- The TLR pie chart is computed from the visible taxonomy RPN rows; it is a policy-priority model, not an incident-frequency chart.
+- Rendered UX QA is first-class for critical UI flows: Storybook states, screenshots, ARIA snapshots, accessibility, CLS, visual review, design-token evidence, generated mocks, and DOM geometry rules should catch routine layout defects before human taste review.
 
 ## Key Rules
 
@@ -69,7 +70,7 @@ Appendices:
 - `HLT-010-SECRET-SPRAWL`: secret-like values, env dumps, and transcript leaks are hard failures.
 - `HLT-011-PROMPT-INJECTION`: untrusted context cannot override trusted policy.
 - `HLT-012-OVERBROAD-AGENCY`: agent permissions must match the proof lane.
-- `HLT-013-RENDERED-UX-GAP`: web surfaces need layered rendered UX evidence, not only typechecks and happy-path browser tests.
+- `HLT-013-RENDERED-UX-GAP`: web surfaces need artifact-backed rendered UX evidence, not only typechecks and happy-path browser tests.
 - `HLT-014-A11Y-GAP`: changed UI surfaces need accessibility evidence.
 - `HLT-015-CONTEXT-SETUP-GAP`: setup and context routing must be deterministic.
 - `HLT-016-SUPPLY-CHAIN-DRIFT`: dependency and provenance changes need review evidence.

@@ -58,6 +58,11 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | direct DB access from wrong layer | 66 | move SQL and DB clients to `crates/adapters` or `db/` |
 | missing web e2e lane | 82 | add Playwright or equivalent e2e tests for critical user flows |
 | missing rendered UX QA lane | 84 | add Storybook states, Playwright screenshots, visual review or `@humanlint/ux-qa`, a11y, CLS, MSW, and design-token evidence |
+| prompt injection risk in trusted agent/tool policy | 78 | isolate untrusted content, remove bypass wording, and validate tool calls |
+| overbroad agent agency | 65 | replace broad permissions with least-privilege lane profiles and approvals |
+| secret-like content detected | 60 | remove and rotate credential material, then add scanners and transcript/artifact review |
+| false-green test risk | 76 | replace skipped/focused/tautological/snapshot-only proof with behavior assertions and red/green evidence |
+| destructive migration risk | 70 | add rollback/backfill/lock-timeout/staged-deploy evidence and DB proof lane |
 | missing Rust property/integration tests | 82 | add invariant/property tests plus integration tests through cargo test/nextest |
 | no agent-friendly exception pattern | 76 | add typed errors with code, purpose, reason, common fixes, docs URL |
 | missing agent-readable docs | 80 | add concise architecture, boundary, testing, and audit docs |
@@ -104,10 +109,16 @@ These are hard repair signals, not style nits.
 | no Rust integration tests | cross-crate behavior is unproved | add tests under crate or workspace `tests/` |
 | no security scan | AI-churned dependencies and secrets slip through | run secret/dependency/provenance gates |
 | generated insecure code | plausible code hides injection, XSS, unsafe deserialization, weak crypto, or bad logging | run security lane, add negative tests, attach threat-model evidence |
+| improper AI/tool output handling | generated text is parsed, rendered, or executed as trusted command/data | validate schemas, encode output, sandbox commands, and require tool-call receipts |
 | prompt injection / hostile context | untrusted issue, doc, page, or tool output can override trusted policy | enforce source hierarchy, isolate untrusted context, validate tool calls |
 | overbroad agent agency | broad terminal/browser/network/file permissions make unsafe actions easy | use least-privilege permission profiles and approval gates |
+| customer-data or PII leakage | prompts, logs, vectors, screenshots, or transcripts retain user data beyond policy | classify data, redact artifacts, limit retention, and scan transcripts/vector stores |
+| model/prompt/eval drift | model, prompt, provider, embedding, or eval data changes without replay evidence | version prompts/models and run golden evals before merge |
+| destructive migration / data-loss hazard | generated SQL drops data or blocks production without safety proof | require rollback/down plan, backfill strategy, lock timeout, and DB rehearsal |
+| idempotency or side-effect duplication | generated retries/jobs/handlers double-charge, replay, or duplicate external side effects | require idempotency keys, replay tests, and workflow receipts |
 | setup hallucination | unclear setup leads agents to install random tools or skip service proof | add deterministic setup and setup proof lane |
 | context retrieval failure | agents patch nearby stale patterns instead of owner code | keep root guidance short, route through owner/test maps, filter command output |
+| orphan/dead reachable code | old paths remain executable and agents preserve them as product truth | prove replacement reachability, delete or isolate, and add owner-signed exception |
 | opaque exceptions | failures tell humans too little and agents nothing | standardize agent-friendly exceptions |
 | console/println debugging | production evidence is unstructured | use tracing, request IDs, and structured logs |
 | junk drawer folders | every patch becomes global search | replace with owned domain/adapters modules |

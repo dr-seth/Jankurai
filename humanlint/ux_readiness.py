@@ -17,6 +17,7 @@ class UxQaReadiness:
     api_mocks: list[str]
     design_tokens: list[str]
     geometry_runtime: list[str]
+    artifact_backed_proof: list[str]
 
     @property
     def has_rendered_ux_lane(self) -> bool:
@@ -26,7 +27,11 @@ class UxQaReadiness:
             self.storybook
             and self.playwright_visual
             and self.accessibility
+            and self.layout_stability
+            and self.api_mocks
+            and self.design_tokens
             and (self.visual_review or self.geometry_runtime)
+            and self.artifact_backed_proof
         )
 
     @property
@@ -42,6 +47,7 @@ class UxQaReadiness:
             ("layout stability checks", self.layout_stability),
             ("generated API mocks", self.api_mocks),
             ("design token discipline", self.design_tokens),
+            ("artifact-backed UX proof receipts", self.artifact_backed_proof),
         ):
             if not values:
                 missing.append(name)
@@ -61,12 +67,13 @@ class UxQaReadiness:
                 "api_mocks": self.api_mocks,
                 "design_tokens": self.design_tokens,
                 "geometry_runtime": self.geometry_runtime,
+                "artifact_backed_proof": self.artifact_backed_proof,
             },
         }
 
 
 def ux_qa_status(ctx, web_surface: bool) -> UxQaReadiness:
-    files = list(getattr(ctx, "all_files", []))
+    files = _evidence_files(getattr(ctx, "all_files", []))
     return UxQaReadiness(
         web_surface=web_surface,
         storybook=_paths_with(files, STORYBOOK_MARKERS, STORYBOOK_PATHS),
@@ -77,7 +84,19 @@ def ux_qa_status(ctx, web_surface: bool) -> UxQaReadiness:
         api_mocks=_paths_with(files, API_MOCK_MARKERS, ()),
         design_tokens=_paths_with(files, DESIGN_TOKEN_MARKERS, DESIGN_TOKEN_PATHS),
         geometry_runtime=_paths_with(files, GEOMETRY_RUNTIME_MARKERS, GEOMETRY_RUNTIME_PATHS),
+        artifact_backed_proof=_paths_with(files, ARTIFACT_PROOF_MARKERS, ARTIFACT_PROOF_PATHS),
     )
+
+
+def _evidence_files(files: Iterable) -> list:
+    excluded_prefixes = ("docs/", "paper/", "tips/", "reference/")
+    excluded_names = {"README.md"}
+    return [
+        file
+        for file in files
+        if not any(getattr(file, "rel_path", "").startswith(prefix) for prefix in excluded_prefixes)
+        and getattr(file, "rel_path", "") not in excluded_names
+    ]
 
 
 def _paths_with(files: Iterable, markers: set[str], path_markers: tuple[str, ...], limit: int = 5) -> list[str]:
@@ -165,4 +184,18 @@ GEOMETRY_RUNTIME_MARKERS = {
     "edge clearance",
     "target size",
     "getboundingclientrect",
+}
+
+ARTIFACT_PROOF_PATHS = ("ux-qa-artifacts", "test-results", "playwright-report")
+ARTIFACT_PROOF_MARKERS = {
+    "--artifacts-dir",
+    "--screenshot",
+    "--aria-snapshot",
+    "artifactpath",
+    "artifactsdir",
+    "ariasnapshot",
+    "tohavescreenshot",
+    "tomatchariasnapshot",
+    "page.screenshot",
+    "trace",
 }

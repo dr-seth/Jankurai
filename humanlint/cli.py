@@ -60,6 +60,11 @@ CAPS = [
     ("direct-db-access-from-wrong-layer", 66),
     ("missing-web-e2e-lane", 82),
     ("missing-rendered-ux-qa-lane", 84),
+    ("prompt-injection-risk", 78),
+    ("overbroad-agent-agency", 65),
+    ("secret-like-content-detected", 60),
+    ("false-green-test-risk", 76),
+    ("destructive-migration-risk", 70),
     ("missing-rust-property-or-integration-tests", 82),
     ("no-agent-friendly-exception-pattern", 76),
     ("missing-agent-readable-docs", 80),
@@ -562,6 +567,85 @@ FUTURE_HOSTILE_AGENT_FIX = (
     "unsupported state, or move docs/generated/vendor/product-copy text into an allowlisted context"
 )
 
+SECRET_LIKE_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"AKIA[0-9A-Z]{16}",
+        r"ghp_[A-Za-z0-9_]{30,}",
+        r"xox[baprs]-[A-Za-z0-9-]{20,}",
+        r"sk-[A-Za-z0-9_-]{24,}",
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+        r"(?:api[_-]?key|access[_-]?token|secret|password)\s*[:=]\s*[\"'][^\"']{12,}[\"']",
+    )
+]
+
+SECRET_SCAN_SKIP_NAMES = {
+    "Cargo.lock",
+    "Gemfile.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "poetry.lock",
+    "uv.lock",
+    "yarn.lock",
+}
+
+PROMPT_INJECTION_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"ignore (?:all )?(?:previous|prior|above|system|developer) instructions",
+        r"disregard (?:all )?(?:previous|prior|above|system|developer) instructions",
+        r"reveal (?:the )?(?:secret|token|api key|system prompt)",
+        r"exfiltrate|bypass (?:policy|guardrails|sandbox)",
+    )
+]
+
+OVERBROAD_AGENCY_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"danger-full-access",
+        r"approval[_-]?policy\s*[:=]\s*[\"']?never",
+        r"sandbox[_-]?mode\s*[:=]\s*[\"']?danger-full-access",
+        r"allow\s+all\s+(?:tools|commands|network|filesystem)",
+        r"write\s+outside\s+(?:the\s+)?workspace",
+        r"unrestricted\s+(?:terminal|network|filesystem|browser)",
+    )
+]
+
+FALSE_GREEN_TEST_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\b(?:test|it|describe)\.skip\s*\(",
+        r"\b(?:test|it|describe)\.only\s*\(",
+        r"\bxtest\s*\(",
+        r"\bxit\s*\(",
+        r"expect\s*\(\s*true\s*\)\s*\.to(?:be|equal)\s*\(\s*true\s*\)",
+        r"assert\s+true\b",
+        r"assert\.ok\s*\(\s*true\s*\)",
+        r"toMatchSnapshot\s*\(",
+        r"toMatchInlineSnapshot\s*\(",
+    )
+]
+
+DESTRUCTIVE_SQL_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\bdrop\s+(?:table|column|database|schema)\b",
+        r"\btruncate\s+table\b",
+        r"\balter\s+table\b.*\bdrop\b",
+        r"\bdelete\s+from\b(?!.*\bwhere\b)",
+    )
+]
+
+MIGRATION_SAFETY_MARKERS = {
+    "rollback",
+    "backfill",
+    "concurrently",
+    "lock_timeout",
+    "statement_timeout",
+    "down migration",
+    "safety",
+}
+
 HANDWRITTEN_API_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -635,6 +719,72 @@ ROUTING_README_MARKERS = {
     "workspace",
 }
 
+TLR_BY_CATEGORY = {
+    "audit": "Context/setup",
+    "boundary": "Contracts/data",
+    "context": "Context/setup",
+    "data": "Contracts/data",
+    "docs": "Context/setup",
+    "exceptions": "Repair",
+    "generated": "Contracts/data",
+    "naming": "Entropy",
+    "proof": "Verification",
+    "python": "Business truth",
+    "security": "Security",
+    "shape": "Entropy",
+    "stack": "Context/setup",
+    "test": "Verification",
+    "ux-qa": "Verification",
+    "vibe": "Entropy",
+}
+
+LANE_BY_CATEGORY = {
+    "audit": "audit",
+    "boundary": "contract",
+    "context": "fast",
+    "data": "db",
+    "docs": "audit",
+    "exceptions": "observability",
+    "generated": "contract",
+    "naming": "fast",
+    "proof": "fast",
+    "python": "contract",
+    "security": "security",
+    "shape": "fast",
+    "stack": "audit",
+    "test": "fast",
+    "ux-qa": "web",
+    "vibe": "fast",
+}
+
+DOCS_BY_RULE = {
+    "HLT-001-DEAD-MARKER": "docs/audit-rubric.md#future-hostile-language-rule",
+    "HLT-002-GENERATED-MUTATION": "agent/HUMANLINT_STANDARD.md#generated-zones",
+    "HLT-004-UNMAPPED-PROOF": "agent/HUMANLINT_STANDARD.md#proof-lanes",
+    "HLT-005-PYTHON-PRODUCT-TRUTH": "docs/agent-native-standard.md",
+    "HLT-006-DIRECT-DB-WRONG-LAYER": "docs/audit-rubric.md#required-shape",
+    "HLT-007-HANDWRITTEN-CONTRACT": "docs/audit-rubric.md#known-vibe-coding-insults",
+    "HLT-008-FALSE-GREEN-RISK": "docs/testing.md",
+    "HLT-009-GENERATED-SECURITY": "docs/audit-rubric.md#top-level-risk-mapping",
+    "HLT-010-SECRET-SPRAWL": "docs/audit-rubric.md#top-level-risk-mapping",
+    "HLT-011-PROMPT-INJECTION": "docs/audit-rubric.md#top-level-risk-mapping",
+    "HLT-012-OVERBROAD-AGENCY": "docs/audit-rubric.md#top-level-risk-mapping",
+    "HLT-013-RENDERED-UX-GAP": "docs/testing.md",
+    "HLT-016-SUPPLY-CHAIN-DRIFT": "docs/audit-rubric.md#top-level-risk-mapping",
+    "HLT-017-OPAQUE-OBSERVABILITY": "agent/HUMANLINT_STANDARD.md#repair-receipts",
+    "HLT-018-PERF-CONCURRENCY-DRIFT": "docs/testing.md",
+}
+
+TLR_PRIORITY = {
+    "Security": 0,
+    "Business truth": 1,
+    "Contracts/data": 2,
+    "Verification": 3,
+    "Repair": 4,
+    "Context/setup": 5,
+    "Entropy": 6,
+}
+
 MEGAFILE_LOC = 500
 VERY_LARGE_FILE_LOC = 1000
 FUNCTION_LOC_SOFT = 80
@@ -697,6 +847,10 @@ class Finding:
     agent_fix: str
     evidence: list[str]
     rule_id: str | None = None
+    tlr: str | None = None
+    lane: str | None = None
+    docs_url: str | None = None
+    owner: str | None = None
     line: int | None = None
     matched_term: str | None = None
     reason: str | None = None
@@ -713,6 +867,10 @@ class Finding:
             "agent_fix": self.agent_fix,
             "evidence": self.evidence,
             "rule_id": self.rule_id,
+            "tlr": self.tlr,
+            "lane": self.lane,
+            "docs_url": self.docs_url,
+            "owner": self.owner,
         }
 
 
@@ -907,6 +1065,25 @@ def build_context(root: Path, all_files: list[FileInfo], changed: list[str]) -> 
 def file_text(ctx: RepoContext, rel_path: str) -> str:
     file = ctx.root_files.get(rel_path)
     return file.text if file else ""
+
+
+def owner_for_path(ctx: RepoContext, rel_path: str) -> str | None:
+    owner_text = file_text(ctx, "agent/owner-map.json")
+    if not owner_text:
+        return None
+    try:
+        owners = json.loads(owner_text).get("owners", {})
+    except json.JSONDecodeError:
+        return None
+    best_prefix = ""
+    best_owner = None
+    for prefix, owner in owners.items():
+        normalized = str(prefix).rstrip("/")
+        if rel_path == normalized or rel_path.startswith(normalized + "/"):
+            if len(normalized) > len(best_prefix):
+                best_prefix = normalized
+                best_owner = str(owner)
+    return best_owner
 
 
 def any_file(ctx: RepoContext, predicate, scope: str = "all") -> FileInfo | None:
@@ -1147,6 +1324,80 @@ def wrong_layer_db_hits(ctx: RepoContext) -> list[dict]:
             hits.append({"path": file.rel_path, "line": 1, "text": "Python DB client marker"})
         if len(hits) >= 20:
             break
+    return hits
+
+
+def secret_like_content_hits(ctx: RepoContext) -> list[dict]:
+    candidates = [
+        file
+        for file in ctx.all_text_files
+        if file.name not in SECRET_SCAN_SKIP_NAMES
+        and not file.is_generated
+        and not starts_with_any(file.rel_path, ("docs/", "paper/", "reference/", "tips/"))
+        and (
+            file.name.startswith(".env")
+            or file.name.endswith((".log", ".transcript", ".txt", ".json", ".yaml", ".yml", ".toml"))
+            or starts_with_any(file.rel_path, (".github/", ".cursor/", ".claude/", ".mcp/", "agent/", "config/", "fixtures/"))
+            or file.is_code
+        )
+    ]
+    return pattern_hits(candidates, SECRET_LIKE_PATTERNS, limit=20)
+
+
+def prompt_injection_risk_hits(ctx: RepoContext) -> list[dict]:
+    candidates = [
+        file
+        for file in ctx.all_text_files
+        if not file.is_generated
+        and (
+            file.rel_path == "AGENTS.md"
+            or starts_with_any(file.rel_path, ("agent/", ".github/", ".cursor/", ".claude/", ".mcp/"))
+        )
+    ]
+    return pattern_hits(candidates, PROMPT_INJECTION_PATTERNS, limit=20)
+
+
+def overbroad_agent_agency_hits(ctx: RepoContext) -> list[dict]:
+    candidates = [
+        file
+        for file in ctx.all_text_files
+        if not file.is_generated
+        and (
+            file.rel_path == "AGENTS.md"
+            or starts_with_any(file.rel_path, ("agent/", ".github/", ".cursor/", ".claude/", ".mcp/"))
+        )
+    ]
+    return pattern_hits(candidates, OVERBROAD_AGENCY_PATTERNS, limit=20)
+
+
+def false_green_test_hits(ctx: RepoContext) -> list[dict]:
+    candidates = [
+        file
+        for file in ctx.all_text_files
+        if not file.is_generated
+        and (
+            "/test" in file.rel_path.lower()
+            or "/spec" in file.rel_path.lower()
+            or file.name.endswith((".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", "_test.rs", "_test.go"))
+        )
+    ]
+    return pattern_hits(candidates, FALSE_GREEN_TEST_PATTERNS, limit=20)
+
+
+def destructive_migration_hits(ctx: RepoContext) -> list[dict]:
+    candidates = [
+        file
+        for file in ctx.all_text_files
+        if file.suffix == ".sql"
+        and not file.is_generated
+        and starts_with_any(file.rel_path, ("db/", "migrations/", "crates/adapters/", "apps/api/migrations/"))
+    ]
+    hits: list[dict] = []
+    for hit in pattern_hits(candidates, DESTRUCTIVE_SQL_PATTERNS, limit=20):
+        file = next((candidate for candidate in candidates if candidate.rel_path == hit["path"]), None)
+        if file and has_any(file.lower, MIGRATION_SAFETY_MARKERS):
+            continue
+        hits.append(hit)
     return hits
 
 
@@ -2236,6 +2487,26 @@ def scan_repo(ctx: RepoContext) -> tuple[list[DimensionResult], list[Finding], l
         caps_applied.append("missing-rendered-ux-qa-lane")
         cap_limit = min(cap_limit, 84)
 
+    if prompt_injection_risk_hits(ctx):
+        caps_applied.append("prompt-injection-risk")
+        cap_limit = min(cap_limit, 78)
+
+    if overbroad_agent_agency_hits(ctx):
+        caps_applied.append("overbroad-agent-agency")
+        cap_limit = min(cap_limit, 65)
+
+    if secret_like_content_hits(ctx):
+        caps_applied.append("secret-like-content-detected")
+        cap_limit = min(cap_limit, 60)
+
+    if false_green_test_hits(ctx):
+        caps_applied.append("false-green-test-risk")
+        cap_limit = min(cap_limit, 76)
+
+    if destructive_migration_hits(ctx):
+        caps_applied.append("destructive-migration-risk")
+        cap_limit = min(cap_limit, 70)
+
     if has_rust_surface(ctx) and (not has_rust_property_tests(ctx) or not has_rust_integration_tests(ctx)):
         caps_applied.append("missing-rust-property-or-integration-tests")
         cap_limit = min(cap_limit, 82)
@@ -2269,7 +2540,13 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
         matched_term: str | None = None,
         reason: str | None = None,
         rule_id: str | None = None,
+        tlr: str | None = None,
+        lane: str | None = None,
+        docs_url: str | None = None,
     ) -> None:
+        resolved_tlr = tlr or TLR_BY_CATEGORY.get(category)
+        resolved_lane = lane or LANE_BY_CATEGORY.get(category)
+        resolved_docs_url = docs_url or (DOCS_BY_RULE.get(rule_id) if rule_id else None)
         findings.append(
             Finding(
                 severity=severity,
@@ -2279,6 +2556,10 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
                 agent_fix=fix,
                 evidence=evidence,
                 rule_id=rule_id,
+                tlr=resolved_tlr,
+                lane=resolved_lane,
+                docs_url=resolved_docs_url,
+                owner=owner_for_path(ctx, path),
                 line=line,
                 matched_term=matched_term,
                 reason=reason,
@@ -2553,6 +2834,76 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
             rule_id="HLT-013-RENDERED-UX-GAP",
         )
 
+    prompt_hits = prompt_injection_risk_hits(ctx)
+    if prompt_hits:
+        first = prompt_hits[0]
+        add_finding(
+            "high",
+            "security",
+            first["path"],
+            "trusted agent/tool policy contains prompt-injection or policy-bypass language",
+            "isolate untrusted instructions from trusted policy, remove bypass wording, and validate tool calls against the repository standard",
+            [f"{first['path']}:{first['line']} {first['text']}"],
+            line=first["line"],
+            rule_id="HLT-011-PROMPT-INJECTION",
+        )
+
+    agency_hits = overbroad_agent_agency_hits(ctx)
+    if agency_hits:
+        first = agency_hits[0]
+        add_finding(
+            "high",
+            "security",
+            first["path"],
+            "agent/tool permissions appear broader than the requested proof lane",
+            "replace broad terminal/browser/network/filesystem permissions with least-privilege lane profiles and explicit approval gates",
+            [f"{first['path']}:{first['line']} {first['text']}"],
+            line=first["line"],
+            rule_id="HLT-012-OVERBROAD-AGENCY",
+        )
+
+    secret_hits = secret_like_content_hits(ctx)
+    if secret_hits:
+        first = secret_hits[0]
+        add_finding(
+            "critical",
+            "security",
+            first["path"],
+            "secret-like value or credential material appears in repository text",
+            "remove and rotate the credential, add local and CI secret scanning, and scan transcripts/artifacts/MCP config for related exposure",
+            [f"{first['path']}:{first['line']} {first['text']}"],
+            line=first["line"],
+            rule_id="HLT-010-SECRET-SPRAWL",
+        )
+
+    false_green = false_green_test_hits(ctx)
+    if false_green:
+        first = false_green[0]
+        add_finding(
+            "high",
+            "test",
+            first["path"],
+            "test code contains disabled, focused, tautological, or snapshot-only proof",
+            "replace false-green tests with behavior assertions, red/green evidence, and mutation or fault checks for changed behavior",
+            [f"{first['path']}:{first['line']} {first['text']}"],
+            line=first["line"],
+            rule_id="HLT-008-FALSE-GREEN-RISK",
+        )
+
+    migration_hits = destructive_migration_hits(ctx)
+    if migration_hits:
+        first = migration_hits[0]
+        add_finding(
+            "high",
+            "data",
+            first["path"],
+            "destructive migration lacks rollback, backfill, lock, or safety evidence",
+            "add migration safety evidence: rollback/down plan, backfill strategy, lock timeout, staged deploy note, and DB proof lane",
+            [f"{first['path']}:{first['line']} {first['text']}"],
+            line=first["line"],
+            rule_id="HLT-006-DIRECT-DB-WRONG-LAYER",
+        )
+
     if "missing-rust-property-or-integration-tests" in caps_applied:
         missing = []
         if not has_rust_property_tests(ctx):
@@ -2661,7 +3012,7 @@ def build_findings(ctx: RepoContext, dimensions: list[DimensionResult], caps_app
 def build_agent_fix_queue(findings: list[Finding]) -> list[dict]:
     queue: list[dict] = []
     seen: set[tuple[str, str]] = set()
-    for finding in findings:
+    for finding in sorted(findings, key=finding_priority):
         key = (finding.path, finding.agent_fix)
         if key in seen:
             continue
@@ -2671,11 +3022,23 @@ def build_agent_fix_queue(findings: list[Finding]) -> list[dict]:
                 "path": finding.path,
                 "priority": finding.severity,
                 "rule_id": finding.rule_id,
+                "tlr": finding.tlr,
+                "lane": finding.lane,
+                "owner": finding.owner,
                 "task": finding.agent_fix,
                 "why": finding.problem,
             }
         )
     return queue
+
+
+def finding_priority(finding: Finding) -> tuple[int, int, str]:
+    severity_priority = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    return (
+        TLR_PRIORITY.get(finding.tlr or "", 99),
+        severity_priority.get(finding.severity, 9),
+        finding.path,
+    )
 
 
 def report_to_dict(
@@ -2785,6 +3148,15 @@ def render_markdown(report: dict) -> str:
             lines.append(f"{idx}. `{finding['severity']}` `{finding['category']}` `{location}`")
             if finding.get("rule_id"):
                 lines.append(f"   Rule: `{finding['rule_id']}`")
+            if finding.get("tlr") or finding.get("lane") or finding.get("owner"):
+                lines.append(
+                    "   Route: "
+                    f"TLR `{finding.get('tlr') or 'unknown'}`, "
+                    f"lane `{finding.get('lane') or 'unknown'}`, "
+                    f"owner `{finding.get('owner') or 'unmapped'}`"
+                )
+            if finding.get("docs_url"):
+                lines.append(f"   Docs: `{finding['docs_url']}`")
             if finding.get("matched_term"):
                 lines.append(f"   Matched term: `{finding['matched_term']}`")
             lines.append(f"   Reason: {finding.get('reason') or finding['problem']}")
@@ -2799,7 +3171,8 @@ def render_markdown(report: dict) -> str:
     if report["agent_fix_queue"]:
         for idx, item in enumerate(report["agent_fix_queue"], start=1):
             rule = f" `{item['rule_id']}`" if item.get("rule_id") else ""
-            lines.append(f"{idx}. `{item['priority']}`{rule} `{item['path']}` - {item['task']}")
+            route = f" `{item.get('tlr')}`/`{item.get('lane')}`" if item.get("tlr") or item.get("lane") else ""
+            lines.append(f"{idx}. `{item['priority']}`{rule}{route} `{item['path']}` - {item['task']}")
     else:
         lines.append("No queued fixes.")
     return "\n".join(lines) + "\n"

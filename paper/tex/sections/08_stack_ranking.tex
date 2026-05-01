@@ -28,7 +28,7 @@ The top-five result is a default recommendation, not a metaphysical law. The sco
   \includegraphics[width=0.94\textwidth]{figures/stack-ranking.pdf}%
 }
 \vspace{-0.4em}
-\caption{Top-five stack ranking by Agent-Native Stack Score (ANSS), the weighted humanlint 100-point rubric, with the x-axis starting at 85. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
+\caption{Top-five stack ranking by Agent-Native Stack Score (ANSS), the weighted humanlint 100-point rubric. The figure is a zoomed comparison of close contenders; Table~\ref{tab:stack-ranking} gives the absolute scores. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
 \label{fig:stack-ranking}
 \end{figure*}
 
@@ -55,4 +55,4 @@ JVM/Spring or Kotlin + Postgres & 15 & 11 & 11 & 10 & 40 & $\pm 5$ & Brownfield 
 
 Sensitivity is concentrated in three weights: memory safety/security, ecosystem corpus strength, and runtime/concurrency. Increase ecosystem weight and Go, .NET, and JVM improve. Increase type-state and memory-safety weight and Rust separates. Increase product velocity and full-stack TypeScript rises, but it hits hard filters unless durable truth, generated contracts, and server ownership are explicit.
 
-Kafka deserves a separate note because it is both strong and not the standard. It remains a serious event-streaming contender in brownfield systems: its semantics, ecosystem, and operational familiarity are real. But JVM-bound streaming infrastructure carries exactly the runtime surface and migration gravity this paper is trying to shrink. The humanlint position is explicit: use Kafka when the system already needs it, treat it as necessary-evil workload infrastructure rather than stack identity, and expect agent-native systems work to push toward a Kafka-class Rust-native replacement as AI compresses implementation cost.
+Kafka deserves a separate note because it is both strong and not the baseline. It remains a serious event-streaming contender in brownfield systems: its semantics, ecosystem, and operational familiarity are real. But streaming infrastructure is workload-specific. The humanlint position is explicit: use Kafka when the system already needs it, isolate it behind generated contracts and observable adapters, and do not let event-bus choice become stack identity.

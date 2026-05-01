@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { readFile, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
+import { runCli } from "../src/cli.js";
 import { analyzePage } from "../src/index.js";
 
 test("reports edge and target-size violations", async ({ page }) => {
@@ -56,4 +59,37 @@ test("reports focus, form label, and nested scrollbar issues", async ({ page }) 
   expect(rules).toContain("focus-visible");
   expect(rules).toContain("form-label");
   expect(rules).toContain("nested-scrollbar");
+});
+
+test("CLI emits artifact-backed UX proof receipts", async ({}, testInfo) => {
+  const pagePath = testInfo.outputPath("fixture.html");
+  const reportPath = testInfo.outputPath("ux-qa.json");
+  const artifactsDir = testInfo.outputPath("artifacts");
+  await writeFile(pagePath, `
+    <button data-testid="tiny" style="position:absolute; left:2px; top:2px; width:12px; height:12px">x</button>
+    <button data-testid="neighbor" style="position:absolute; left:18px; top:2px; width:12px; height:12px">y</button>
+  `, "utf8");
+
+  const exitCode = await runCli([
+    "audit",
+    "--url",
+    pathToFileURL(pagePath).toString(),
+    "--out",
+    reportPath,
+    "--route-id",
+    "fixture/tiny-controls",
+    "--artifacts-dir",
+    artifactsDir,
+    "--screenshot",
+    "--aria-snapshot"
+  ]);
+
+  const payload = JSON.parse(await readFile(reportPath, "utf8"));
+  const report = payload.reports[0];
+  expect(exitCode).toBe(1);
+  expect(report.schemaVersion).toBe("1.0.0");
+  expect(report.decision).toBe("block");
+  expect(report.routeId).toBe("fixture/tiny-controls");
+  expect(report.artifacts.map((item: { kind: string }) => item.kind)).toEqual(expect.arrayContaining(["screenshot", "aria-snapshot", "crop"]));
+  expect(report.violations.some((item: { artifactPath?: string }) => item.artifactPath)).toBe(true);
 });

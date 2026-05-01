@@ -1,4 +1,5 @@
 export type UxQaSeverity = "error" | "warning";
+export type UxQaDecision = "pass" | "warn" | "review" | "block";
 
 export type UxQaRuleId =
   | "edge-clearance"
@@ -31,6 +32,7 @@ export interface UxQaConfig {
   allowButtonWrap?: boolean;
   maximumZIndex?: number;
   allowNestedScrollbars?: boolean;
+  decisionThreshold?: UxQaSeverity;
 }
 
 export interface UxQaElement {
@@ -68,13 +70,45 @@ export interface UxQaViolation {
   selector: string;
   evidence: string;
   box?: UxQaBox;
+  artifactPath?: string;
+}
+
+export interface UxQaArtifact {
+  kind: "screenshot" | "crop" | "aria-snapshot";
+  path: string;
+  viewport: UxQaViewport;
+  selector?: string;
+  ruleId?: UxQaRuleId;
+}
+
+export interface UxQaSummary {
+  errors: number;
+  warnings: number;
+  byRule: Partial<Record<UxQaRuleId, number>>;
+}
+
+export interface UxQaRunContext {
+  routeId?: string | undefined;
+  storyId?: string | undefined;
+  browserName?: string | undefined;
+  artifactsDir?: string | undefined;
+  screenshot?: boolean | undefined;
+  ariaSnapshot?: boolean | undefined;
 }
 
 export interface UxQaReport {
+  schemaVersion: "1.0.0";
+  toolVersion: string;
   url: string;
+  routeId?: string;
+  storyId?: string;
+  browserName?: string;
   checkedAt: string;
   viewport: UxQaViewport;
   metrics: UxQaPageMetrics;
   elements: UxQaElement[];
   violations: UxQaViolation[];
+  artifacts: UxQaArtifact[];
+  summary: UxQaSummary;
+  decision: UxQaDecision;
 }

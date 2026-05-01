@@ -9,74 +9,81 @@ Public evidence supports treating vibe coding as a high-risk production pattern 
 \label{tab:fault-taxonomy}
 \centering
 \scriptsize
-\begin{tabularx}{\textwidth}{L{0.13\textwidth} L{0.05\textwidth} L{0.17\textwidth} Y Y}
+\begin{tabularx}{\textwidth}{L{0.12\textwidth} L{0.04\textwidth} L{0.16\textwidth} L{0.15\textwidth} Y L{0.09\textwidth}}
 \toprule
-\textbf{TLR} & \textbf{RPN} & \textbf{Fault} & \textbf{Why it happens} & \textbf{Required control} \\
+\textbf{TLR} & \textbf{RPN} & \textbf{Fault} & \textbf{Rule/lane} & \textbf{Required control} & \textbf{Hardness} \\
 \midrule
-Business truth & 125 & False-green business logic & Code compiles and tests pass, but the product rule is wrong or asserted at the wrong level. & Domain invariants, property tests, golden workflows, DB constraints, incident replay tests. \\
-Business truth & 100 & Authorization or data-isolation drift & Agent patches authz in UI, handler, or Python because it is locally easy. & Role matrix tests, negative authz tests, owner-map routing, RLS where useful. \\
-Security & 80 & Plausible insecure generated code & Output looks idiomatic while hiding injection, XSS, unsafe deserialization, weak crypto, or logging flaws. & Security lane, SAST/SCA, secure-code rules, threat-model checklist, negative tests. \\
-Security & 80 & Secrets and identity sprawl & Credentials leak through code, logs, prompts, fixtures, MCP/tool config, or copied examples. & Push protection, local/CI secret scans, redacted logs, credential inventory, transcript/artifact scan. \\
-Security & 75 & Excessive agent agency & Broad terminal, browser, network, or filesystem permissions let agents take unsafe actions. & Least-privilege profiles, destructive-command gates, workspace-only writes, permission receipts. \\
-Security & 75 & Prompt injection and hostile context & Issues, docs, pages, or comments ask the model to bypass trusted policy. & Source-trust hierarchy, untrusted-content isolation, tool-call validation, no secrets in context. \\
-Verification & 64 & False-green tests & Agent writes tests that prove its implementation rather than the requirement. & Reviewer-owned acceptance criteria, mutation/fault checks, semantic assertions, no snapshot-only proof. \\
-Context & 64 & Context retrieval failure & Agent over-reads, under-reads, or follows stale nearby patterns instead of the owner path. & Short root router, owner/test maps, local rules, symbol search, command-output filtering. \\
-Contracts & 60 & Contract and DTO drift & Handwritten API types, local fetch wrappers, and stale clients become private contracts. & Generated clients only, contract drift lane, generated-zone lock, compatibility tests. \\
-Contracts & 60 & Wrong-layer persistence & UI, API edge, scripts, or Python gain durable truth and bypass application/database policy. & DB access policy, adapters-only SQL, migration and constraint tests, forbidden imports. \\
-Context & 48 & Environment/setup hallucination & Unclear setup leads agents to install random tools, change config, or skip DB/service proof. & One-command setup, pinned toolchain, devcontainer where useful, setup proof lane. \\
-Verification & 48 & Pixel/UI regression & UI functions while layout, hierarchy, responsive state, overflow, or design tokens break. & Storybook states, Playwright screenshots, geometry rules, baseline governance, trace artifacts. \\
-Verification & 48 & Accessibility regression & Visual output looks acceptable while labels, keyboard paths, focus, target size, or ARIA change. & axe/ARIA checks, keyboard journeys, focus/target geometry, expert review for semantic gaps. \\
-Security & 45 & Dependency and supply-chain drift & Agent adds convenient packages without license, vulnerability, provenance, or lockfile review. & Dependency rationale, lockfile diff review, OSV/SCA, SBOM, SLSA/provenance checks. \\
-Repair & 45 & Observability and repair opacity & Generic errors and print logs leave no stable path from failure to fix. & Problem details, stable error codes, OpenTelemetry attributes, correlation IDs, repair hints. \\
-Entropy & 45 & Dead-language normalization & \texttt{temporary}, \texttt{fallback}, \texttt{stub}, \texttt{TODO}, and \texttt{legacy} become permanent states. & Banned marker scan, scoped allowlist, owner, expiry, exception record. \\
-Entropy & 36 & Performance, memory, or concurrency regression & Plausible code duplicates queries, polls, leaks memory, omits cancellation, or ignores backpressure. & Benchmarks, query-plan checks, load smoke tests, allocation budgets, tracing. \\
-Entropy & 36 & Mega-file or mega-function sprawl & Repair locality disappears and agents edit broad surfaces. & LOC/function caps, split by owner/use case, focused tests before behavior edits. \\
-Contracts & 30 & Generated-zone mutation & Generated output becomes forked source truth. & Generated-zone manifest, source contract change, regeneration command, drift check. \\
-Context & 30 & Documentation or instruction drift & Tool-specific files contradict canonical policy and agents choose randomly. & Canonical manifest, generated mirrors, instruction lint, short root guidance. \\
+Business truth & 125 & False-green business logic & HLT-008 / fast & Domain invariants, property tests, golden workflows, DB constraints, incident replay tests. & Hard \\
+Business truth & 100 & Authorization or data-isolation drift & HLT-005 / db & Role matrix tests, negative authz tests, owner-map routing, RLS where useful. & Hard \\
+Business truth & 80 & Idempotency or side-effect duplication & HLT-008 / release & Idempotency keys, replay tests, outbox/workflow proofs, double-charge negative cases. & Hard \\
+Security & 80 & Plausible insecure generated code & HLT-009 / security & SAST/SCA, secure-code rules, threat-model checklist, negative tests. & Hard \\
+Security & 80 & Secrets and identity sprawl & HLT-010 / security & Push protection, local/CI secret scans, redacted logs, credential inventory, transcript/artifact scan. & Hard \\
+Security & 75 & Customer-data or PII leakage & HLT-010 / security & Data classification, prompt/transcript redaction, retention policy, vector-store review, privacy tests. & Hard \\
+Security & 75 & Excessive agent agency & HLT-012 / security & Least-privilege profiles, destructive-command gates, workspace-only writes, permission receipts. & Hard \\
+Security & 75 & Prompt injection and hostile context & HLT-011 / security & Source-trust hierarchy, untrusted-content isolation, tool-call validation, no secrets in context. & Hard \\
+Security & 60 & Improper AI/tool output handling & HLT-011 / security & Schema validation, output encoding, command sandboxing, no direct execution of generated text. & Hard \\
+Security & 45 & Dependency and supply-chain drift & HLT-016 / security & Dependency rationale, lockfile diff review, OSV/SCA, SBOM, provenance checks. & Hard \\
+Verification & 64 & False-green tests & HLT-008 / fast & Reviewer-owned acceptance criteria, mutation/fault checks, semantic assertions, red/green evidence. & Hard \\
+Context/setup & 64 & Context retrieval failure & HLT-015 / fast & Short root router, owner/test maps, local rules, symbol search, command-output filtering. & Soft \\
+Contracts/data & 60 & Contract and DTO drift & HLT-007 / contract & Generated clients only, contract drift lane, generated-zone lock, compatibility tests. & Hard \\
+Contracts/data & 60 & Wrong-layer persistence & HLT-006 / db & DB access policy, adapters-only SQL, migration and constraint tests, forbidden imports. & Hard \\
+Contracts/data & 60 & Destructive migration or data-loss hazard & HLT-006 / db & Rollback/down plan, staged backfill, lock timeout, constraint proof, production rehearsal. & Hard \\
+Context/setup & 48 & Environment/setup hallucination & HLT-015 / fast & One-command setup, pinned toolchain, devcontainer where useful, setup proof lane. & Hard \\
+Verification & 48 & Pixel/UI regression & HLT-013 / web & Storybook states, Playwright screenshots, geometry rules, baseline governance, trace artifacts. & Hard \\
+Verification & 48 & Accessibility regression & HLT-014 / web & axe/ARIA checks, keyboard journeys, focus/target geometry, expert review for semantic gaps. & Hard \\
+Verification & 48 & Model, prompt, or eval drift & HLT-008 / ai-eval & Versioned prompts/models, eval baselines, golden datasets, provider-change receipts. & Soft \\
+Repair & 45 & Observability and repair opacity & HLT-017 / observability & Problem details, stable error codes, OpenTelemetry attributes, correlation IDs, repair hints. & Hard \\
+Entropy & 45 & Dead-language normalization & HLT-001 / fast & Banned marker scan, scoped allowlist, owner, expiry, exception record. & Hard \\
+Entropy & 40 & Orphan or dead reachable code & HLT-001 / fast & Reachability checks, owner review, deletion receipts, tests proving replacement path. & Soft \\
+Entropy & 36 & Performance, memory, or concurrency regression & HLT-018 / release & Benchmarks, query-plan checks, load smoke tests, allocation budgets, tracing. & Soft \\
+Entropy & 36 & Mega-file or mega-function sprawl & HLT-008 / fast & LOC/function caps, split by owner/use case, focused tests before behavior edits. & Soft \\
+Contracts/data & 30 & Generated-zone mutation & HLT-002 / contract & Generated-zone manifest, source contract change, regeneration command, drift check. & Hard \\
+Context/setup & 30 & Documentation or instruction drift & HLT-015 / audit & Canonical manifest, generated mirrors, instruction lint, short root guidance. & Soft \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
 \begin{figure*}[t]
 \centering
-\begin{minipage}{0.37\textwidth}
+\begin{minipage}{0.36\textwidth}
 \centering
 \begin{tikzpicture}[scale=1.18]
 \def\r{1.55}
-\fill[red!70] (0,0) -- (90:\r) arc (90:-11:\r) -- cycle;
-\fill[orange!70] (0,0) -- (-11:\r) arc (-11:-83:\r) -- cycle;
-\fill[blue!62] (0,0) -- (-83:\r) arc (-83:-151:\r) -- cycle;
-\fill[teal!62] (0,0) -- (-151:\r) arc (-151:-212:\r) -- cycle;
-\fill[gray!60] (0,0) -- (-212:\r) arc (-212:-245:\r) -- cycle;
-\fill[yellow!70!black] (0,0) -- (-245:\r) arc (-245:-270:\r) -- cycle;
-\draw[white,line width=0.7pt] (0,0) -- (90:\r);
-\draw[white,line width=0.7pt] (0,0) -- (-11:\r);
-\draw[white,line width=0.7pt] (0,0) -- (-83:\r);
-\draw[white,line width=0.7pt] (0,0) -- (-151:\r);
-\draw[white,line width=0.7pt] (0,0) -- (-212:\r);
-\draw[white,line width=0.7pt] (0,0) -- (-245:\r);
-\draw[white,line width=0.7pt] (0,0) -- (-270:\r);
+\fill[red!70] (0,0) -- (90:\r) arc (90:-25:\r) -- cycle;
+\fill[orange!70] (0,0) -- (-25:\r) arc (-25:-97:\r) -- cycle;
+\fill[teal!62] (0,0) -- (-97:\r) arc (-97:-144:\r) -- cycle;
+\fill[blue!62] (0,0) -- (-144:\r) arc (-144:-191:\r) -- cycle;
+\fill[yellow!70!black] (0,0) -- (-191:\r) arc (-191:-227:\r) -- cycle;
+\fill[gray!60] (0,0) -- (-227:\r) arc (-227:-259:\r) -- cycle;
+\fill[purple!55] (0,0) -- (-259:\r) arc (-259:-270:\r) -- cycle;
+\foreach \angle/\label in {32/1,-61/2,-121/3,-168/4,-209/5,-243/6,-264/7} {
+  \node[font=\scriptsize\bfseries] at (\angle:1.02) {\label};
+}
+\foreach \angle in {90,-25,-97,-144,-191,-227,-259,-270} {
+  \draw[white,line width=0.7pt] (0,0) -- (\angle:\r);
+}
 \draw[black!45,line width=0.4pt] (0,0) circle (\r);
-\node[align=center] at (0,0) {\scriptsize TLR\\\scriptsize share};
+\node[align=center] at (0,0) {\scriptsize Policy\\\scriptsize RPN share};
 \end{tikzpicture}
 \end{minipage}
 \hfill
-\begin{minipage}{0.58\textwidth}
+\begin{minipage}{0.60\textwidth}
 \scriptsize
-\begin{tabularx}{\linewidth}{L{0.08\linewidth} L{0.20\linewidth} Y}
+\begin{tabularx}{\linewidth}{L{0.05\linewidth} L{0.09\linewidth} L{0.20\linewidth} Y}
 \toprule
-\textbf{Share} & \textbf{TLR bucket} & \textbf{Included faults} \\
+\textbf{\#} & \textbf{Share} & \textbf{TLR bucket} & \textbf{Included faults} \\
 \midrule
-\textcolor{red!70}{28\%} & Security & Generated-code flaws, secrets, prompt injection, excessive agency, supply chain. \\
-\textcolor{orange!80!black}{20\%} & Business truth & False-green business logic, authorization drift, data isolation. \\
-\textcolor{blue!70}{19\%} & Verification & False-green tests, pixel/UI, accessibility, proof quality. \\
-\textcolor{teal!70!black}{17\%} & Contracts/data & Contract drift, wrong-layer persistence, generated mutation. \\
-\textcolor{gray!70}{9\%} & Context/setup & Context retrieval, setup hallucination, instruction drift. \\
-\textcolor{yellow!60!black}{7\%} & Entropy & Dead language, mega files/functions, performance drift. \\
+1 & 32\% & Security & Generated-code flaws, secrets, PII, prompt injection, agency, tool output, supply chain. \\
+2 & 20\% & Business truth & False-green business logic, authorization/data isolation, idempotency. \\
+3 & 13\% & Contracts/data & Contract drift, wrong-layer persistence, destructive migrations, generated mutation. \\
+4 & 13\% & Verification & False-green tests, pixel/UI, accessibility, prompt/model/eval drift. \\
+5 & 10\% & Entropy & Dead language, orphan code, mega files/functions, performance/concurrency. \\
+6 & 9\% & Context/setup & Context retrieval, setup hallucination, instruction drift. \\
+7 & 3\% & Repair & Observability and repair opacity. \\
 \bottomrule
 \end{tabularx}
 \end{minipage}
-\caption{TLR means Top-Level Risk. Shares are derived from the taxonomy's policy-weighted RPN buckets for humanlint 0.2.0; they are not incident-frequency measurements. The chart is intended to steer audit priority: security and business truth receive first repair attention even when easier style findings are more numerous.}
+\caption{TLR means Top-Level Risk. Shares are computed directly from Table~\ref{tab:fault-taxonomy}: each row contributes its RPN to one TLR bucket, then bucket totals are rounded to whole percentages. The chart is a policy-priority model for humanlint 0.2.0, not an incident-frequency measurement.}
 \label{fig:tlr-pie}
 \end{figure*}
 
@@ -86,4 +93,4 @@ Context & 30 & Documentation or instruction drift & Tool-specific files contradi
 \end{minipage}}
 \end{center}
 
-The taxonomy turns insult into audit surface. A finding is useful only when it names the rule, points at exact evidence, gives a bounded repair, and can be serialized into an agent queue. ``This feels messy'' is not actionable. \texttt{HLT-002-GENERATED-MUTATION} in \texttt{apps/web/src/generated/client.ts} with source \texttt{contracts/openapi/api.yaml} is actionable.
+Known solutions are stronger for some rows than others. Secret scanning, SCA, contract generation, DB constraints, Playwright screenshots, axe checks, and generated-zone manifests are known controls. Model/prompt drift, AI visual triage, context retrieval failure, and human-label learning are still emerging controls; humanlint treats them as soft findings until teams can attach deterministic evidence. The taxonomy turns insult into audit surface. A finding is useful only when it names the rule, points at exact evidence, gives a bounded repair, and can be serialized into an agent queue. ``This feels messy'' is not actionable. \texttt{HLT-002-GENERATED-MUTATION} in \texttt{apps/web/src/generated/client.ts} with source \texttt{contracts/openapi/api.yaml} is actionable.

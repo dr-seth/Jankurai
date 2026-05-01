@@ -63,8 +63,12 @@ Stop or fix first when any condition is true:
 - product/runtime code contains future-hostile markers without allowlisted docs/generated/vendor/product-copy context or dated exception
 - high-risk change lacks security lane
 - generated code changes auth/input/crypto/filesystem behavior without security proof
+- secret-like values, prompt transcripts, MCP config, fixtures, or logs expose credentials or customer data
+- trusted agent/tool policy contains prompt-injection, bypass, or overbroad permission language
+- destructive migration lacks rollback, backfill, lock, and DB proof evidence
+- tests are skipped/focused/tautological/snapshot-only for changed behavior
 - agent tool permissions are broader than the requested lane
-- user-facing UI changes lack rendered UX proof on critical surfaces
+- user-facing UI changes lack artifact-backed rendered UX proof on critical surfaces
 
 ## Stable Rule IDs
 
@@ -156,6 +160,7 @@ For non-trivial fixes, leave enough evidence for the next agent:
 - failed rule or lane
 - proof command
 - artifact versions
+- screenshot, crop, trace, ARIA snapshot, or audit report paths when UI or browser behavior changed
 - remaining exception or follow-up
 
 ## Local Commands

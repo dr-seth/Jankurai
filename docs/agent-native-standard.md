@@ -292,7 +292,7 @@ Recommended browser lane: Playwright for end-to-end flows because it exercises r
 
 ## 11.1 Rendered UX And Browser-Step QA
 
-Browser QA is first-class but risk-routed. Critical flows, auth, payments, admin actions, onboarding, canvas/3D surfaces, and layout-sensitive components SHOULD have Playwright traces or screenshots in the PR lane. Rendered UX proof SHOULD combine Storybook states, screenshots, accessibility scans, CLS checks, and DOM geometry rules for edge clearance, target size, overlap, clipping, wrapping, overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars. Full viewport/device matrices MAY run nightly or at release unless the changed path directly touches those surfaces.
+Browser QA is first-class but risk-routed. Critical flows, auth, payments, admin actions, onboarding, canvas/3D surfaces, and layout-sensitive components SHOULD have Playwright traces or screenshots in the PR lane. Rendered UX proof SHOULD combine Storybook states, screenshots, ARIA snapshots, accessibility scans, CLS checks, generated mocks, design-token evidence, and DOM geometry rules for edge clearance, target size, overlap, clipping, wrapping, overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars. Full viewport/device matrices MAY run nightly or at release unless the changed path directly touches those surfaces.
 
 Required evidence for high-risk UI repairs:
 
@@ -300,10 +300,12 @@ Required evidence for high-risk UI repairs:
 - viewport and browser
 - action sequence
 - assertion
-- screenshot, trace, or video artifact
+- screenshot, crop, ARIA snapshot, trace, or video artifact
+- rule ID, selector, owner, and merge decision
 - changed files and proof lane
 
 Agents MUST NOT treat a passing typecheck as proof of visual correctness for changed critical UI flows.
+Deterministic rendered-UX violations block. Pixel diffs route to baseline review. AI/CV opinions route to humans unless backed by deterministic evidence.
 
 ## 12. Agent-Friendly Exception Contract
 
@@ -487,6 +489,8 @@ The audit MUST detect or require explicit exceptions for these problems.
 | Unpinned action/image | CI action, Docker base, or install script unpinned where policy requires pinning |
 | Observability gap | no request ID, trace ID, structured error, or operation name across boundary |
 | Rendered UX gap | critical UI change lacks screenshot, trace, geometry, visual baseline, or accessibility proof |
+| Pixel baseline drift | screenshot changed without owner-approved baseline decision and artifact receipt |
+| AI visual false authority | model/VLM says a UI is acceptable without deterministic geometry, a11y, or baseline evidence |
 | Setup gap | repository lacks deterministic setup or local service proof |
 | Context bloat | root agent docs too long, duplicated policy, pasted logs, or generated docs in prompt path |
 | Orphan code | file not reachable from owner-map, build, tests, docs, or import graph |

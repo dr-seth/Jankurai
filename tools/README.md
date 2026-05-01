@@ -75,8 +75,9 @@ The scorer flags known vibe-coding failure modes:
 | contracts | handwritten DTO/API types, handwritten web API clients, missing generated clients, drift untested |
 | generated zones | missing generated-zone manifest, missing do-not-edit markers, TODOs in generated code |
 | data | direct DB access from web/API/domain/application/Python product code |
-| tests | no Playwright/e2e for web, no Rust property tests, no Rust integration tests |
-| security | no security lane, no secret scan, no dependency/SBOM/provenance scan |
+| tests | no Playwright/e2e for web, no rendered UX receipt, no Rust property tests, skipped/focused/tautological/snapshot-only proof |
+| security | no security lane, secret-like content, prompt injection, overbroad agent agency, no dependency/SBOM/provenance scan |
+| migrations | destructive SQL without rollback/backfill/lock safety evidence |
 | docs | missing root instructions, missing architecture/boundary/testing docs |
 | exceptions | no agent-friendly errors with name/code/purpose/reason/common fixes/docs URL |
 

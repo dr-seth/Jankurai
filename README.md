@@ -4,7 +4,23 @@
 
 `humanlint` is an open-source standard, paper, and audit CLI for agent-native engineering: repositories built so coding agents can reject wrong code, localize the repair, run the right proof lane, and leave evidence.
 
-The default target stack is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+Use it in two steps: audit now, then ratchet toward conformance. The audit works on any repo; the default target profile is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+
+<img src="assets/vibe-coding-tlr-pie.svg" alt="Vibe-coding top-level risk shares" width="100%">
+
+## Vibe-Coding Risk Model
+
+`TLR` means Top-Level Risk. These shares are policy-weighted RPN from the paper taxonomy, not incident-frequency measurements.
+
+| TLR | Share | Highest-risk faults | Primary controls |
+| --- | ---: | --- | --- |
+| Security | 32% | generated insecure code, secrets, PII, prompt injection, excessive agency | security lane, SAST/SCA, secret scans, permission receipts |
+| Business truth | 20% | false-green rules, authz/data isolation, idempotency drift | domain invariants, role matrix tests, DB constraints, replay tests |
+| Contracts/data | 13% | DTO drift, wrong-layer persistence, destructive migrations | generated clients, generated zones, DB migration proof |
+| Verification | 13% | weak tests, pixel/UI, accessibility, eval drift | semantic assertions, Playwright, ARIA/axe, geometry reports |
+| Entropy | 10% | dead language, orphan code, mega functions, perf drift | marker scan, owner review, LOC caps, benchmarks |
+| Context/setup | 9% | context retrieval, setup hallucination, instruction drift | root router, owner/test maps, one-command setup |
+| Repair | 3% | opaque exceptions and missing production evidence | OTel, problem details, repair receipts |
 
 ## Quick Start
 
@@ -31,6 +47,8 @@ python3 tools/humanlint.py /path/to/repo --json repo-score.json --md repo-score.
 ```
 
 The Python audit path is dependency-free. It emits one machine-readable JSON report and one Markdown review surface.
+
+Read the Markdown report first. Fix the highest-priority `agent_fix_queue` item, rerun the audit, and repeat until caps are gone. Scores below `70` usually mean the repo is not agent-operable; `70-84` is advisory/ratchet territory; `85+` is the target floor for standard-mode conformance.
 
 ## Add The Agent Standard
 
@@ -76,6 +94,15 @@ Then run the audit and fix the highest-severity findings first:
 humanlint . --json repo-score.json --md repo-score.md
 ```
 
+For real conformance, add the machine-readable maps the audit expects:
+
+| File | Purpose |
+| --- | --- |
+| `agent/owner-map.json` | maps changed paths to ownership cells |
+| `agent/test-map.json` | maps changed paths to proof lanes |
+| `agent/generated-zones.toml` | names generated outputs, sources, and regeneration commands |
+| `agent/standard-version.toml` | pins standard, audit, schema, paper, and artifact versions |
+
 ## CI
 
 GitHub Actions starter:
@@ -116,6 +143,7 @@ From this repo:
 
 ```bash
 npm ci
+npx playwright install chromium
 npm --workspace @humanlint/ux-qa run build
 npm --workspace @humanlint/ux-qa run test
 ```
@@ -138,9 +166,15 @@ CLI use after building the workspace package:
 node packages/ux-qa/dist/cli.js audit \
   --url http://localhost:3000 \
   --out ux-qa.json \
+  --route-id dashboard \
+  --artifacts-dir ux-qa-artifacts \
+  --screenshot \
+  --aria-snapshot \
   --viewport 390x844 \
   --viewport 1440x900
 ```
+
+The CLI expects a running app or preview URL. Reports include rule IDs, selectors, viewport data, severity, merge decision, and artifact paths for screenshots, crops, and ARIA snapshots when requested. Deterministic geometry failures should block; visual baseline diffs should route to owner approval; AI/VLM visual opinions should stay review-only unless backed by deterministic evidence.
 
 ## Repository Map
 

@@ -28,3 +28,24 @@ Product velocity and interop & 2 & Fast UI loop, generated clients, easy local d
 Points are awarded only for structural properties. ``We review carefully'' is not a security control. ``The senior engineer knows where SQL belongs'' is not a boundary. ``The README explains it'' is not a generated contract. The stack must make the wrong path hard to express and the right path cheap to prove.
 
 Hard filters apply before points. A stack with no deterministic local proof lane, no security lane for high-risk changes, no generated contract discipline, or no credible data boundary cannot score as agent-native even if it is pleasant to write. This is why the paper treats caps, uncertainty, and sensitivity as part of the result rather than footnotes.
+
+\begin{table}[t]
+\caption{Representative hard caps before weighted scoring.}
+\label{tab:hard-caps}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{Y L{0.18\columnwidth}}
+\toprule
+\textbf{Missing or unsafe control} & \textbf{Max score} \\
+\midrule
+No deterministic local proof lane & 65 \\
+No security lane on high-risk repo & 60 \\
+No generated contract discipline for public boundary & 80 \\
+Direct DB access from wrong layer & 66 \\
+No secret or dependency scanning in CI & 78 \\
+Prompt injection or overbroad agent agency in trusted policy & 65--78 \\
+No rendered UX proof for user-facing web surface & 84 \\
+False-green tests or destructive migration without safety evidence & 70--76 \\
+\bottomrule
+\end{tabularx}
+\end{table}
