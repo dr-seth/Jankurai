@@ -9,7 +9,7 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 **Location:** Paper Sections VI–VIII; README; audit CLI
 **Issue:** The paper blurs two standards: “agent-native repository controls” and “preferred stack conformance.” The README says the audit works on any repo, but the auditor hard-caps “non-optimal product language” and “too much Python,” which makes the tool feel like a Rust/TS/Postgres enforcement tool rather than a general agent-native standard. ([GitHub][2])
 **Why it matters:** A skeptical Go, .NET, JVM, Rails, or Python team will dismiss the whole standard as author preference before engaging with the more valuable control-plane ideas.
-**Proposed fix:** Split conformance into two modes: `humanlint controls` and `humanlint target-stack profile`. The base standard should grade owner maps, proof lanes, generated zones, repair receipts, security, UX proof, and observability across stacks. The Rust/TS/Postgres recommendation should be an optional profile, not a universal hard cap.
+**Proposed fix:** Split conformance into two modes: `jankurai controls` and `jankurai target-stack profile`. The base standard should grade owner maps, proof lanes, generated zones, repair receipts, security, UX proof, and observability across stacks. The Rust/TS/Postgres recommendation should be an optional profile, not a universal hard cap.
 **Type:** Needs internal product building
 
 ### 2. Severity: Critical
@@ -30,7 +30,7 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 
 ### 4. Severity: Critical
 
-**Location:** `.github/workflows/humanlint-audit.yml`; Section XIII security claims
+**Location:** `.github/workflows/jankurai-audit.yml`; Section XIII security claims
 **Issue:** The CI “security lane” currently echoes commands instead of running scanners. The paper says secret scanning, SCA, SBOM/provenance, and workflow linting are core controls, but the repo has placeholder commands for `gitleaks`, `syft`, `grype`, and `zizmor`. ([GitHub][3])
 **Why it matters:** Security is the top TLR bucket. If the project’s own security lane is simulated, the standard looks performative.
 **Proposed fix:** Run at least one real secret scanner, one dependency/SCA scanner, one workflow linter, and upload artifacts. For example: `gitleaks`, `osv-scanner` or `npm audit --audit-level`, `zizmor`, and SBOM generation. Mark unsupported scanners as future work only after at least one real gate exists.
@@ -38,10 +38,10 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 
 ### 5. Severity: Critical
 
-**Location:** `humanlint/cli.py`, `tools/check_versions.py`, `packages/ux-qa/src/*.ts`
+**Location:** `jankurai/cli.py`, `tools/check_versions.py`, `packages/ux-qa/src/*.ts`
 **Issue:** Major source files are compressed into one or a few extremely long physical lines. That conflicts with the project’s own “small files/functions, repair locality, agent-readable source” philosophy. ([GitHub][4])
 **Why it matters:** A serious open-source adopter will question maintainability, reviewability, formatter discipline, and whether the tool exempts itself from its own standard.
-**Proposed fix:** Reformat all source and docs with normal line structure. Add formatter/lint gates. Then run humanlint against itself with no self-exemption for maintainability rules, or explicitly document why tool internals are exempt.
+**Proposed fix:** Reformat all source and docs with normal line structure. Add formatter/lint gates. Then run jankurai against itself with no self-exemption for maintainability rules, or explicitly document why tool internals are exempt.
 **Type:** Needs internal product building
 
 ### 6. Severity: High
@@ -49,7 +49,7 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 **Location:** Abstract; Sections I–II; Conclusion
 **Issue:** The thesis is clear but sometimes rhetorically stronger than the evidence. “Anything less is just faster vibe coding” and repeated “winner” framing make the argument sound more absolute than the data supports. 
 **Why it matters:** The paper is trying to be a standards-oriented engineering proposal, not only a manifesto. The rhetoric may alienate readers who agree with the controls but reject the totalizing language.
-**Proposed fix:** Keep the bluntness, but add a “claim ladder” early: evidence supports AI risk; repo controls are a proposed mitigation; humanlint is a versioned policy; stack ranking is a default profile awaiting empirical calibration. Replace absolute language with “without comparable controls” or “under this target profile.”
+**Proposed fix:** Keep the bluntness, but add a “claim ladder” early: evidence supports AI risk; repo controls are a proposed mitigation; jankurai is a versioned policy; stack ranking is a default profile awaiting empirical calibration. Replace absolute language with “without comparable controls” or “under this target profile.”
 **Type:** Needs writing-editing
 
 ### 7. Severity: High
@@ -95,8 +95,8 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 ### 12. Severity: High
 
 **Location:** Section XII; README UX QA package
-**Issue:** The paper correctly composes Storybook, Playwright screenshots, ARIA snapshots, accessibility automation, visual regression, MSW, design tokens, and AI/CV triage, but the tool currently seems limited to DOM geometry checks. Playwright supports screenshot comparisons and ARIA snapshots, and Storybook supports visual testing and network mocking workflows, so `humanlint` should integrate rather than merely mention them. ([Playwright][6])
-**Why it matters:** Without integration, humanlint is a good idea paper plus a small geometry library, not a UX QA standard.
+**Issue:** The paper correctly composes Storybook, Playwright screenshots, ARIA snapshots, accessibility automation, visual regression, MSW, design tokens, and AI/CV triage, but the tool currently seems limited to DOM geometry checks. Playwright supports screenshot comparisons and ARIA snapshots, and Storybook supports visual testing and network mocking workflows, so `jankurai` should integrate rather than merely mention them. ([Playwright][6])
+**Why it matters:** Without integration, jankurai is a good idea paper plus a small geometry library, not a UX QA standard.
 **Proposed fix:** Add adapters: Storybook story enumerator, Playwright project matrix reader, ARIA snapshot writer, screenshot baseline manifest, MSW/mock evidence check, and a baseline-approval receipt schema.
 **Type:** Needs internal product building
 
@@ -145,7 +145,7 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 **Location:** Section XVI limitations; release plan benchmark pack
 **Issue:** The limitations section is honest but too late and too brief. The release plan says benchmarks are needed, but the paper should pull that into the main argument. 
 **Why it matters:** Reviewers will accept policy proposals more readily when the evaluation plan is concrete and falsifiable.
-**Proposed fix:** Add an “Evaluation Plan” section before the conclusion: baseline repos, controlled humanlint repos, agents tested, task types, metrics, raw artifact policy, and failure analysis.
+**Proposed fix:** Add an “Evaluation Plan” section before the conclusion: baseline repos, controlled jankurai repos, agents tested, task types, metrics, raw artifact policy, and failure analysis.
 **Type:** Needs writing-editing
 
 ### 19. Severity: Medium
@@ -193,7 +193,7 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 **Location:** Agent maps and proof lanes
 **Issue:** The repo has owner maps, test maps, generated-zone manifests, and proof-lane files, which is good; but the maps are project-specific examples, not reusable templates with validation and failure fixtures. ([GitHub][13])
 **Why it matters:** Adoption depends on copying a working pattern, not inventing JSON/TOML structure from prose.
-**Proposed fix:** Add `templates/agent/owner-map.json`, `templates/agent/test-map.json`, `templates/agent/generated-zones.toml`, and a command `humanlint init --profile controls|target-stack`.
+**Proposed fix:** Add `templates/agent/owner-map.json`, `templates/agent/test-map.json`, `templates/agent/generated-zones.toml`, and a command `jankurai init --profile controls|target-stack`.
 **Type:** Needs internal product building
 
 ### 25. Severity: Medium
@@ -246,21 +246,21 @@ The highest-leverage problem is not the paper’s idea; it is credibility alignm
 
 ## Bottom line
 
-The paper is hard to dismiss when it argues “trustworthy merge is the bottleneck.” It is easier to dismiss when it argues “this exact stack wins” with precise scores before benchmark evidence exists. The strongest path is to make `humanlint` first a serious, stack-independent agent-native control standard, then offer Rust/TypeScript/Postgres as a well-argued target profile.
+The paper is hard to dismiss when it argues “trustworthy merge is the bottleneck.” It is easier to dismiss when it argues “this exact stack wins” with precise scores before benchmark evidence exists. The strongest path is to make `jankurai` first a serious, stack-independent agent-native control standard, then offer Rust/TypeScript/Postgres as a well-argued target profile.
 
 The most urgent product work is: real security lane, real UX artifacts, schemas/fixtures/sample reports, release packaging, and a non-target-stack conformance mode. Those five changes would make the project feel substantially more like an open-source standard and less like a paper-backed prototype.
 
 [1]: https://dora.dev/dora-report-2025/?utm_source=chatgpt.com "DORA | State of AI-assisted Software Development 2025"
-[2]: https://github.com/jeppsontaylor/humanlint "GitHub - jeppsontaylor/humanlint: Turns out humans were a bug, we're fixing that · GitHub"
-[3]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/.github/workflows/humanlint-audit.yml "raw.githubusercontent.com"
-[4]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/humanlint/cli.py "raw.githubusercontent.com"
+[2]: https://github.com/jeppsontaylor/jankurai "GitHub - jeppsontaylor/jankurai: Turns out humans were a bug, we're fixing that · GitHub"
+[3]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/.github/workflows/jankurai-audit.yml "raw.githubusercontent.com"
+[4]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/jankurai/cli.py "raw.githubusercontent.com"
 [5]: https://owasp.org/www-project-top-10-for-large-language-model-applications/?utm_source=chatgpt.com "OWASP Top 10 for Large Language Model Applications"
 [6]: https://playwright.dev/docs/aria-snapshots?utm_source=chatgpt.com "Snapshot testing"
-[7]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/packages/ux-qa/src/rules.ts "raw.githubusercontent.com"
+[7]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/packages/ux-qa/src/rules.ts "raw.githubusercontent.com"
 [8]: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html?utm_source=chatgpt.com "Understanding SC 2.5.8: Target Size (Minimum) (Level AA)"
-[9]: https://github.com/jeppsontaylor/humanlint?utm_source=chatgpt.com "GitHub - jeppsontaylor/humanlint: Turns out humans were a bug, we're fixing that · GitHub"
-[10]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/docs/agent-native-standard.md "raw.githubusercontent.com"
+[9]: https://github.com/jeppsontaylor/jankurai?utm_source=chatgpt.com "GitHub - jeppsontaylor/jankurai: Turns out humans were a bug, we're fixing that · GitHub"
+[10]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/docs/agent-native-standard.md "raw.githubusercontent.com"
 [11]: https://media.defense.gov/2025/Jun/23/2003742198/-1/-1/0/CSI_MEMORY_SAFE_LANGUAGES_REDUCING_VULNERABILITIES_IN_MODERN_SOFTWARE_DEVELOPMENT.PDF?utm_source=chatgpt.com "Reducing Vulnerabilities in Modern Software Development"
 [12]: https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-beta/?utm_source=chatgpt.com "Announcing TypeScript 7.0 Beta"
-[13]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/agent/owner-map.json "raw.githubusercontent.com"
+[13]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/agent/owner-map.json "raw.githubusercontent.com"
 

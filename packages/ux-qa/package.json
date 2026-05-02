@@ -1,10 +1,10 @@
 {
-  "name": "@humanlint/ux-qa",
+  "name": "@jankurai/ux-qa",
   "version": "0.4.0",
   "description": "Playwright DOM geometry checks for rendered UX quality.",
   "type": "module",
   "bin": {
-    "humanlint-ux-qa": "./dist/cli.js"
+    "jankurai-ux-qa": "./dist/cli.js"
   },
   "exports": {
     ".": {
@@ -21,5 +21,8 @@
   },
   "peerDependencies": {
     "playwright": ">=1.59.0"
+  },
+  "dependencies": {
+    "axe-core": "^4.11.4"
   }
 }

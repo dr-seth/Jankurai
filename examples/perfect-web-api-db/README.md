@@ -1,6 +1,6 @@
 # perfect-web-api-db
 
-Reference platform scaffold for the Humanlint native stack.
+Reference platform scaffold for the Jankurai native stack.
 
 This fixture proves the file layout for:
 

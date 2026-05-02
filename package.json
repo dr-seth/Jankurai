@@ -1,13 +1,13 @@
 {
-  "name": "humanlint-workspace",
+  "name": "jankurai-workspace",
   "private": true,
   "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "ux-qa:build": "npm --workspace @humanlint/ux-qa run build",
-    "ux-qa:test": "npm --workspace @humanlint/ux-qa run test"
+    "ux-qa:build": "npm --workspace @jankurai/ux-qa run build",
+    "ux-qa:test": "npm --workspace @jankurai/ux-qa run test"
   },
   "devDependencies": {
     "@playwright/test": "1.59.1",

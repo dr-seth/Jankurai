@@ -1,4 +1,4 @@
-I reviewed the full draft, including the abstract, sections I–XII, tables, appendices, and references. The draft is directionally strong: it already has the right ingredients—agent-native repository shape, stack rubric, winner stack, proof lanes, generated zones, exceptions, and a humanlint audit. But it is not yet a landmark standard. It currently reads like a forceful manifesto with a standard embedded inside it. The next version needs to read like a standard-setting research paper with a manifesto’s urgency. 
+I reviewed the full draft, including the abstract, sections I–XII, tables, appendices, and references. The draft is directionally strong: it already has the right ingredients—agent-native repository shape, stack rubric, winner stack, proof lanes, generated zones, exceptions, and a jankurai audit. But it is not yet a landmark standard. It currently reads like a forceful manifesto with a standard embedded inside it. The next version needs to read like a standard-setting research paper with a manifesto’s urgency. 
 
 ## Core verdict
 
@@ -9,7 +9,7 @@ The paper should become four things at once:
 1. **A historical argument**: programming languages evolved as bottleneck-compression systems.
 2. **A technical standard**: agent-first repositories must expose machine-readable ownership, proof lanes, generated zones, exceptions, and audit signals.
 3. **A stack decision framework**: choose the stack that maximizes verification speed, security, repair locality, and agent routing—not human comfort.
-4. **A conformance program**: humanlint becomes the enforcement mechanism every repo runs, with scores, hard caps, drift detection, repair queues, and CI policy.
+4. **A conformance program**: jankurai becomes the enforcement mechanism every repo runs, with scores, hard caps, drift detection, repair queues, and CI policy.
 
 Right now, the paper has all four pieces, but the order and rigor need work. The strongest upgrade is to stop making the paper merely argue for a preferred stack and instead make it launch **a normative engineering standard**: what every project must contain, how it is scored, how deviations are justified, and how agents are safely allowed to operate.
 
@@ -41,7 +41,7 @@ I would restructure the paper around this flow:
    This is where Julia, Elm, Haskell, Scala, D, Nim, Crystal, Reason/OCaml frontend, and Elixir belong. Do not call Julia dead. Say: “technical success is not the same as default-stack success.”
 
 4. **Definitions**
-   Define vibe coding, agent-first, agent-native, proof lane, generated zone, repair receipt, exception, centerline drift, humanlint.
+   Define vibe coding, agent-first, agent-native, proof lane, generated zone, repair receipt, exception, centerline drift, jankurai.
 
 5. **Threat model**
    Agents can edit files, run commands, browse, call tools, mutate tests, leak secrets, follow malicious instructions, and overfit to local green checks.
@@ -58,7 +58,7 @@ I would restructure the paper around this flow:
 9. **Agent-first repository design**
    Universal repo rules first; tool-specific adapters second.
 
-10. **humanlint conformance and code audit**
+10. **jankurai conformance and code audit**
     This should be a main pillar, not a later enforcement detail.
 
 11. **Testing, pixel QA, and future CI**
@@ -79,14 +79,14 @@ Problems:
 * It names too many implementation details before the reader understands the standard.
 * It frames the stack as the main contribution, but the real contribution should be the **agent-native conformance system**.
 * It does not define “vibe coding” or “agent-native” clearly enough.
-* It underplays humanlint. For this paper’s goal, humanlint is not a side audit. It is the enforcement layer of the standard.
+* It underplays jankurai. For this paper’s goal, jankurai is not a side audit. It is the enforcement layer of the standard.
 * It says the end state is not human-free engineering, which is good, but it needs a stronger framing: humans move from typing and informal review to setting invariants, policy, risk budgets, and proof thresholds.
 
 A stronger abstract would be:
 
 > AI coding has made plausible code cheap. That changes the failure mode of software organizations: the bottleneck is no longer producing code, but rejecting unsafe code, localizing defects, proving repairs, preserving security posture, and teaching the next agent what changed. This paper proposes an agent-native engineering standard for repositories designed to be maintained by humans and coding agents together. The standard treats the repository as a verification interface: every path has an owner, every change has a proof lane, every generated file has a source of truth, every exception is scoped and expiring, and every merge is audited for drift away from the standard.
 >
-> The paper contributes a stack-scoring rubric, a default winning architecture, a repository layout, proof-lane model, generated-zone policy, exception schema, visual QA strategy, CI model, and humanlint audit. The recommended default stack is Rust for core invariants, TypeScript/React/Vite for product surface, PostgreSQL for durable truth, generated contracts for boundaries, and bounded Python for AI/data service work. This stack is not chosen for author preference. It is chosen because it maximizes compile-time rejection, contract enforcement, database integrity, security scanning, deterministic testing, observability, and repair routing.
+> The paper contributes a stack-scoring rubric, a default winning architecture, a repository layout, proof-lane model, generated-zone policy, exception schema, visual QA strategy, CI model, and jankurai audit. The recommended default stack is Rust for core invariants, TypeScript/React/Vite for product surface, PostgreSQL for durable truth, generated contracts for boundaries, and bounded Python for AI/data service work. This stack is not chosen for author preference. It is chosen because it maximizes compile-time rejection, contract enforcement, database integrity, security scanning, deterministic testing, observability, and repair routing.
 >
 > The goal is not to remove humans from engineering. It is to move humans to the control plane: defining product intent, invariants, risk policy, review thresholds, and exception governance while agents perform increasingly automated implementation and repair.
 
@@ -106,13 +106,13 @@ That gives the paper the “journey of code evolution” you want.
 
 The introduction also needs one very clear “claims and contributions” paragraph. Right now, the claims exist, but they are not framed like a landmark paper. Add:
 
-> This paper makes three normative claims and one operational contribution. The normative claims are: first, agentic software engineering requires repositories optimized for verification rather than memory; second, stack choice should be scored by rejection speed and repair locality rather than developer preference; third, autonomous coding requires a default winner stack plus explicit exception governance. The operational contribution is humanlint: a repo audit and CI standard that scores conformance, detects vibe-coding drift, and emits machine-readable repair queues for agents.
+> This paper makes three normative claims and one operational contribution. The normative claims are: first, agentic software engineering requires repositories optimized for verification rather than memory; second, stack choice should be scored by rejection speed and repair locality rather than developer preference; third, autonomous coding requires a default winner stack plus explicit exception governance. The operational contribution is jankurai: a repo audit and CI standard that scores conformance, detects vibe-coding drift, and emits machine-readable repair queues for agents.
 
 ## Section-by-section critique
 
 ### Abstract
 
-Keep the central bottleneck argument. Cut some implementation density. Move the banned-marker examples into the humanlint section. The abstract should not spend precious space listing “legacy,” “deprecated,” “temporary,” and similar markers. It should say humanlint detects unmanaged temporary architecture and dead-language markers, then leave the list for the audit section.
+Keep the central bottleneck argument. Cut some implementation density. Move the banned-marker examples into the jankurai section. The abstract should not spend precious space listing “legacy,” “deprecated,” “temporary,” and similar markers. It should say jankurai detects unmanaged temporary architecture and dead-language markers, then leave the list for the audit section.
 
 ### Index Terms
 
@@ -209,7 +209,7 @@ Example hard caps:
 | No path-to-owner map                      |            75 |
 | No security/SCA/SBOM lane                 |            80 |
 | No visual QA for user-facing app          |            85 |
-| No humanlint audit in CI                  |            85 |
+| No jankurai audit in CI                  |            85 |
 | No exception registry                     |            88 |
 | No repair receipts / agent evidence trail |            90 |
 
@@ -293,7 +293,7 @@ The paper should compare current agent surfaces and explain what each is good at
 
 | Tool surface       | Strength to call out                                                                                                                                      | Standard requirement                                                              |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| OpenAI Codex       | Reads `AGENTS.md` before work; useful for repo-level conventions and validation commands                                                                  | Generate `AGENTS.md` from canonical humanlint config                              |
+| OpenAI Codex       | Reads `AGENTS.md` before work; useful for repo-level conventions and validation commands                                                                  | Generate `AGENTS.md` from canonical jankurai config                              |
 | Cursor             | Project/team/user rules and scoped rule files are strong for style, architecture, and path-specific conventions                                           | Use Cursor rules as mirrors, not separate truth                                   |
 | Claude Code        | Project memory and terminal-oriented workflows are useful for long repair sessions                                                                        | Memory must not override canonical repo policy                                    |
 | GitHub Copilot     | Repository and path-specific custom instructions fit PR review and cloud-agent workflows                                                                  | Use `.github/copilot-instructions.md` and path instructions as generated adapters |
@@ -402,13 +402,13 @@ Also distinguish:
 
 HTTP boundary errors should use machine-readable structures. RFC 9457 defines Problem Details for HTTP APIs, which supports the paper’s push toward standard, parseable error responses for agents and clients. OpenTelemetry exception attributes also support consistent error capture across traces/logs. ([RFC Editor][12])
 
-### X. The humanlint Audit
+### X. The jankurai Audit
 
 This should move earlier or become a full main section with subsections. It is the enforcement layer of the entire paper.
 
-humanlint should be framed as:
+jankurai should be framed as:
 
-> humanlint is the conformance test for agent-native engineering.
+> jankurai is the conformance test for agent-native engineering.
 
 Required outputs:
 
@@ -440,7 +440,7 @@ Required exit codes:
 
 Add “centerline drift”:
 
-> Each repo has a target centerline: ownership clarity, proof routing, contract integrity, security posture, visual QA, exception hygiene, generated-zone integrity, context economy, and repair evidence. humanlint measures drift from that centerline over time.
+> Each repo has a target centerline: ownership clarity, proof routing, contract integrity, security posture, visual QA, exception hygiene, generated-zone integrity, context economy, and repair evidence. jankurai measures drift from that centerline over time.
 
 That gives the paper a powerful governance concept.
 
@@ -470,7 +470,7 @@ Add:
 
 | Level | Name            | Meaning                                                                 |
 | ----: | --------------- | ----------------------------------------------------------------------- |
-|     0 | Observed        | humanlint runs but does not block                                       |
+|     0 | Observed        | jankurai runs but does not block                                       |
 |     1 | Routed          | owner/test maps and proof lanes exist                                   |
 |     2 | Guarded         | generated zones, security scans, exceptions enforced                    |
 |     3 | Agent-ready     | CI emits repair queues and agents can safely patch                      |
@@ -491,7 +491,7 @@ End with something like:
 
 Use this as a main paper table. Scores are 1–5. Detection difficulty means 5 is hardest to detect before damage.
 
-| Rank | Vibe-coding failure                                    | Impact | Likelihood | Detection difficulty | Why it matters                                                                                                                                                                                        | humanlint gate                                           |
+| Rank | Vibe-coding failure                                    | Impact | Likelihood | Detection difficulty | Why it matters                                                                                                                                                                                        | jankurai gate                                           |
 | ---: | ------------------------------------------------------ | -----: | ---------: | -------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 |    1 | Authorization or access-control omission               |      5 |          5 |                    4 | Generated endpoints often look correct while missing role, tenant, or object-level checks; GitHub reports broken access control became the top CodeQL alert category in 2025. ([The GitHub Blog][13]) | authz test lane, route policy checks, RLS tests          |
 |    2 | Secret leakage and credential sprawl                   |      5 |          5 |                    3 | AI-assisted churn increases commits, config files, tool tokens, and MCP-style credentials; GitGuardian reports 28.65M public GitHub secrets in 2025. ([GitGuardian][14])                              | secret scan, push protection, local pre-commit           |
@@ -516,15 +516,15 @@ Use this as a main paper table. Scores are 1–5. Detection difficulty means 5 i
 
 For supply-chain controls, cite concrete tooling. GitHub push protection blocks pushes containing secrets before they reach the repo; OSV-Scanner maps dependency manifests to known vulnerabilities; CycloneDX provides a BOM standard for software supply-chain visibility; SLSA frames controls for artifact integrity and provenance. ([GitHub Docs][19])
 
-## What the humanlint section must add
+## What the jankurai section must add
 
-The paper should make humanlint mandatory for every coding project using the standard.
+The paper should make jankurai mandatory for every coding project using the standard.
 
 Add this language:
 
-> A repository is not agent-native because it has an AI instruction file. It is agent-native only if humanlint can score it, route repair work, detect drift, and block unsafe merges.
+> A repository is not agent-native because it has an AI instruction file. It is agent-native only if jankurai can score it, route repair work, detect drift, and block unsafe merges.
 
-humanlint should inspect:
+jankurai should inspect:
 
 * repo layout.
 * ownership cells.
@@ -675,7 +675,7 @@ Add plots that make the paper feel empirically grounded.
    X-axis: adoption/corpus. Y-axis: verification score. This prevents the paper from looking like pure popularity analysis.
 
 9. **Repository drift over time**
-   Show humanlint score improving across releases, with exception debt falling.
+   Show jankurai score improving across releases, with exception debt falling.
 
 10. **Tool adapter matrix**
     Compare Codex, Cursor, Claude Code, Copilot, Antigravity across instruction files, path-specific rules, memory, browser control, PR review, artifacts, multi-agent orchestration.
@@ -694,7 +694,7 @@ Critical fixes:
 * Add a definitions box early.
 * Add a conformance-level table.
 * Add a threat-model table.
-* Add a humanlint output example.
+* Add a jankurai output example.
 * Add a CI pipeline diagram.
 * Add a pixel QA matrix.
 * Use consistent capitalization in references: protect names like `{GitHub}`, `{TypeScript}`, `{PostgreSQL}`, `{OpenTelemetry}`, `{OpenAI}`, `{DORA}` in BibTeX.
@@ -706,7 +706,7 @@ Critical fixes:
 * Use `tcolorbox` for normative callouts and schemas.
 * Use `fvextra` or `listings` for code/config blocks; avoid huge raw monospace blocks that dominate pages.
 * Prefer one highly readable serif family plus a clean monospaced font. For pdfLaTeX, `newtxtext,newtxmath` with `inconsolata` is safe. For LuaLaTeX, `Libertinus` plus `Inconsolata` or `IBM Plex Mono` gives a more modern research look.
-* Add a “Reproducibility and Data Sources” appendix for scoring data, plot data, and humanlint sample outputs.
+* Add a “Reproducibility and Data Sources” appendix for scoring data, plot data, and jankurai sample outputs.
 * Add a “Normative Requirements” appendix that can become the standard spec.
 
 Example LaTeX preamble direction:
@@ -757,7 +757,7 @@ Do these first:
 
 1. Rewrite the introduction around bottleneck compression and repo-as-verification-interface.
 2. Add definitions for vibe coding, agent-first, agent-native, proof lane, generated zone, exception, repair receipt, and centerline drift.
-3. Move humanlint from “audit section” to “conformance mechanism.”
+3. Move jankurai from “audit section” to “conformance mechanism.”
 4. Add a threat model for coding agents.
 5. Expand the hype/niche-language section, but do not call Julia dead.
 6. Add hard caps and sensitivity analysis to the 100-point rubric.

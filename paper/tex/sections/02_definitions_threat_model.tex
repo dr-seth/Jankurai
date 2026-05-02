@@ -11,7 +11,7 @@ The threat model starts with false plausibility. Agents can produce code that lo
 \small
 \begin{tabularx}{\textwidth}{L{0.19\textwidth} Y Y}
 \toprule
-\textbf{Threat} & \textbf{Failure mode} & \textbf{humanlint control} \\
+\textbf{Threat} & \textbf{Failure mode} & \textbf{jankurai control} \\
 \midrule
 False plausibility & Code looks correct but violates hidden ownership, security, or data rules. & Owner map, test map, small files, generated contracts, typed errors. \\
 Hostile context & README snippets, issues, web pages, docs, or comments instruct the agent to bypass policy. & Root and local agent instructions, permission policy, source-trust hierarchy. \\
@@ -23,4 +23,4 @@ False-green tests & Tests pass because the wrong lane ran, assertions are weak, 
 \end{tabularx}
 \end{table*}
 
-The standard does not claim every repository using AI must adopt humanlint. It claims a narrower and testable thing: a repository claiming humanlint conformance must expose enough machine-readable structure for the claim to be audited. Conformance is a public interface, not a vibe.
+The standard does not claim every repository using AI must adopt jankurai. It claims a narrower and testable thing: a repository claiming jankurai conformance must expose enough machine-readable structure for the claim to be audited. Conformance is a public interface, not a vibe.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/benchmark-report.schema.json",
-  "title": "humanlint benchmark report",
+  "$id": "https://jankurai.dev/schemas/benchmark-report.schema.json",
+  "title": "jankurai benchmark report",
   "type": "object",
   "required": [
     "schema_version",

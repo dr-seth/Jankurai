@@ -1,10 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/migration-plan.schema.json",
-  "title": "humanlint migration plan",
+  "$id": "https://jankurai.dev/schemas/migration-plan.schema.json",
+  "title": "jankurai migration plan",
   "type": "object",
   "required": [
     "schema_version",
+    "command",
+    "status",
     "generated_at",
     "source_report",
     "target_stack",
@@ -14,6 +16,8 @@
   ],
   "properties": {
     "schema_version": { "type": "string" },
+    "command": { "type": "string" },
+    "status": { "type": "string" },
     "generated_at": { "type": "string" },
     "source_report": { "type": "string" },
     "target_stack": { "type": "string" },

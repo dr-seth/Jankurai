@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/ux-qa-policy.schema.json",
-  "title": "humanlint UX QA policy",
-  "description": "Policy for agent/ux-qa.toml (TOML parsed to JSON for validation). Doctor uses the standard TOML parser; @humanlint/ux-qa uses a line-oriented subset—prefer simple key/value and [[routes]] tables.",
+  "$id": "https://jankurai.dev/schemas/ux-qa-policy.schema.json",
+  "title": "jankurai UX QA policy",
+  "description": "Policy for agent/ux-qa.toml (TOML parsed to JSON for validation). Doctor uses the standard TOML parser; @jankurai/ux-qa uses a line-oriented subset—prefer simple key/value and [[routes]] tables.",
   "type": "object",
   "properties": {
     "artifactRoot": { "type": "string" },

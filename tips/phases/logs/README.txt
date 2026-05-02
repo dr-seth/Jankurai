@@ -1,6 +1,6 @@
 Append-only operational logs for moonshot phase work.
 
-These files are the canonical tracked cross-agent phase history. Keep volatile proof receipts, generated reports, screenshots, SARIF, and command output under target/humanlint/ and cite those paths from log entries when they matter.
+These files are the canonical tracked cross-agent phase history. Keep volatile proof receipts, generated reports, screenshots, SARIF, and command output under target/jankurai/ and cite those paths from log entries when they matter.
 
 Required format for new entries, one line per event, UTF-8:
   timestamp_utc | actor/tool | phase | action | changed_paths | validation | artifacts | git_sha | residual_risk
@@ -26,4 +26,4 @@ Files:
   12-benchmark-certification-governance.log - Phase 12 benchmark certification / governance
   13-autonomous-repair-optimization.log - Phase 13 autonomous repair / optimization
 
-Do not rewrite history; append only. Tracked in git, unlike target/humanlint/.
+Do not rewrite history; append only. Tracked in git, unlike target/jankurai/.

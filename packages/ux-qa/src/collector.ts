@@ -99,9 +99,9 @@ function collectInBrowser({ selector, interactiveSelector }: CollectArgs): Brows
   }
 
   function stableSelector(node: HTMLElement): string {
-    const humanlintId = node.getAttribute("data-humanlint-id");
-    if (humanlintId) {
-      const selector = `[data-humanlint-id="${cssEscape(humanlintId)}"]`;
+    const jankuraiId = node.getAttribute("data-jankurai-id");
+    if (jankuraiId) {
+      const selector = `[data-jankurai-id="${cssEscape(jankuraiId)}"]`;
       if (selectorResolves(selector, node)) return selector;
     }
     const testId = node.getAttribute("data-testid");

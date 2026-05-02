@@ -32,7 +32,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 ### 4. The project currently overstates security implementation
 
 * **Severity:** Critical
-* **Location:** README “CI”; Justfile `security`; `.github/workflows/humanlint-audit.yml`; Sections XIII and Table XV
+* **Location:** README “CI”; Justfile `security`; `.github/workflows/jankurai-audit.yml`; Sections XIII and Table XV
 * **Issue:** The paper and README position security as a hard gate, but the current repo’s security lane is mostly placeholders: the Justfile security target echoes tool names, and the workflow has a “Security lane placeholders” step that echoes scanner commands rather than running them. ([GitHub][2])
 * **Why it matters:** A serious engineer will run the project and conclude that the standard says “hard gate” while the reference implementation says “echo.” That undercuts trust more than having no security lane yet.
 * **Proposed fix:** Rename current behavior to “security readiness markers” until real scanners run. Then implement a minimal real lane: `gitleaks` or `trufflehog` for secrets, OSV-Scanner for dependencies, `zizmor` for Actions, SBOM generation with Syft, and optional SLSA provenance checks. OSV-Scanner and SLSA are directly relevant because they provide dependency vulnerability scanning and supply-chain integrity/provenance frameworks. ([Google GitHub][3])
@@ -41,7 +41,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 ### 5. The tool violates its own “small files / repair locality” doctrine
 
 * **Severity:** Critical
-* **Location:** `humanlint/cli.py`; docs hard LOC limits; Section VI; Appendix A
+* **Location:** `jankurai/cli.py`; docs hard LOC limits; Section VI; Appendix A
 * **Issue:** The main audit implementation is a single 3,239-line file, 2,813 LOC, 105 KB. The standard itself sets hard maxes for files/functions and argues that large files harm agent repairability. ([GitHub][4])
 * **Why it matters:** This is the easiest “humans were the bug” counterpunch: the standard does not yet dogfood its own code-shape claims.
 * **Proposed fix:** Split `cli.py` into `inventory.py`, `rules/security.py`, `rules/contracts.py`, `rules/ux.py`, `rules/code_shape.py`, `scoring.py`, `schema.py`, `reporters/json.py`, `reporters/markdown.py`, and `main.py`. Add a self-audit exception only if you need one during migration, with an expiration date and refactor plan.
@@ -85,7 +85,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 ### 10. Current false-green detection is too regex-based
 
 * **Severity:** High
-* **Location:** HLT-008; `humanlint/cli.py`; Section XI
+* **Location:** HLT-008; `jankurai/cli.py`; Section XI
 * **Issue:** The current implementation catches obvious weak-test markers like skipped tests, `.only`, `assert true`, and snapshot-only tests. That is useful, but it will miss the more important false-green class: the wrong test lane ran, the assertion does not cover changed behavior, mocks hide contract drift, or a test passes because the fixture is stale. ([GitHub][4])
 * **Why it matters:** False-green tests are one of the paper’s central claims. If the tool only finds textual smells, the implementation lags the argument.
 * **Proposed fix:** Add changed-path to proof-lane validation, test-to-source ownership mapping, required semantic assertion markers for high-risk routes, snapshot-pairing rules, mutation-test hooks, and “red evidence” support for bug fixes. For example: a repair receipt should show the failing test before the fix or explain why red evidence is unavailable.
@@ -95,9 +95,9 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 
 * **Severity:** High
 * **Location:** Section XII; Tables XIII–XIV; README “Rendered UX QA”; `packages/ux-qa`
-* **Issue:** The paper makes a strong case for rendered UX QA and cites the right ecosystem: Storybook, Playwright screenshots, ARIA snapshots, visual regression, accessibility automation, design tokens, MSW mocks, and human feedback. The package currently implements a good seed geometry runtime, but not the full paper vision. The README itself describes existing tools and says humanlint adds a deterministic geometry layer. ([GitHub][6])
+* **Issue:** The paper makes a strong case for rendered UX QA and cites the right ecosystem: Storybook, Playwright screenshots, ARIA snapshots, visual regression, accessibility automation, design tokens, MSW mocks, and human feedback. The package currently implements a good seed geometry runtime, but not the full paper vision. The README itself describes existing tools and says jankurai adds a deterministic geometry layer. ([GitHub][6])
 * **Why it matters:** This can become the project’s most distinctive product contribution, but only if it is visibly more than a paragraph in the paper.
-* **Proposed fix:** Build `@humanlint/ux-qa` into a real integration package: Storybook story discovery, Playwright fixture, ARIA snapshot comparison, axe-core integration, visual baseline metadata, design-token checks, CLS collection, artifact manifest, and PR review output.
+* **Proposed fix:** Build `@jankurai/ux-qa` into a real integration package: Storybook story discovery, Playwright fixture, ARIA snapshot comparison, axe-core integration, visual baseline metadata, design-token checks, CLS collection, artifact manifest, and PR review output.
 * **Type:** internal product building
 
 ### 12. UX geometry rules need false-positive controls before they block serious teams
@@ -118,11 +118,11 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Proposed fix:** Rewrite HLT-014 as: “Automated checks are required minimum evidence; semantic, cognitive, screen-reader, and task-flow accessibility require human or specialist review for protected surfaces.” Add examples where automation passes but UX/accessibility still fails.
 * **Type:** writing-editing
 
-### 14. ARIA snapshots are cited well, but humanlint should define what it does with them
+### 14. ARIA snapshots are cited well, but jankurai should define what it does with them
 
 * **Severity:** High
 * **Location:** Section XII; README UX QA CLI; `packages/ux-qa/src/cli.ts`
-* **Issue:** The CLI can emit ARIA snapshot artifacts, and Playwright supports ARIA snapshots as a YAML representation of the accessibility tree. But the standard does not yet say whether humanlint compares them, baselines them, reviews them, or simply stores them. ([GitHub][10])
+* **Issue:** The CLI can emit ARIA snapshot artifacts, and Playwright supports ARIA snapshots as a YAML representation of the accessibility tree. But the standard does not yet say whether jankurai compares them, baselines them, reviews them, or simply stores them. ([GitHub][10])
 * **Why it matters:** “Captured artifact” is weaker than “proof.”
 * **Proposed fix:** Add `aria_baseline_path`, `aria_diff`, `approved_by`, and `semantic_change_reason` fields to the UX report. Make ARIA snapshot comparison optional at first, but define the contract now.
 * **Type:** internal product building
@@ -141,7 +141,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Severity:** High
 * **Location:** Section XII; Table XIII; README UX QA
 * **Issue:** The paper describes labels like true layout bug, intentional change, false positive, design-system violation, and product/design review item. That is a strong idea, but there is no visible schema or workflow in the README.
-* **Why it matters:** This is where humanlint can become a learning system rather than another linter. Without a schema, teams cannot store or reuse feedback.
+* **Why it matters:** This is where jankurai can become a learning system rather than another linter. Without a schema, teams cannot store or reuse feedback.
 * **Proposed fix:** Add `ux-feedback.schema.json` with fields for route/story, viewport, rule ID, selector, screenshot crop, label, reviewer, owner, expiration, and linked issue. Add a PR comment template that lets reviewers label diffs.
 * **Type:** internal product building
 
@@ -149,9 +149,9 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 
 * **Severity:** High
 * **Location:** README Quick Start; GitHub releases/packages
-* **Issue:** The README explains what humanlint does, gives install commands, describes CI, and gives UX QA usage. That is good. But there are no releases published, and the quick start installs directly from GitHub. ([GitHub][6])
+* **Issue:** The README explains what jankurai does, gives install commands, describes CI, and gives UX QA usage. That is good. But there are no releases published, and the quick start installs directly from GitHub. ([GitHub][6])
 * **Why it matters:** Serious engineers will ask: what version am I installing, what changed, is there a signed release, and can I pin this in CI?
-* **Proposed fix:** Publish a tagged release, PyPI package for `humanlint`, npm package for `@humanlint/ux-qa`, changelog, release notes, SHA/checksum or provenance notes, and a “known limitations in v0.2.0” section.
+* **Proposed fix:** Publish a tagged release, PyPI package for `jankurai`, npm package for `@jankurai/ux-qa`, changelog, release notes, SHA/checksum or provenance notes, and a “known limitations in v0.2.0” section.
 * **Type:** internal product building
 
 ### 18. README needs an expected-output example
@@ -160,7 +160,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 
 * **Location:** README Quick Start and “Add The Agent Standard”
 
-* **Issue:** The README tells users to run `humanlint` and then read the Markdown report, but it does not show a realistic sample finding, score, hard cap, or repair queue item.
+* **Issue:** The README tells users to run `jankurai` and then read the Markdown report, but it does not show a realistic sample finding, score, hard cap, or repair queue item.
 
 * **Why it matters:** Engineers decide whether to try a tool by seeing the first useful output.
 
@@ -189,7 +189,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Location:** Section VI; Appendix A; README; `repo-score.json` contract
 * **Issue:** The paper defines required report fields, but the repo should ship a formal schema for audit output, repair receipts, owner maps, test maps, generated zones, exceptions, and UX QA reports.
 * **Why it matters:** A standard becomes real when other tools can validate against it.
-* **Proposed fix:** Add `schemas/humanlint-report.schema.json`, `schemas/repair-receipt.schema.json`, `schemas/owner-map.schema.json`, `schemas/test-map.schema.json`, and `schemas/ux-qa-report.schema.json`. Validate them in CI.
+* **Proposed fix:** Add `schemas/jankurai-report.schema.json`, `schemas/repair-receipt.schema.json`, `schemas/owner-map.schema.json`, `schemas/test-map.schema.json`, and `schemas/ux-qa-report.schema.json`. Validate them in CI.
 * **Type:** internal product building
 
 ### 20. Owner/test maps are present, but too shallow for serious conformance
@@ -207,7 +207,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Location:** `agent/generated-zones.toml`; HLT-002; Appendix B
 * **Issue:** The generated-zone manifest exists, but there should be a concrete stale-generation check and a failing example. ([GitHub][13])
 * **Why it matters:** Generated-zone mutation is one of the easiest high-signal wins. It should be demonstrably enforceable.
-* **Proposed fix:** Add a fixture repo where a generated client is hand-edited; show humanlint producing `HLT-002-GENERATED-MUTATION`; add a regeneration command; rerun to green.
+* **Proposed fix:** Add a fixture repo where a generated client is hand-edited; show jankurai producing `HLT-002-GENERATED-MUTATION`; add a regeneration command; rerun to green.
 * **Type:** internal product building
 
 ### 22. The audit rules are actionable, but some soft signals need evidence controls
@@ -225,7 +225,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Location:** Section XVI limitations; after Appendix A or before conclusion
 * **Issue:** The paper says it is not yet a full empirical benchmark paper, which is fine. But it would be much harder to dismiss with even a small pilot.
 * **Why it matters:** A standards proposal without any sample application can feel aspirational.
-* **Proposed fix:** Add a 3–5 repo pilot: run humanlint on one clean reference repo, one intentionally vibe-coded fixture, one typical TypeScript app, one backend API, and this repo. Report finding counts, false positives, repair time, and before/after score.
+* **Proposed fix:** Add a 3–5 repo pilot: run jankurai on one clean reference repo, one intentionally vibe-coded fixture, one typical TypeScript app, one backend API, and this repo. Report finding counts, false positives, repair time, and before/after score.
 * **Type:** internal product building
 
 ### 24. Rendered UX should have its own benchmark fixture suite
@@ -270,7 +270,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Location:** README; docs/agent-native-standard.md; Sections VI–IX
 * **Issue:** The README says the audit works on any repo, while the default target profile is Rust/TypeScript/Postgres/bounded Python. That is clear, but teams outside the target stack need a more explicit “how to adopt without migrating stacks” path. ([GitHub][6])
 * **Why it matters:** Adoption grows if Go/.NET/JVM/Rails/Python teams can get value before accepting the default stack argument.
-* **Proposed fix:** Add “Profiles”: `humanlint-web-ts`, `humanlint-go-postgres`, `humanlint-dotnet-postgres`, `humanlint-jvm-postgres`, `humanlint-python-ai-boundary`, each with compensating controls and caps.
+* **Proposed fix:** Add “Profiles”: `jankurai-web-ts`, `jankurai-go-postgres`, `jankurai-dotnet-postgres`, `jankurai-jvm-postgres`, `jankurai-python-ai-boundary`, each with compensating controls and caps.
 * **Type:** internal product building
 
 ### 29. The paper needs two concrete narrative examples before the tables
@@ -279,7 +279,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Location:** Before Section V or inside Section II
 * **Issue:** The paper gets table-heavy quickly. The definitions are clear, but a reader would benefit from one backend and one frontend failure story before the taxonomy.
 * **Why it matters:** Concrete examples make the standard feel useful rather than ceremonial.
-* **Proposed fix:** Add two half-page examples: “Agent hand-edits generated DTO and passes unit tests but breaks API contract” and “Agent changes checkout button; typecheck passes but mobile viewport clips the CTA.” Then show the humanlint finding and repair receipt.
+* **Proposed fix:** Add two half-page examples: “Agent hand-edits generated DTO and passes unit tests but breaks API contract” and “Agent changes checkout button; typecheck passes but mobile viewport clips the CTA.” Then show the jankurai finding and repair receipt.
 * **Type:** writing-editing
 
 ### 30. “Repair receipts” are a major differentiator; make them more central
@@ -300,7 +300,7 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 * **Proposed fix:** Add a research agenda table with metrics: escaped defects, repair locality, review time, false-positive rate, agent edit surface, proof-lane selection accuracy, UX artifact usefulness, security finding closure, and score-to-outcome correlation.
 * **Type:** writing-editing
 
-### 32. Add a “what humanlint is not” section to the README
+### 32. Add a “what jankurai is not” section to the README
 
 * **Severity:** Low
 * **Location:** README
@@ -311,22 +311,22 @@ I reviewed the paper PDF and the current public repo/README. The core idea is st
 
 ## Highest-leverage next moves
 
-The top three moves I would prioritize are: implement real security/conformance gates instead of placeholders, publish a scoring workbook plus sample fixture repo, and turn `@humanlint/ux-qa` into a demonstrable artifact workflow with Storybook/Playwright/ARIA/axe/baseline outputs. Those three changes would make the paper much harder to dismiss because they convert the strongest claims into reproducible evidence.
+The top three moves I would prioritize are: implement real security/conformance gates instead of placeholders, publish a scoring workbook plus sample fixture repo, and turn `@jankurai/ux-qa` into a demonstrable artifact workflow with Storybook/Playwright/ARIA/axe/baseline outputs. Those three changes would make the paper much harder to dismiss because they convert the strongest claims into reproducible evidence.
 
 [1]: https://dora.dev/dora-report-2025/?utm_source=chatgpt.com "DORA | State of AI-assisted Software Development 2025"
-[2]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/Justfile "raw.githubusercontent.com"
+[2]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/Justfile "raw.githubusercontent.com"
 [3]: https://google.github.io/osv-scanner/?utm_source=chatgpt.com "OSV-Scanner"
-[4]: https://github.com/jeppsontaylor/humanlint/blob/main/humanlint/cli.py "humanlint/humanlint/cli.py at main · jeppsontaylor/humanlint · GitHub"
+[4]: https://github.com/jeppsontaylor/jankurai/blob/main/jankurai/cli.py "jankurai/jankurai/cli.py at main · jeppsontaylor/jankurai · GitHub"
 [5]: https://owasp.org/www-project-top-10-for-large-language-model-applications/?utm_source=chatgpt.com "OWASP Top 10 for Large Language Model Applications"
-[6]: https://github.com/jeppsontaylor/humanlint "GitHub - jeppsontaylor/humanlint: Turns out humans were a bug, we're fixing that · GitHub"
-[7]: https://github.com/jeppsontaylor/humanlint/blob/main/packages/ux-qa/src/rules.ts "humanlint/packages/ux-qa/src/rules.ts at main · jeppsontaylor/humanlint · GitHub"
+[6]: https://github.com/jeppsontaylor/jankurai "GitHub - jeppsontaylor/jankurai: Turns out humans were a bug, we're fixing that · GitHub"
+[7]: https://github.com/jeppsontaylor/jankurai/blob/main/packages/ux-qa/src/rules.ts "jankurai/packages/ux-qa/src/rules.ts at main · jeppsontaylor/jankurai · GitHub"
 [8]: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html?utm_source=chatgpt.com "Understanding SC 2.5.8: Target Size (Minimum) (Level AA)"
 [9]: https://storybook.js.org/docs/writing-tests/accessibility-testing?utm_source=chatgpt.com "Accessibility tests | Storybook docs - JS.ORG"
-[10]: https://github.com/jeppsontaylor/humanlint/blob/main/packages/ux-qa/src/cli.ts "humanlint/packages/ux-qa/src/cli.ts at main · jeppsontaylor/humanlint · GitHub"
+[10]: https://github.com/jeppsontaylor/jankurai/blob/main/packages/ux-qa/src/cli.ts "jankurai/packages/ux-qa/src/cli.ts at main · jeppsontaylor/jankurai · GitHub"
 [11]: https://playwright.dev/docs/test-snapshots?utm_source=chatgpt.com "Visual comparisons"
-[12]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/agent/owner-map.json "raw.githubusercontent.com"
-[13]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/agent/generated-zones.toml "raw.githubusercontent.com"
-[14]: https://github.com/jeppsontaylor/humanlint/blob/main/packages/ux-qa/tests/geometry.spec.ts "humanlint/packages/ux-qa/tests/geometry.spec.ts at main · jeppsontaylor/humanlint · GitHub"
+[12]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/agent/owner-map.json "raw.githubusercontent.com"
+[13]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/agent/generated-zones.toml "raw.githubusercontent.com"
+[14]: https://github.com/jeppsontaylor/jankurai/blob/main/packages/ux-qa/tests/geometry.spec.ts "jankurai/packages/ux-qa/tests/geometry.spec.ts at main · jeppsontaylor/jankurai · GitHub"
 [15]: https://media.defense.gov/2025/Jun/23/2003742198/-1/-1/0/CSI_MEMORY_SAFE_LANGUAGES_REDUCING_VULNERABILITIES_IN_MODERN_SOFTWARE_DEVELOPMENT.PDF?utm_source=chatgpt.com "Reducing Vulnerabilities in Modern Software Development"
 [16]: https://code.claude.com/docs/en/memory?utm_source=chatgpt.com "How Claude remembers your project - Claude Code Docs"
 

@@ -3,7 +3,7 @@
 [[lane]]
 name = "fast"
 command = "just fast"
-purpose = "run the humanlint audit quickly with JSON and Markdown on stdout"
+purpose = "run the jankurai audit quickly with JSON and Markdown on stdout"
 
 [[lane]]
 name = "audit"
@@ -13,7 +13,7 @@ purpose = "write agent/repo-score.json and agent/repo-score.md"
 [[lane]]
 name = "paper"
 command = "just paper"
-purpose = "build paper/humanlint.pdf from paper/humanlint.tex and paper/tex/"
+purpose = "build paper/jankurai.pdf from paper/jankurai.tex and paper/tex/"
 
 [[lane]]
 name = "security"
@@ -27,47 +27,47 @@ purpose = "run audit and paper build"
 
 [[lane]]
 name = "adapters"
-command = "cargo run -p humanlint -- adapters verify"
+command = "cargo run -p jankurai -- adapters verify"
 purpose = "verify thin adapter pointers"
 
 [[lane]]
 name = "master-plan-proof"
-command = "cargo run -p humanlint -- lane . --changed agent/MASTER_PLAN.md --out target/humanlint/master-plan-proof.json --md target/humanlint/master-plan-proof.md"
+command = "cargo run -p jankurai -- lane . --changed agent/MASTER_PLAN.md --out target/jankurai/master-plan-proof.json --md target/jankurai/master-plan-proof.md"
 purpose = "verify master plan routing"
 
 [[lane]]
 name = "phase-proof"
-command = "cargo run -p humanlint -- lane . --changed tips/phases/logs/README.txt --out target/humanlint/phase-proof.json --md target/humanlint/phase-proof.md"
+command = "cargo run -p jankurai -- lane . --changed tips/phases/logs/README.txt --out target/jankurai/phase-proof.json --md target/jankurai/phase-proof.md"
 purpose = "verify phase logs routing"
 
 [[lane]]
 name = "versions-check"
-command = "cargo test -p humanlint && cargo run -p humanlint -- versions"
+command = "cargo test -p jankurai && cargo run -p jankurai -- versions"
 purpose = "verify versions"
 
 [[lane]]
 name = "doctor"
-command = "cargo run -p humanlint -- doctor --fail-on high"
+command = "cargo run -p jankurai -- doctor --fail-on high"
 purpose = "run doctor checks"
 
 [[lane]]
 name = "test-cli"
-command = "cargo test -p humanlint"
+command = "cargo test -p jankurai"
 purpose = "run Rust unit tests"
 
 [[lane]]
 name = "migrate-fixture"
-command = "cargo run -p humanlint -- migrate examples/legacy-node-api --json target/humanlint/migration/node.json"
+command = "cargo run -p jankurai -- migrate examples/legacy-node-api --json target/jankurai/migration/node.json"
 purpose = "verify migration fixture"
 
 [[lane]]
 name = "build-schemas"
-command = "cargo test -p humanlint && npm --workspace @humanlint/ux-qa run build"
+command = "cargo test -p jankurai && npm --workspace @jankurai/ux-qa run build"
 purpose = "build schema-carrying Rust and UX QA"
 
 [[lane]]
 name = "test-ux-ci"
-command = "npm ci && npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test"
+command = "npm ci && npm --workspace @jankurai/ux-qa run build && npm --workspace @jankurai/ux-qa run test"
 purpose = "verify npm workspace and tests"
 
 [[lane]]

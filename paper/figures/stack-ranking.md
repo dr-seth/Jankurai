@@ -23,6 +23,6 @@ Use in LaTeX:
 - EPS is hand-authored PostScript with no external image dependency.
 - Bounding box is `0 44 840 454`.
 - The x-axis starts at `85`.
-- ANSS means Agent-Native Stack Score, the weighted humanlint 100-point rubric.
+- ANSS means Agent-Native Stack Score, the weighted jankurai 100-point rubric.
 - All entries use TypeScript/React/Vite for the product surface and PostgreSQL for durable truth; streaming buses are workload-specific additions rather than baseline stack identity.
 - The PDF is generated from the EPS with `epstopdf`.

@@ -1,20 +1,20 @@
-I studied the archive closely: paper, docs, installer guidance, Rust audit CLI, CI workflow, agent files, and the TypeScript Playwright UX QA package. The core idea is excellent: **Humanlint should not be “another linter”; it should be the repo control plane that makes agent work legible, scoped, auditable, and fast.** The project is already aiming at the right target.
+I studied the archive closely: paper, docs, installer guidance, Rust audit CLI, CI workflow, agent files, and the TypeScript Playwright UX QA package. The core idea is excellent: **Jankurai should not be “another linter”; it should be the repo control plane that makes agent work legible, scoped, auditable, and fast.** The project is already aiming at the right target.
 
-The biggest risk is that the current repo can produce **false confidence**. The bundled score report says “no findings,” but the source-only archive has missing lockfiles, placeholder security checks, weak string-based evidence, and the audit excludes much of its own authored code from scope. Before this becomes a standard, the project needs to make one promise: **Humanlint never says “passed” unless something real was parsed, executed, or artifact-backed.**
+The biggest risk is that the current repo can produce **false confidence**. The bundled score report says “no findings,” but the source-only archive has missing lockfiles, placeholder security checks, weak string-based evidence, and the audit excludes much of its own authored code from scope. Before this becomes a standard, the project needs to make one promise: **Jankurai never says “passed” unless something real was parsed, executed, or artifact-backed.**
 
 I could not execute Rust tests in this environment because `cargo`/`rustc` are not installed here, so the notes below are from source/config inspection rather than runtime verification.
 
 ## Best 3 upgrades
 
-These are the three upgrades I would make first. They are deliberately big enough to make Humanlint a standard, but bounded enough to avoid product creep.
+These are the three upgrades I would make first. They are deliberately big enough to make Jankurai a standard, but bounded enough to avoid product creep.
 
 ---
 
-# 1. **Humanlint Init Pack: one-command adoption for every agent IDE**
+# 1. **Jankurai Init Pack: one-command adoption for every agent IDE**
 
 ## Goal
 
-Make Humanlint installable with one obvious command that:
+Make Jankurai installable with one obvious command that:
 
 1. detects the repo shape,
 2. writes the correct agent-helping files,
@@ -29,24 +29,24 @@ The installer should treat `AGENTS.md` as the cross-agent root, then generate ad
 ## New command surface
 
 ```bash
-humanlint init
-humanlint init --yes
-humanlint init --dry-run
-humanlint init --ide all
-humanlint init --ide codex,cursor,claude,copilot,antigravity
-humanlint init --mode advisory
-humanlint init --mode standard
-humanlint init --mode ratchet
-humanlint init --issue-tracker beads
-humanlint doctor
-humanlint upgrade
-humanlint explain HLT-004
+jankurai init
+jankurai init --yes
+jankurai init --dry-run
+jankurai init --ide all
+jankurai init --ide codex,cursor,claude,copilot,antigravity
+jankurai init --mode advisory
+jankurai init --mode standard
+jankurai init --mode ratchet
+jankurai init --issue-tracker beads
+jankurai doctor
+jankurai upgrade
+jankurai explain HLT-004
 ```
 
 Recommended first-run behavior:
 
 ```bash
-humanlint init --ide all --mode advisory --issue-tracker auto
+jankurai init --ide all --mode advisory --issue-tracker auto
 ```
 
 The installer should default to **advisory mode**, because global adoption depends on being safe in messy repos. Then CI can ratchet over time.
@@ -58,7 +58,7 @@ The installer should default to **advisory mode**, because global adoption depen
 Replace the current ad-hoc subcommand handling in:
 
 ```text
-crates/humanlint/src/main.rs
+crates/jankurai/src/main.rs
 ```
 
 with a real Clap subcommand enum.
@@ -66,23 +66,23 @@ with a real Clap subcommand enum.
 Add:
 
 ```text
-crates/humanlint/src/cli.rs
-crates/humanlint/src/init/mod.rs
-crates/humanlint/src/init/detect.rs
-crates/humanlint/src/init/plan.rs
-crates/humanlint/src/init/templates.rs
-crates/humanlint/src/init/write.rs
-crates/humanlint/src/init/adapters.rs
-crates/humanlint/src/doctor.rs
-crates/humanlint/src/config.rs
-crates/humanlint/src/templates/
+crates/jankurai/src/cli.rs
+crates/jankurai/src/init/mod.rs
+crates/jankurai/src/init/detect.rs
+crates/jankurai/src/init/plan.rs
+crates/jankurai/src/init/templates.rs
+crates/jankurai/src/init/write.rs
+crates/jankurai/src/init/adapters.rs
+crates/jankurai/src/doctor.rs
+crates/jankurai/src/config.rs
+crates/jankurai/src/templates/
 ```
 
 The current `main.rs` pattern appears brittle because `parse_from(std::env::args_os().skip(2))` can discard the repo path by treating it as argv position zero. Move to:
 
 ```rust
 #[derive(clap::Parser)]
-#[command(name = "humanlint")]
+#[command(name = "jankurai")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -100,13 +100,13 @@ enum Command {
 }
 ```
 
-### Root and agent files generated by `humanlint init`
+### Root and agent files generated by `jankurai init`
 
 The installer should generate or patch:
 
 ```text
 AGENTS.md
-agent/HUMANLINT_STANDARD.md
+agent/JANKURAI_STANDARD.md
 agent/audit-policy.toml
 agent/generated-zones.toml
 agent/owner-map.json
@@ -121,14 +121,14 @@ agent/ux-qa.toml
 Generate these when requested:
 
 ```text
-.cursor/rules/humanlint.mdc
+.cursor/rules/jankurai.mdc
 CLAUDE.md
 .github/copilot-instructions.md
-.github/instructions/humanlint.instructions.md
+.github/instructions/jankurai.instructions.md
 GEMINI.md
 .agents/agents.md
-.agents/skills/humanlint.md
-.agents/workflows/humanlint-audit.md
+.agents/skills/jankurai.md
+.agents/workflows/jankurai-audit.md
 ```
 
 For Codex, the key file should remain root `AGENTS.md`. For monorepos, nested `AGENTS.md` files should be generated only for packages with different rules.
@@ -138,13 +138,13 @@ For Codex, the key file should remain root `AGENTS.md`. For monorepos, nested `A
 Generate:
 
 ```text
-.github/workflows/humanlint.yml
+.github/workflows/jankurai.yml
 ```
 
 Optionally:
 
 ```text
-.github/workflows/humanlint-nightly.yml
+.github/workflows/jankurai-nightly.yml
 ```
 
 The PR workflow should be fast and changed-path aware. The nightly workflow can run deeper checks.
@@ -163,12 +163,12 @@ docs/ci.md
 
 ## Installer behavior
 
-`humanlint init` should create a **plan** before writing files.
+`jankurai init` should create a **plan** before writing files.
 
 Example output:
 
 ```text
-Humanlint init plan
+Jankurai init plan
 
 Detected:
 - Rust workspace: yes
@@ -184,16 +184,16 @@ Detected:
 
 Will add:
 - AGENTS.md
-- agent/HUMANLINT_STANDARD.md
+- agent/JANKURAI_STANDARD.md
 - agent/proof-lanes.toml
 - agent/owner-map.json
 - agent/test-map.json
 - agent/ux-qa.toml
-- .github/workflows/humanlint.yml
+- .github/workflows/jankurai.yml
 
 Will patch:
 - package.json: add ux-qa script
-- .cursor/rules/humanlint.mdc: merge standard pointer
+- .cursor/rules/jankurai.mdc: merge standard pointer
 
 Needs decision:
 - Python found in scripts/data_import.py.
@@ -210,7 +210,7 @@ The installer should guide projects toward one default stack:
 .
 ├── AGENTS.md
 ├── agent/
-│   ├── HUMANLINT_STANDARD.md
+│   ├── JANKURAI_STANDARD.md
 │   ├── audit-policy.toml
 │   ├── proof-lanes.toml
 │   ├── owner-map.json
@@ -244,7 +244,7 @@ The installer should guide projects toward one default stack:
 
 The standard should not try to support every stack equally. It should say:
 
-> The default Humanlint stack is Rust + PostgreSQL + TypeScript/React/Vite for browser UI + bounded Python for ML/evals only. Other stacks are allowed, but they must declare exceptions and proof lanes.
+> The default Jankurai stack is Rust + PostgreSQL + TypeScript/React/Vite for browser UI + bounded Python for ML/evals only. Other stacks are allowed, but they must declare exceptions and proof lanes.
 
 ## Boundary standard: what each layer owns
 
@@ -267,12 +267,12 @@ This will stop a lot of “vibe coding scatter” because agents will know where
 Add these tests:
 
 ```text
-crates/humanlint/tests/init_smoke.rs
-crates/humanlint/tests/init_idempotent.rs
-crates/humanlint/tests/init_existing_agents.rs
-crates/humanlint/tests/init_vite_detection.rs
-crates/humanlint/tests/init_python_exception.rs
-crates/humanlint/tests/init_beads_detection.rs
+crates/jankurai/tests/init_smoke.rs
+crates/jankurai/tests/init_idempotent.rs
+crates/jankurai/tests/init_existing_agents.rs
+crates/jankurai/tests/init_vite_detection.rs
+crates/jankurai/tests/init_python_exception.rs
+crates/jankurai/tests/init_beads_detection.rs
 ```
 
 Test cases:
@@ -290,10 +290,10 @@ fixtures/init/beads-enabled/
 Acceptance criteria:
 
 ```text
-- humanlint init --dry-run writes nothing.
-- humanlint init --yes is idempotent.
+- jankurai init --dry-run writes nothing.
+- jankurai init --yes is idempotent.
 - Existing AGENTS.md is patched, not replaced.
-- Existing Cursor/Claude/Copilot files are preserved and given a Humanlint pointer.
+- Existing Cursor/Claude/Copilot files are preserved and given a Jankurai pointer.
 - A Vite/React package is detected from package manifests, not README mentions.
 - Python outside allowed roots creates a finding or exception prompt.
 - CI is generated and references real commands, not placeholders.
@@ -304,14 +304,14 @@ Acceptance criteria:
 Make install dead simple:
 
 ```bash
-cargo install humanlint
+cargo install jankurai
 ```
 
 and also provide:
 
 ```bash
-cargo binstall humanlint
-npm install -D @humanlint/cli @humanlint/ux-qa
+cargo binstall jankurai
+npm install -D @jankurai/cli @jankurai/ux-qa
 ```
 
 `cargo install` is the baseline Rust-native path; `cargo-binstall` and `cargo-dist` are worth supporting so users can install prebuilt binaries instead of compiling the tool from source. ([Rust Documentation][2])
@@ -342,7 +342,7 @@ These are the most important issues I found in the archive:
    The workflow contains placeholder `echo` commands for security tools. The audit can still detect tool names from command surfaces.
 
 2. **The audit excludes its own authored code.**
-   `crates/humanlint/` and `packages/ux-qa/` are effectively excluded from runtime/product code scope, so the repo can score itself while skipping its actual implementation.
+   `crates/jankurai/` and `packages/ux-qa/` are effectively excluded from runtime/product code scope, so the repo can score itself while skipping its actual implementation.
 
 3. **Docs can create fake evidence.**
    `react`, `vite`, `storybook`, or `generated` appearing in docs can affect detected repo capabilities.
@@ -367,7 +367,7 @@ These are the most important issues I found in the archive:
 Add:
 
 ```text
-crates/humanlint/src/audit/evidence.rs
+crates/jankurai/src/audit/evidence.rs
 ```
 
 Core model:
@@ -433,7 +433,7 @@ Hard checks should block standard-mode CI:
 
 ```text
 HLT-001 root AGENTS.md or equivalent missing
-HLT-002 Humanlint standard file missing or stale
+HLT-002 Jankurai standard file missing or stale
 HLT-003 owner-map missing changed authored path
 HLT-004 test-map/proof lane missing changed authored path
 HLT-005 generated zone modified without source contract
@@ -445,7 +445,7 @@ HLT-010 direct DB/auth/network boundary violation
 HLT-011 destructive migration without rollback/proof
 HLT-012 TypeScript browser code owns backend/domain truth
 HLT-013 web surface changed without rendered UX proof
-HLT-014 CI missing Humanlint audit
+HLT-014 CI missing Jankurai audit
 HLT-015 lockfile missing for package manager in use
 HLT-016 score below configured floor
 ```
@@ -470,7 +470,7 @@ overuse of any/unknown/ts-ignore
 
 ## Real Rust safety/security/performance lanes
 
-Humanlint should not rebuild every mature Rust tool. It should orchestrate and consume them.
+Jankurai should not rebuild every mature Rust tool. It should orchestrate and consume them.
 
 Recommended optional lanes:
 
@@ -499,7 +499,7 @@ commands = [
 
 [lanes.rust_security]
 commands = [
-  "cargo audit --json > target/humanlint/cargo-audit.json",
+  "cargo audit --json > target/jankurai/cargo-audit.json",
   "cargo deny check"
 ]
 
@@ -517,31 +517,31 @@ commands = [
 ### Audit engine
 
 ```text
-crates/humanlint/src/audit/mod.rs
-crates/humanlint/src/audit/fs.rs
-crates/humanlint/src/audit/evidence.rs
-crates/humanlint/src/audit/maps.rs
-crates/humanlint/src/audit/policy.rs
-crates/humanlint/src/audit/ci/github_actions.rs
-crates/humanlint/src/audit/scan/patterns.rs
-crates/humanlint/src/audit/scan/rust.rs
-crates/humanlint/src/audit/scan/typescript.rs
-crates/humanlint/src/audit/scan/python.rs
-crates/humanlint/src/audit/scan/secrets.rs
-crates/humanlint/src/audit/scan/boundaries.rs
-crates/humanlint/src/audit/scan/shape.rs
-crates/humanlint/src/audit/scan/generated.rs
+crates/jankurai/src/audit/mod.rs
+crates/jankurai/src/audit/fs.rs
+crates/jankurai/src/audit/evidence.rs
+crates/jankurai/src/audit/maps.rs
+crates/jankurai/src/audit/policy.rs
+crates/jankurai/src/audit/ci/github_actions.rs
+crates/jankurai/src/audit/scan/patterns.rs
+crates/jankurai/src/audit/scan/rust.rs
+crates/jankurai/src/audit/scan/typescript.rs
+crates/jankurai/src/audit/scan/python.rs
+crates/jankurai/src/audit/scan/secrets.rs
+crates/jankurai/src/audit/scan/boundaries.rs
+crates/jankurai/src/audit/scan/shape.rs
+crates/jankurai/src/audit/scan/generated.rs
 ```
 
 ### Reporting
 
 ```text
-crates/humanlint/src/report/mod.rs
-crates/humanlint/src/report/markdown.rs
-crates/humanlint/src/report/json.rs
-crates/humanlint/src/report/sarif.rs
-crates/humanlint/src/report/github.rs
-crates/humanlint/src/report/beads.rs
+crates/jankurai/src/report/mod.rs
+crates/jankurai/src/report/markdown.rs
+crates/jankurai/src/report/json.rs
+crates/jankurai/src/report/sarif.rs
+crates/jankurai/src/report/github.rs
+crates/jankurai/src/report/beads.rs
 ```
 
 ### Schemas
@@ -560,7 +560,7 @@ schemas/ux-qa.schema.json
 Replace:
 
 ```text
-.github/workflows/humanlint-audit.yml
+.github/workflows/jankurai-audit.yml
 ```
 
 with a workflow that actually runs lanes instead of echoing tool names.
@@ -568,7 +568,7 @@ with a workflow that actually runs lanes instead of echoing tool names.
 Minimum workflow shape:
 
 ```yaml
-name: humanlint
+name: jankurai
 
 on:
   pull_request:
@@ -588,23 +588,23 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Humanlint
-        run: cargo install --path crates/humanlint
+      - name: Install Jankurai
+        run: cargo install --path crates/jankurai
 
       - name: Audit changed paths
         run: |
-          humanlint audit . \
+          jankurai audit . \
             --changed-from origin/main \
             --policy agent/audit-policy.toml \
-            --json target/humanlint/repo-score.json \
-            --md target/humanlint/repo-score.md \
-            --sarif target/humanlint/humanlint.sarif \
+            --json target/jankurai/repo-score.json \
+            --md target/jankurai/repo-score.md \
+            --sarif target/jankurai/jankurai.sarif \
             --github-step-summary
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: target/humanlint/humanlint.sarif
+          sarif_file: target/jankurai/jankurai.sarif
 ```
 
 Security lane should be separate and real:
@@ -643,7 +643,7 @@ Each finding should include:
   "fix": "Add this path to agent/test-map.json and agent/proof-lanes.toml.",
   "suggested_patch": "...",
   "commands_to_run": [
-    "humanlint route --changed apps/web/src/components/BillingForm.tsx"
+    "jankurai route --changed apps/web/src/components/BillingForm.tsx"
   ],
   "issue_key": "HLT-004:apps/web/src/components/BillingForm.tsx"
 }
@@ -668,26 +668,26 @@ Also add:
 Add deterministic issue exports.
 
 ```bash
-humanlint audit . --beads
-humanlint audit . --github-issue-export target/humanlint/issues.json
+jankurai audit . --beads
+jankurai audit . --github-issue-export target/jankurai/issues.json
 ```
 
 Beads is a strong optional backend because it is designed as a distributed issue tracker with structured memory, dependency tracking, JSON output, and `.beads` repo storage. ([GitHub][4])
 
-Humanlint should not own issue tracking. It should emit stable finding keys that Beads, GitHub Issues, or another tracker can consume.
+Jankurai should not own issue tracking. It should emit stable finding keys that Beads, GitHub Issues, or another tracker can consume.
 
 ## Tests to add
 
 ```text
-crates/humanlint/tests/audit_false_green.rs
-crates/humanlint/tests/audit_maps.rs
-crates/humanlint/tests/audit_changed_scope.rs
-crates/humanlint/tests/audit_ci_evidence.rs
-crates/humanlint/tests/audit_generated_zones.rs
-crates/humanlint/tests/audit_boundaries.rs
-crates/humanlint/tests/audit_secret_docs.rs
-crates/humanlint/tests/audit_sarif.rs
-crates/humanlint/tests/audit_beads.rs
+crates/jankurai/tests/audit_false_green.rs
+crates/jankurai/tests/audit_maps.rs
+crates/jankurai/tests/audit_changed_scope.rs
+crates/jankurai/tests/audit_ci_evidence.rs
+crates/jankurai/tests/audit_generated_zones.rs
+crates/jankurai/tests/audit_boundaries.rs
+crates/jankurai/tests/audit_secret_docs.rs
+crates/jankurai/tests/audit_sarif.rs
+crates/jankurai/tests/audit_beads.rs
 ```
 
 Specific fixtures:
@@ -712,7 +712,7 @@ Acceptance criteria:
 - Echoed security commands do not count as security evidence.
 - Docs mentioning React do not create a web surface.
 - Docs mentioning generated do not create generated-zone evidence.
-- Humanlint’s own crates and UX package are audited as authored code.
+- Jankurai’s own crates and UX package are audited as authored code.
 - Missing Cargo.lock or package-lock produces a hard or configured finding.
 - Changed-path reports separate changed blockers from baseline debt.
 - SARIF validates.
@@ -733,7 +733,7 @@ Implementation guidance:
 - Parse policy/maps once.
 - Precompile Aho-Corasick matchers once.
 - Use changed-path mode by default for PRs.
-- Cache expensive results in target/humanlint/cache.json.
+- Cache expensive results in target/jankurai/cache.json.
 - Run deep lanes only nightly or when touched paths require them.
 - Treat UX QA as route-specific, not whole-app by default.
 ```
@@ -750,16 +750,16 @@ inventory -> facts -> rules -> findings -> report
 
 ## Goal
 
-Humanlint should become the thing agents call before, during, and after coding:
+Jankurai should become the thing agents call before, during, and after coding:
 
 ```bash
-humanlint route --changed apps/web/src/components/BillingForm.tsx
-humanlint audit . --changed-from origin/main
-humanlint ux audit --config agent/ux-qa.toml
-humanlint receipt append --lane ux --artifact target/humanlint/ux-qa.json
+jankurai route --changed apps/web/src/components/BillingForm.tsx
+jankurai audit . --changed-from origin/main
+jankurai ux audit --config agent/ux-qa.toml
+jankurai receipt append --lane ux --artifact target/jankurai/ux-qa.json
 ```
 
-This is where Humanlint becomes more than a compliance tool. It becomes an **agent efficiency multiplier**.
+This is where Jankurai becomes more than a compliance tool. It becomes an **agent efficiency multiplier**.
 
 ## Why this matters
 
@@ -779,12 +779,12 @@ The project already has the ingredients: proof lanes, owner maps, test maps, gen
 ## New command surface
 
 ```bash
-humanlint route --changed <path>
-humanlint route --changed-from origin/main
-humanlint audit . --changed-from origin/main --with-route
-humanlint receipt append --lane rust_fast --cmd "cargo nextest run" --artifact target/nextest/default/junit.xml
-humanlint ux audit --url http://localhost:5173 --config agent/ux-qa.toml --out target/humanlint/ux-qa.json
-humanlint ux from-storybook --storybook-url http://localhost:6006 --config agent/ux-qa.toml
+jankurai route --changed <path>
+jankurai route --changed-from origin/main
+jankurai audit . --changed-from origin/main --with-route
+jankurai receipt append --lane rust_fast --cmd "cargo nextest run" --artifact target/nextest/default/junit.xml
+jankurai ux audit --url http://localhost:5173 --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
+jankurai ux from-storybook --storybook-url http://localhost:6006 --config agent/ux-qa.toml
 ```
 
 Example route output:
@@ -804,7 +804,7 @@ Example route output:
     },
     {
       "id": "ux_rendered",
-      "commands": ["npm run humanlint:ux -- --route billing"],
+      "commands": ["npm run jankurai:ux -- --route billing"],
       "required": true,
       "estimated_seconds": 45
     }
@@ -812,7 +812,7 @@ Example route output:
   "agent_instructions": [
     "Do not move validation truth into React.",
     "If API schema changes, regenerate contracts before editing generated clients.",
-    "Attach ux-qa.json to the Humanlint receipt."
+    "Attach ux-qa.json to the Jankurai receipt."
   ]
 }
 ```
@@ -836,7 +836,7 @@ packages/ux-qa/src/selector.ts
 Selector strategy:
 
 ```text
-1. data-testid / data-humanlint-id
+1. data-testid / data-jankurai-id
 2. accessible role + name where stable
 3. id if unique and not generated-looking
 4. class only if stable-looking and unique enough
@@ -966,10 +966,10 @@ Acceptance:
 ### Rust proof router
 
 ```text
-crates/humanlint/src/route.rs
-crates/humanlint/src/receipt.rs
-crates/humanlint/src/ux.rs
-crates/humanlint/src/report/receipt.rs
+crates/jankurai/src/route.rs
+crates/jankurai/src/receipt.rs
+crates/jankurai/src/ux.rs
+crates/jankurai/src/report/receipt.rs
 ```
 
 ### Agent config
@@ -1013,7 +1013,7 @@ Add a durable artifact format:
 
 ```json
 {
-  "schema_version": "humanlint.receipt.v1",
+  "schema_version": "jankurai.receipt.v1",
   "timestamp": "2026-05-02T00:00:00Z",
   "agent": {
     "tool": "cursor",
@@ -1034,12 +1034,12 @@ Add a durable artifact format:
     },
     {
       "id": "ux_rendered",
-      "command": "npm run humanlint:ux -- --route billing",
+      "command": "npm run jankurai:ux -- --route billing",
       "status": "failed",
       "duration_ms": 52210,
       "artifacts": [
-        "target/humanlint/ux-qa.json",
-        "target/humanlint/screenshots/billing-mobile.png"
+        "target/jankurai/ux-qa.json",
+        "target/jankurai/screenshots/billing-mobile.png"
       ]
     }
   ]
@@ -1049,7 +1049,7 @@ Add a durable artifact format:
 Receipts should not be committed by default unless the repo opts in. They can live in:
 
 ```text
-target/humanlint/receipts/
+target/jankurai/receipts/
 ```
 
 or, for durable agent memory:
@@ -1064,7 +1064,7 @@ Example:
 
 ```json
 {
-  "schema_version": "humanlint.ux.v1",
+  "schema_version": "jankurai.ux.v1",
   "route": "billing",
   "url": "http://localhost:5173/billing",
   "viewport": {
@@ -1085,7 +1085,7 @@ Example:
       "accessible_name": "Submit payment",
       "message": "Primary action is partially blocked by sticky footer.",
       "evidence": {
-        "screenshot": "target/humanlint/crops/submit-payment.png",
+        "screenshot": "target/jankurai/crops/submit-payment.png",
         "hit_test": {
           "blocked_points": 3,
           "sampled_points": 5
@@ -1104,9 +1104,9 @@ Main audit should consume this file and convert it into standard findings.
 Add:
 
 ```text
-crates/humanlint/tests/route_smoke.rs
-crates/humanlint/tests/route_web_ux.rs
-crates/humanlint/tests/receipt_smoke.rs
+crates/jankurai/tests/route_smoke.rs
+crates/jankurai/tests/route_web_ux.rs
+crates/jankurai/tests/receipt_smoke.rs
 ```
 
 Acceptance criteria:
@@ -1138,7 +1138,7 @@ Level 1: Declared
 A config file or script declares it.
 
 Level 2: Parsed
-Humanlint can parse and validate the declaration.
+Jankurai can parse and validate the declaration.
 
 Level 3: Executed
 CI or local audit executed the proof command.
@@ -1155,11 +1155,11 @@ The repo tracks baseline debt and requires non-regression.
 
 This resolves the current weakness where documentation can masquerade as proof.
 
-## Reframe the “humanlint” tone
+## Reframe the “jankurai” tone
 
 The “humans are the bug” energy is memorable, but global adoption will be easier if the standard says:
 
-> Humanlint removes human scatter from repositories. Humans still set intent, approve tradeoffs, and own product judgment; agents get a stable operating surface.
+> Jankurai removes human scatter from repositories. Humans still set intent, approve tradeoffs, and own product judgment; agents get a stable operating surface.
 
 That keeps the edge without alienating maintainers.
 
@@ -1168,7 +1168,7 @@ That keeps the edge without alienating maintainers.
 The paper should explicitly say:
 
 ```text
-Humanlint standardizes on one preferred stack:
+Jankurai standardizes on one preferred stack:
 Rust for product truth,
 PostgreSQL for durable data truth,
 TypeScript/React/Vite for browser UI,
@@ -1179,14 +1179,14 @@ Python only for ML/eval islands.
 Then say:
 
 ```text
-Other stacks are allowed through declared exceptions, but Humanlint optimizes for this stack.
+Other stacks are allowed through declared exceptions, but Jankurai optimizes for this stack.
 ```
 
 That is how you prevent endless human scatter.
 
 ## Add a “standard, not framework” section
 
-Humanlint should not become an app framework. It should remain:
+Jankurai should not become an app framework. It should remain:
 
 ```text
 - repo layout standard,
@@ -1228,7 +1228,7 @@ baseline debt
 
 Never collapse `not checked` into `passed`.
 
-That one rule will make Humanlint dramatically more trustworthy.
+That one rule will make Jankurai dramatically more trustworthy.
 
 ---
 
@@ -1242,7 +1242,7 @@ Ship in this order:
 1. Fix Clap subcommands.
 2. Add Cargo.lock and JS lockfile.
 3. Remove placeholder CI evidence.
-4. Stop excluding Humanlint’s own code from audit scope.
+4. Stop excluding Jankurai’s own code from audit scope.
 5. Add evidence kinds.
 6. Add SARIF/Markdown/JSON report with confidence.
 7. Add false-green regression tests.
@@ -1251,18 +1251,18 @@ Ship in this order:
 ## Phase 2: Adoption
 
 ```text
-1. Add humanlint init --dry-run.
+1. Add jankurai init --dry-run.
 2. Generate AGENTS.md and agent/*.
 3. Generate Claude/Cursor/Copilot/Antigravity adapters.
 4. Generate GitHub workflow.
-5. Add humanlint doctor.
+5. Add jankurai doctor.
 6. Add install docs.
 ```
 
 ## Phase 3: Agent acceleration
 
 ```text
-1. Add humanlint route.
+1. Add jankurai route.
 2. Make proof-lanes.toml authoritative.
 3. Add UX QA config and stable report schema.
 4. Merge UX findings into main audit.
@@ -1277,15 +1277,15 @@ Ship in this order:
 A coding agent with minimal context should start here:
 
 ```text
-Task: Implement Humanlint Init Pack, Evidence-Grade Audit, and Proof Router MVP.
+Task: Implement Jankurai Init Pack, Evidence-Grade Audit, and Proof Router MVP.
 
 Constraints:
-- Do not expand Humanlint into a framework.
+- Do not expand Jankurai into a framework.
 - Keep Rust as the primary CLI/audit language.
 - Keep TypeScript only for browser-native UX QA.
 - Do not count docs text as tool evidence.
 - Do not count echo commands as security evidence.
-- Do not exclude crates/humanlint or packages/ux-qa from authored-code audit.
+- Do not exclude crates/jankurai or packages/ux-qa from authored-code audit.
 - Preserve existing user files; never overwrite without --force.
 - All report outputs must distinguish passed/failed/not_checked/not_applicable/waived/baseline_debt.
 ```
@@ -1293,15 +1293,15 @@ Constraints:
 First files to change:
 
 ```text
-crates/humanlint/src/main.rs
-crates/humanlint/src/cli.rs
-crates/humanlint/src/init/mod.rs
-crates/humanlint/src/audit/evidence.rs
-crates/humanlint/src/audit/maps.rs
-crates/humanlint/src/report/sarif.rs
-crates/humanlint/tests/audit_false_green.rs
-crates/humanlint/tests/init_smoke.rs
-.github/workflows/humanlint-audit.yml
+crates/jankurai/src/main.rs
+crates/jankurai/src/cli.rs
+crates/jankurai/src/init/mod.rs
+crates/jankurai/src/audit/evidence.rs
+crates/jankurai/src/audit/maps.rs
+crates/jankurai/src/report/sarif.rs
+crates/jankurai/tests/audit_false_green.rs
+crates/jankurai/tests/init_smoke.rs
+.github/workflows/jankurai-audit.yml
 docs/install.md
 docs/agent-ide-setup.md
 docs/rust-ts-vite-react-boundaries.md
@@ -1310,11 +1310,11 @@ docs/rust-ts-vite-react-boundaries.md
 First tests to make pass:
 
 ```text
-cargo test -p humanlint audit_false_green
-cargo test -p humanlint init_smoke
-cargo test -p humanlint audit_maps
-cargo test -p humanlint audit_changed_scope
-npm test --workspace @humanlint/ux-qa
+cargo test -p jankurai audit_false_green
+cargo test -p jankurai init_smoke
+cargo test -p jankurai audit_maps
+cargo test -p jankurai audit_changed_scope
+npm test --workspace @jankurai/ux-qa
 ```
 
 First acceptance target:
@@ -1322,10 +1322,10 @@ First acceptance target:
 ```text
 A messy Rust/Vite/React repo can run:
 
-humanlint init --ide all --mode advisory --yes
-humanlint doctor
-humanlint route --changed apps/web/src/App.tsx
-humanlint audit . --changed-from origin/main --json target/humanlint/repo-score.json --md target/humanlint/repo-score.md
+jankurai init --ide all --mode advisory --yes
+jankurai doctor
+jankurai route --changed apps/web/src/App.tsx
+jankurai audit . --changed-from origin/main --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 
 and receive:
 - correct agent files,
@@ -1342,7 +1342,7 @@ and receive:
 
 The best version of this project is:
 
-> **Humanlint: the agent-native repo standard and proof router for Rust-first software.**
+> **Jankurai: the agent-native repo standard and proof router for Rust-first software.**
 
 Not just a paper. Not just a linter. Not just agent instructions.
 
@@ -1357,7 +1357,7 @@ what issue to create,
 what standard the repo is trying to satisfy.
 ```
 
-The three upgrades above—**Humanlint Init Pack**, **Evidence-Grade Audit**, and **Proof Router + UX Receipts**—are the shortest path from promising project to real standard.
+The three upgrades above—**Jankurai Init Pack**, **Evidence-Grade Audit**, and **Proof Router + UX Receipts**—are the shortest path from promising project to real standard.
 
 [1]: https://agents.md/ "AGENTS.md"
 [2]: https://doc.rust-lang.org/book/ch14-04-installing-binaries.html?utm_source=chatgpt.com "Installing Binaries with cargo install"

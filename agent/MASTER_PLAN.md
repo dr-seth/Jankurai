@@ -1,4 +1,4 @@
-# Humanlint Master Plan
+# Jankurai Master Plan
 
 Status: active
 Owner: agent
@@ -18,7 +18,7 @@ This is the compact router for all agent work that is described as "progress the
 
 Before phase work, read:
 
-1. `agent/HUMANLINT_STANDARD.md`
+1. `agent/JANKURAI_STANDARD.md`
 2. `agent/MASTER_PLAN.md`
 3. `tips/phases/00-phase-index.md`
 4. the selected phase file under `tips/phases/`
@@ -54,7 +54,7 @@ Required plan sections:
 - `Implementation Steps`: small ordered edits, with exact files, functions, structs, schemas, docs, and tests likely to change.
 - `Hard Parts`: complex control flow, data-model compatibility, edge cases, and code snippets or pseudocode that steer implementation.
 - `Validation`: smallest credible proof lane, focused tests, broad validation, expected artifacts, and how to interpret common failures.
-- `Logging And Receipts`: phase log start/progress/finish entries, proof artifacts under `target/humanlint/`, and final handoff content.
+- `Logging And Receipts`: phase log start/progress/finish entries, proof artifacts under `target/jankurai/`, and final handoff content.
 - `Parallel Work Packets`: safe packets only for disjoint write scopes, each with owned paths, forbidden paths, expected output, validation, stop conditions, and merge order.
 
 Plans must prefer exact commands and repo-relative paths over generic advice. Include code-shaped guidance for the most error-prone parts, but do not ask worker agents to hand-edit generated artifacts or broaden permissions. If implementation starts in the same session, append the phase start log before edits and update the plan as facts change.
@@ -66,18 +66,18 @@ Use the smallest credible proof lane for the changed paths.
 Before broad validation, prefer:
 
 ```bash
-cargo run -p humanlint -- lane . --changed <path> --out target/humanlint/<name>.json --md target/humanlint/<name>.md
+cargo run -p jankurai -- lane . --changed <path> --out target/jankurai/<name>.json --md target/jankurai/<name>.md
 ```
 
-or the equivalent `humanlint proof` command when the phase requires receipt writing.
+or the equivalent `jankurai proof` command when the phase requires receipt writing.
 
 For audit requests, run:
 
 ```bash
-cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
-Keep proof receipts, command output, SARIF, screenshots, and volatile evidence under `target/humanlint/`. Keep canonical cross-agent phase history under `tips/phases/logs/`.
+Keep proof receipts, command output, SARIF, screenshots, and volatile evidence under `target/jankurai/`. Keep canonical cross-agent phase history under `tips/phases/logs/`.
 
 ## Phase Logs
 
@@ -124,4 +124,4 @@ Residual risk:
 - Generated outputs were not hand-edited.
 - The smallest proof lane was run or the skip is logged.
 - Phase log has start and finish entries.
-- Artifacts under `target/humanlint/` are cited when they matter.
+- Artifacts under `target/jankurai/` are cited when they matter.

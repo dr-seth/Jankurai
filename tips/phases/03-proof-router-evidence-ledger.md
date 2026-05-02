@@ -7,7 +7,7 @@ Parallel MCP candidate: partial
 
 ## Objective
 
-Make Humanlint answer the question agents currently guess at: which proof actually covers this change?
+Make Jankurai answer the question agents currently guess at: which proof actually covers this change?
 
 This phase builds the changed-path proof router and a normalized evidence ledger. A future agent should be able to run one command and receive a deterministic plan:
 
@@ -21,13 +21,13 @@ Existing pieces:
 
 - `agent/test-map.json` maps paths to commands and purposes.
 - `agent/proof-lanes.toml` defines lane names and command strings.
-- `humanlint lane` and `humanlint proof` build and optionally write a normalized proof plan (`schemas/proof-plan.schema.json`), including `planned_runs`, `skipped_lane_entries`, and routing risk metadata.
-- `humanlint prove` executes planned commands, writes receipts under `target/humanlint/proof-receipts/`, command logs under `target/humanlint/logs/`, and `target/humanlint/evidence-index.json` (`schemas/evidence-index.schema.json`). The evidence index **`schema_version` is `1.2.0`** and, when those files exist at index write time, may include **optional repo-relative** `ux_qa_report_path` (`target/humanlint/ux-qa.json`), `security_evidence_path` (`target/humanlint/security/evidence.json`), `repo_score_json_path` (`agent/repo-score.json`), `sarif_path` (`target/humanlint/humanlint.sarif`), `github_step_summary_path` (`target/humanlint/summary.md`), and `repair_queue_jsonl_path` (`target/humanlint/repair-queue.jsonl`). Execution allowlists commands to the union of proof-lanes and test-map unless `--allow-unsigned-commands` and `HUMANLINT_ALLOW_UNSIGNED_PROOF_COMMANDS=1`.
-- `humanlint prove` accepts either `--plan <path>` or changed-path inputs through `--changed` / `--changed-from`, reusing the same planner and runner path.
+- `jankurai lane` and `jankurai proof` build and optionally write a normalized proof plan (`schemas/proof-plan.schema.json`), including `planned_runs`, `skipped_lane_entries`, and routing risk metadata.
+- `jankurai prove` executes planned commands, writes receipts under `target/jankurai/proof-receipts/`, command logs under `target/jankurai/logs/`, and `target/jankurai/evidence-index.json` (`schemas/evidence-index.schema.json`). The evidence index **`schema_version` is `1.2.0`** and, when those files exist at index write time, may include **optional repo-relative** `ux_qa_report_path` (`target/jankurai/ux-qa.json`), `security_evidence_path` (`target/jankurai/security/evidence.json`), `repo_score_json_path` (`agent/repo-score.json`), `sarif_path` (`target/jankurai/jankurai.sarif`), `github_step_summary_path` (`target/jankurai/summary.md`), and `repair_queue_jsonl_path` (`target/jankurai/repair-queue.jsonl`). Execution allowlists commands to the union of proof-lanes and test-map unless `--allow-unsigned-commands` and `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1`.
+- `jankurai prove` accepts either `--plan <path>` or changed-path inputs through `--changed` / `--changed-from`, reusing the same planner and runner path.
 - `audit --changed` and `--changed-from` exist.
-- `humanlint audit --proof-receipts` loads receipt JSON into `Report.proof_receipts`.
+- `jankurai audit --proof-receipts` loads receipt JSON into `Report.proof_receipts`.
 - `ProofReceipt.rules_covered` now has a compatibility-preserving rich/simple representation. Current proof execution keeps unknown or custom rule coverage empty rather than guessing from command text.
-- `doctor` writes local receipts under `target/humanlint/receipts` and validates proof receipts plus evidence index when present (schema + optional stale `git_head` warning).
+- `doctor` writes local receipts under `target/jankurai/receipts` and validates proof receipts plus evidence index when present (schema + optional stale `git_head` warning).
 - `report` modules emit JSON, Markdown, SARIF, GitHub summary, JUnit-ish output, and repair queue JSONL.
 
 Residual hardening:
@@ -40,7 +40,7 @@ Residual hardening:
 
 This is the worker-ready plan for post-completion hardening. It assumes a strong planner has routed the work and a weaker implementation agent will execute the steps. The next logical implementation order is:
 
-1. Add first-class `humanlint prove --changed` / `--changed-from` as a thin bridge over the existing planner and proof runner.
+1. Add first-class `jankurai prove --changed` / `--changed-from` as a thin bridge over the existing planner and proof runner.
 2. Add deterministic rule-ID linkage into proof runs without changing existing report JSON compatibility.
 3. Update docs, phase receipt, and logs only after validation proves the behavior.
 
@@ -49,8 +49,8 @@ This is the worker-ready plan for post-completion hardening. It assumes a strong
 Harden completed Phase 03 so changed-path proof execution leaves a more reusable plan artifact and safer rule-coverage metadata:
 
 ```bash
-humanlint prove . --changed crates/humanlint/src/commands/proof.rs
-humanlint prove . --changed-from origin/main
+jankurai prove . --changed crates/jankurai/src/commands/proof.rs
+jankurai prove . --changed-from origin/main
 ```
 
 Hardening completion criteria:
@@ -59,7 +59,7 @@ Hardening completion criteria:
 - `prove --changed <path>` and `prove --changed-from <ref>` build a proof plan, persist JSON and Markdown plan artifacts, execute the planned allowlisted commands, write receipts, and write an evidence index.
 - Proof receipts populate `rules_covered` where deterministic route metadata exists; unknown linkage remains empty, not guessed.
 - Phase docs move the shorthand out of "Missing pieces" and record remaining limitations honestly.
-- `cargo test -p humanlint`, focused proof smoke tests, and `just fast` pass.
+- `cargo test -p jankurai`, focused proof smoke tests, and `just fast` pass.
 
 Non-goals:
 
@@ -72,7 +72,7 @@ Non-goals:
 
 Read in this order before editing:
 
-1. `agent/HUMANLINT_STANDARD.md`
+1. `agent/JANKURAI_STANDARD.md`
 2. `agent/MASTER_PLAN.md`
 3. `tips/phases/00-phase-index.md`
 4. `tips/phases/03-proof-router-evidence-ledger.md`
@@ -82,12 +82,12 @@ Read in this order before editing:
 8. `agent/proof-lanes.toml`
 9. `agent/generated-zones.toml`
 10. `agent/standard-version.toml`
-11. `crates/humanlint/src/main.rs`
-12. `crates/humanlint/src/commands/proof.rs`
-13. `crates/humanlint/src/commands/context_data.rs`
-14. `crates/humanlint/src/audit/rules.rs`
-15. `crates/humanlint/tests/proof_surface_smoke.rs`
-16. `crates/humanlint/tests/schema_contracts.rs`
+11. `crates/jankurai/src/main.rs`
+12. `crates/jankurai/src/commands/proof.rs`
+13. `crates/jankurai/src/commands/context_data.rs`
+14. `crates/jankurai/src/audit/rules.rs`
+15. `crates/jankurai/tests/proof_surface_smoke.rs`
+16. `crates/jankurai/tests/schema_contracts.rs`
 17. `schemas/proof-plan.schema.json`
 18. `schemas/proof-receipt.schema.json`
 19. `schemas/evidence-index.schema.json`
@@ -97,14 +97,14 @@ Read in this order before editing:
 
 Owned paths for this phase:
 
-- `crates/humanlint/src/main.rs`
-- `crates/humanlint/src/commands/proof.rs`
-- `crates/humanlint/tests/proof_surface_smoke.rs`
-- `crates/humanlint/tests/schema_contracts.rs` only if schema assertions change
+- `crates/jankurai/src/main.rs`
+- `crates/jankurai/src/commands/proof.rs`
+- `crates/jankurai/tests/proof_surface_smoke.rs`
+- `crates/jankurai/tests/schema_contracts.rs` only if schema assertions change
 - `docs/testing.md`
 - `tips/phases/03-proof-router-evidence-ledger.md`
 - `tips/phases/logs/03-proof-router-evidence-ledger.log`
-- `target/humanlint/phase03-*` proof artifacts
+- `target/jankurai/phase03-*` proof artifacts
 
 Forbidden or high-conflict paths:
 
@@ -112,7 +112,7 @@ Forbidden or high-conflict paths:
 - `paper/` is out of scope for Phase 03.
 - `agent/test-map.json` and `agent/proof-lanes.toml` are shared contracts. Do not change them unless the implementation cannot be expressed with existing commands.
 - `schemas/proof-plan.schema.json`, `schemas/proof-receipt.schema.json`, and `schemas/evidence-index.schema.json` should not change for `prove --changed`; the current data model is sufficient.
-- Do not edit generated `target/humanlint/` artifacts by hand.
+- Do not edit generated `target/jankurai/` artifacts by hand.
 
 Concurrent-agent risks:
 
@@ -124,9 +124,9 @@ Concurrent-agent risks:
 
 Already implemented:
 
-- `humanlint lane` and `humanlint proof` build plans from `--changed` and `--changed-from`.
-- `build_proof_plan(repo, changed, changed_from)` in `crates/humanlint/src/commands/proof.rs` already supports changed paths and git refs.
-- `humanlint prove --plan <path>` validates a persisted plan and executes allowlisted commands.
+- `jankurai lane` and `jankurai proof` build plans from `--changed` and `--changed-from`.
+- `build_proof_plan(repo, changed, changed_from)` in `crates/jankurai/src/commands/proof.rs` already supports changed paths and git refs.
+- `jankurai prove --plan <path>` validates a persisted plan and executes allowlisted commands.
 - Receipts include lane, command, exit code, elapsed time, artifacts, changed paths, owner, residual risk, log path, receipt path, repo root, git head, run ID, plan path, retryability, byte length, and reserved `rules_covered`.
 - Evidence index schema version `1.2.0` records plan, receipt, log, failed receipt, skipped lane, risk, changed path, UX, security, repo-score, SARIF, GitHub summary, and repair queue links when present.
 - `doctor` validates proof receipts and evidence index when present.
@@ -144,7 +144,7 @@ Step 1: Log start.
 - Append a canonical start row to `tips/phases/logs/03-proof-router-evidence-ledger.log`.
 - Use `not-run` for validation and `none` for artifacts until proof is complete.
 
-Step 2: Extend CLI args in `crates/humanlint/src/main.rs`.
+Step 2: Extend CLI args in `crates/jankurai/src/main.rs`.
 
 Change `ProveArgs` from mandatory `plan: String` to an optional plan plus changed-path inputs:
 
@@ -162,25 +162,25 @@ struct ProveArgs {
     #[arg(
         long,
         value_name = "PATH",
-        default_value = "target/humanlint/proof-plan.json"
+        default_value = "target/jankurai/proof-plan.json"
     )]
     plan_out: String,
     #[arg(
         long,
         value_name = "PATH",
-        default_value = "target/humanlint/proof-plan.md"
+        default_value = "target/jankurai/proof-plan.md"
     )]
     plan_md: String,
     #[arg(
         long,
         value_name = "PATH",
-        default_value = "target/humanlint/proof-receipts"
+        default_value = "target/jankurai/proof-receipts"
     )]
     out_dir: String,
     #[arg(
         long,
         value_name = "PATH",
-        default_value = "target/humanlint/evidence-index.json"
+        default_value = "target/jankurai/evidence-index.json"
     )]
     evidence_index: String,
     #[arg(long)]
@@ -192,7 +192,7 @@ struct ProveArgs {
 
 Then update the `Commands::Prove` dispatch to pass `plan`, `changed`, `changed_from`, `plan_out`, and `plan_md` into `proof::ProveArgs`.
 
-Step 3: Mirror the command args in `crates/humanlint/src/commands/proof.rs`.
+Step 3: Mirror the command args in `crates/jankurai/src/commands/proof.rs`.
 
 Update the public `ProveArgs` struct with the same new fields:
 
@@ -306,7 +306,7 @@ Implementation note:
 - For test-map custom lanes such as `fixture`, `rules_covered` should remain empty.
 - Assign this vector in `execute_run` when building `ProofReceipt`.
 
-Step 6: Add focused proof tests in `crates/humanlint/tests/proof_surface_smoke.rs`.
+Step 6: Add focused proof tests in `crates/jankurai/tests/proof_surface_smoke.rs`.
 
 Add or update fixture catalog data:
 
@@ -318,10 +318,10 @@ Required tests:
 
 - `prove_changed_builds_plan_runs_and_indexes_evidence`
   - create `fixtures/demo.txt`
-  - run `humanlint prove <repo> --changed fixtures/demo.txt --plan-out <tmp>/proof-plan.json --plan-md <tmp>/proof-plan.md --out-dir <tmp>/proof-receipts --evidence-index <tmp>/evidence-index.json`
+  - run `jankurai prove <repo> --changed fixtures/demo.txt --plan-out <tmp>/proof-plan.json --plan-md <tmp>/proof-plan.md --out-dir <tmp>/proof-receipts --evidence-index <tmp>/evidence-index.json`
   - assert status success
   - assert plan JSON exists and validates
-  - assert plan Markdown exists and contains `humanlint Proof Plan`
+  - assert plan Markdown exists and contains `jankurai Proof Plan`
   - assert one receipt exists and validates
   - assert evidence index validates and `plan_path` equals the `--plan-out` path
 
@@ -330,12 +330,12 @@ Required tests:
   - configure local user name/email
   - create base commit
   - modify or add a fixture file and commit again
-  - run `humanlint prove <repo> --changed-from <base_sha> ...`
+  - run `jankurai prove <repo> --changed-from <base_sha> ...`
   - assert plan JSON `base_ref` is `<base_sha>`
   - assert changed path includes the fixture path
 
 - `prove_requires_plan_or_changed_input`
-  - run `humanlint prove <repo>` with no plan or changed flags
+  - run `jankurai prove <repo>` with no plan or changed flags
   - assert failure and stderr contains `provide --plan, --changed, or --changed-from`
 
 - `prove_rejects_plan_combined_with_changed`
@@ -358,14 +358,14 @@ In `docs/testing.md`, add a concise section for proof execution:
 ```markdown
 ### Proof Execution
 
-Use `humanlint lane` when you only need the plan. Use `humanlint prove` when you want receipts and an evidence index.
+Use `jankurai lane` when you only need the plan. Use `jankurai prove` when you want receipts and an evidence index.
 
 ```bash
-cargo run -p humanlint -- prove . --changed crates/humanlint/src/commands/proof.rs
-cargo run -p humanlint -- prove . --changed-from origin/main
+cargo run -p jankurai -- prove . --changed crates/jankurai/src/commands/proof.rs
+cargo run -p jankurai -- prove . --changed-from origin/main
 ```
 
-Changed-path `prove` writes `target/humanlint/proof-plan.json`, `target/humanlint/proof-plan.md`, proof receipts under `target/humanlint/proof-receipts/`, logs under `target/humanlint/logs/`, and `target/humanlint/evidence-index.json`. `--changed-from` uses committed git diff only; pass explicit `--changed` paths for uncommitted work.
+Changed-path `prove` writes `target/jankurai/proof-plan.json`, `target/jankurai/proof-plan.md`, proof receipts under `target/jankurai/proof-receipts/`, logs under `target/jankurai/logs/`, and `target/jankurai/evidence-index.json`. `--changed-from` uses committed git diff only; pass explicit `--changed` paths for uncommitted work.
 ```
 
 In this phase file:
@@ -380,36 +380,36 @@ Step 8: Validate.
 Run focused tests first:
 
 ```bash
-rtk cargo test -p humanlint --test proof_surface_smoke prove_changed
-rtk cargo test -p humanlint --test proof_surface_smoke
+rtk cargo test -p jankurai --test proof_surface_smoke prove_changed
+rtk cargo test -p jankurai --test proof_surface_smoke
 ```
 
 Run full local proof:
 
 ```bash
-rtk cargo test -p humanlint
+rtk cargo test -p jankurai
 rtk just fast
 ```
 
 Run a real command smoke from the repo:
 
 ```bash
-rtk cargo run -p humanlint -- prove . \
-  --changed crates/humanlint/src/commands/proof.rs \
-  --plan-out target/humanlint/phase03-prove-changed-plan.json \
-  --plan-md target/humanlint/phase03-prove-changed-plan.md \
-  --out-dir target/humanlint/phase03-prove-changed-receipts \
-  --evidence-index target/humanlint/phase03-prove-changed-evidence.json
+rtk cargo run -p jankurai -- prove . \
+  --changed crates/jankurai/src/commands/proof.rs \
+  --plan-out target/jankurai/phase03-prove-changed-plan.json \
+  --plan-md target/jankurai/phase03-prove-changed-plan.md \
+  --out-dir target/jankurai/phase03-prove-changed-receipts \
+  --evidence-index target/jankurai/phase03-prove-changed-evidence.json
 ```
 
 Expected artifacts:
 
-- `target/humanlint/phase03-prove-changed-plan.json`
-- `target/humanlint/phase03-prove-changed-plan.md`
-- `target/humanlint/phase03-prove-changed-receipts/*.json`
-- `target/humanlint/phase03-prove-changed-evidence.json`
-- `target/humanlint/fast-score.json`
-- `target/humanlint/fast-score.md`
+- `target/jankurai/phase03-prove-changed-plan.json`
+- `target/jankurai/phase03-prove-changed-plan.md`
+- `target/jankurai/phase03-prove-changed-receipts/*.json`
+- `target/jankurai/phase03-prove-changed-evidence.json`
+- `target/jankurai/fast-score.json`
+- `target/jankurai/fast-score.md`
 
 Step 9: Close the phase receipt.
 
@@ -465,11 +465,11 @@ Agent A: CLI bridge and proof runner
 
 - Phase: 03
 - Scope: implement `prove --changed` / `--changed-from`
-- Owned paths: `crates/humanlint/src/main.rs`, `crates/humanlint/src/commands/proof.rs`, focused portions of `crates/humanlint/tests/proof_surface_smoke.rs`
+- Owned paths: `crates/jankurai/src/main.rs`, `crates/jankurai/src/commands/proof.rs`, focused portions of `crates/jankurai/tests/proof_surface_smoke.rs`
 - Forbidden paths: schemas unless a compile/test failure proves a schema mismatch; `agent/test-map.json`; `agent/proof-lanes.toml`; `paper/`; `reference/`
 - Input contracts: existing `ProofPlan`, `ProofReceipt`, `ProofEvidenceIndex`, command allowlist
 - Output contracts: existing `prove --plan` behavior unchanged; changed-mode plan artifacts are persisted before execution
-- Validation: focused proof smoke tests, then `cargo test -p humanlint`
+- Validation: focused proof smoke tests, then `cargo test -p jankurai`
 - Stop conditions: command allowlist bypass required; schema compatibility break; ambiguity about executing uncommitted work from `--changed-from`
 - Handoff: changed files, CLI examples, focused test names, residual edge cases
 
@@ -477,9 +477,9 @@ Agent B: rule linkage and receipt assertions
 
 - Phase: 03
 - Scope: deterministic `rules_covered` population
-- Owned paths: `crates/humanlint/src/commands/proof.rs`, `crates/humanlint/tests/proof_surface_smoke.rs`
-- Forbidden paths: `crates/humanlint/src/audit/rules.rs` unless a missing rule ID is discovered; report rendering unless needed for an assertion
-- Input contracts: stable rule IDs from `agent/HUMANLINT_STANDARD.md` and `audit/rules.rs`
+- Owned paths: `crates/jankurai/src/commands/proof.rs`, `crates/jankurai/tests/proof_surface_smoke.rs`
+- Forbidden paths: `crates/jankurai/src/audit/rules.rs` unless a missing rule ID is discovered; report rendering unless needed for an assertion
+- Input contracts: stable rule IDs from `agent/JANKURAI_STANDARD.md` and `audit/rules.rs`
 - Output contracts: only registered HLT IDs appear in `rules_covered`
 - Validation: proof receipt schema validation plus focused receipt assertions
 - Stop conditions: mapping requires free-form command inference; custom lanes cannot map deterministically
@@ -515,17 +515,17 @@ Benefits from Phase 02 rule metadata, but can start with existing `test-map` and
 Add one or both commands:
 
 ```bash
-humanlint lane --changed-from origin/main
-humanlint proof --changed-from origin/main --plan target/humanlint/proof-plan.json
+jankurai lane --changed-from origin/main
+jankurai proof --changed-from origin/main --plan target/jankurai/proof-plan.json
 ```
 
-If implementing both is too much, implement `humanlint lane` first as a non-running planner.
+If implementing both is too much, implement `jankurai lane` first as a non-running planner.
 
 New artifacts:
 
-- `target/humanlint/proof-plan.json`
-- `target/humanlint/proof-receipts/*.json`
-- optional `target/humanlint/evidence-index.json`
+- `target/jankurai/proof-plan.json`
+- `target/jankurai/proof-receipts/*.json`
+- optional `target/jankurai/evidence-index.json`
 
 Do not put volatile local receipts under `agent/`.
 
@@ -590,7 +590,7 @@ Implementation tasks:
 
 Acceptance:
 
-- Given changed files under `crates/humanlint/`, planner selects Rust tests.
+- Given changed files under `crates/jankurai/`, planner selects Rust tests.
 - Given changed files under `packages/ux-qa/`, planner selects UX QA package tests.
 - Given docs-only changes, planner selects audit/docs validation and avoids expensive UX or paper unless mapped.
 - Unknown paths produce a finding or hard diagnostic requiring owner/test-map updates.
@@ -600,9 +600,9 @@ Acceptance:
 Implementation tasks:
 
 - Add optional execution mode that runs planned commands from a validated proof plan.
-- Enforce a command allowlist: each planned command must match `agent/proof-lanes.toml` or `agent/test-map.json` after whitespace normalization, unless `--allow-unsigned-commands` and `HUMANLINT_ALLOW_UNSIGNED_PROOF_COMMANDS=1` are both set.
-- Store full command output under ignored `target/humanlint/logs/` when useful.
-- Store receipt JSON under ignored `target/humanlint/proof-receipts/`.
+- Enforce a command allowlist: each planned command must match `agent/proof-lanes.toml` or `agent/test-map.json` after whitespace normalization, unless `--allow-unsigned-commands` and `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1` are both set.
+- Store full command output under ignored `target/jankurai/logs/` when useful.
+- Store receipt JSON under ignored `target/jankurai/proof-receipts/`.
 - Make command execution fail fast by default, with an option to continue collecting receipts.
 - Do not execute destructive commands.
 
@@ -623,7 +623,7 @@ Implementation tasks:
 
 Acceptance:
 
-- `humanlint audit` still works without proof receipts.
+- `jankurai audit` still works without proof receipts.
 - Release-mode policy can require receipts.
 - Markdown report lists proof receipts compactly.
 
@@ -631,7 +631,7 @@ Acceptance:
 
 Implementation tasks:
 
-- Define an evidence root convention under `target/humanlint/`.
+- Define an evidence root convention under `target/jankurai/`.
 - Normalize artifact paths relative to repo root.
 - Add schema for proof plan and receipt artifacts.
 - Add `doctor` diagnostics for stale or malformed evidence when present.
@@ -658,25 +658,25 @@ Do not parallelize command execution and planner data model changes before the p
 Minimum:
 
 ```bash
-cargo test -p humanlint
+cargo test -p jankurai
 just fast
 ```
 
 Phase-specific smoke:
 
 ```bash
-humanlint lane --changed crates/humanlint/src/main.rs
-humanlint lane --changed packages/ux-qa/src/rules.ts
+jankurai lane --changed crates/jankurai/src/main.rs
+jankurai lane --changed packages/ux-qa/src/rules.ts
 ```
 
 Proof execution smoke:
 
 ```bash
-humanlint lane . --changed crates/humanlint/src/main.rs --out target/humanlint/proof-plan.json
-humanlint prove . --plan target/humanlint/proof-plan.json
+jankurai lane . --changed crates/jankurai/src/main.rs --out target/jankurai/proof-plan.json
+jankurai prove . --plan target/jankurai/proof-plan.json
 ```
 
-Escape hatch (not for default CI): `--allow-unsigned-commands` with `HUMANLINT_ALLOW_UNSIGNED_PROOF_COMMANDS=1`.
+Escape hatch (not for default CI): `--allow-unsigned-commands` with `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1`.
 
 ## Risks
 
@@ -697,12 +697,12 @@ Leave:
 ## Phase Status Receipt
 
 - Phase status: complete proof router and evidence ledger; `prove --changed` / `--changed-from` exists and evidence index **1.2.0** records standard report artifact links when present at `prove` time
-- Files changed (latest slices): `schemas/evidence-index.schema.json`, `schemas/proof-receipt.schema.json`, `crates/humanlint/src/model.rs`, `crates/humanlint/src/main.rs`, `crates/humanlint/src/commands/proof.rs`, `crates/humanlint/tests/proof_surface_smoke.rs`, `crates/humanlint/tests/schema_contracts.rs`, `tips/phases/03-proof-router-evidence-ledger.md`, `tips/phases/logs/03-proof-router-evidence-ledger.log`
-- Earlier 2026-05-02 hardening: `crates/humanlint/src/commands/proof.rs`, `crates/humanlint/src/commands/doctor.rs`, `crates/humanlint/src/commands/context_data.rs`, `schemas/proof-plan.schema.json`, `schemas/proof-receipt.schema.json`, evidence index baseline, `docs/moonshot.md`, `docs/testing.md`
-- Public interfaces changed: `humanlint prove` accepts `--changed` / `--changed-from`; `ProofEvidenceIndex` optional fields; written evidence index `schema_version` now **1.2.0** for new runs; proof receipt rule coverage accepts rich or simple entries
-- Generated artifacts: proof plan, proof receipts, evidence index, and logs under `target/humanlint/` (gitignored)
+- Files changed (latest slices): `schemas/evidence-index.schema.json`, `schemas/proof-receipt.schema.json`, `crates/jankurai/src/model.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/commands/proof.rs`, `crates/jankurai/tests/proof_surface_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `tips/phases/03-proof-router-evidence-ledger.md`, `tips/phases/logs/03-proof-router-evidence-ledger.log`
+- Earlier 2026-05-02 hardening: `crates/jankurai/src/commands/proof.rs`, `crates/jankurai/src/commands/doctor.rs`, `crates/jankurai/src/commands/context_data.rs`, `schemas/proof-plan.schema.json`, `schemas/proof-receipt.schema.json`, evidence index baseline, `docs/moonshot.md`, `docs/testing.md`
+- Public interfaces changed: `jankurai prove` accepts `--changed` / `--changed-from`; `ProofEvidenceIndex` optional fields; written evidence index `schema_version` now **1.2.0** for new runs; proof receipt rule coverage accepts rich or simple entries
+- Generated artifacts: proof plan, proof receipts, evidence index, and logs under `target/jankurai/` (gitignored)
 - Routing maps changed: none required for this slice
-- Validation commands: `cargo test -p humanlint`, `just fast`
+- Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: see append-only log under `tips/phases/logs/`
 - Skipped validation: none
 - Exceptions created: unsigned command escape hatch documented for emergencies only

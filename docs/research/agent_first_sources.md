@@ -7,7 +7,7 @@ Primary rule: prefer official docs, project repositories, standards, and papers.
 ## Executive Findings
 
 1. `AGENTS.md` is the best neutral repo instruction file. Official and project sources now describe it as a plain Markdown, agent-focused companion to README, with nested files for monorepos and closest-file precedence.
-2. Tool-specific rule files still matter. Cursor, Claude Code, Gemini CLI, GitHub Copilot, and Jules all have their own memory/rule/instruction surfaces. The humanlint standard should generate these from one canonical `AGENTS.md`/`agent/` source, not hand-maintain divergent copies.
+2. Tool-specific rule files still matter. Cursor, Claude Code, Gemini CLI, GitHub Copilot, and Jules all have their own memory/rule/instruction surfaces. The jankurai standard should generate these from one canonical `AGENTS.md`/`agent/` source, not hand-maintain divergent copies.
 3. Agent-first repos need deterministic control surfaces more than prose. Strong sources converge on setup scripts, test commands, scoped instructions, generated contracts, security checks, and reproducible environments.
 4. Benchmarks show two core bottlenecks: setup reliability and context retrieval. SetupBench reports agents still struggle to bootstrap real environments. ContextBench reports large gaps between explored and useful context. This supports one-command setup, fast lanes, repo maps, owner maps, and token-filtered command output.
 5. The optimal repo shape for the paper's winning stack is a Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and bounded Python AI/data service. Agent-first rules should enforce ownership, generated zones, and import boundaries as CI policy.
@@ -57,7 +57,7 @@ Core doctrine:
 
 ## Source Matrix
 
-| Area | Best Sources | Finding | humanlint Doctrine |
+| Area | Best Sources | Finding | jankurai Doctrine |
 | --- | --- | --- | --- |
 | Neutral agent instructions | https://agents.md/, https://github.com/openai/codex/blob/main/docs/agents_md.md, https://github.com/openai/codex | `AGENTS.md` is plain Markdown, supports nested guidance, and is now widely recognized by coding-agent tools. | Use `AGENTS.md` as canonical repo instruction file. Generate tool-specific adapters from it. |
 | Codex | https://github.com/openai/codex, https://github.com/openai/codex/blob/main/docs/agents_md.md, https://openai.com/index/introducing-codex/ | Codex CLI is local and repo-oriented. Codex docs route AGENTS.md behavior through official developer documentation. | Root and nested `AGENTS.md` must list setup, validation, style, PR, and safety rules. |
@@ -70,13 +70,13 @@ Core doctrine:
 | SWE-bench family | https://arxiv.org/abs/2310.06770, https://github.com/SWE-bench/SWE-bench, https://swebench.com/ | Real GitHub issue resolution remains hard and environment-dependent. | Every repo needs reproducible setup, tests, and issue-to-validation routing. |
 | SetupBench | https://arxiv.org/abs/2507.09063 | Agents struggle with environment bootstrap, dependency conflicts, DB config, and background services. | One-command setup and one-command validation are hard audit requirements. |
 | ContextBench | https://arxiv.org/abs/2602.05892, https://github.com/EuniAI/ContextBench | Agents over-retrieve context and fail to convert exploration into useful context. | Use path-scoped docs, owner maps, generated indexes, filtered command output, and small instruction files. |
-| SWE-Effi | https://arxiv.org/abs/2509.09853, https://openreview.net/forum?id=x7C9A4Y9cF | Agent quality must be measured under resource constraints, not only pass/fail. | humanlint score should track token, time, and validation-radius economy. |
+| SWE-Effi | https://arxiv.org/abs/2509.09853, https://openreview.net/forum?id=x7C9A4Y9cF | Agent quality must be measured under resource constraints, not only pass/fail. | jankurai score should track token, time, and validation-radius economy. |
 | OpenHands | https://arxiv.org/abs/2407.16741, https://docs.openhands.dev/, https://github.com/All-Hands-AI/OpenHands | OpenHands models agents as developers that write code, use shells, and browse. | Repo must expose safe tools, setup, tests, browser QA, and command boundaries. |
-| Aider | https://github.com/Aider-AI/aider | Aider uses a repo map to help LLMs work in larger projects and integrates with Git. | humanlint should require repo maps and changed-file scoped repair queues. |
+| Aider | https://github.com/Aider-AI/aider | Aider uses a repo map to help LLMs work in larger projects and integrates with Git. | jankurai should require repo maps and changed-file scoped repair queues. |
 | Cline / Roo Code / Goose | https://github.com/cline/cline, https://github.com/RooCodeInc/Roo-Code, https://github.com/block/goose | Open-source agents emphasize file search, AST/context inspection, terminal commands, MCP/tool use, modes, and human review. | Standardize rules and validation so any agent can operate safely without bespoke prompting. |
 | OpenTelemetry | https://opentelemetry.io/docs/, https://opentelemetry.io/docs/specs/otel/semantic-conventions/ | OTel provides vendor-neutral traces, metrics, logs, and semantic exception attributes. | Every service must emit request IDs, trace IDs, error type, and repair-relevant context. |
 | Secret scanning | https://docs.github.com/en/code-security/secret-scanning/working-with-secret-scanning-and-push-protection | GitHub secret scanning/push protection blocks exposed credentials and has MCP-specific push-protection docs. | CI and pre-push should scan secrets. Agents must never add example real keys or bypass secret gates. |
-| Supply chain | https://github.com/ossf/scorecard, https://github.com/ossf/scorecard-action, https://google.github.io/osv-scanner/, https://slsa.dev/ | OpenSSF, OSV, and SLSA provide automated security health, vulnerability scanning, and provenance language. | humanlint audit must require SCA, lockfiles, provenance, and dependency rationale for high-risk repos. |
+| Supply chain | https://github.com/ossf/scorecard, https://github.com/ossf/scorecard-action, https://google.github.io/osv-scanner/, https://slsa.dev/ | OpenSSF, OSV, and SLSA provide automated security health, vulnerability scanning, and provenance language. | jankurai audit must require SCA, lockfiles, provenance, and dependency rationale for high-risk repos. |
 | Playwright QA | https://playwright.dev/docs/best-practices, https://playwright.dev/docs/writing-tests, https://playwright.dev/docs/codegen | Official guidance: test user-visible behavior, isolate tests, use locators, web-first assertions, and cross-browser projects. | Use Playwright for product-surface QA. Forbid hard sleeps and brittle CSS/XPath selectors unless justified. |
 | TypeScript/React/Vite | https://www.typescriptlang.org/tsconfig/strict.html, https://react.dev/learn/typescript, https://vite.dev/guide/build | Strict TypeScript improves correctness guarantees; React docs guide TS usage; Vite gives deterministic build command. | `apps/web` must be strict TypeScript, generated clients only, Vite build/test scripts, no hand-rolled API types. |
 | Rust core | https://doc.rust-lang.org/cargo/reference/workspaces.html, https://rust-lang.github.io/api-guidelines/, https://doc.rust-lang.org/stable/rust-by-example/error.html | Cargo workspaces and Rust API guidelines provide reviewable structure; Rust error handling is typed and explicit. | `crates/domain` stays pure; `application` orchestrates; `adapters` own I/O; `api` is transport edge. |
@@ -102,7 +102,7 @@ Findings:
 - Tests listed in `AGENTS.md` are more likely to be run and repaired.
 - Closest-file precedence means local crate/app rules can override root defaults.
 
-humanlint rule:
+jankurai rule:
 
 - Root `AGENTS.md` must fit in a small prompt budget and route to maps/docs.
 - Local `AGENTS.md` files must be short and must not conflict with root hard rules.
@@ -121,7 +121,7 @@ Findings:
 - Rule application can be `Always`, `Auto Attached`, `Agent Requested`, or `Manual`.
 - Community sentiment repeatedly reports drift when rules and CI disagree.
 
-humanlint rule:
+jankurai rule:
 
 - Generate Cursor rules from `agent/audit-policy.toml`, `owner-map.json`, and `test-map.json`.
 - Keep always-on Cursor rules short: stack, no-bypass rules, validation commands, generated zones.
@@ -139,7 +139,7 @@ Findings:
 - Claude loads hierarchy above cwd and local subdirectory instructions on demand.
 - Official docs recommend architecture, commands, standards, naming, and workflows.
 
-humanlint rule:
+jankurai rule:
 
 - Generate `CLAUDE.md` from canonical agent rules.
 - Keep project instructions durable and team-owned; keep personal/local details out of repo.
@@ -158,7 +158,7 @@ Findings:
 - Gemini CLI supports hierarchical `GEMINI.md` memory and `/memory` inspection commands.
 - Jules reads `AGENTS.md`, can use setup scripts, and works from GitHub.
 
-humanlint rule:
+jankurai rule:
 
 - Generate `GEMINI.md` from canonical rules.
 - Root setup scripts must be cloud-agent safe: no local secrets, no machine-specific paths, deterministic service startup.
@@ -174,7 +174,7 @@ Findings:
 - Copilot supports repo-wide, path-specific, organization, personal, and agent instructions.
 - Copilot code review reads only the first 4,000 characters of custom instruction files.
 
-humanlint rule:
+jankurai rule:
 
 - `.github/copilot-instructions.md` must be a compact summary.
 - Detailed rules belong in `.github/instructions/*.instructions.md` with path scopes.
@@ -192,7 +192,7 @@ Findings:
 - Public official documentation is available, but detailed rule-file behavior is less mature/less centralized than Codex/Cursor/Claude/Gemini/Copilot docs.
 - Community sources mention workspace/global rules and `.agent/rules`, but this should remain low-weight until official docs stabilize.
 
-humanlint rule:
+jankurai rule:
 
 - Treat Antigravity as an adapter target, not the canonical rule source.
 - Keep canonical rules in `AGENTS.md` plus `agent/` maps.
@@ -417,7 +417,7 @@ Known "vibe coding" problem classes to include:
 
 CI rule:
 
-- humanlint audit should run on every PR.
+- jankurai audit should run on every PR.
 - PRs can only merge with `score >= policy.minimum_score`, no hard-cap violations, and no high findings unless explicitly waived in `docs/exceptions/`.
 - Audit output must include `agent_fix_queue` with path, owner, command, evidence, and smallest repair.
 

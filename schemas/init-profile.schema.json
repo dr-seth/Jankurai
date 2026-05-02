@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/init-profile.schema.json",
-  "title": "humanlint init profile manifest",
+  "$id": "https://jankurai.dev/schemas/init-profile.schema.json",
+  "title": "jankurai init profile manifest",
   "type": "object",
   "required": [
     "id",

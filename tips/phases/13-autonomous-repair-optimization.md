@@ -39,12 +39,12 @@ Hard dependencies:
 Implemented command surface:
 
 ```bash
-humanlint repair --plan target/humanlint/repair-plan.json
-humanlint repair --auto-pr --max-risk low
-humanlint optimize --budget latency:p95=80ms
-humanlint reduce --tokens
-humanlint refactor --proof-preserving
-humanlint exceptions expire --repair
+jankurai repair --plan target/jankurai/repair-plan.json
+jankurai repair --auto-pr --max-risk low
+jankurai optimize --budget latency:p95=80ms
+jankurai reduce --tokens
+jankurai refactor --proof-preserving
+jankurai exceptions expire --repair
 ```
 
 ## Contract Slice
@@ -218,14 +218,14 @@ Merge order:
 Minimum:
 
 ```bash
-cargo test -p humanlint
+cargo test -p jankurai
 just fast
 ```
 
 Repair dry-run smoke:
 
 ```bash
-humanlint repair --plan target/humanlint/repair-plan.json --dry-run
+jankurai repair --plan target/jankurai/repair-plan.json --dry-run
 ```
 
 Patch execution must use fixture repos before touching real projects.
@@ -252,12 +252,12 @@ Leave:
 ## Phase Status Receipt
 
 - Phase status: partial autonomous repair and optimization implementation slice
-- Files changed: `schemas/repair-plan.schema.json`, `crates/humanlint/src/commands/repair_plan.rs`, `crates/humanlint/src/commands/context_pack.rs`, `crates/humanlint/src/commands/repair.rs`, `crates/humanlint/tests/command_surface_smoke.rs`, `docs/release-plan.md`, `docs/testing.md`, and `target/humanlint/phase-logs/13-autonomous-repair-optimization.md.log`
+- Files changed: `schemas/repair-plan.schema.json`, `crates/jankurai/src/commands/repair_plan.rs`, `crates/jankurai/src/commands/context_pack.rs`, `crates/jankurai/src/commands/repair.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `docs/release-plan.md`, `docs/testing.md`, and `target/jankurai/phase-logs/13-autonomous-repair-optimization.md.log`
 - Schemas changed: repair plan and repair packet support
-- Public interfaces changed: `humanlint repair` with dry-run proof metadata
+- Public interfaces changed: `jankurai repair` with dry-run proof metadata
 - Generated artifacts: repair plan JSON/Markdown outputs
 - Routing maps changed: `agent/test-map.json`, `agent/owner-map.json`, `agent/proof-lanes.toml`
-- Validation commands: `cargo test -p humanlint`, `just fast`
+- Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: validation passed; optimization and bounded write execution remain future work
 - Skipped validation: bounded patch execution, PR automation, and optimization loops remain gated for later expansion
 - Exceptions created: dry-run repair only; write paths remain disabled until proof and permission gates mature

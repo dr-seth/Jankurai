@@ -3,11 +3,21 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { chromium } from "playwright";
 import type { Page } from "playwright";
+import { runAccessibilityScan, summarizeAccessibility } from "./accessibility.js";
 import { readUxQaConfig } from "./config.js";
 import { analyzePage } from "./page-analyzer.js";
 import { reportArtifactPath } from "./receipts.js";
 import { discoverStorybookStories, storybookIframeUrl } from "./storybook.js";
-import type { UxQaArtifact, UxQaConfig, UxQaReport, UxQaRoute, UxQaViewport } from "./types.js";
+import type {
+  UxQaArtifact,
+  UxQaArtifactCoverage,
+  UxQaArtifactKind,
+  UxQaConfig,
+  UxQaDecision,
+  UxQaReport,
+  UxQaRoute,
+  UxQaViewport
+} from "./types.js";
 
 interface CliOptions {
   command: "audit" | "storybook";
@@ -18,6 +28,7 @@ interface CliOptions {
   artifactsDir: string | undefined;
   screenshot: boolean;
   ariaSnapshot: boolean;
+  accessibilityScan: boolean;
   viewports: UxQaViewport[];
   configPath: string | undefined;
   config: UxQaConfig;
@@ -53,6 +64,7 @@ export async function runCli(argv: string[]): Promise<number> {
             declaredStates: route.states
           });
           await collectArtifacts(page, report, options);
+          applyEvidenceDecision(report);
           reports.push(report);
         } finally {
           await page.close();
@@ -63,7 +75,7 @@ export async function runCli(argv: string[]): Promise<number> {
     await browser.close();
   }
   await emitReport(reports, options.out);
-  return reports.some((report) => report.violations.some((item) => item.severity === "error")) ? 1 : 0;
+  return reports.some((report) => report.decision === "block") ? 1 : 0;
 }
 
 async function parseArgs(argv: string[]): Promise<CliOptions> {
@@ -77,9 +89,10 @@ async function parseArgs(argv: string[]): Promise<CliOptions> {
   let artifactsDir: string | undefined;
   let screenshot = false;
   let ariaSnapshot = false;
+  let accessibilityScan = false;
   let decisionThreshold: UxQaConfig["decisionThreshold"];
-  let waitFor: CliOptions["waitFor"] = "domcontentloaded";
-  let timeoutMs = 15000;
+  let waitForOverride: CliOptions["waitFor"] | undefined;
+  let timeoutMsOverride: number | undefined;
   let configPath: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index];
@@ -91,20 +104,27 @@ async function parseArgs(argv: string[]): Promise<CliOptions> {
     else if (value === "--artifacts-dir") artifactsDir = requireValue(args, index += 1, "--artifacts-dir");
     else if (value === "--screenshot") screenshot = true;
     else if (value === "--aria-snapshot") ariaSnapshot = true;
+    else if (value === "--accessibility-scan") accessibilityScan = true;
     else if (value === "--decision-threshold") decisionThreshold = parseDecisionThreshold(requireValue(args, index += 1, "--decision-threshold"));
-    else if (value === "--wait-for") waitFor = parseWaitFor(requireValue(args, index += 1, "--wait-for"));
-    else if (value === "--timeout-ms") timeoutMs = parseTimeoutMs(requireValue(args, index += 1, "--timeout-ms"));
+    else if (value === "--wait-for") waitForOverride = parseWaitFor(requireValue(args, index += 1, "--wait-for"));
+    else if (value === "--timeout-ms") timeoutMsOverride = parseTimeoutMs(requireValue(args, index += 1, "--timeout-ms"));
     else if (value === "--viewport") viewports.push(parseViewport(requireValue(args, index += 1, "--viewport")));
     else throw new Error(`unknown argument: ${value ?? ""}`);
   }
   const fileConfig = await readUxQaConfig(configPath);
   const config: UxQaConfig = { ...fileConfig };
   if (decisionThreshold) config.decisionThreshold = decisionThreshold;
+  const waitFor = waitForOverride ?? fileConfig.readyState ?? "domcontentloaded";
+  const timeoutMs = timeoutMsOverride ?? fileConfig.timeoutMs ?? 15000;
   config.readyState = waitFor;
   config.timeoutMs = timeoutMs;
   if (!artifactsDir && fileConfig.artifactRoot) artifactsDir = fileConfig.artifactRoot;
+  if (!url && command === "storybook" && fileConfig.storybookUrl) url = fileConfig.storybookUrl;
+  screenshot = screenshot || fileConfig.screenshotRequired === true;
+  ariaSnapshot = ariaSnapshot || fileConfig.ariaSnapshotRequired === true;
+  accessibilityScan = accessibilityScan || fileConfig.accessibilityScanRequired === true;
   if (!url && !config.routes?.length && command !== "storybook") throw new Error("missing required --url or config routes");
-  if (!url && command === "storybook") throw new Error("missing required --url for Storybook");
+  if (!url && command === "storybook") throw new Error("missing required --url or storybookUrl for Storybook");
   return {
     command,
     url,
@@ -114,6 +134,7 @@ async function parseArgs(argv: string[]): Promise<CliOptions> {
     artifactsDir,
     screenshot,
     ariaSnapshot,
+    accessibilityScan,
     viewports: viewports.length > 0 ? viewports : config.viewports ?? DEFAULT_VIEWPORTS,
     config,
     configPath,
@@ -168,7 +189,11 @@ function parseTimeoutMs(value: string): number {
 }
 
 async function collectArtifacts(page: Page, report: UxQaReport, options: CliOptions): Promise<void> {
-  if (!options.artifactsDir && !options.screenshot && !options.ariaSnapshot) return;
+  const requiredKinds = requiredArtifactKinds(options);
+  if (!options.artifactsDir && !options.screenshot && !options.ariaSnapshot && !options.accessibilityScan) {
+    report.artifactCoverage = artifactCoverage(requiredKinds, report.artifacts);
+    return;
+  }
   const directory = options.artifactsDir ?? "ux-qa-artifacts";
   await mkdir(directory, { recursive: true });
   const base = artifactBase(report);
@@ -185,6 +210,15 @@ async function collectArtifacts(page: Page, report: UxQaReport, options: CliOpti
     const snapshot = await page.locator("body").ariaSnapshot();
     await writeFile(path, `${snapshot}\n`, "utf8");
     report.artifacts.push(artifact("aria-snapshot", path, report, outputRoot));
+  }
+
+  if (options.accessibilityScan) {
+    const path = join(directory, `${base}.a11y.json`);
+    const result = await runAccessibilityScan(page);
+    const artifactPath = reportArtifactPath(path, outputRoot);
+    await writeFile(path, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+    report.accessibility = summarizeAccessibility(result, artifactPath);
+    report.artifacts.push(artifact("accessibility", path, report, outputRoot));
   }
 
   for (let index = 0; index < report.violations.length; index += 1) {
@@ -205,10 +239,63 @@ async function collectArtifacts(page: Page, report: UxQaReport, options: CliOpti
       ruleId: violation.ruleId
     });
   }
+
+  report.artifactCoverage = artifactCoverage(requiredKinds, report.artifacts);
 }
 
 function artifact(kind: UxQaArtifact["kind"], path: string, report: UxQaReport, outputRoot: string): UxQaArtifact {
   return { kind, path: reportArtifactPath(path, outputRoot), viewport: report.viewport };
+}
+
+function requiredArtifactKinds(options: CliOptions): UxQaArtifactKind[] {
+  const required: UxQaArtifactKind[] = [];
+  if (options.config.screenshotRequired) required.push("screenshot");
+  if (options.config.ariaSnapshotRequired) required.push("aria-snapshot");
+  if (options.config.accessibilityScanRequired) required.push("accessibility");
+  return required;
+}
+
+function artifactCoverage(required: UxQaArtifactKind[], artifacts: UxQaArtifact[]): UxQaArtifactCoverage {
+  const present = uniqueKinds(artifacts.map((item) => item.kind));
+  return {
+    required,
+    present,
+    missing: required.filter((kind) => !present.includes(kind))
+  };
+}
+
+function uniqueKinds(kinds: UxQaArtifactKind[]): UxQaArtifactKind[] {
+  const out: UxQaArtifactKind[] = [];
+  for (const kind of kinds) {
+    if (!out.includes(kind)) out.push(kind);
+  }
+  return out;
+}
+
+function applyEvidenceDecision(report: UxQaReport): void {
+  let decision = report.decision;
+  if (report.stateCoverage?.missing.length) decision = mergeDecision(decision, "block");
+  if (report.artifactCoverage?.missing.length) decision = mergeDecision(decision, "block");
+  if ((report.accessibility?.violations ?? 0) > 0) decision = mergeDecision(decision, "block");
+  if ((report.accessibility?.incomplete ?? 0) > 0) decision = mergeDecision(decision, "review");
+  report.decision = decision;
+}
+
+function mergeDecision(current: UxQaDecision, next: UxQaDecision): UxQaDecision {
+  return decisionRank(next) > decisionRank(current) ? next : current;
+}
+
+function decisionRank(decision: UxQaDecision): number {
+  switch (decision) {
+    case "block":
+      return 4;
+    case "review":
+      return 3;
+    case "warn":
+      return 2;
+    case "pass":
+      return 1;
+  }
 }
 
 function artifactBase(report: UxQaReport): string {

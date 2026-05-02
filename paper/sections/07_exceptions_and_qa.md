@@ -1,6 +1,6 @@
 ## Agent-Friendly Exceptions And Automated QA
 
-Agent-friendly exceptions are one of the most important ideas in the standard. Most teams already have a hidden exception catalog in human memory: "when this error happens, check the tenant mapping," "this provider returns 409 when it means stale token," "this migration fails when the old enum exists," "this model error usually means the embedding dimension changed." humanlint turns that memory into structured, versioned repair knowledge.
+Agent-friendly exceptions are one of the most important ideas in the standard. Most teams already have a hidden exception catalog in human memory: "when this error happens, check the tenant mapping," "this provider returns 409 when it means stale token," "this migration fails when the old enum exists," "this model error usually means the embedding dimension changed." jankurai turns that memory into structured, versioned repair knowledge.
 
 ### Runtime Exceptions As Repair Packets
 
@@ -64,7 +64,7 @@ Agent-native testing is an evidence routing system:
 | Contracts | generation and backward compatibility | OpenAPI/Protobuf/JSON Schema checks |
 | Python AI service | eval fixtures, model IO contracts, reproducibility | typed contract tests, golden evals |
 | Ops/security | secrets, dependencies, SBOM, provenance, workflow lint | gitleaks, dependency review, Syft/Grype, SLSA, Zizmor |
-| Audit | standard compliance and agent repair queue | `cargo run -p humanlint --` |
+| Audit | standard compliance and agent repair queue | `cargo run -p jankurai --` |
 
 Playwright is the default browser tool for this stack because its official guidance aligns with agent-friendly QA: isolate tests, use user-visible locators, prefer role/text/test-id locators, use web-first assertions, avoid brittle implementation selectors, and capture traces/screenshots/videos on failure.
 

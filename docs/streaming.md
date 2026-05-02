@@ -1,6 +1,6 @@
 # Streaming Infrastructure
 
-humanlint treats streaming as infrastructure behind contracts, not as stack identity.
+jankurai treats streaming as infrastructure behind contracts, not as stack identity.
 
 Kafka is valid brownfield infrastructure when a system already depends on its durable log, ecosystem, Connect, Streams, client support, and operational proof. It must live behind generated event contracts and observable Rust queue adapters.
 

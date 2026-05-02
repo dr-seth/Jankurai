@@ -1,6 +1,6 @@
-# humanlint Boundaries
+# jankurai Boundaries
 
-The humanlint standard rejects ambiguous ownership. Each layer must own one
+The jankurai standard rejects ambiguous ownership. Each layer must own one
 kind of truth and must not leak into adjacent layers.
 
 | Layer | Owns | Must not own |

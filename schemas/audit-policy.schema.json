@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/audit-policy.schema.json",
-  "title": "humanlint audit policy",
+  "$id": "https://jankurai.dev/schemas/audit-policy.schema.json",
+  "title": "jankurai audit policy",
   "type": "object",
   "required": ["minimum_score"],
   "properties": {

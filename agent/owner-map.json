@@ -1,5 +1,5 @@
 {
-  "workspace": "humanlint",
+  "workspace": "jankurai",
   "owners": {
     "AGENTS.md": "agent",
     "CLAUDE.md": "agent",
@@ -10,7 +10,7 @@
     "Cargo.toml": "tools",
     "Cargo.lock": "tools",
     "README.md": "workspace",
-    "README-humanlint-scaffold.md": "workspace",
+    "README-jankurai-scaffold.md": "workspace",
     "Justfile": "workspace",
     "VERSION": "workspace",
     "package.json": "workspace",
@@ -25,7 +25,7 @@
     "db/": "standard",
     "examples/perfect-web-api-db/": "standard",
     "examples/legacy-node-api/": "tools",
-    "crates/humanlint/": "tools",
+    "crates/jankurai/": "tools",
     "packages/ux-qa/": "tools",
     ".cursor/": "agent",
     ".claude/": "agent",

@@ -1,14 +1,14 @@
-# Release Plan: humanlint Standard
+# Release Plan: jankurai Standard
 
-humanlint must ship as a paper, a standard, an auditor, and a set of agent-ready operating artifacts. The goal is not to win an argument on style. The goal is to make agent-native engineering easier to adopt than vibe-coded sprawl.
+jankurai must ship as a paper, a standard, an auditor, and a set of agent-ready operating artifacts. The goal is not to win an argument on style. The goal is to make agent-native engineering easier to adopt than vibe-coded sprawl.
 
 ## Release Lines
 
 | Release line | Artifact | Audience | Compatibility promise |
 | --- | --- | --- | --- |
-| Paper edition | `paper/humanlint.tex`, `paper/tex/`, PDF, Markdown companion | engineering leaders, researchers, senior developers | citations and argument may change by edition |
-| Standard spec | repo layout, ownership rules, audit rubric | teams adopting humanlint | semantic versioning |
-| Audit tool | `crates/humanlint/` | CI, agents, maintainers | semantic versioning plus output schema version |
+| Paper edition | `paper/jankurai.tex`, `paper/tex/`, PDF, Markdown companion | engineering leaders, researchers, senior developers | citations and argument may change by edition |
+| Standard spec | repo layout, ownership rules, audit rubric | teams adopting jankurai | semantic versioning |
+| Audit tool | `crates/jankurai/` | CI, agents, maintainers | semantic versioning plus output schema version |
 | Agent artifacts | `AGENTS.md`, `CLAUDE.md`, Cursor rules, Copilot instructions, generated-zone manifests | coding agents and IDEs | versioned rule packs |
 | CI integrations | GitHub Action, reusable workflow, pre-commit hook, local `just`/`make` targets | platform teams | backwards-compatible minor releases |
 | Templates | greenfield repo template, migration template, exception catalog template | teams starting or converting repos | versioned with the standard |
@@ -43,7 +43,7 @@ Every adopted repo should pin:
 
 ```json
 {
-  "humanlint_standard": "0.4.0",
+  "jankurai_standard": "0.4.0",
   "audit_min_version": "0.4.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
@@ -57,22 +57,22 @@ Required artifact bindings:
 
 | Artifact | Manifest ID | Source / command |
 | --- | --- | --- |
-| `paper/humanlint.tex` | `paper-source` | `paper/tex/`, `just paper` |
-| `paper/humanlint.pdf` | `paper-render` | source `paper/humanlint.tex`, command `just paper` |
-| `paper/humanlint.md` | `paper-agent-md` | companion to TeX, not canonical |
+| `paper/jankurai.tex` | `paper-source` | `paper/tex/`, `just paper` |
+| `paper/jankurai.pdf` | `paper-render` | source `paper/jankurai.tex`, command `just paper` |
+| `paper/jankurai.md` | `paper-agent-md` | companion to TeX, not canonical |
 | `docs/agent-native-standard.md` | `coding-standard` | version `standard_version` |
-| `agent/HUMANLINT_STANDARD.md` | `agent-standard-brief` | source `docs/agent-native-standard.md` |
+| `agent/JANKURAI_STANDARD.md` | `agent-standard-brief` | source `docs/agent-native-standard.md` |
 
-Paper artifacts MUST use the `humanlint.*` prefix. `main.md`, `main.tex`, and `main.pdf` are forbidden anywhere in this repository.
+Paper artifacts MUST use the `jankurai.*` prefix. `main.md`, `main.tex`, and `main.pdf` are forbidden anywhere in this repository.
 
 ## Receipt Convention
 
 Operational receipts are volatile evidence, not source material.
 
-- `humanlint doctor` and `humanlint init` write receipts under `target/humanlint/receipts/<action>-<unix-seconds>.json`
+- `jankurai doctor` and `jankurai init` write receipts under `target/jankurai/receipts/<action>-<unix-seconds>.json`
 - release closeouts should cite the command, changed paths, and the receipt path
 - the canonical score artifacts remain `agent/repo-score.json` and `agent/repo-score.md`
-- `target/humanlint/` is the shared scratch root for audit, doctor, init, UX, and future proof outputs
+- `target/jankurai/` is the shared scratch root for audit, doctor, init, UX, and future proof outputs
 
 Use those receipts to make phase handoffs and release evidence reproducible without promoting them into tracked source files.
 
@@ -89,7 +89,7 @@ The audit should check for newer versions but should not surprise-break pinned C
 
 ## CI Adoption Strategy
 
-humanlint should enter CI in phases.
+jankurai should enter CI in phases.
 
 | Phase | CI behavior | Goal |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ Minimum CI lanes:
 
 | Lane | Required command shape |
 | --- | --- |
-| `audit` | `cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md` |
+| `audit` | `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md` |
 | `fast` | one deterministic command for local agent edits |
 | `contracts` | generated API/schema drift check |
 | `security` | secret scan, dependency scan, SBOM/SCA where available |
@@ -131,7 +131,7 @@ Scope:
 
 Exit criteria:
 
-- scores humanlint and `how_to_code_rust`
+- scores jankurai and `how_to_code_rust`
 - emits stable top-level output
 - runs without third-party dependencies
 
@@ -184,7 +184,7 @@ Ship the release surface as one product:
 | Audit exports | JSON, Markdown, SARIF, JUnit, GitHub summary, repair queue JSONL, issue export |
 | Install | idempotent `init --profile --ide --mode --dry-run --yes --diff` |
 | Doctor | stale score, root artifact, path leak, echo-only proof, UX artifact, boundary, and paper-source checks |
-| CI | `humanlint ci install --github --mode ratchet --min-score 85` |
+| CI | `jankurai ci install --github --mode ratchet --min-score 85` |
 | Boundaries | authoritative streaming and queue manifest with Kafka brownfield exception shape |
 | UX QA | route-matrix and Storybook audit commands with artifact-backed proof |
 
@@ -199,7 +199,7 @@ Exit criteria:
 
 Ship:
 
-- `humanlint` GitHub Action
+- `jankurai` GitHub Action
 - reusable workflow
 - PR comment summary
 - score badge
@@ -252,7 +252,7 @@ Measure:
 
 Exit criteria:
 
-- compare baseline repo vs humanlint-compliant repo
+- compare baseline repo vs jankurai-compliant repo
 - publish methodology and raw evidence
 - include multiple coding agents
 
@@ -290,7 +290,7 @@ The paper should include a ranking graph, a concrete winner architecture, and th
 The first public experience should be:
 
 ```bash
-cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 No bootstrap. No service. No API key. No dependency install. Immediate findings.
@@ -301,7 +301,7 @@ Publish sample reports for:
 
 | Repo type | Why |
 | --- | --- |
-| clean greenfield humanlint repo | shows target shape |
+| clean greenfield jankurai repo | shows target shape |
 | typical React/Node app | shows contract and DB drift |
 | Python-heavy product repo | shows containment risk |
 | Rust service repo | shows domain/application/adapters split |
@@ -334,7 +334,7 @@ Templates should include:
 - `agent/generated-zones.toml`
 - `schemas/cell-manifest.schema.json`
 - `schemas/cell-registry.schema.json`
-- `agent/humanlint-standard.json`
+- `agent/jankurai-standard.json`
 - Rust workspace with `domain`, `application`, `adapters`, `workers`
 - Vite/React app with generated client path
 - PostgreSQL migrations and constraints folders
@@ -350,7 +350,7 @@ Badge fields:
 
 | Field | Example |
 | --- | --- |
-| score | `humanlint 86` |
+| score | `jankurai 86` |
 | standard | `standard 0.3` |
 | channel | `stable` |
 | caps | `0 caps` |
@@ -361,7 +361,7 @@ The badge should link to the latest audit Markdown and JSON artifact.
 
 ### 7. Build Tool-Specific Rule Packs
 
-Agent tools disagree on instruction loading. humanlint should not depend on one vendor.
+Agent tools disagree on instruction loading. jankurai should not depend on one vendor.
 
 Rule packs should translate one standard into each tool's native shape:
 
@@ -404,7 +404,7 @@ Do not force stack migration into unrelated projects. Use non-winner stacks as r
 
 ### 10. Establish Governance
 
-humanlint needs a standards board before v1.0:
+jankurai needs a standards board before v1.0:
 
 | Role | Responsibility |
 | --- | --- |
@@ -482,7 +482,7 @@ Planned research outputs:
 | `research-0.4` | agent-friendly exceptions vs plain exceptions |
 | `research-0.5` | generated contracts and drift repair |
 | `research-0.6` | Python containment and production-risk proxies |
-| `research-1.0` | full humanlint compliance vs incident/rollback correlation |
+| `research-1.0` | full jankurai compliance vs incident/rollback correlation |
 
 ## Known Release Risks
 
@@ -503,7 +503,7 @@ Planned research outputs:
 Track:
 
 - number of repos running audit in CI
-- number of repos pinning a humanlint standard version
+- number of repos pinning a jankurai standard version
 - average score trend over time
 - time from finding to repair PR
 - accepted repair PR rate
@@ -516,7 +516,7 @@ Track:
 
 ## Strong Adoption Position
 
-humanlint should be marketed plainly:
+jankurai should be marketed plainly:
 
 > Stop optimizing repositories for humans staring at files. Optimize them for agents proving changes.
 

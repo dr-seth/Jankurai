@@ -29,3 +29,48 @@ test("artifact paths are report-relative", async ({}, testInfo) => {
   expect(paths.length).toBeGreaterThan(0);
   expect(paths.every((item: string) => !isAbsolute(item))).toBe(true);
 });
+
+test("policy-required screenshot aria and accessibility artifacts are emitted", async ({}, testInfo) => {
+  const pagePath = testInfo.outputPath("a11y-fixture.html");
+  const reportPath = testInfo.outputPath("ux-qa.json");
+  const artifactsDir = testInfo.outputPath("policy-artifacts");
+  const configPath = testInfo.outputPath("ux-qa.toml");
+  await writeFile(pagePath, `
+    <main>
+      <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+      <button>Launch</button>
+    </main>
+  `, "utf8");
+  await writeFile(configPath, `
+outputRoot = "${testInfo.outputDir}"
+artifactRoot = "${artifactsDir}"
+readyState = "load"
+timeoutMs = 20000
+requiredStates = ["loading", "success"]
+screenshotRequired = true
+ariaSnapshotRequired = true
+accessibilityScanRequired = true
+`, "utf8");
+
+  const code = await runCli([
+    "audit",
+    "--url",
+    pathToFileURL(pagePath).toString(),
+    "--out",
+    reportPath,
+    "--config",
+    configPath
+  ]);
+
+  const payload = JSON.parse(await readFile(reportPath, "utf8"));
+  const report = payload.reports[0];
+  const kinds = report.artifacts.map((item: { kind: string }) => item.kind);
+  expect(code).toBe(1);
+  expect(report.schemaVersion).toBe("1.3.0");
+  expect(kinds).toEqual(expect.arrayContaining(["screenshot", "aria-snapshot", "accessibility"]));
+  expect(report.artifactCoverage.required).toEqual(["screenshot", "aria-snapshot", "accessibility"]);
+  expect(report.artifactCoverage.missing).toEqual([]);
+  expect(report.accessibility.artifactPath).toMatch(/\.a11y\.json$/);
+  expect(report.stateCoverage.missing).toEqual(["loading", "success"]);
+  expect(report.decision).toBe("block");
+});

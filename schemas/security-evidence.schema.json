@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/security-evidence.schema.json",
-  "title": "humanlint security evidence envelope",
+  "$id": "https://jankurai.dev/schemas/security-evidence.schema.json",
+  "title": "jankurai security evidence envelope",
   "type": "object",
   "required": [
     "schema_version",
@@ -48,7 +48,10 @@
           "status": { "enum": ["ran", "skipped", "failed"] },
           "exit_code": { "type": "integer" },
           "advisory": { "type": "boolean" },
-          "stderr_excerpt": { "type": "string", "maxLength": 500 }
+          "stderr_excerpt": { "type": "string", "maxLength": 500 },
+          "finding_count": { "type": "integer", "minimum": 0 },
+          "highest_severity": { "enum": ["critical", "high", "medium", "low", "ok", "none"] },
+          "normalized_decision": { "enum": ["pass", "block", "review"] }
         },
         "additionalProperties": true
       }

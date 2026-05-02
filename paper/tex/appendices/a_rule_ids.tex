@@ -3,7 +3,7 @@
 Stable rule identifiers make audit output durable enough for repair agents, CI annotations, and release notes.
 
 \begin{table*}[h]
-\caption{Initial humanlint rule identifiers.}
+\caption{Initial jankurai rule identifiers.}
 \label{tab:rule-ids}
 \centering
 \scriptsize
@@ -43,12 +43,12 @@ The audit JSON should include the rule ID whenever a finding maps cleanly to one
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.18\textwidth} L{0.16\textwidth} L{0.16\textwidth} Y}
 \toprule
-\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in humanlint 0.4.0} \\
+\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.4.0} \\
 \midrule
 Security & HLT-009/010/011/012/016 & security & Partial: CI scan presence, secret-like content, prompt-injection markers, overbroad agency markers, generated-security gaps. \\
 Business truth & HLT-005/008 & db, fast, release & Partial: Python truth and false-green markers; domain invariant quality remains evidence-driven. \\
 Contracts/data & HLT-002/006/007 & contract, db & Implemented for generated-zone risk, handwritten DTO/fetch markers, wrong-layer DB markers, and destructive SQL heuristics. \\
-Verification and UX & HLT-008/013/014 & fast, web & Partial: rendered-UX readiness and \texttt{@humanlint/ux-qa}; ARIA/axe/baseline governance are evidence requirements. \\
+Verification and UX & HLT-008/013/014 & fast, web & Partial: rendered-UX readiness and \texttt{@jankurai/ux-qa}; ARIA/axe/baseline governance are evidence requirements. \\
 Context/setup & HLT-003/004/015 & fast, audit & Partial: root instructions, owner/test maps, setup/fast lane presence; changed-path coverage is planned. \\
 Repair & HLT-017 & observability & Partial: structured exception markers and repair hints; production trace quality is evidence-driven. \\
 Entropy & HLT-001/008/018 & fast, release & Implemented for dead markers, fallback soup, duplication, file/function size; performance evidence remains soft. \\

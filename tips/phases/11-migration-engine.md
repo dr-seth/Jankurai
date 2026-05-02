@@ -1,13 +1,13 @@
 # Phase 11: Migration Engine
 
-Status: partial
+Status: complete
 Owner: tools
 Last reviewed: 2026-05-02
 Parallel MCP candidate: yes
 
 ## Objective
 
-Make legacy modernization measurable, sliced, and agent-executable. Humanlint should analyze a legacy or alternate-stack repo, produce a liability score, and generate a migration plan toward the Cold stack without encouraging reckless rewrites.
+Make legacy modernization measurable, sliced, and agent-executable. Jankurai should analyze a legacy or alternate-stack repo, produce a liability score, and generate a migration plan toward the Cold stack without encouraging reckless rewrites.
 
 The strategy is measured strangler migration:
 
@@ -21,7 +21,7 @@ Existing pieces:
 
 - Audit already detects non-optimal product languages, Python product truth, wrong-layer DB access, missing proof lanes, generated drift, and other vibe-coding risks.
 - `docs/mission.md`, `docs/release-plan.md`, and `docs/moonshot.md` define migration intent.
-- The `humanlint migrate` command now emits a migration plan from live repo inventory and proof routing.
+- The `jankurai migrate` command now emits a migration plan from live repo inventory and proof routing.
 
 ## Dependencies
 
@@ -39,10 +39,10 @@ Benefits from Phase 10 cells for target replacements.
 Implemented command surface:
 
 ```bash
-humanlint migrate analyze ./legacy
-humanlint migrate plan --target rust-ts-postgres
-humanlint migrate slice billing-tax
-humanlint migrate prove billing-tax
+jankurai migrate analyze ./legacy
+jankurai migrate plan --target rust-ts-postgres
+jankurai migrate slice billing-tax
+jankurai migrate prove billing-tax
 ```
 
 The current implementation emits a single migration-plan artifact that combines inventory, slice planning, equivalence proof notes, and rollback guidance.
@@ -195,7 +195,7 @@ Merge order:
 Minimum:
 
 ```bash
-cargo test -p humanlint
+cargo test -p jankurai
 just fast
 ```
 
@@ -209,7 +209,7 @@ Fixture validation:
 Smoke:
 
 ```bash
-humanlint migrate analyze examples/legacy-node-api --json target/humanlint/migration/node.json
+jankurai migrate analyze examples/legacy-node-api --json target/jankurai/migration/node.json
 ```
 
 Use equivalent fixture paths if examples differ.
@@ -233,14 +233,15 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial migration engine implementation slice
-- Files changed: `crates/humanlint/src/commands/migrate.rs`, `schemas/migration-plan.schema.json`, `schemas/migration-report.schema.json`, `docs/mission.md`, `docs/release-plan.md`, `docs/moonshot.md`, `examples/legacy-node-api/README.md`, and `target/humanlint/phase-logs/11-migration-engine.md.log`
-- Schemas changed: migration plan and migration report
-- Public interfaces changed: `humanlint migrate`
-- Generated artifacts: migration plan JSON/Markdown outputs
-- Routing maps changed: `agent/test-map.json`, `agent/owner-map.json`, `agent/proof-lanes.toml`
-- Validation commands: `cargo test -p humanlint`, `just fast`
-- Results: validation passed; migration execution remains partial
-- Skipped validation: cutover execution remains intentionally bounded
-- Exceptions created: execution path remains dry-run/planner-first
+- Phase status: complete — real stack detection, liability scoring, schema-validated MigrationReport and MigrationPlan outputs, doctor integration, focused tests
+- Operational handoff log: [`tips/phases/logs/11-migration-engine.log`](logs/11-migration-engine.log)
+- Files changed (this slice): `crates/jankurai/src/commands/migrate.rs` (rewritten), `crates/jankurai/src/validation.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/commands/doctor.rs`, `docs/migration-engine.md`, `crates/jankurai/tests/migrate_smoke.rs`
+- Schemas changed: `MigrationReport` and `MigrationPlan` registered in `ArtifactSchema` enum
+- Public interfaces changed: `jankurai migrate --analyze` emits MigrationReport; `jankurai migrate` (default plan mode) emits MigrationPlan; `jankurai doctor` validates migration artifacts when present
+- Generated artifacts: `target/jankurai/migration-report.json`, `target/jankurai/migration-plan.json`
+- Routing maps changed: none in this slice
+- Validation commands: `cargo test -p jankurai`, `just fast`
+- Results: all tests passed (5 new migrate_smoke tests); score=93 findings=0
+- Skipped validation: cutover execution remains bounded planner-only
+- Exceptions created: stack detection is heuristic file-existence only
 - Follow-up phases: 12 benchmark certification and governance, 13 autonomous repair and optimization

@@ -1,4 +1,4 @@
-# humanlint Audit Rubric
+# jankurai Audit Rubric
 
 Version: `0.4.0`
 
@@ -47,7 +47,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | generated contracts or public API drift untested | 80 | generate clients and gate drift in CI |
 | Python owns product truth or DB ownership | 72 | move truth/authz/workflows into Rust and DB migrations |
 | no secret or dependency scan in CI | 78 | add gitleaks/detect-secrets plus dependency review or equivalent |
-| no humanlint audit lane in CI | 82 | run `humanlint` in every PR and publish JSON/Markdown |
+| no jankurai audit lane in CI | 82 | run `jankurai` in every PR and publish JSON/Markdown |
 | non-optimal product language found | 74 | migrate product runtime code to Rust, TypeScript, SQL, contracts, or bounded Python |
 | too much Python in product surface | 72 | box Python into model/data service and move durable behavior to Rust |
 | vibe placeholders in product code | 68 | replace TODO/stub/unimplemented/unreachable with real behavior or typed exceptions |
@@ -57,7 +57,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | generated zone mutation risk | 76 | add generated zone manifest and repair generated files from source contracts |
 | direct DB access from wrong layer | 66 | move SQL and DB clients to `crates/adapters` or `db/` |
 | missing web e2e lane | 82 | add Playwright or equivalent e2e tests for critical user flows |
-| missing rendered UX QA lane | 84 | add Storybook states, Playwright screenshots, visual review or `@humanlint/ux-qa`, a11y, CLS, MSW, and design-token evidence |
+| missing rendered UX QA lane | 84 | add Storybook states, Playwright screenshots, visual review or `@jankurai/ux-qa`, a11y, CLS, MSW, and design-token evidence |
 | prompt injection risk in trusted agent/tool policy | 78 | isolate untrusted content, remove bypass wording, and validate tool calls |
 | overbroad agent agency | 65 | replace broad permissions with least-privilege lane profiles and approvals |
 | secret-like content detected | 60 | remove and rotate credential material, then add scanners and transcript/artifact review |
@@ -168,7 +168,7 @@ Rust should prefer enum error types with `thiserror` or equivalent plus structur
 Every repository adopting this standard should run:
 
 ```bash
-cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 The JSON is the machine contract. The Markdown is the review surface. CI should upload both artifacts and fail when score or hard-cap policy crosses the team threshold.
@@ -192,4 +192,4 @@ The output must include:
 
 ## Versioning
 
-The audit script, paper, and agent-facing artifacts must version together. Repos should record the humanlint standard version they target and schedule regular checks for newer releases. Breaking audit changes should include migration notes and example repairs.
+The audit script, paper, and agent-facing artifacts must version together. Repos should record the jankurai standard version they target and schedule regular checks for newer releases. Breaking audit changes should include migration notes and example repairs.

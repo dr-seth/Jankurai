@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/repair-plan.schema.json",
-  "title": "humanlint repair plan",
-  "description": "V1 envelope emitted by humanlint repair-plan (packet-centric). Planner-only fields such as plan_mode and planned_edits are deferred.",
+  "$id": "https://jankurai.dev/schemas/repair-plan.schema.json",
+  "title": "jankurai repair plan",
+  "description": "V1 envelope emitted by jankurai repair-plan (packet-centric). Planner-only fields such as plan_mode and planned_edits are deferred.",
   "type": "object",
   "required": [
     "schema_version",

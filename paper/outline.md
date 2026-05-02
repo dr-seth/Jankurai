@@ -1,4 +1,4 @@
-# humanlint Outline
+# jankurai Outline
 
 Status is tracked by TeX source file so the canonical paper can be reviewed without reopening the planning thread.
 
@@ -14,7 +14,7 @@ Paper edition: `2026.05-ed3`
 | 3. Languages as Bottleneck Compression | `paper/tex/sections/03_language_compression.tex` | done |
 | 4. Technical Promise Versus Standard Gravity | `paper/tex/sections/04_standard_gravity.tex` | done |
 | 5. Vibe-Coding Fault Taxonomy | `paper/tex/sections/05_fault_taxonomy.tex` | done |
-| 6. humanlint Standard and Conformance | `paper/tex/sections/06_humanlint_standard.tex` | done |
+| 6. jankurai Standard and Conformance | `paper/tex/sections/06_jankurai_standard.tex` | done |
 | 7. A 100-Point Stack Rubric | `paper/tex/sections/07_stack_rubric.tex` | done |
 | 8. Stack Ranking, Sensitivity, and Exceptions | `paper/tex/sections/08_stack_ranking.tex` | done |
 | 9. Default Winner Architecture | `paper/tex/sections/09_winner_architecture.tex` | done |
@@ -36,8 +36,8 @@ Paper edition: `2026.05-ed3`
 
 ## Working Notes
 
-- `paper/humanlint.tex` is a thin TeX wrapper and remains canonical.
-- `paper/humanlint.md` is an agent companion, not a generator input.
-- Paper artifacts use `humanlint.*`; do not create `main.*` paper files.
+- `paper/jankurai.tex` is a thin TeX wrapper and remains canonical.
+- `paper/jankurai.md` is an agent companion, not a generator input.
+- Paper artifacts use `jankurai.*`; do not create `main.*` paper files.
 - `paper/references.bib` is the citation spine for the integrated manuscript.
 - `paper/citation-index.md` is the claim-to-source ledger.

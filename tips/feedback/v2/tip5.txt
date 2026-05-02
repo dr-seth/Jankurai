@@ -1,4 +1,4 @@
-I reviewed the uploaded PDF and the public repo materials. The strongest idea is clear: **AI coding failure is often a verification-interface failure, not merely a model-quality failure**. The paper already defines vibe coding operationally, requires proof lanes, owner maps, generated-zone policy, repair receipts, and explicit conformance levels, which is the right foundation.  The public README also does a good job positioning `humanlint` as an “audit now, ratchet toward conformance” project with JSON/Markdown reports and a concrete UX-QA package. ([GitHub][1])
+I reviewed the uploaded PDF and the public repo materials. The strongest idea is clear: **AI coding failure is often a verification-interface failure, not merely a model-quality failure**. The paper already defines vibe coding operationally, requires proof lanes, owner maps, generated-zone policy, repair receipts, and explicit conformance levels, which is the right foundation.  The public README also does a good job positioning `jankurai` as an “audit now, ratchet toward conformance” project with JSON/Markdown reports and a concrete UX-QA package. ([GitHub][1])
 
 Below is the highest-leverage feedback.
 
@@ -10,7 +10,7 @@ Below is the highest-leverage feedback.
 **Location:** Sections VII–IX, Tables VI–IX, Fig. 2, conclusion
 **Issue:** The paper’s “standard” argument and “default winner stack” argument are too tightly fused. The standard is broadly defensible; the Rust/TS/Postgres stack ranking is more contestable.
 **Why it matters:** A skeptical reviewer can dismiss the whole paper as a language-preference essay even though the control-plane standard is much stronger than the stack ranking. The sentence-level framing sometimes implies that not choosing the preferred stack is “vibe coding,” which invites avoidable pushback.
-**Proposed fix:** Split the claim into: “humanlint conformance is stack-independent in principle” and “this paper provides one reference profile for durable greenfield product systems.” Add a short “Other conformant profiles” table: Go services, .NET enterprise, JVM brownfield, Rails CRUD, Python AI/data, Elixir realtime. Each profile should show which controls must compensate for weaker points.
+**Proposed fix:** Split the claim into: “jankurai conformance is stack-independent in principle” and “this paper provides one reference profile for durable greenfield product systems.” Add a short “Other conformant profiles” table: Go services, .NET enterprise, JVM brownfield, Rails CRUD, Python AI/data, Elixir realtime. Each profile should show which controls must compensate for weaker points.
 **Type:** Needs writing/editing
 
 ### 2.
@@ -19,14 +19,14 @@ Below is the highest-leverage feedback.
 **Location:** Fig. 1, Table IV, Section V
 **Issue:** The TLR/RPN pie chart looks quantitative, but the paper says RPN is a policy priority, not empirical frequency. The percentages make it feel more statistically grounded than it is.
 **Why it matters:** Reviewers will ask where the likelihood and detection-difficulty numbers came from. “32% Security” and “20% Business truth” are useful as policy priors, but the visual presentation risks pseudo-precision.
-**Proposed fix:** Add separate `Impact`, `Likelihood prior`, and `Detection difficulty prior` columns, plus a note on who assigned the values and how future calibration will work. Consider caption language like: “Policy-prior risk budget for v0.2, awaiting empirical calibration.” Add a calibration plan: run humanlint across 20–50 repos, compare findings to escaped defects, review time, security issues, and agent repair success.
+**Proposed fix:** Add separate `Impact`, `Likelihood prior`, and `Detection difficulty prior` columns, plus a note on who assigned the values and how future calibration will work. Consider caption language like: “Policy-prior risk budget for v0.2, awaiting empirical calibration.” Add a calibration plan: run jankurai across 20–50 repos, compare findings to escaped defects, review time, security issues, and agent repair success.
 **Type:** Needs writing/editing
 
 ### 3.
 
 **Severity:** Critical
-**Location:** `humanlint/cli.py`, project credibility
-**Issue:** The project appears to violate its own code-shape standard. The GitHub file page reports `humanlint/cli.py` as 3,239 lines / 2,813 LOC, while the standard says non-generated files over hard LOC limits should trigger refactor or exception. ([GitHub][2])
+**Location:** `jankurai/cli.py`, project credibility
+**Issue:** The project appears to violate its own code-shape standard. The GitHub file page reports `jankurai/cli.py` as 3,239 lines / 2,813 LOC, while the standard says non-generated files over hard LOC limits should trigger refactor or exception. ([GitHub][2])
 **Why it matters:** This is the easiest dismissal: “The standard says no mega-files, but the auditor is a mega-file.” For an open-source standard, self-conformance is a credibility gate.
 **Proposed fix:** Make the repo its first case study. Split the CLI into modules such as `inventory.py`, `rules/`, `scoring.py`, `report_json.py`, `report_md.py`, `schemas.py`, and `queue.py`. Publish the current self-audit score and either fix or explicitly exception any violation with an expiration date.
 **Type:** Needs internal product building
@@ -37,7 +37,7 @@ Below is the highest-leverage feedback.
 **Location:** README, release/adoption path
 **Issue:** The README asks users to install from GitHub `main`, but the repo shows no published releases. ([GitHub][1])
 **Why it matters:** Serious engineers will hesitate to wire an unreleased, moving-branch auditor into CI, especially one intended to become a conformance standard.
-**Proposed fix:** Publish tagged releases, checksums, release notes, and versioned install commands. Add `pip install humanlint==0.2.0`, an npm package path for `@humanlint/ux-qa`, a pinned GitHub Action example, and a “do not run unpinned main in blocking CI” warning.
+**Proposed fix:** Publish tagged releases, checksums, release notes, and versioned install commands. Add `pip install jankurai==0.2.0`, an npm package path for `@jankurai/ux-qa`, a pinned GitHub Action example, and a “do not run unpinned main in blocking CI” warning.
 **Type:** Needs internal product building
 
 ### 5.
@@ -81,7 +81,7 @@ Below is the highest-leverage feedback.
 **Severity:** High
 **Location:** Section XIII, Table XV
 **Issue:** Security controls need a standards mapping table.
-**Why it matters:** The paper cites OWASP and supply-chain tooling, but a standards-oriented engineering paper should show how `humanlint` aligns with established security frameworks, not just tool names.
+**Why it matters:** The paper cites OWASP and supply-chain tooling, but a standards-oriented engineering paper should show how `jankurai` aligns with established security frameworks, not just tool names.
 **Proposed fix:** Add “HLT rule → OWASP LLM Top 10 → NIST SSDF → SLSA/OSV/GitHub secret scanning evidence.” NIST SSDF is explicitly a secure software development practice framework, SLSA is a framework for supply-chain integrity, OSV-Scanner supports vulnerability scanning, and GitHub push protection is designed to block hardcoded credentials before they reach a repository. ([NIST Computer Security Resource Center][5])
 **Type:** Needs online research
 
@@ -130,7 +130,7 @@ Make deterministic geometry the hard gate, visual diff a review workflow, and AI
 
 **Severity:** High
 **Location:** Section XII, WCAG/Web Vitals paragraph
-**Issue:** The UX section cites good thresholds, but `humanlint` should expose them as configurable policy, not fixed taste.
+**Issue:** The UX section cites good thresholds, but `jankurai` should expose them as configurable policy, not fixed taste.
 **Why it matters:** WCAG 2.2 target-size minimum is 24×24 CSS pixels with exceptions, and Web Vitals recommends CLS ≤ 0.1 for good user experience. Those are solid anchors, but product contexts vary. ([W3C][9])
 **Proposed fix:** Add `ux-policy.toml` with defaults: target-size rule, spacing exceptions, CLS threshold, overflow policy, sticky obstruction policy, token enforcement, and viewport matrix. Report which threshold triggered each finding.
 **Type:** Needs internal product building
@@ -195,7 +195,7 @@ Make deterministic geometry the hard gate, visual diff a review workflow, and AI
 **Location:** Section VI, Table V, Appendix C
 **Issue:** Conformance levels need precise claim language.
 **Why it matters:** “HL3 Standard” and “HL5 Release contract” sound official, but adopters need to know exactly what they may claim and what artifacts prove it.
-**Proposed fix:** Add a “Conformance Claims” section: allowed badge text, required artifacts, required CI mode, exception rules, audit version, schema version, and expiry. Example: “HL3-humanlint-0.2.0, audited on commit SHA, with 2 approved exceptions expiring by date.”
+**Proposed fix:** Add a “Conformance Claims” section: allowed badge text, required artifacts, required CI mode, exception rules, audit version, schema version, and expiry. Example: “HL3-jankurai-0.2.0, audited on commit SHA, with 2 approved exceptions expiring by date.”
 **Type:** Needs writing/editing
 
 ### 22.
@@ -230,7 +230,7 @@ Make deterministic geometry the hard gate, visual diff a review workflow, and AI
 **Severity:** Medium
 **Location:** Section XII, design tokens paragraph
 **Issue:** Design-token coverage is promising but should become a concrete enforcement path.
-**Why it matters:** The W3C Design Tokens Community Group announced a stable 2025.10 spec for vendor-neutral design decisions across tools; this is a strong standards citation, but `humanlint` should translate it into checks. ([W3C][11])
+**Why it matters:** The W3C Design Tokens Community Group announced a stable 2025.10 spec for vendor-neutral design decisions across tools; this is a strong standards citation, but `jankurai` should translate it into checks. ([W3C][11])
 **Proposed fix:** Add a `design-system-manifest.json` or `tokens.json` policy: approved tokens, component imports, forbidden raw colors/spacing/z-index, allowed exceptions, and links to Storybook stories.
 **Type:** Needs internal product building
 
@@ -284,7 +284,7 @@ Make deterministic geometry the hard gate, visual diff a review workflow, and AI
 **Severity:** Low
 **Location:** Section III–IV
 **Issue:** The “languages as bottleneck compression” argument is insightful but long relative to the standard contribution.
-**Why it matters:** Readers who came for `humanlint` may feel delayed before they reach the actionable standard.
+**Why it matters:** Readers who came for `jankurai` may feel delayed before they reach the actionable standard.
 **Proposed fix:** Compress Sections III–IV by 20–30% and move some language-history material to an appendix or companion essay. Keep the compression thesis, but get to rules and conformance faster.
 **Type:** Needs writing/editing
 
@@ -304,20 +304,20 @@ Make deterministic geometry the hard gate, visual diff a review workflow, and AI
 The fastest path to credibility is:
 
 1. **Self-audit and refactor the repo** so the project visibly follows its own standard.
-2. **Publish schemas, examples, and versioned releases** so `humanlint` feels like a standard, not just a paper.
+2. **Publish schemas, examples, and versioned releases** so `jankurai` feels like a standard, not just a paper.
 3. **Make UX-QA concrete** with a rule schema, fixture examples, artifacts, and CI workflow.
 4. **Add a scoring workbook and pilot evaluation** so the stack ranking and RPN model become harder to dismiss.
 5. **Separate conformance from the preferred stack** so skeptics can adopt the control plane even if they reject the default architecture.
 
-[1]: https://github.com/jeppsontaylor/humanlint "GitHub - jeppsontaylor/humanlint: Turns out humans were a bug, we're fixing that · GitHub"
-[2]: https://github.com/jeppsontaylor/humanlint/blob/main/humanlint/cli.py "humanlint/humanlint/cli.py at main · jeppsontaylor/humanlint · GitHub"
-[3]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/docs/agent-native-standard.md "raw.githubusercontent.com"
+[1]: https://github.com/jeppsontaylor/jankurai "GitHub - jeppsontaylor/jankurai: Turns out humans were a bug, we're fixing that · GitHub"
+[2]: https://github.com/jeppsontaylor/jankurai/blob/main/jankurai/cli.py "jankurai/jankurai/cli.py at main · jeppsontaylor/jankurai · GitHub"
+[3]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/docs/agent-native-standard.md "raw.githubusercontent.com"
 [4]: https://owasp.org/www-project-top-10-for-large-language-model-applications/ "OWASP Top 10 for Large Language Model Applications | OWASP Foundation"
 [5]: https://csrc.nist.gov/pubs/sp/800/218/final?utm_source=chatgpt.com "Secure Software Development Framework (SSDF) Version 1.1 ..."
 [6]: https://playwright.dev/docs/best-practices "Best Practices | Playwright"
 [7]: https://storybook.js.org/docs/writing-tests/visual-testing "Visual tests | Storybook docs"
 [8]: https://playwright.dev/docs/accessibility-testing "Accessibility testing | Playwright"
 [9]: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html?utm_source=chatgpt.com "Understanding SC 2.5.8: Target Size (Minimum) (Level AA)"
-[10]: https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/pyproject.toml "raw.githubusercontent.com"
+[10]: https://raw.githubusercontent.com/jeppsontaylor/jankurai/main/pyproject.toml "raw.githubusercontent.com"
 [11]: https://www.w3.org/community/design-tokens/ "Design Tokens Community Group"
 

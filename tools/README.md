@@ -1,6 +1,6 @@
-# humanlint Repo Scorer
+# jankurai Repo Scorer
 
-Use the installed `humanlint` command or `cargo run -p humanlint --` to score a repository against humanlint `0.3.0`.
+Use the installed `jankurai` command or `cargo run -p jankurai --` to score a repository against jankurai `0.3.0`.
 
 Target stack only: Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service. This is not a generic linter.
 
@@ -18,22 +18,22 @@ Target stack only: Rust core + TypeScript/React/Vite + PostgreSQL + generated co
 ## Usage
 
 ```bash
-humanlint /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
-cargo run -p humanlint -- /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
-cargo run -p humanlint -- /path/to/repo --changed src/foo.rs contracts/api.yaml
+jankurai /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- /path/to/repo --changed src/foo.rs contracts/api.yaml
 ```
 
 Install the checkout-local command with:
 
 ```bash
-cargo install --path crates/humanlint --locked
+cargo install --path crates/jankurai --locked
 ```
 
 Or install the package entrypoint:
 
 ```bash
-cargo install --git https://github.com/jeppsontaylor/humanlint --package humanlint --locked
-humanlint /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
+cargo install --git https://github.com/jeppsontaylor/jankurai --package jankurai --locked
+jankurai /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 ## CI
@@ -41,7 +41,7 @@ humanlint /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
 Run the scorer in every PR:
 
 ```bash
-cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 Upload both files. The JSON is the machine contract; the Markdown is the human review surface. Teams can fail CI on score, caps, or selected severities.

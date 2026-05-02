@@ -1,20 +1,20 @@
 {
-  "workspace": "humanlint",
+  "workspace": "jankurai",
   "tests": {
     "AGENTS.md": {
       "command": "just score",
       "purpose": "verify agent instruction routing is visible to the audit"
     },
     "agent/MASTER_PLAN.md": {
-      "command": "cargo run -p humanlint -- lane . --changed agent/MASTER_PLAN.md --out target/humanlint/master-plan-proof.json --md target/humanlint/master-plan-proof.md",
+      "command": "cargo run -p jankurai -- lane . --changed agent/MASTER_PLAN.md --out target/jankurai/master-plan-proof.json --md target/jankurai/master-plan-proof.md",
       "purpose": "verify master plan routing selects the smallest proof lane for agent guidance"
     },
     "CLAUDE.md": {
-      "command": "cargo run -p humanlint -- adapters verify",
+      "command": "cargo run -p jankurai -- adapters verify",
       "purpose": "verify thin Claude adapter pointer"
     },
     "GEMINI.md": {
-      "command": "cargo run -p humanlint -- adapters verify",
+      "command": "cargo run -p jankurai -- adapters verify",
       "purpose": "verify thin Gemini adapter pointer"
     },
     ".gitignore": {
@@ -30,11 +30,11 @@
       "purpose": "verify paper build configuration"
     },
     "Cargo.toml": {
-      "command": "cargo test -p humanlint && cargo run -p humanlint -- versions",
+      "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify Rust workspace manifests"
     },
     "Cargo.lock": {
-      "command": "cargo test -p humanlint && cargo run -p humanlint -- versions",
+      "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify locked Rust dependencies"
     },
     "VERSION": {
@@ -49,24 +49,24 @@
       "command": "just score",
       "purpose": "verify root workspace routing remains audit-visible"
     },
-    "README-humanlint-scaffold.md": {
+    "README-jankurai-scaffold.md": {
       "command": "just score",
       "purpose": "verify generated scaffold guidance remains audit-visible"
     },
     ".github/": {
-      "command": "cargo run -p humanlint -- doctor --fail-on high",
+      "command": "cargo run -p jankurai -- doctor --fail-on high",
       "purpose": "verify CI and GitHub instruction surfaces"
     },
     ".cursor/": {
-      "command": "cargo run -p humanlint -- adapters verify",
+      "command": "cargo run -p jankurai -- adapters verify",
       "purpose": "verify thin IDE adapter pointers"
     },
     ".claude/": {
-      "command": "cargo run -p humanlint -- adapters verify",
+      "command": "cargo run -p jankurai -- adapters verify",
       "purpose": "verify thin IDE adapter pointers"
     },
     ".agents/": {
-      "command": "cargo run -p humanlint -- adapters verify",
+      "command": "cargo run -p jankurai -- adapters verify",
       "purpose": "verify thin agent adapter pointers"
     },
     "agent/": {
@@ -74,7 +74,7 @@
       "purpose": "verify machine-readable maps and policy remain scannable"
     },
     "tips/phases/logs/": {
-      "command": "cargo run -p humanlint -- lane . --changed tips/phases/logs/README.txt --out target/humanlint/phase-proof.json --md target/humanlint/phase-proof.md",
+      "command": "cargo run -p jankurai -- lane . --changed tips/phases/logs/README.txt --out target/jankurai/phase-proof.json --md target/jankurai/phase-proof.md",
       "purpose": "verify phase logs remain routed as tracked append-only agent history"
     },
     "docs/": {
@@ -82,15 +82,15 @@
       "purpose": "verify docs remain agent-readable and routed"
     },
     "examples/perfect-web-api-db/": {
-      "command": "cargo test -p humanlint",
+      "command": "cargo test -p jankurai",
       "purpose": "verify the reference platform scaffold stays machine-readable"
     },
     "examples/legacy-node-api/": {
-      "command": "cargo run -p humanlint -- migrate examples/legacy-node-api --json target/humanlint/migration/node.json",
+      "command": "cargo run -p jankurai -- migrate examples/legacy-node-api --json target/jankurai/migration/node.json",
       "purpose": "verify migration analysis can classify the legacy Node fixture"
     },
     "schemas/": {
-      "command": "cargo test -p humanlint && npm --workspace @humanlint/ux-qa run build",
+      "command": "cargo test -p jankurai && npm --workspace @jankurai/ux-qa run build",
       "purpose": "verify schema-carrying Rust and TypeScript reports still compile"
     },
     "contracts/": {
@@ -101,23 +101,23 @@
       "command": "just fast",
       "purpose": "verify database policy and migration root remains routed"
     },
-    "crates/humanlint/": {
-      "command": "cargo test -p humanlint && cargo run -p humanlint -- versions",
+    "crates/jankurai/": {
+      "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify the audit package compiles and still emits JSON/Markdown"
     },
     "package.json": {
-      "command": "npm ci && npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
+      "command": "npm ci && npm --workspace @jankurai/ux-qa run build && npm --workspace @jankurai/ux-qa run test",
       "purpose": "verify the npm workspace and UX QA runtime"
     },
     "package-lock.json": {
-      "command": "npm ci && npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
+      "command": "npm ci && npm --workspace @jankurai/ux-qa run build && npm --workspace @jankurai/ux-qa run test",
       "purpose": "verify locked npm dependencies"
     },
     "packages/ux-qa/": {
       "command": "just ux-qa",
       "purpose": "verify the Playwright geometry runtime"
     },
-    "paper/humanlint.tex": {
+    "paper/jankurai.tex": {
       "command": "just paper",
       "purpose": "build the paper"
     },

@@ -1,6 +1,6 @@
-## The humanlint Audit Rubric And CI Contract
+## The jankurai Audit Rubric And CI Contract
 
-The paper becomes operational through the audit. A standard without a scanner is a philosophy. A scanner without an agent repair queue is a complaint generator. humanlint needs both: strict rules and actionable output.
+The paper becomes operational through the audit. A standard without a scanner is a philosophy. A scanner without an agent repair queue is a complaint generator. jankurai needs both: strict rules and actionable output.
 
 ### Audit Dimensions
 
@@ -28,7 +28,7 @@ The paper becomes operational through the audit. A standard without a scanner is
 | Generated contracts or public API drift untested | 80 |
 | Python has direct product truth or production DB ownership | 72 |
 | No secret or dependency scanning in CI | 78 |
-| No humanlint audit lane in CI | 82 |
+| No jankurai audit lane in CI | 82 |
 | Non-optimal product language owns runtime surface | 74 |
 | Too much Python in product surface | 72 |
 | Vibe placeholders in product code | 68 |
@@ -83,7 +83,7 @@ The audit must emit JSON and Markdown. JSON is for agents and CI. Markdown is fo
 
 ```json
 {
-  "standard": "humanlint",
+  "standard": "jankurai",
   "standard_version": "0.3.0",
   "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service",
   "score": 86,
@@ -111,7 +111,7 @@ Every finding needs path, evidence, and repair text. A score without repair guid
 Every adopting repo should run:
 
 ```bash
-cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 CI should upload both outputs and fail when policy thresholds are crossed. Adoption can be phased:
@@ -127,7 +127,7 @@ CI should upload both outputs and fail when policy thresholds are crossed. Adopt
 
 ### Release And Adoption Plan
 
-humanlint should ship as four synchronized artifacts:
+jankurai should ship as four synchronized artifacts:
 
 - paper edition: argument and evidence
 - standard version: repo layout and rules
@@ -142,7 +142,7 @@ The public adoption path should be pragmatic:
 4. ship greenfield templates for the winning stack
 5. ship migration templates for existing repos
 6. ship agent-specific rule packs generated from the canonical standard
-7. build benchmark tasks that compare baseline repos against humanlint-compliant repos
+7. build benchmark tasks that compare baseline repos against jankurai-compliant repos
 8. publish repair metrics: solve rate, wrong-owner edits, token use, validation radius, regression rate
 
 The standard should be ambitious, but adoption should be incremental. Teams can start with observe-mode CI and move toward hard gates as findings become repairable.
@@ -160,4 +160,4 @@ Known gaps:
 - test explosion requires better quality metrics than line coverage
 - Python containment policy needs careful exceptions for research-heavy companies
 
-Future research should measure whether humanlint-compliant repos reduce wrong-owner edits, token use, time to first correct patch, flaky validation, and security regressions. The standard should change when evidence beats doctrine.
+Future research should measure whether jankurai-compliant repos reduce wrong-owner edits, token use, time to first correct patch, flaky validation, and security regressions. The standard should change when evidence beats doctrine.

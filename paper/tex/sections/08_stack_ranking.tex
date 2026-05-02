@@ -3,7 +3,7 @@
 The top-five result is a default recommendation, not a metaphysical law. The scores assume durable product systems with web product surface, API/service behavior, operational security requirements, and long-running maintenance by agents and humans together.
 
 \begin{table}[t]
-\caption{Top-five stack results under the humanlint rubric.}
+\caption{Top-five stack results under the jankurai rubric.}
 \label{tab:stack-ranking}
 \centering
 \small
@@ -28,7 +28,7 @@ The top-five result is a default recommendation, not a metaphysical law. The sco
   \includegraphics[width=0.94\textwidth]{figures/stack-ranking.pdf}%
 }
 \vspace{-0.4em}
-\caption{Top-five stack ranking by Agent-Native Stack Score (ANSS), the weighted humanlint 100-point rubric. The figure is a zoomed comparison of close contenders; Table~\ref{tab:stack-ranking} gives the absolute scores. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
+\caption{Top-five stack ranking by Agent-Native Stack Score (ANSS), the weighted jankurai 100-point rubric. The figure is a zoomed comparison of close contenders; Table~\ref{tab:stack-ranking} gives the absolute scores. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
 \label{fig:stack-ranking}
 \end{figure*}
 
@@ -57,7 +57,7 @@ Sensitivity is concentrated in three weights: memory safety/security, ecosystem 
 
 \subsection{Streaming Infrastructure: Kafka Today, Rust Tomorrow}
 
-Kafka deserves separate treatment because it is both proven and not the baseline. It remains a high bar for durable distributed streaming: it combines replicated logs, high availability, Connect, Streams, client depth, production operating knowledge, and exactly-once processing semantics in the Streams ecosystem \cite{kafkaIntro2026,kafkaStreams2026,kafkaRebalance2026}. The humanlint position is explicit: Kafka is a brownfield exception, not stack identity. Use it when the system already needs it, isolate it behind generated event contracts and observable Rust queue adapters, and keep the replacement question measurable.
+Kafka deserves separate treatment because it is both proven and not the baseline. It remains a high bar for durable distributed streaming: it combines replicated logs, high availability, Connect, Streams, client depth, production operating knowledge, and exactly-once processing semantics in the Streams ecosystem \cite{kafkaIntro2026,kafkaStreams2026,kafkaRebalance2026}. The jankurai position is explicit: Kafka is a brownfield exception, not stack identity. Use it when the system already needs it, isolate it behind generated event contracts and observable Rust queue adapters, and keep the replacement question measurable.
 
 \begin{table*}[t]
 \caption{Rust-facing streaming candidates for an agent-native stack.}

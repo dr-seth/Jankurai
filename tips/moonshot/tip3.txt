@@ -1,10 +1,10 @@
 YES. I see the shape of it.
 
-`humanlint` should not become “a better linter.” That is too small. The repo is already pointing at something much bigger: an **agent-native engineering standard**, a proof router, a stack opinion, a machine-readable repo constitution, and a rendered UX QA layer. The paper frames the real bottleneck correctly: in AI-assisted software, the scarce act is no longer typing code; it is the **trustworthy merge**. A conforming repo must expose ownership, proof routing, generated-zone policy, version metadata, repair evidence, and CI behavior in ways agents can read and obey. ([GitHub][1])
+`jankurai` should not become “a better linter.” That is too small. The repo is already pointing at something much bigger: an **agent-native engineering standard**, a proof router, a stack opinion, a machine-readable repo constitution, and a rendered UX QA layer. The paper frames the real bottleneck correctly: in AI-assisted software, the scarce act is no longer typing code; it is the **trustworthy merge**. A conforming repo must expose ownership, proof routing, generated-zone policy, version metadata, repair evidence, and CI behavior in ways agents can read and obey. ([GitHub][1])
 
 The moonshot:
 
-# Humanlint becomes the operating system for agent-native software.
+# Jankurai becomes the operating system for agent-native software.
 
 Not a CLI. Not a checklist. Not “best practices.”
 
@@ -29,7 +29,7 @@ The repo should answer: “Here is the only safe way this kind of thing may exis
 
 ---
 
-# 1. What humanlint already is
+# 1. What jankurai already is
 
 The current repo is already unusually strong because it is not trying to be generic. It has an opinionated target stack: **Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data work**. The README explicitly positions the project as an open-source standard, paper, and audit CLI for agent-native engineering, focused on helping coding agents reject wrong code, localize repair, run the right proof lane, and leave evidence. ([GitHub][2])
 
@@ -51,9 +51,9 @@ But the moonshot is bigger.
 
 ## Mission statement
 
-**Humanlint exists to end vibe coding by making the correct software architecture, proof system, security posture, QA discipline, and agent context model the default initialization path for every codebase.**
+**Jankurai exists to end vibe coding by making the correct software architecture, proof system, security posture, QA discipline, and agent context model the default initialization path for every codebase.**
 
-Humanlint should become the global standard for:
+Jankurai should become the global standard for:
 
 1. **What stack to choose**
 2. **Where code is allowed to live**
@@ -72,34 +72,34 @@ Humans should not burn their lives choosing yet another half-supported stack, wr
 
 Human creativity belongs at the product frontier.
 
-Humanlint should erase the rest.
+Jankurai should erase the rest.
 
 ---
 
 # 3. The big product vision
 
-## Humanlint is the default install/init for serious software
+## Jankurai is the default install/init for serious software
 
 The future command is not merely:
 
 ```bash
-humanlint .
+jankurai .
 ```
 
 It is:
 
 ```bash
-humanlint init
-humanlint audit
-humanlint fix-plan
-humanlint prove
-humanlint ship
+jankurai init
+jankurai audit
+jankurai fix-plan
+jankurai prove
+jankurai ship
 ```
 
-And behind that, Humanlint installs a complete repo operating system:
+And behind that, Jankurai installs a complete repo operating system:
 
 ```bash
-humanlint init --profile product --risk high --surface web-api-db
+jankurai init --profile product --risk high --surface web-api-db
 ```
 
 That command should generate:
@@ -127,13 +127,13 @@ That command should generate:
 
 In other words:
 
-**A CEO should be able to describe the company they want to build, and Humanlint should prevent the technical organization from silently drifting into legacy chaos.**
+**A CEO should be able to describe the company they want to build, and Jankurai should prevent the technical organization from silently drifting into legacy chaos.**
 
 ---
 
 # 4. The ideal stack
 
-Humanlint should be brutally opinionated by default.
+Jankurai should be brutally opinionated by default.
 
 Not because there are no other good tools. Because agents need low-entropy environments. Human teams need fewer branches of confusion. Optimization needs global concentration.
 
@@ -169,7 +169,7 @@ Not because there are no other good tools. Because agents need low-entropy envir
 
 ### CI and proof
 
-**GitHub Actions initially**, but Humanlint’s abstraction should be CI-portable. The standard should describe proof lanes; GitHub Actions is just the first implementation.
+**GitHub Actions initially**, but Jankurai’s abstraction should be CI-portable. The standard should describe proof lanes; GitHub Actions is just the first implementation.
 
 ### Observability
 
@@ -187,7 +187,7 @@ The thing to kill is not people, not learning, not exploration, and not healthy 
 
 The thing to kill is **unproven entropy**.
 
-Humanlint should make the following impossible by default:
+Jankurai should make the following impossible by default:
 
 * Handwritten API clients when contracts exist
 * Business truth in React components
@@ -215,7 +215,7 @@ Not “ban Java” as a slogan. Instead:
 
 **Make non-standard stacks fail the default audit unless they carry an explicit, time-boxed, evidence-backed exception with a migration path.**
 
-That gives Humanlint legitimacy. It is strict without becoming unserious.
+That gives Jankurai legitimacy. It is strict without becoming unserious.
 
 ---
 
@@ -248,74 +248,74 @@ That is the cold star.
 
 ---
 
-# 7. The Humanlint product surface
+# 7. The Jankurai product surface
 
-Humanlint should become a suite.
+Jankurai should become a suite.
 
 ## Core commands
 
 ```bash
-humanlint init
+jankurai init
 ```
 
 Creates the repo constitution: stack, boundaries, maps, proof lanes, workflows, generated zones, docs, and agent adapters.
 
 ```bash
-humanlint audit
+jankurai audit
 ```
 
 Scores the repo against the current standard and emits JSON, Markdown, SARIF, PR comments, and repair queues.
 
 ```bash
-humanlint lane
+jankurai lane
 ```
 
 Given a diff, returns the minimal sufficient proof lane: fast, contracts, DB, security, UI, UX geometry, full, release.
 
 ```bash
-humanlint prove
+jankurai prove
 ```
 
 Runs the selected proof lanes locally or in CI and emits evidence receipts.
 
 ```bash
-humanlint repair-plan
+jankurai repair-plan
 ```
 
 Converts findings into agent-sized repair tasks with owners, commands, expected artifacts, and stop conditions.
 
 ```bash
-humanlint migrate
+jankurai migrate
 ```
 
 Generates a migration plan from legacy architecture into the COLD stack.
 
 ```bash
-humanlint explain
+jankurai explain
 ```
 
 Produces executive-readable status: what is safe, what is risky, what is blocked, what must be fixed, what can ship.
 
 ```bash
-humanlint context-pack
+jankurai context-pack
 ```
 
 Produces a token-minimized packet for agents: only the files, rules, owners, tests, contracts, and examples needed for the current task.
 
 ```bash
-humanlint attest
+jankurai attest
 ```
 
 Signs or records evidence: SBOMs, provenance, test receipts, UX artifacts, security scans, migration approvals.
 
 ```bash
-humanlint doctor
+jankurai doctor
 ```
 
 Validates local developer/agent environment: tool versions, lockfiles, database availability, browser install, cache, CI parity.
 
 ```bash
-humanlint registry
+jankurai registry
 ```
 
 Installs canonical reusable building blocks: auth, RBAC, CRUD, billing, webhooks, queues, observability, admin tables, audit logs, file upload, search, and more.
@@ -324,7 +324,7 @@ Installs canonical reusable building blocks: auth, RBAC, CRUD, billing, webhooks
 
 # 8. The proof model
 
-Humanlint should make proof cheaper, not heavier.
+Jankurai should make proof cheaper, not heavier.
 
 The repo should never run everything blindly. It should route each change to the smallest proof lane that actually covers risk.
 
@@ -347,7 +347,7 @@ The repo should never run everything blindly. It should route each change to the
 | `release`       | full evidence pack, signatures, changelog, deployment readiness          |
 | `full`          | complete proof for high-risk changes                                     |
 
-The current release plan already describes a staged CI adoption model: observe, advisory, guardrails, standard gate, repair loop, and release contract. It also names minimum lanes like audit, fast, contracts, security, DB, UI, and full. That should become the central Humanlint execution model. ([GitHub][5])
+The current release plan already describes a staged CI adoption model: observe, advisory, guardrails, standard gate, repair loop, and release contract. It also names minimum lanes like audit, fast, contracts, security, DB, UI, and full. That should become the central Jankurai execution model. ([GitHub][5])
 
 ---
 
@@ -355,9 +355,9 @@ The current release plan already describes a staged CI adoption model: observe, 
 
 The tooling list below is large, but the installed experience must not feel large.
 
-Humanlint should enforce a rule:
+Jankurai should enforce a rule:
 
-**A tool is allowed only if it emits unique, machine-readable evidence mapped to a Humanlint rule, lane, owner, and repair action.**
+**A tool is allowed only if it emits unique, machine-readable evidence mapped to a Jankurai rule, lane, owner, and repair action.**
 
 No random tools. No dashboards for dashboards’ sake. No “enterprise theater.”
 
@@ -367,7 +367,7 @@ Every tool must satisfy:
 2. It has a deterministic or clearly advisory decision mode.
 3. It runs locally and in CI.
 4. It emits parseable output.
-5. It maps to a Humanlint rule ID.
+5. It maps to a Jankurai rule ID.
 6. It has an owner and repair path.
 7. It has a removal condition if superseded.
 
@@ -384,7 +384,7 @@ That is how this becomes massive without becoming bloated.
 | Toolchain pinning     | `mise`, `rustup`, `pnpm` or `npm`, pinned Node, pinned Rust, pinned Playwright browsers |
 | Task runner           | `just`                                                                                  |
 | Repo search           | `ripgrep`, `fd`, `jq`, `yq`, `taplo`                                                    |
-| File counting/context | `tokei`, `scc`, Humanlint context budget                                                |
+| File counting/context | `tokei`, `scc`, Jankurai context budget                                                |
 | Git hygiene           | `pre-commit`, `lefthook`, `git-cliff`                                                   |
 | Markdown/docs         | `markdownlint`, `lychee`, `mdbook` optional                                             |
 | Config validation     | JSON Schema, TOML schema checks                                                         |
@@ -416,7 +416,7 @@ That is how this becomes massive without becoming bloated.
 | Concurrency testing | `loom` or `shuttle` for critical concurrent code             |
 | SQL safety          | `sqlx` compile-time query checks                             |
 
-`cargo-deny` is especially aligned with Humanlint because it checks Rust dependency advisories, licenses, banned crates, duplicate versions, and sources. `cargo-semver-checks` catches breaking public API changes that may require version bumps. ([Docs.rs][10])
+`cargo-deny` is especially aligned with Jankurai because it checks Rust dependency advisories, licenses, banned crates, duplicate versions, and sources. `cargo-semver-checks` catches breaking public API changes that may require version bumps. ([Docs.rs][10])
 
 ## C. TypeScript / React / web
 
@@ -433,14 +433,14 @@ That is how this becomes massive without becoming bloated.
 | API clients       | Orval, ConnectRPC generated clients                               |
 | Accessibility     | `@axe-core/playwright`, Storybook a11y addon                      |
 | Visual regression | Argos, Percy, Chromatic, or BackstopJS profile                    |
-| Layout geometry   | `@humanlint/ux-qa`                                                |
+| Layout geometry   | `@jankurai/ux-qa`                                                |
 | Performance       | Lighthouse CI, Web Vitals                                         |
 | Bundle size       | `rollup-plugin-visualizer`, bundle budget checks                  |
 | Design tokens     | Style Dictionary or equivalent token compiler                     |
 | Forms             | generated validators from schema, no ad hoc validation            |
 | Error handling    | generated error catalog, typed problem details                    |
 
-Playwright itself recommends pairing browser automation with accessibility scanning such as axe, while noting that automated accessibility tests catch common issues but do not replace all manual or inclusive testing. Humanlint should encode that distinction: deterministic checks can block; human review can remain advisory where judgment is required. ([Playwright][11])
+Playwright itself recommends pairing browser automation with accessibility scanning such as axe, while noting that automated accessibility tests catch common issues but do not replace all manual or inclusive testing. Jankurai should encode that distinction: deterministic checks can block; human review can remain advisory where judgment is required. ([Playwright][11])
 
 ## D. Contracts and generated truth
 
@@ -455,7 +455,7 @@ Playwright itself recommends pairing browser automation with accessibility scann
 | Schema validation      | JSON Schema, Zod generated from schema          |
 | API linting            | Spectral                                        |
 | Breaking change checks | Buf breaking, OpenAPI diff                      |
-| Generated zones        | Humanlint generated-zone manifest               |
+| Generated zones        | Jankurai generated-zone manifest               |
 | Contract tests         | Schemathesis, Dredd-style profiles where useful |
 | Mock servers           | MSW generated handlers                          |
 
@@ -480,7 +480,7 @@ Rule: **contracts are source-of-truth; clients are generated; generated files ar
 | Data retention  | policy-backed retention and deletion workflows               |
 | PII map         | data classification manifest                                 |
 
-Humanlint should make this non-negotiable:
+Jankurai should make this non-negotiable:
 
 **If the database is the durable truth, the truth must be encoded in constraints, not tribal memory.**
 
@@ -517,7 +517,7 @@ OpenSSF Scorecard explicitly evaluates areas such as vulnerabilities, dependenci
 | Integration QA      | API and DB integration tests                       |
 | E2E QA              | Playwright                                         |
 | Visual QA           | screenshots, diff provider, baselines              |
-| Geometry QA         | `@humanlint/ux-qa`                                 |
+| Geometry QA         | `@jankurai/ux-qa`                                 |
 | Accessibility       | axe, ARIA snapshots, keyboard traversal            |
 | Responsive QA       | required mobile/tablet/desktop viewports           |
 | Design-token QA     | token drift checks                                 |
@@ -531,7 +531,7 @@ OpenSSF Scorecard explicitly evaluates areas such as vulnerabilities, dependenci
 
 For the CEO’s “can AI replace human QA testers with pixels/layout?” question:
 
-**Humanlint should replace a large class of repetitive visual QA, not pretend to replace all human taste.**
+**Jankurai should replace a large class of repetitive visual QA, not pretend to replace all human taste.**
 
 The correct model is layered:
 
@@ -562,7 +562,7 @@ That is credible. That will sell.
 | SLOs              | latency, error rate, saturation, UX performance           |
 | Incident evidence | timeline, deploy hash, failing lane, rollback path        |
 
-Humanlint should treat production bugs as proof failures with receipts.
+Jankurai should treat production bugs as proof failures with receipts.
 
 ## I. Agent efficiency and token minimization
 
@@ -570,8 +570,8 @@ Humanlint should treat production bugs as proof failures with receipts.
 | -------------------- | ------------------------------------------------------- |
 | Agent entrypoint     | AGENTS.md                                               |
 | Agent-specific rules | Claude, Cursor, Copilot, Codex, Aider adapters          |
-| Context packing      | `humanlint context-pack`                                |
-| Changed-path routing | `humanlint lane --changed`                              |
+| Context packing      | `jankurai context-pack`                                |
+| Changed-path routing | `jankurai lane --changed`                              |
 | File ownership       | owner map                                               |
 | Test ownership       | test map                                                |
 | Generated boundaries | generated-zone manifest                                 |
@@ -583,7 +583,7 @@ Humanlint should treat production bugs as proof failures with receipts.
 | Stop rules           | when agent must ask, when agent must not guess          |
 | Repair queues        | pre-chunked tasks with commands and acceptance criteria |
 
-This is where Humanlint can crush vibe coding.
+This is where Jankurai can crush vibe coding.
 
 The agent should never enter a repo and ask:
 
@@ -607,17 +607,17 @@ The repo should tell it.
 | Audit trail              | immutable-ish evidence store                |
 | Release evidence         | SBOM, provenance, signatures, test receipts |
 
-Important wording: Humanlint should not claim “default SOC compliant.” Compliance depends on organizational process, people, controls, and auditors.
+Important wording: Jankurai should not claim “default SOC compliant.” Compliance depends on organizational process, people, controls, and auditors.
 
-But Humanlint can absolutely provide a **SOC 2-ready evidence substrate**.
+But Jankurai can absolutely provide a **SOC 2-ready evidence substrate**.
 
 That is enormous.
 
 ---
 
-# 11. Things humans rebuild over and over that Humanlint should standardize
+# 11. Things humans rebuild over and over that Jankurai should standardize
 
-This is where Humanlint can become gigantic.
+This is where Jankurai can become gigantic.
 
 ## Product primitives
 
@@ -694,17 +694,17 @@ This is where Humanlint can become gigantic.
 * Context packing
 * Repair queues
 
-Humanlint should not force every app to install every primitive.
+Jankurai should not force every app to install every primitive.
 
 It should maintain a **canonical reuse registry**:
 
 ```bash
-humanlint registry add auth
-humanlint registry add billing
-humanlint registry add audit-log
-humanlint registry add admin-table
-humanlint registry add webhook-consumer
-humanlint registry add file-upload
+jankurai registry add auth
+jankurai registry add billing
+jankurai registry add audit-log
+jankurai registry add admin-table
+jankurai registry add webhook-consumer
+jankurai registry add file-upload
 ```
 
 Each primitive ships with:
@@ -729,9 +729,9 @@ That is how you stop humanity from rebuilding the same mediocre thing forever.
 
 ---
 
-# 12. The Humanlint standard levels
+# 12. The Jankurai standard levels
 
-Humanlint needs a ladder.
+Jankurai needs a ladder.
 
 ## Level 0 — Uncontrolled
 
@@ -739,7 +739,7 @@ Vibe-coded repo. No reliable ownership, proof, or boundaries.
 
 ## Level 1 — Observable
 
-Humanlint audit installed. Findings visible. No blocking yet.
+Jankurai audit installed. Findings visible. No blocking yet.
 
 ## Level 2 — Routed
 
@@ -791,18 +791,18 @@ This is the immediate work.
 
 I inspected the uploaded source archive and attempted to run the Rust tests, but this environment could not resolve crates.io, so dependency fetching failed. That is not evidence of a code failure; it means the next hardening step should include a reproducible dev environment and/or vendored/cache-friendly CI setup.
 
-## Phase 1 — `humanlint init`
+## Phase 1 — `jankurai init`
 
-Turn Humanlint from an auditor into an installer.
+Turn Jankurai from an auditor into an installer.
 
 ```bash
-humanlint init --profile web-api-db
+jankurai init --profile web-api-db
 ```
 
 Generates:
 
 * `AGENTS.md`
-* `humanlint.toml`
+* `jankurai.toml`
 * proof lanes
 * owner map
 * test map
@@ -820,7 +820,7 @@ Generates:
 * CI policy
 * exception policy
 
-This is the moment Humanlint becomes a default project starter.
+This is the moment Jankurai becomes a default project starter.
 
 ## Phase 2 — Agent adapters
 
@@ -844,7 +844,7 @@ The current repo already has the right concept: findings should become repairabl
 Make it real:
 
 ```bash
-humanlint repair-plan --from repo-score.json
+jankurai repair-plan --from repo-score.json
 ```
 
 Output:
@@ -862,7 +862,7 @@ Output:
 Then:
 
 ```bash
-humanlint repair --agent codex --max-risk medium
+jankurai repair --agent codex --max-risk medium
 ```
 
 The agent repairs only within allowed authority.
@@ -902,7 +902,7 @@ Every block must be:
 
 ## Phase 5 — Benchmark the end of vibe coding
 
-Humanlint should publish a benchmark suite.
+Jankurai should publish a benchmark suite.
 
 Measure:
 
@@ -945,7 +945,7 @@ The CEO view:
 
 This is the giant move.
 
-Humanlint becomes:
+Jankurai becomes:
 
 * A paper
 * A standard
@@ -961,7 +961,7 @@ Humanlint becomes:
 * A proof ledger
 * A reuse economy
 
-At that point, Humanlint is no longer a repo.
+At that point, Jankurai is no longer a repo.
 
 It is the default grammar of agent-native software.
 
@@ -974,7 +974,7 @@ repo/
 ├── AGENTS.md
 ├── README.md
 ├── VERSION
-├── humanlint.toml
+├── jankurai.toml
 ├── Justfile
 ├── Cargo.toml
 ├── package.json
@@ -986,7 +986,7 @@ repo/
 ├── .pre-commit-config.yaml
 │
 ├── agent/
-│   ├── HUMANLINT_STANDARD.md
+│   ├── JANKURAI_STANDARD.md
 │   ├── standard-version.toml
 │   ├── audit-policy.toml
 │   ├── owner-map.json
@@ -1253,7 +1253,7 @@ repo/
 │   └── ux/
 │
 ├── tools/
-│   ├── humanlint/
+│   ├── jankurai/
 │   ├── codegen/
 │   ├── scripts/
 │   ├── local-dev/
@@ -1261,7 +1261,7 @@ repo/
 │
 └── .github/
     ├── workflows/
-    │   ├── humanlint-audit.yml
+    │   ├── jankurai-audit.yml
     │   ├── fast.yml
     │   ├── contracts.yml
     │   ├── db.yml
@@ -1278,20 +1278,20 @@ repo/
 
 ---
 
-# 15. Detailed target file tree for the Humanlint project itself
+# 15. Detailed target file tree for the Jankurai project itself
 
 ```text
-humanlint/
+jankurai/
 ├── README.md
 ├── VERSION
 ├── Cargo.toml
 ├── package.json
 ├── Justfile
-├── humanlint.toml
+├── jankurai.toml
 ├── AGENTS.md
 │
 ├── crates/
-│   ├── humanlint/
+│   ├── jankurai/
 │   │   └── src/
 │   │       ├── main.rs
 │   │       └── commands/
@@ -1305,7 +1305,7 @@ humanlint/
 │   │           ├── explain.rs
 │   │           └── attest.rs
 │   │
-│   ├── humanlint-core/
+│   ├── jankurai-core/
 │   │   └── src/
 │   │       ├── model.rs
 │   │       ├── rules.rs
@@ -1314,7 +1314,7 @@ humanlint/
 │   │       ├── receipts.rs
 │   │       └── versions.rs
 │   │
-│   ├── humanlint-audit/
+│   ├── jankurai-audit/
 │   │   └── src/
 │   │       ├── fs.rs
 │   │       ├── ast.rs
@@ -1325,14 +1325,14 @@ humanlint/
 │   │       ├── ux.rs
 │   │       └── report.rs
 │   │
-│   ├── humanlint-init/
+│   ├── jankurai-init/
 │   │   └── src/
 │   │       ├── templates.rs
 │   │       ├── profiles.rs
 │   │       ├── stack.rs
 │   │       └── installer.rs
 │   │
-│   ├── humanlint-policy/
+│   ├── jankurai-policy/
 │   │   └── src/
 │   │       ├── parser.rs
 │   │       ├── exception.rs
@@ -1340,14 +1340,14 @@ humanlint/
 │   │       ├── org_policy.rs
 │   │       └── compliance.rs
 │   │
-│   ├── humanlint-ci/
+│   ├── jankurai-ci/
 │   │   └── src/
 │   │       ├── github.rs
 │   │       ├── gitlab.rs
 │   │       ├── lanes.rs
 │   │       └── pr_comment.rs
 │   │
-│   ├── humanlint-repair/
+│   ├── jankurai-repair/
 │   │   └── src/
 │   │       ├── queue.rs
 │   │       ├── task.rs
@@ -1355,7 +1355,7 @@ humanlint/
 │   │       ├── permissions.rs
 │   │       └── receipts.rs
 │   │
-│   ├── humanlint-context/
+│   ├── jankurai-context/
 │   │   └── src/
 │   │       ├── pack.rs
 │   │       ├── budget.rs
@@ -1363,19 +1363,19 @@ humanlint/
 │   │       ├── retrieval.rs
 │   │       └── compression.rs
 │   │
-│   ├── humanlint-sarif/
+│   ├── jankurai-sarif/
 │   │   └── src/
 │   │       ├── sarif.rs
 │   │       └── github_code_scanning.rs
 │   │
-│   ├── humanlint-bench/
+│   ├── jankurai-bench/
 │   │   └── src/
 │   │       ├── agent_success.rs
 │   │       ├── token_cost.rs
 │   │       ├── proof_cost.rs
 │   │       └── runtime.rs
 │   │
-│   └── humanlint-mcp/
+│   └── jankurai-mcp/
 │       └── src/
 │           ├── server.rs
 │           ├── tools.rs
@@ -1410,7 +1410,7 @@ humanlint/
 │       └── src/
 │
 ├── standard/
-│   ├── HUMANLINT_STANDARD.md
+│   ├── JANKURAI_STANDARD.md
 │   ├── rules/
 │   │   ├── HLT-001-ownership.md
 │   │   ├── HLT-002-proof-lanes.md
@@ -1503,8 +1503,8 @@ humanlint/
 │   └── examples/
 │
 ├── paper/
-│   ├── humanlint.tex
-│   ├── humanlint.md
+│   ├── jankurai.tex
+│   ├── jankurai.md
 │   ├── sections/
 │   └── appendices/
 │
@@ -1553,7 +1553,7 @@ humanlint/
 
 If I were driving this as the next leap, I would do these first:
 
-1. **Ship `humanlint init` before adding twenty more audit rules.**
+1. **Ship `jankurai init` before adding twenty more audit rules.**
    The project becomes huge when it creates the standard repo, not just scores one.
 
 2. **Turn security from placeholder to real proof lane.**
@@ -1566,7 +1566,7 @@ If I were driving this as the next leap, I would do these first:
    One example should show the full COLD stack: Rust, TS/React/Vite, PostgreSQL, generated contracts, UX QA, security, observability, repair receipts.
 
 5. **Create the “bad vibe repo” example.**
-   Show chaos. Then show Humanlint repair plan. Make the before/after emotionally obvious.
+   Show chaos. Then show Jankurai repair plan. Make the before/after emotionally obvious.
 
 6. **Build the reusable primitive registry.**
    Start with auth, CRUD, audit logs, jobs, webhooks, and admin tables.
@@ -1575,7 +1575,7 @@ If I were driving this as the next leap, I would do these first:
    Add screenshot baselines, cross-browser profiles, ARIA snapshots, accessibility, geometry, and artifact-backed failure receipts.
 
 8. **Add AST-aware analysis.**
-   String scanning is a good start, but Humanlint should graduate to tree-sitter, Rust AST where useful, TypeScript AST, import graphs, SQL schema graphs, and call-boundary checks.
+   String scanning is a good start, but Jankurai should graduate to tree-sitter, Rust AST where useful, TypeScript AST, import graphs, SQL schema graphs, and call-boundary checks.
 
 9. **Add agent benchmark metrics.**
    This is how you prove “end vibe coding”: lower token use, fewer wrong edits, faster accepted PRs, fewer regressions.
@@ -1587,7 +1587,7 @@ If I were driving this as the next leap, I would do these first:
 
 # 17. The strongest possible north-star paragraph
 
-**Humanlint is the COLD standard for agent-native engineering: a global, versioned, machine-readable software constitution that makes the best stack, safest architecture, fastest proof lanes, strictest security posture, cleanest UX checks, and most reusable product primitives the default starting point for every repo. It ends vibe coding by replacing human memory and agent guesswork with executable standards, generated contracts, proof receipts, repair queues, and ruthless context economy. Humans define vision. Agents build inside constraints. Humanlint proves the result.**
+**Jankurai is the COLD standard for agent-native engineering: a global, versioned, machine-readable software constitution that makes the best stack, safest architecture, fastest proof lanes, strictest security posture, cleanest UX checks, and most reusable product primitives the default starting point for every repo. It ends vibe coding by replacing human memory and agent guesswork with executable standards, generated contracts, proof receipts, repair queues, and ruthless context economy. Humans define vision. Agents build inside constraints. Jankurai proves the result.**
 
 That is the project.
 
@@ -1595,11 +1595,11 @@ Not a linter.
 
 A new default for software creation.
 
-[1]: https://github.com/jeppsontaylor/humanlint/blob/main/paper/humanlint.md "humanlint/paper/humanlint.md at main · jeppsontaylor/humanlint · GitHub"
-[2]: https://github.com/jeppsontaylor/humanlint "GitHub - jeppsontaylor/humanlint: Turns out humans were a bug, we're fixing that · GitHub"
-[3]: https://github.com/jeppsontaylor/humanlint/blob/main/docs/audit-rubric.md "humanlint/docs/audit-rubric.md at main · jeppsontaylor/humanlint · GitHub"
-[4]: https://github.com/jeppsontaylor/humanlint/blob/main/packages/ux-qa/src/types.ts "humanlint/packages/ux-qa/src/types.ts at main · jeppsontaylor/humanlint · GitHub"
-[5]: https://github.com/jeppsontaylor/humanlint/blob/main/docs/release-plan.md "humanlint/docs/release-plan.md at main · jeppsontaylor/humanlint · GitHub"
+[1]: https://github.com/jeppsontaylor/jankurai/blob/main/paper/jankurai.md "jankurai/paper/jankurai.md at main · jeppsontaylor/jankurai · GitHub"
+[2]: https://github.com/jeppsontaylor/jankurai "GitHub - jeppsontaylor/jankurai: Turns out humans were a bug, we're fixing that · GitHub"
+[3]: https://github.com/jeppsontaylor/jankurai/blob/main/docs/audit-rubric.md "jankurai/docs/audit-rubric.md at main · jeppsontaylor/jankurai · GitHub"
+[4]: https://github.com/jeppsontaylor/jankurai/blob/main/packages/ux-qa/src/types.ts "jankurai/packages/ux-qa/src/types.ts at main · jeppsontaylor/jankurai · GitHub"
+[5]: https://github.com/jeppsontaylor/jankurai/blob/main/docs/release-plan.md "jankurai/docs/release-plan.md at main · jeppsontaylor/jankurai · GitHub"
 [6]: https://typespec.io/ "typespec.io"
 [7]: https://buf.build/docs/generate/ "Generating code - Buf Docs"
 [8]: https://orval.dev/ "Orval - Generate type-safe API clients from OpenAPI"

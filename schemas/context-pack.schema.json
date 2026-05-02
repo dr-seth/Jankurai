@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/context-pack.schema.json",
-  "title": "humanlint context pack",
+  "$id": "https://jankurai.dev/schemas/context-pack.schema.json",
+  "title": "jankurai context pack",
   "type": "object",
   "required": [
     "schema_version",

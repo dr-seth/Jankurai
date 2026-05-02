@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/proof-plan.schema.json",
-  "title": "humanlint proof plan",
+  "$id": "https://jankurai.dev/schemas/proof-plan.schema.json",
+  "title": "jankurai proof plan",
   "type": "object",
   "required": [
     "schema_version",

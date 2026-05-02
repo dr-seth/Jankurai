@@ -1,11 +1,11 @@
-# humanlint Agent-Native Repository Standard
+# jankurai Agent-Native Repository Standard
 
 Standard version: `0.4.0`
 Published: `2026-05-02`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
 
-This is an operational standard for coding agents and maintainers. Repositories do not need humanlint merely because they use AI. Repositories claiming humanlint conformance should point root agent instructions to this file and to `agent/HUMANLINT_STANDARD.md`.
+This is an operational standard for coding agents and maintainers. Repositories do not need jankurai merely because they use AI. Repositories claiming jankurai conformance should point root agent instructions to this file and to `agent/JANKURAI_STANDARD.md`.
 
 ## 1. Mission
 
@@ -28,7 +28,7 @@ Agent-native engineering treats "vibe coding" as a defect class: ambiguous owner
 Every repository claiming `HL3` or higher MUST include:
 
 - `AGENTS.md` at repo root with a short pointer to this standard.
-- `agent/HUMANLINT_STANDARD.md` copied or vendored from this standard.
+- `agent/JANKURAI_STANDARD.md` copied or vendored from this standard.
 - `agent/owner-map.json` mapping paths to owners and allowed dependencies.
 - `agent/test-map.json` mapping paths to validation lanes.
 - `agent/generated-zones.toml` or equivalent generated-file manifest.
@@ -36,14 +36,14 @@ Every repository claiming `HL3` or higher MUST include:
 - `agent/repo-score.json` produced by CI.
 - one command for fast validation.
 - one command for full validation.
-- CI job that runs the humanlint audit on every pull request.
+- CI job that runs the jankurai audit on every pull request.
 
 Recommended pointer:
 
 ```md
 # AGENTS.md
 
-Read `agent/HUMANLINT_STANDARD.md` first.
+Read `agent/JANKURAI_STANDARD.md` first.
 For full policy, read `docs/agent-native-standard.md`.
 Do not edit outside requested ownership. Run the mapped test lane before final response.
 ```
@@ -151,7 +151,7 @@ repo/
   README.md
   Justfile | Makefile | package.json scripts
   agent/
-    HUMANLINT_STANDARD.md
+    JANKURAI_STANDARD.md
     owner-map.json
     test-map.json
     generated-zones.toml
@@ -265,11 +265,11 @@ Every repo MUST expose these lanes, even if some are initially empty with explic
 | `fast` | deterministic local proof under 2 minutes | `cargo test -p domain`, `pnpm test --run`, focused lint |
 | `contract` | prove public API/schema compatibility | OpenAPI/protobuf checks, generated client diff, consumer tests |
 | `db` | prove durable truth changes | migration apply/revert, constraint tests, query compile checks |
-| `web` | prove UI behavior and rendered UX where possible | Vitest, Testing Library, Storybook, humanlint UX QA |
+| `web` | prove UI behavior and rendered UX where possible | Vitest, Testing Library, Storybook, jankurai UX QA |
 | `e2e` | prove critical user journeys | Playwright preferred for browser workflows |
 | `security` | secrets, dependency, SAST, unsafe, licenses | secret scan, SCA, cargo audit, npm audit policy, SBOM |
 | `observability` | request IDs, traces, structured error payloads | OTel smoke tests, log schema checks |
-| `audit` | enforce this standard | humanlint audit JSON/MD/SARIF |
+| `audit` | enforce this standard | jankurai audit JSON/MD/SARIF |
 | `release` | full merge gate | all above, provenance, artifact build |
 
 Path changes MUST route to lanes through `agent/test-map.json`. Agents MUST run the smallest mapped lane locally and report any skipped lane with reason.
@@ -394,7 +394,7 @@ Forbidden:
 
 ## 13. CI Audit Requirements
 
-CI MUST run humanlint audit on every pull request and default branch push for repositories claiming `HL3` or higher. Lower levels may run in advisory mode while they build the required controls.
+CI MUST run jankurai audit on every pull request and default branch push for repositories claiming `HL3` or higher. Lower levels may run in advisory mode while they build the required controls.
 
 Minimum outputs:
 
@@ -442,7 +442,7 @@ Audit findings MUST include:
 
 Audit JSON MUST include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, raw score, final score, hard caps, dimension breakdown, findings, and ordered `agent_fix_queue`.
 
-Operational receipts from `doctor`, `init`, and future phase closeouts should live under `target/humanlint/receipts/<action>-<unix-seconds>.json`. Keep them volatile and cite them in release notes or phase receipts instead of promoting them into tracked source.
+Operational receipts from `doctor`, `init`, and future phase closeouts should live under `target/jankurai/receipts/<action>-<unix-seconds>.json`. Keep them volatile and cite them in release notes or phase receipts instead of promoting them into tracked source.
 
 ## 14. Vibe-Coding Failure Catalog
 
@@ -522,7 +522,7 @@ Agent context is a budget.
 
 - Root `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, Cursor rules, and Copilot instructions should be short pointers, not full manuals.
 - Put full policy in `docs/agent-native-standard.md`.
-- Put quick boot policy in `agent/HUMANLINT_STANDARD.md`.
+- Put quick boot policy in `agent/JANKURAI_STANDARD.md`.
 - Use `agent/owner-map.json` and `agent/test-map.json` instead of prose path descriptions.
 - Prefer `rg`, symbol search, generated maps, and targeted reads.
 - Do not paste full logs into prompts. Save logs under ignored artifacts and quote relevant lines.
@@ -540,15 +540,15 @@ Tool behavior changes. Each repo MUST keep a short adapter for each tool it uses
 |---|---|---|
 | Codex | `AGENTS.md` | Codex reads `AGENTS.md` files by scope. Keep root short, place local overrides near specialized code, and ask Codex to report loaded instructions when debugging. |
 | Cursor | `.cursor/rules/*.mdc` or `.cursor/rules/*` plus optional `AGENTS.md` | Use project rules for versioned repo policy. Prefer small scoped rules. Do not rely on deprecated `.cursorrules` except as migration shim. |
-| Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | Import `AGENTS.md` or `agent/HUMANLINT_STANDARD.md`; keep under 200 lines; use `.claude/rules/` for path-specific rules; use `/memory` to inspect loaded context. |
-| Gemini CLI | `GEMINI.md` | Use `@agent/HUMANLINT_STANDARD.md` import where supported; use `/memory show`, `/memory list`, and `/memory refresh` to verify loaded context; configure context filenames if the team standardizes on `AGENTS.md`. |
+| Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | Import `AGENTS.md` or `agent/JANKURAI_STANDARD.md`; keep under 200 lines; use `.claude/rules/` for path-specific rules; use `/memory` to inspect loaded context. |
+| Gemini CLI | `GEMINI.md` | Use `@agent/JANKURAI_STANDARD.md` import where supported; use `/memory show`, `/memory list`, and `/memory refresh` to verify loaded context; configure context filenames if the team standardizes on `AGENTS.md`. |
 | Antigravity | verified current rule file for installed version | Treat loading rules as version-sensitive. Prefer shared `AGENTS.md`/`GEMINI.md` pointer when supported. Disable unattended terminal/browser actions for untrusted repos. Require checkpoints before writes. |
 | GitHub Copilot | `.github/copilot-instructions.md` and optional `.github/instructions/*.instructions.md` | Put the critical rules in the first 4,000 characters for code review compatibility. Use path-specific instruction files for detailed rules. Keep statements short and self-contained. |
 
 Universal tool boot prompt:
 
 ```text
-Read agent/HUMANLINT_STANDARD.md and docs/agent-native-standard.md.
+Read agent/JANKURAI_STANDARD.md and docs/agent-native-standard.md.
 Identify owner-map and test-map entries for the requested paths.
 Do not edit generated files by hand.
 Before adding behavior, check file/function LOC limits.
@@ -562,7 +562,7 @@ This standard changes quickly. Repositories MUST track standard version explicit
 Required:
 
 - `agent/standard-version.toml` is the canonical manifest.
-- `agent/HUMANLINT_STANDARD.md` includes `Standard version`.
+- `agent/JANKURAI_STANDARD.md` includes `Standard version`.
 - CI audit reads the version.
 - Repo pins the standard source URL or vendored commit when available.
 - `docs/decisions/` records adoption decision.
@@ -572,11 +572,11 @@ Required artifact bindings for this workspace:
 
 | Artifact | Binding |
 |---|---|
-| `paper/humanlint.tex` | `paper-source`, version `paper_edition` |
-| `paper/humanlint.pdf` | `paper-render`, generated by `just paper` |
-| `paper/humanlint.md` | `paper-agent-md`, companion only |
+| `paper/jankurai.tex` | `paper-source`, version `paper_edition` |
+| `paper/jankurai.pdf` | `paper-render`, generated by `just paper` |
+| `paper/jankurai.md` | `paper-agent-md`, companion only |
 | `docs/agent-native-standard.md` | `coding-standard`, version `standard_version` |
-| `agent/HUMANLINT_STANDARD.md` | `agent-standard-brief`, source standard doc |
+| `agent/JANKURAI_STANDARD.md` | `agent-standard-brief`, source standard doc |
 
 Version rules:
 
@@ -596,7 +596,7 @@ CI update check:
 
 Before editing:
 
-- Read `agent/HUMANLINT_STANDARD.md`.
+- Read `agent/JANKURAI_STANDARD.md`.
 - Identify changed paths.
 - Look up owner-map and test-map.
 - Check file and function LOC.

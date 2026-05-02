@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/proof-receipt.schema.json",
-  "title": "humanlint proof receipt",
+  "$id": "https://jankurai.dev/schemas/proof-receipt.schema.json",
+  "title": "jankurai proof receipt",
   "type": "object",
   "required": ["lane", "command", "exit_code", "elapsed_ms", "artifacts"],
   "properties": {

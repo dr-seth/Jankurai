@@ -1,0 +1,215 @@
+use anyhow::{Context, Result};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::Path;
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct OwnerMapFile {
+    #[serde(default)]
+    pub owners: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct TestMapFile {
+    #[serde(default)]
+    pub tests: BTreeMap<String, TestSpec>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct TestSpec {
+    pub command: String,
+    #[serde(default)]
+    pub purpose: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct GeneratedZonesFile {
+    #[serde(default)]
+    pub zone: Vec<GeneratedZone>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct GeneratedZone {
+    pub path: String,
+    #[serde(default)]
+    pub source: String,
+    #[serde(default)]
+    pub command: String,
+    #[serde(default)]
+    pub read_only: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ProofLanesFile {
+    #[serde(default)]
+    pub lane: Vec<ProofLane>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ProofLane {
+    pub name: String,
+    pub command: String,
+    #[serde(default)]
+    pub purpose: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RepoCatalog {
+    pub owners: BTreeMap<String, String>,
+    pub tests: BTreeMap<String, TestSpec>,
+    pub generated_zones: Vec<GeneratedZone>,
+    pub proof_lanes: Vec<ProofLane>,
+}
+
+impl RepoCatalog {
+    pub fn load(repo: &Path) -> Result<Self> {
+        Ok(Self {
+            owners: read_json::<OwnerMapFile>(&repo.join("agent/owner-map.json"))?
+                .map(|file| file.owners)
+                .unwrap_or_default(),
+            tests: read_json::<TestMapFile>(&repo.join("agent/test-map.json"))?
+                .map(|file| file.tests)
+                .unwrap_or_default(),
+            generated_zones: read_toml::<GeneratedZonesFile>(
+                &repo.join("agent/generated-zones.toml"),
+            )?
+            .map(|file| file.zone)
+            .unwrap_or_default(),
+            proof_lanes: read_toml::<ProofLanesFile>(&repo.join("agent/proof-lanes.toml"))?
+                .map(|file| file.lane)
+                .unwrap_or_default(),
+        })
+    }
+
+    pub fn owner_for_path(&self, path: &str) -> Option<&str> {
+        self.owner_prefix_for_path(path)
+            .and_then(|prefix| self.owners.get(&prefix))
+            .map(|owner| owner.as_str())
+    }
+
+    pub fn owner_prefix_for_path(&self, path: &str) -> Option<String> {
+        self.owners
+            .keys()
+            .filter(|prefix| path_matches(path, prefix))
+            .max_by_key(|prefix| prefix.len())
+            .cloned()
+    }
+
+    pub fn test_route_for_path(&self, path: &str) -> Option<(String, TestSpec)> {
+        self.tests
+            .iter()
+            .filter(|(prefix, _)| path_matches(path, prefix))
+            .max_by_key(|(prefix, _)| prefix.len())
+            .map(|(prefix, spec)| (prefix.clone(), spec.clone()))
+    }
+
+    pub fn prefixes_for_owner(&self, owner: &str) -> Vec<String> {
+        self.owners
+            .iter()
+            .filter(|(_, value)| value.as_str() == owner)
+            .map(|(path, _)| path.clone())
+            .collect()
+    }
+
+    pub fn commands_for_paths(&self, paths: &[String]) -> Vec<String> {
+        let mut out = Vec::new();
+        for path in paths {
+            for (key, spec) in &self.tests {
+                if path_matches(path, key) {
+                    push_unique(&mut out, spec.command.clone());
+                }
+            }
+        }
+        out
+    }
+
+    pub fn proof_lane_names(&self) -> Vec<String> {
+        self.proof_lanes
+            .iter()
+            .map(|lane| lane.name.clone())
+            .collect()
+    }
+
+    pub fn proof_lane_for_command(&self, command: &str) -> Option<String> {
+        self.proof_lanes
+            .iter()
+            .find(|lane| lane.command == command || lane.name == command)
+            .map(|lane| lane.name.clone())
+    }
+
+    pub fn proof_lane_commands(&self, lane_names: &[&str]) -> Vec<String> {
+        let mut out = Vec::new();
+        for lane_name in lane_names {
+            for lane in &self.proof_lanes {
+                if lane.name == *lane_name {
+                    push_unique(&mut out, lane.command.clone());
+                }
+            }
+        }
+        out
+    }
+
+    pub fn generated_paths(&self) -> Vec<String> {
+        self.generated_zones
+            .iter()
+            .map(|zone| zone.path.clone())
+            .collect()
+    }
+
+    pub fn forbidden_generated_paths(&self) -> Vec<String> {
+        self.generated_zones
+            .iter()
+            .map(|zone| zone.path.clone())
+            .collect()
+    }
+
+    /// Normalize a proof command for allowlist comparison: trim, collapse ASCII whitespace to single spaces.
+    pub fn normalize_proof_command(command: &str) -> String {
+        command.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+
+    /// Commands that `jankurai prove` may execute: union of `agent/proof-lanes.toml` and `agent/test-map.json`.
+    pub fn allowed_proof_commands(&self) -> BTreeSet<String> {
+        let mut allow = BTreeSet::new();
+        for lane in &self.proof_lanes {
+            allow.insert(Self::normalize_proof_command(&lane.command));
+        }
+        for (_, spec) in &self.tests {
+            allow.insert(Self::normalize_proof_command(&spec.command));
+        }
+        allow
+    }
+}
+
+fn read_json<T: DeserializeOwned>(path: &Path) -> Result<Option<T>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    Ok(Some(
+        serde_json::from_str(&text).with_context(|| format!("parse {}", path.display()))?,
+    ))
+}
+
+fn read_toml<T: DeserializeOwned>(path: &Path) -> Result<Option<T>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    Ok(Some(
+        toml::from_str(&text).with_context(|| format!("parse {}", path.display()))?,
+    ))
+}
+
+fn path_matches(path: &str, prefix: &str) -> bool {
+    path == prefix || path.starts_with(prefix) || prefix.starts_with(path)
+}
+
+pub fn push_unique(values: &mut Vec<String>, value: impl Into<String>) {
+    let value = value.into();
+    if !values.contains(&value) {
+        values.push(value);
+    }
+}

@@ -7,7 +7,7 @@ Parallel MCP candidate: yes after generator contract is locked
 
 ## Objective
 
-Turn `humanlint init` from a control-file installer into a profile-driven repo generator. This is the phase where Humanlint starts becoming a creation layer, not only an audit layer.
+Turn `jankurai init` from a control-file installer into a profile-driven repo generator. This is the phase where Jankurai starts becoming a creation layer, not only an audit layer.
 
 The exit state is not every possible template. The exit state is a robust generator contract, one excellent default profile, and golden repo fixtures that prove generated repos are audit-ready.
 
@@ -15,18 +15,18 @@ The exit state is not every possible template. The exit state is a robust genera
 
 Existing implementation:
 
-- `humanlint init` supports `--profile`, `--ide`, `--mode`, `--ci`, `--issue-backend`, `--ux-qa`, `--dry-run`, `--diff`, `--plan-json`, `--yes`, and `--apply`.
-- **`rust-ts-postgres` profile** is loaded from bundled [`crates/humanlint/templates/profiles/rust-ts-postgres.json`](../../crates/humanlint/templates/profiles/rust-ts-postgres.json), validated with **`ArtifactSchema::InitProfile`** before use.
+- `jankurai init` supports `--profile`, `--ide`, `--mode`, `--ci`, `--issue-backend`, `--ux-qa`, `--dry-run`, `--diff`, `--plan-json`, `--yes`, and `--apply`.
+- **`rust-ts-postgres` profile** is loaded from bundled [`crates/jankurai/templates/profiles/rust-ts-postgres.json`](../../crates/jankurai/templates/profiles/rust-ts-postgres.json), validated with **`ArtifactSchema::InitProfile`** before use.
 - **Plan and apply** iterate **`generatedPaths`** from that manifest only (sorted); missing templates are a hard error at plan time.
 - Unknown profile IDs are rejected with a message listing supported aliases.
-- Templates live in `crates/humanlint/src/init/templates.rs` (plus `include_str!` agent files under `crates/humanlint/templates/agent/`).
-- Golden tests in `crates/humanlint/tests/init_golden.rs` cover unknown profile, plan/action consistency, greenfield `audit` + `doctor --fail-on high`, and preserving an existing `contracts/README.md`.
+- Templates live in `crates/jankurai/src/init/templates.rs` (plus `include_str!` agent files under `crates/jankurai/templates/agent/`).
+- Golden tests in `crates/jankurai/tests/init_golden.rs` cover unknown profile, plan/action consistency, greenfield `audit` + `doctor --fail-on high`, and preserving an existing `contracts/README.md`.
 - Operational handoff log: [`tips/phases/logs/04-init-profiles-golden-repos.log`](../logs/04-init-profiles-golden-repos.log).
 
 Gaps (follow-on):
 
 - Additional bundled profiles (`rust-api`, `b2b-saas`, etc.) and multi-profile selection UX.
-- Deeper merge policy beyond adapter markers and AGENTS / HUMANLINT_STANDARD.
+- Deeper merge policy beyond adapter markers and AGENTS / JANKURAI_STANDARD.
 - Optional: load profile JSON from the target repo instead of only bundled artifacts.
 
 ## Dependencies
@@ -40,13 +40,13 @@ Benefits from Phase 03 proof router for generated repo validation.
 Profiles to support, in order:
 
 ```bash
-humanlint init --profile rust-api
-humanlint init --profile react-web
-humanlint init --profile rust-ts-postgres
-humanlint init --profile b2b-saas
-humanlint init --profile ai-product
-humanlint init --profile regulated-saas
-humanlint init --profile migration-target
+jankurai init --profile rust-api
+jankurai init --profile react-web
+jankurai init --profile rust-ts-postgres
+jankurai init --profile b2b-saas
+jankurai init --profile ai-product
+jankurai init --profile regulated-saas
+jankurai init --profile migration-target
 ```
 
 Start with `rust-ts-postgres` if only one can be completed.
@@ -92,7 +92,7 @@ Acceptance:
 Generated repo should include at minimum:
 
 - root `AGENTS.md`
-- `agent/HUMANLINT_STANDARD.md`
+- `agent/JANKURAI_STANDARD.md`
 - owner map
 - test map
 - generated zones
@@ -113,7 +113,7 @@ Generated repo should include at minimum:
 
 Acceptance:
 
-- Generated repo can run `humanlint audit` and produce a score report.
+- Generated repo can run `jankurai audit` and produce a score report.
 - Generated repo has no missing root control files.
 - Generated repo docs clearly mark scaffold placeholders that must be replaced before production.
 
@@ -168,7 +168,7 @@ Acceptance:
 Parallel after manifest schema is locked:
 
 - Agent A: generator/profile manifest core. Owns Rust init modules.
-- Agent B: template content. Owns `crates/humanlint/templates/` and generated profile docs.
+- Agent B: template content. Owns `crates/jankurai/templates/` and generated profile docs.
 - Agent C: tests and golden fixtures. Owns init tests.
 - Agent D: docs. Owns install/profile docs.
 
@@ -185,21 +185,21 @@ Merge order:
 Minimum:
 
 ```bash
-cargo test -p humanlint
+cargo test -p jankurai
 just fast
 ```
 
 Profile smoke:
 
 ```bash
-humanlint init --profile rust-ts-postgres --dry-run --plan-json target/humanlint/init-plan.json
-humanlint init --profile rust-ts-postgres --diff
+jankurai init --profile rust-ts-postgres --dry-run --plan-json target/jankurai/init-plan.json
+jankurai init --profile rust-ts-postgres --diff
 ```
 
 If tempdir apply tests are added, ensure they run under:
 
 ```bash
-cargo test -p humanlint init
+cargo test -p jankurai init
 ```
 
 ## Risks
@@ -222,11 +222,11 @@ Leave:
 ## Phase Status Receipt
 
 - Phase status: partial init profiles and golden repos (profile-driven plan/apply slice 2026-05-02)
-- Files changed: `crates/humanlint/src/init/profiles.rs`, `crates/humanlint/src/init/plan.rs`, `crates/humanlint/src/init/templates.rs`, `crates/humanlint/src/commands/init.rs`, `crates/humanlint/templates/profiles/rust-ts-postgres.json`, `crates/humanlint/templates/agent/*`, `crates/humanlint/src/validation.rs`, `crates/humanlint/tests/init_golden.rs`, `docs/install.md`, `tips/phases/04-init-profiles-golden-repos.md`, `tips/phases/logs/04-init-profiles-golden-repos.log`
+- Files changed: `crates/jankurai/src/init/profiles.rs`, `crates/jankurai/src/init/plan.rs`, `crates/jankurai/src/init/templates.rs`, `crates/jankurai/src/commands/init.rs`, `crates/jankurai/templates/profiles/rust-ts-postgres.json`, `crates/jankurai/templates/agent/*`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/init_golden.rs`, `docs/install.md`, `tips/phases/04-init-profiles-golden-repos.md`, `tips/phases/logs/04-init-profiles-golden-repos.log`
 - Schemas changed: `InitProfile` artifact validation hook (existing `init-profile.schema.json`)
 - Public interfaces changed: unknown init profiles error; init plan/actions match `generatedPaths` only
 - Routing maps changed: embedded template `agent/owner-map.json`, `agent/test-map.json`, `agent/proof-lanes.toml`
-- Validation commands: `cargo test -p humanlint`, `just fast`
+- Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: see `tips/phases/logs/04-init-profiles-golden-repos.log`
 - Skipped validation: none
 - Exceptions created: only bundled `rust-ts-postgres` (+aliases); other profile names reserved

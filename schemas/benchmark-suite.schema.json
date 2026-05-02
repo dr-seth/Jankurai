@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/benchmark-suite.schema.json",
-  "title": "humanlint benchmark suite",
+  "$id": "https://jankurai.dev/schemas/benchmark-suite.schema.json",
+  "title": "jankurai benchmark suite",
   "type": "object",
   "required": [
     "schema_version",

@@ -8,7 +8,7 @@ The canonical source is:
 
 ```text
 AGENTS.md
-agent/HUMANLINT_STANDARD.md
+agent/JANKURAI_STANDARD.md
 agent/owner-map.json
 agent/test-map.json
 agent/generated-zones.toml
@@ -59,7 +59,7 @@ Token minimization is not about starving the agent. It is about reducing irrelev
 | reports | write JSON for agents and Markdown for humans |
 | citations | keep source ledgers separate from main narrative |
 
-This is where RTK belongs in humanlint. It is a concrete local wrapper for token-heavy command output. The general rule is broader: filter safely, preserve enough evidence, and allow full raw output when security, auditability, or debugging requires it.
+This is where RTK belongs in jankurai. It is a concrete local wrapper for token-heavy command output. The general rule is broader: filter safely, preserve enough evidence, and allow full raw output when security, auditability, or debugging requires it.
 
 ### Versioned Rules
 
@@ -67,7 +67,7 @@ The standard must version quickly because agent tooling is changing quickly. Eve
 
 ```json
 {
-  "humanlint_standard": "0.3.0",
+  "jankurai_standard": "0.3.0",
   "audit_min_version": "0.3.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],

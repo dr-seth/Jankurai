@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/finding.schema.json",
-  "title": "humanlint finding",
+  "$id": "https://jankurai.dev/schemas/finding.schema.json",
+  "title": "jankurai finding",
   "type": "object",
   "required": [
     "severity",

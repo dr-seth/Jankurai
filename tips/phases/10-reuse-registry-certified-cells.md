@@ -7,7 +7,7 @@ Parallel MCP candidate: yes
 
 ## Objective
 
-Stop teams and agents from rebuilding the same primitives badly. Humanlint should provide a registry of certified cells: reusable product and engineering modules that include source, contracts, migrations, UI, tests, UX proof, security assumptions, observability, docs, and upgrade paths.
+Stop teams and agents from rebuilding the same primitives badly. Jankurai should provide a registry of certified cells: reusable product and engineering modules that include source, contracts, migrations, UI, tests, UX proof, security assumptions, observability, docs, and upgrade paths.
 
 The exit state is a registry format and the first small set of certified cells.
 
@@ -33,10 +33,10 @@ Strongly benefits from Phase 09 as the place to prove cells.
 Implemented command surface:
 
 ```bash
-humanlint registry list
-humanlint registry show auth
-humanlint cell add auth
-humanlint cell prove auth
+jankurai registry list
+jankurai registry show auth
+jankurai cell add auth
+jankurai cell prove auth
 ```
 
 The implementation currently stays at plan output and candidate-cell discovery, with install/prove/certify execution left for later bounded expansion.
@@ -176,15 +176,15 @@ Minimum:
 
 ```bash
 just fast
-cargo test -p humanlint
+cargo test -p jankurai
 ```
 
 Cell-specific:
 
 ```bash
-humanlint registry list
-humanlint cell add audit-log --dry-run
-humanlint cell prove audit-log
+jankurai registry list
+jankurai cell add audit-log --dry-run
+jankurai cell prove audit-log
 ```
 
 Use equivalent commands if exact names differ.
@@ -209,12 +209,12 @@ Leave:
 ## Phase Status Receipt
 
 - Phase status: partial reuse registry certified cells implementation slice
-- Files changed: `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/humanlint/src/commands/registry.rs`, `crates/humanlint/src/commands/cell.rs`, `crates/humanlint/tests/command_surface_smoke.rs`, and `target/humanlint/phase-logs/10-reuse-registry-certified-cells.md.log`
+- Files changed: `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, and `target/jankurai/phase-logs/10-reuse-registry-certified-cells.md.log`
 - Schemas changed: cell manifest and cell registry
-- Public interfaces changed: `humanlint registry` and `humanlint cell`
+- Public interfaces changed: `jankurai registry` and `jankurai cell`
 - Generated artifacts: registry and cell plan JSON/Markdown outputs
 - Routing maps changed: none beyond existing owner/test inputs
-- Validation commands: `cargo test -p humanlint`, `just fast`
+- Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: validation passed; install/prove/certify remain planner-only
 - Skipped validation: install/prove/certify execution remains bounded for later extension
 - Exceptions created: registry install and certification remain evidence-bound planner surfaces

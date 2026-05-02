@@ -11,21 +11,21 @@ command = "epstopdf paper/figures/stack-ranking.eps --outfile=paper/figures/stac
 read_only = true
 
 [[zone]]
-path = "paper/humanlint.pdf"
-source = "paper/humanlint.tex"
+path = "paper/jankurai.pdf"
+source = "paper/jankurai.tex"
 command = "just paper"
 read_only = true
 
 [[zone]]
 path = "agent/repo-score.json"
-source = "crates/humanlint"
-command = "cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md"
+source = "crates/jankurai"
+command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
 read_only = false
 
 [[zone]]
 path = "agent/repo-score.md"
-source = "crates/humanlint"
-command = "cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md"
+source = "crates/jankurai"
+command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
 read_only = false
 
 [[zone]]

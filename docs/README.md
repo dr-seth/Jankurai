@@ -1,4 +1,4 @@
-# humanlint Docs
+# jankurai Docs
 
 Start here:
 

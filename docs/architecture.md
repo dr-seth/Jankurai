@@ -1,6 +1,6 @@
-# humanlint Architecture
+# jankurai Architecture
 
-humanlint is a paper, standard, and audit workspace. The product standard it
+jankurai is a paper, standard, and audit workspace. The product standard it
 defines is:
 
 ```text
@@ -11,7 +11,7 @@ Rust core + TypeScript/React/Vite product surface + PostgreSQL truth
 The canonical architecture is documented in:
 
 - `docs/agent-native-standard.md`
-- `agent/HUMANLINT_STANDARD.md`
+- `agent/JANKURAI_STANDARD.md`
 - `paper/tex/sections/09_winner_architecture.tex`
 
 The Markdown files under `paper/sections/` are legacy-only planning companions.

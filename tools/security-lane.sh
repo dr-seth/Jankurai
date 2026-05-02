@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-strict="${HUMANLINT_SECURITY_STRICT:-0}"
+strict="${JANKURAI_SECURITY_STRICT:-0}"
 
 run_or_skip() {
   local tool="$1"
@@ -27,7 +27,7 @@ required_commands=(
 
 advisory_tool_names=(syft zizmor)
 advisory_commands=(
-  "syft . -o spdx-json=target/humanlint/sbom.spdx.json"
+  "syft . -o spdx-json=target/jankurai/sbom.spdx.json"
   "zizmor .github/workflows"
 )
 

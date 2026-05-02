@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/cell-registry.schema.json",
-  "title": "humanlint cell registry",
+  "$id": "https://jankurai.dev/schemas/cell-registry.schema.json",
+  "title": "jankurai cell registry",
   "type": "object",
   "required": ["registry_version", "generated_at", "cells"],
   "properties": {

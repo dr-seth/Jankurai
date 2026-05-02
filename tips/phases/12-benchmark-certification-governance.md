@@ -7,9 +7,9 @@ Parallel MCP candidate: yes
 
 ## Objective
 
-Prove the Humanlint thesis publicly and make conformance meaningful. This phase builds benchmark corpora, certification artifacts, badges, release attestations, rule governance, and organization-level reporting.
+Prove the Jankurai thesis publicly and make conformance meaningful. This phase builds benchmark corpora, certification artifacts, badges, release attestations, rule governance, and organization-level reporting.
 
-The exit state is that "Built with Humanlint" has evidence behind it.
+The exit state is that "Built with Jankurai" has evidence behind it.
 
 ## Current State
 
@@ -18,7 +18,7 @@ Existing pieces:
 - Paper and standard are versioned.
 - Reports include standard/auditor/schema/paper/target-stack bindings.
 - `docs/release-plan.md` defines release lines, channels, CI adoption, benchmark pack, and stable compliance targets.
-- The `humanlint bench`, `humanlint certify`, and `humanlint govern` commands now emit evidence-bound plans and governance artifacts from live repo data.
+- The `jankurai bench`, `jankurai certify`, and `jankurai govern` commands now emit evidence-bound plans and governance artifacts from live repo data.
 
 ## Dependencies
 
@@ -29,10 +29,10 @@ Requires phases 01 through 11 to produce enough real surfaces to benchmark.
 Implemented command surface:
 
 ```bash
-humanlint certify --out target/humanlint/certification.json
-humanlint bench run --suite agent-success
-humanlint bench report
-humanlint govern check
+jankurai certify --out target/jankurai/certification.json
+jankurai bench run --suite agent-success
+jankurai bench report
+jankurai govern check
 ```
 
 ## Contract Slice
@@ -102,7 +102,7 @@ Implementation tasks:
   - unsafe migration repo
   - UX regression fixture
   - generated-contract golden repo
-  - Humanlint-native golden repo
+  - Jankurai-native golden repo
 - Keep fixture size controlled.
 
 Acceptance:
@@ -134,7 +134,7 @@ Implementation tasks:
 
 Acceptance:
 
-- Benchmark can compare baseline repo and Humanlint-native repo.
+- Benchmark can compare baseline repo and Jankurai-native repo.
 - Results are reproducible enough for public claims.
 
 ### 3. Certification And Badges
@@ -212,15 +212,15 @@ Merge order:
 Minimum:
 
 ```bash
-cargo test -p humanlint
+cargo test -p jankurai
 just fast
 ```
 
 Benchmark smoke:
 
 ```bash
-humanlint bench run --suite smoke
-humanlint certify --out target/humanlint/certification.json
+jankurai bench run --suite smoke
+jankurai certify --out target/jankurai/certification.json
 ```
 
 Use equivalent command names if implementation chooses different names.
@@ -245,12 +245,12 @@ Leave:
 ## Phase Status Receipt
 
 - Phase status: partial benchmark certification and governance implementation slice
-- Files changed: `schemas/benchmark-suite.schema.json`, `schemas/benchmark-report.schema.json`, `schemas/certification.schema.json`, `schemas/governance-policy.schema.json`, `crates/humanlint/src/commands/bench.rs`, `crates/humanlint/src/commands/certify.rs`, `crates/humanlint/src/commands/govern.rs`, and `target/humanlint/phase-logs/12-benchmark-certification-governance.md.log`
+- Files changed: `schemas/benchmark-suite.schema.json`, `schemas/benchmark-report.schema.json`, `schemas/certification.schema.json`, `schemas/governance-policy.schema.json`, `crates/jankurai/src/commands/bench.rs`, `crates/jankurai/src/commands/certify.rs`, `crates/jankurai/src/commands/govern.rs`, and `target/jankurai/phase-logs/12-benchmark-certification-governance.md.log`
 - Schemas changed: benchmark suite, benchmark report, certification, governance policy
-- Public interfaces changed: `humanlint bench`, `humanlint certify`, and `humanlint govern`
+- Public interfaces changed: `jankurai bench`, `jankurai certify`, and `jankurai govern`
 - Generated artifacts: benchmark plan and certification plan outputs
 - Routing maps changed: `agent/test-map.json`, `agent/owner-map.json`, `agent/proof-lanes.toml`
-- Validation commands: `cargo test -p humanlint`, `just fast`
+- Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: validation passed; benchmark and governance surfaces remain planner-only
 - Skipped validation: public badge and org reporting workflows remain bounded for later expansion
 - Exceptions created: certification remains evidence-bound, not an attestation issuer

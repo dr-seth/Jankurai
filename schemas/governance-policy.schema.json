@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/governance-policy.schema.json",
-  "title": "humanlint governance policy",
+  "$id": "https://jankurai.dev/schemas/governance-policy.schema.json",
+  "title": "jankurai governance policy",
   "type": "object",
   "required": [
     "schema_version",

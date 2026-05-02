@@ -1,11 +1,11 @@
 \section{Vibe-Coding Fault Taxonomy}
 
-Vibe coding is not a mood. It is a fault class: shipping code whose correctness depends on plausibility, confidence, or reviewer intuition instead of machine-checkable proof. The risk-priority number below is \textbf{RPN = impact $\times$ likelihood $\times$ detection difficulty}. It is a humanlint policy weight, not a universal incident statistic. Future releases should calibrate it against repair success, escaped defects, security regressions, and review time.
+Vibe coding is not a mood. It is a fault class: shipping code whose correctness depends on plausibility, confidence, or reviewer intuition instead of machine-checkable proof. The risk-priority number below is \textbf{RPN = impact $\times$ likelihood $\times$ detection difficulty}. It is a jankurai policy weight, not a universal incident statistic. Future releases should calibrate it against repair success, escaped defects, security regressions, and review time.
 
 Public evidence supports treating vibe coding as a high-risk production pattern rather than a harmless workflow style. Veracode reports that AI-generated samples introduced risky security flaws in 45\% of tests \cite{veracodeGenaiCodeSecurity2025}. GitGuardian reports accelerating hardcoded-secret exposure in public GitHub activity and AI-service leak growth \cite{gitguardianSecretsSprawl2026,gitguardianSecretsSprawl2026Blog}. Stack Overflow's 2025 survey reports that developers' largest AI frustration is output that is almost right but not quite, with time-consuming AI-code debugging close behind \cite{stackOverflowAISurvey2025}. OWASP's LLM Top 10 names prompt injection, sensitive information disclosure, supply-chain risk, improper output handling, and excessive agency as first-order AI application risks \cite{owaspLlmTopTen2025}. SetupBench and ContextBench add the operational failure modes: agents still struggle with environment bootstrap and useful context retrieval \cite{setupBench2025,contextBench2026}.
 
 \begin{table*}[t]
-\caption{Ranked vibe-coding fault taxonomy. RPN is a humanlint policy priority, not an empirical frequency claim.}
+\caption{Ranked vibe-coding fault taxonomy. RPN is a jankurai policy priority, not an empirical frequency claim.}
 \label{tab:fault-taxonomy}
 \centering
 \scriptsize
@@ -83,14 +83,14 @@ Context/setup & 30 & Documentation or instruction drift & HLT-015 / audit & Cano
 \bottomrule
 \end{tabularx}
 \end{minipage}
-\caption{TLR means Top-Level Risk. Shares are computed directly from Table~\ref{tab:fault-taxonomy}: each row contributes its RPN to one TLR bucket, then bucket totals are rounded to whole percentages. The chart is a policy-priority model for humanlint 0.4.0, not an incident-frequency measurement.}
+\caption{TLR means Top-Level Risk. Shares are computed directly from Table~\ref{tab:fault-taxonomy}: each row contributes its RPN to one TLR bucket, then bucket totals are rounded to whole percentages. The chart is a policy-priority model for jankurai 0.4.0, not an incident-frequency measurement.}
 \label{fig:tlr-pie}
 \end{figure*}
 
 \begin{center}
 \fbox{\begin{minipage}{0.93\columnwidth}
-\textbf{Highest-priority controls.} A humanlint-conformant repo should block merges when a changed path has no proof lane, a public boundary has handwritten contract mirrors, durable truth moves outside Rust/PostgreSQL ownership, security or secret scans are absent for risky changes, agent permissions are broader than the lane requires, user-facing UI lacks rendered proof, or \texttt{fallback}/\texttt{TODO}/\texttt{stub} ships without a scoped exception.
+\textbf{Highest-priority controls.} A jankurai-conformant repo should block merges when a changed path has no proof lane, a public boundary has handwritten contract mirrors, durable truth moves outside Rust/PostgreSQL ownership, security or secret scans are absent for risky changes, agent permissions are broader than the lane requires, user-facing UI lacks rendered proof, or \texttt{fallback}/\texttt{TODO}/\texttt{stub} ships without a scoped exception.
 \end{minipage}}
 \end{center}
 
-Known solutions are stronger for some rows than others. Secret scanning, SCA, contract generation, DB constraints, Playwright screenshots, axe checks, and generated-zone manifests are known controls. Model/prompt drift, AI visual triage, context retrieval failure, and human-label learning are still emerging controls; humanlint treats them as soft findings until teams can attach deterministic evidence. The taxonomy turns insult into audit surface. A finding is useful only when it names the rule, points at exact evidence, gives a bounded repair, and can be serialized into an agent queue. ``This feels messy'' is not actionable. \texttt{HLT-002-GENERATED-MUTATION} in \texttt{apps/web/src/generated/client.ts} with source \texttt{contracts/openapi/api.yaml} is actionable.
+Known solutions are stronger for some rows than others. Secret scanning, SCA, contract generation, DB constraints, Playwright screenshots, axe checks, and generated-zone manifests are known controls. Model/prompt drift, AI visual triage, context retrieval failure, and human-label learning are still emerging controls; jankurai treats them as soft findings until teams can attach deterministic evidence. The taxonomy turns insult into audit surface. A finding is useful only when it names the rule, points at exact evidence, gives a bounded repair, and can be serialized into an agent queue. ``This feels messy'' is not actionable. \texttt{HLT-002-GENERATED-MUTATION} in \texttt{apps/web/src/generated/client.ts} with source \texttt{contracts/openapi/api.yaml} is actionable.

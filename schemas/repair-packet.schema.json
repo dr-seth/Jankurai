@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/repair-packet.schema.json",
-  "title": "humanlint repair packet",
+  "$id": "https://jankurai.dev/schemas/repair-packet.schema.json",
+  "title": "jankurai repair packet",
   "type": "object",
   "required": [
     "finding_fingerprint",

@@ -7,7 +7,7 @@ Parallel MCP candidate: yes
 
 ## Objective
 
-Move Humanlint from mostly heuristic scanning toward a versioned rule engine with semantic understanding. The audit should know why a pattern violates ownership, boundary, generated-zone, contract, DB, security, UX, or agent-context policy.
+Move Jankurai from mostly heuristic scanning toward a versioned rule engine with semantic understanding. The audit should know why a pattern violates ownership, boundary, generated-zone, contract, DB, security, UX, or agent-context policy.
 
 The exit state is not a complete compiler-grade analyzer. The exit state is a clean rule architecture that can support AST and graph checks incrementally without breaking the existing audit.
 
@@ -15,11 +15,11 @@ The exit state is not a complete compiler-grade analyzer. The exit state is a cl
 
 The current audit uses dependency-light Rust code and pattern-based scanning:
 
-- `crates/humanlint/src/audit/mod.rs` defines weights, caps, pattern lists, dimensions, and findings.
-- `crates/humanlint/src/boundaries/` has early boundary checks for Rust, TypeScript, Python, SQL, streaming, and manifest loading.
+- `crates/jankurai/src/audit/mod.rs` defines weights, caps, pattern lists, dimensions, and findings.
+- `crates/jankurai/src/boundaries/` has early boundary checks for Rust, TypeScript, Python, SQL, streaming, and manifest loading.
 - `agent/boundaries.toml` exists.
 - Report findings already carry rule-like fields: severity, category, path, evidence, `check_id`, `rule_id`, `lane`, `docs_url`, `owner`, line, matched term, reason, fingerprint, and `agent_fix`.
-- **`HLT-014-A11Y-GAP`** is registered in `crates/humanlint/src/audit/rules.rs` (aligned with `agent/HUMANLINT_STANDARD.md`); registry uniqueness and lookup tests in `crates/humanlint/tests/rule_registry_smoke.rs`.
+- **`HLT-014-A11Y-GAP`** is registered in `crates/jankurai/src/audit/rules.rs` (aligned with `agent/JANKURAI_STANDARD.md`); registry uniqueness and lookup tests in `crates/jankurai/tests/rule_registry_smoke.rs`.
 
 The implementation is useful but centralized. Future growth needs a rule registry and analyzers with clear contracts.
 
@@ -33,7 +33,7 @@ Inputs:
 - `docs/audit-rubric.md`
 - `docs/boundary-oracle.md`
 - `agent/boundaries.toml`
-- existing findings in `crates/humanlint/src/audit/mod.rs`
+- existing findings in `crates/jankurai/src/audit/mod.rs`
 
 ## Public Interface Changes
 
@@ -192,7 +192,7 @@ Merge order:
 Minimum:
 
 ```bash
-cargo test -p humanlint
+cargo test -p jankurai
 just fast
 ```
 
@@ -211,18 +211,18 @@ Leave:
 - list of rule IDs added or remapped
 - analyzer inputs and outputs
 - known false-positive allowlists
-- performance delta for `cargo check -p humanlint`
+- performance delta for `cargo check -p jankurai`
 - examples of improved findings
 
 ## Phase Status Receipt
 
 - Phase status: partial rule engine and semantic oracle
-- Files changed: `crates/humanlint/src/audit/mod.rs`, `crates/humanlint/src/audit/rules.rs`, `crates/humanlint/tests/audit_smoke.rs`, and `target/humanlint/phase-logs/02-rule-engine-semantic-oracle.md.log`
+- Files changed: `crates/jankurai/src/audit/mod.rs`, `crates/jankurai/src/audit/rules.rs`, `crates/jankurai/tests/audit_smoke.rs`, and `target/jankurai/phase-logs/02-rule-engine-semantic-oracle.md.log`
 - Schemas changed: rule metadata and finding compatibility surfaces under `schemas/`
 - Public interfaces changed: audit now routes stable `rule_id`, lane, TLR, docs URL, and owner hints through the registry
 - Generated artifacts: none
 - Routing maps changed: none in this slice
-- Validation commands: `cargo test -p humanlint`, `just fast`
+- Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: validation passed; analyzer split remains partial
 - Skipped validation: none
 - Exceptions created: analyzer split and AST/import pilot remain gated follow-on work

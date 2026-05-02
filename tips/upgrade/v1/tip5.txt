@@ -4,9 +4,9 @@ The three upgrades below are the highest-leverage path to make this adoptable, h
 
 I’d frame the product as:
 
-> **Humanlint = agent-native repo standard + one-command installer + proof-carrying audit gate.**
+> **Jankurai = agent-native repo standard + one-command installer + proof-carrying audit gate.**
 
-A key compatibility point: make `AGENTS.md` the canonical front door, then generate tool-specific adapters from it. `AGENTS.md` is now an open, predictable agent-instruction format with broad ecosystem support and nested-file behavior for monorepos; Codex reads `AGENTS.md` before work and layers global/project/current-directory instructions; Cursor supports `.cursor/rules` plus `AGENTS.md`; Claude Code uses `CLAUDE.md`, `.claude/settings.json`, and `SKILL.md`-based skills; Antigravity/Gemini-style tooling exposes rules/workflows and skills, so Humanlint should generate adapters rather than hand-maintain divergent docs. ([Agents][1])
+A key compatibility point: make `AGENTS.md` the canonical front door, then generate tool-specific adapters from it. `AGENTS.md` is now an open, predictable agent-instruction format with broad ecosystem support and nested-file behavior for monorepos; Codex reads `AGENTS.md` before work and layers global/project/current-directory instructions; Cursor supports `.cursor/rules` plus `AGENTS.md`; Claude Code uses `CLAUDE.md`, `.claude/settings.json`, and `SKILL.md`-based skills; Antigravity/Gemini-style tooling exposes rules/workflows and skills, so Jankurai should generate adapters rather than hand-maintain divergent docs. ([Agents][1])
 
 ---
 
@@ -16,21 +16,21 @@ A key compatibility point: make `AGENTS.md` the canonical front door, then gener
 
 ### Why this matters
 
-Right now, adoption is too manual. The README says to install the Rust CLI, then separately `curl` an agent standard file. CI examples use `cargo run -p humanlint`, which only works from this repository, not from an adopting repo. The project also has no `init`, no `doctor`, no interactive repair flow, no tool-specific adapter generator, and no first-class UX QA install path.
+Right now, adoption is too manual. The README says to install the Rust CLI, then separately `curl` an agent standard file. CI examples use `cargo run -p jankurai`, which only works from this repository, not from an adopting repo. The project also has no `init`, no `doctor`, no interactive repair flow, no tool-specific adapter generator, and no first-class UX QA install path.
 
 This should become the product’s front door:
 
 ```bash
-humanlint init
-humanlint doctor
-humanlint audit .
-humanlint gate .
+jankurai init
+jankurai doctor
+jankurai audit .
+jankurai gate .
 ```
 
 The goal is that a messy repo can run:
 
 ```bash
-humanlint init --profile rust-ts-vite-react-postgres --agents all --ci github --ux-qa
+jankurai init --profile rust-ts-vite-react-postgres --agents all --ci github --ux-qa
 ```
 
 …and get a clear plan, safe file creation, IDE helper files, CI gate, audit policy, owner/test maps, generated-zone rules, and optional UX QA.
@@ -40,7 +40,7 @@ humanlint init --profile rust-ts-vite-react-postgres --agents all --ci github --
 Add these CLI subcommands:
 
 ```bash
-humanlint init [PATH]
+jankurai init [PATH]
   --profile rust-ts-vite-react-postgres
   --level HL1|HL2|HL3
   --agents codex,cursor,claude,antigravity,copilot,all
@@ -51,16 +51,16 @@ humanlint init [PATH]
   --apply
   --yes
 
-humanlint doctor [PATH]
+jankurai doctor [PATH]
   --apply
   --json
   --md
 
-humanlint adapters generate [PATH]
+jankurai adapters generate [PATH]
   --agents all
   --force
 
-humanlint ux init [PATH]
+jankurai ux init [PATH]
   --package-manager npm|pnpm|yarn|bun
 ```
 
@@ -71,45 +71,45 @@ humanlint ux init [PATH]
 Add Rust modules:
 
 ```text
-crates/humanlint/src/init.rs
-crates/humanlint/src/doctor.rs
-crates/humanlint/src/adapters.rs
-crates/humanlint/src/detect.rs
-crates/humanlint/src/templates.rs
-crates/humanlint/src/plan.rs
-crates/humanlint/src/apply.rs
-crates/humanlint/src/issue_backends.rs
-crates/humanlint/src/main.rs
+crates/jankurai/src/init.rs
+crates/jankurai/src/doctor.rs
+crates/jankurai/src/adapters.rs
+crates/jankurai/src/detect.rs
+crates/jankurai/src/templates.rs
+crates/jankurai/src/plan.rs
+crates/jankurai/src/apply.rs
+crates/jankurai/src/issue_backends.rs
+crates/jankurai/src/main.rs
 ```
 
 Add bundled templates:
 
 ```text
 templates/agent/AGENTS.md
-templates/agent/HUMANLINT_STANDARD.md
+templates/agent/JANKURAI_STANDARD.md
 templates/agent/audit-policy.toml
 templates/agent/owner-map.json
 templates/agent/test-map.json
 templates/agent/generated-zones.toml
 templates/agent/layer-map.toml
-templates/docs/decisions/0001-adopt-humanlint.md
+templates/docs/decisions/0001-adopt-jankurai.md
 templates/docs/exceptions/README.md
-templates/github/workflows/humanlint.yml
+templates/github/workflows/jankurai.yml
 templates/github/copilot-instructions.md
-templates/cursor/rules/humanlint.mdc
+templates/cursor/rules/jankurai.mdc
 templates/claude/CLAUDE.md
 templates/claude/settings.json
-templates/claude/skills/humanlint-audit/SKILL.md
+templates/claude/skills/jankurai-audit/SKILL.md
 templates/antigravity/GEMINI.md
-templates/antigravity/skills/humanlint-audit/SKILL.md
+templates/antigravity/skills/jankurai-audit/SKILL.md
 templates/just/Justfile.fragment
-templates/package/humanlint-scripts.json
+templates/package/jankurai-scripts.json
 ```
 
 Add schemas:
 
 ```text
-schemas/humanlint-init-plan.schema.json
+schemas/jankurai-init-plan.schema.json
 schemas/owner-map.schema.json
 schemas/test-map.schema.json
 schemas/generated-zones.schema.json
@@ -123,7 +123,7 @@ Core files:
 
 ```text
 AGENTS.md
-agent/HUMANLINT_STANDARD.md
+agent/JANKURAI_STANDARD.md
 agent/standard-version.toml
 agent/audit-policy.toml
 agent/owner-map.json
@@ -131,20 +131,20 @@ agent/test-map.json
 agent/generated-zones.toml
 agent/layer-map.toml
 agent/fix-queue.jsonl
-docs/decisions/0001-adopt-humanlint.md
+docs/decisions/0001-adopt-jankurai.md
 docs/exceptions/README.md
-.github/workflows/humanlint.yml
+.github/workflows/jankurai.yml
 ```
 
 Tool-specific adapters:
 
 ```text
-.cursor/rules/humanlint.mdc
+.cursor/rules/jankurai.mdc
 CLAUDE.md
 .claude/settings.json
-.claude/skills/humanlint-audit/SKILL.md
+.claude/skills/jankurai-audit/SKILL.md
 GEMINI.md
-.agents/skills/humanlint-audit/SKILL.md
+.agents/skills/jankurai-audit/SKILL.md
 .github/copilot-instructions.md
 ```
 
@@ -153,7 +153,7 @@ Do **not** duplicate the full standard into every file. Generate short adapters 
 ```md
 Read first:
 1. ./AGENTS.md
-2. ./agent/HUMANLINT_STANDARD.md
+2. ./agent/JANKURAI_STANDARD.md
 3. ./agent/owner-map.json
 4. ./agent/test-map.json
 5. ./agent/generated-zones.toml
@@ -165,12 +165,12 @@ Before editing, identify:
 - generated/source status
 
 After editing, run:
-humanlint audit . --changed-from HEAD
+jankurai audit . --changed-from HEAD
 ```
 
 ### Repo detection behavior
 
-`humanlint init` should inspect the repo and classify it:
+`jankurai init` should inspect the repo and classify it:
 
 ```text
 Rust workspace?              Cargo.toml, Cargo.lock, crates/
@@ -202,7 +202,7 @@ If non-interactive, it should not mutate uncertain paths. It should write findin
 Add:
 
 ```bash
-humanlint doctor --apply
+jankurai doctor --apply
 ```
 
 It should propose safe, reversible changes:
@@ -226,7 +226,7 @@ Receipt shape:
 
 ```json
 {
-  "tool": "humanlint",
+  "tool": "jankurai",
   "command": "doctor --apply",
   "changes": [
     {
@@ -251,36 +251,36 @@ Receipt shape:
 Add:
 
 ```bash
-humanlint issues export --backend github
-humanlint issues export --backend beads
-humanlint issues export --backend jsonl
+jankurai issues export --backend github
+jankurai issues export --backend beads
+jankurai issues export --backend jsonl
 ```
 
 For GitHub:
 
 ```text
-.github/ISSUE_TEMPLATE/humanlint-finding.yml
-.github/workflows/humanlint-issues.yml
+.github/ISSUE_TEMPLATE/jankurai-finding.yml
+.github/workflows/jankurai-issues.yml
 ```
 
 For Beads:
 
 ```text
-agent/issues/humanlint.beads.jsonl
+agent/issues/jankurai.beads.jsonl
 ```
 
-Do not require Beads to be installed. If `bead` or `bd` exists, Humanlint can offer to sync; otherwise emit JSONL.
+Do not require Beads to be installed. If `bead` or `bd` exists, Jankurai can offer to sync; otherwise emit JSONL.
 
 Finding issue shape:
 
 ```json
 {
-  "dedupe_key": "HLT-SECURITY-LANE:.github/workflows/humanlint-audit.yml",
+  "dedupe_key": "HLT-SECURITY-LANE:.github/workflows/jankurai-audit.yml",
   "rule_id": "HLT-SECURITY-LANE",
   "severity": "critical",
   "hard": true,
   "title": "Security lane is placeholder-only",
-  "path": ".github/workflows/humanlint-audit.yml",
+  "path": ".github/workflows/jankurai-audit.yml",
   "owner": "ops",
   "fix": "Replace echo placeholders with executable gitleaks/cargo-audit/zizmor/osv-scanner commands.",
   "agent_prompt": "Fix HLT-SECURITY-LANE by making the workflow execute real tools, not echo placeholders. Preserve existing jobs."
@@ -292,14 +292,14 @@ Finding issue shape:
 Use `assert_cmd`, `tempfile`, `insta`, and golden fixture repos.
 
 ```text
-crates/humanlint/tests/init_empty_repo.rs
-crates/humanlint/tests/init_existing_agents.rs
-crates/humanlint/tests/init_monorepo.rs
-crates/humanlint/tests/init_idempotent.rs
-crates/humanlint/tests/init_dry_run.rs
-crates/humanlint/tests/doctor_layout_plan.rs
-crates/humanlint/tests/adapter_generation.rs
-crates/humanlint/tests/issue_export.rs
+crates/jankurai/tests/init_empty_repo.rs
+crates/jankurai/tests/init_existing_agents.rs
+crates/jankurai/tests/init_monorepo.rs
+crates/jankurai/tests/init_idempotent.rs
+crates/jankurai/tests/init_dry_run.rs
+crates/jankurai/tests/doctor_layout_plan.rs
+crates/jankurai/tests/adapter_generation.rs
+crates/jankurai/tests/issue_export.rs
 ```
 
 Fixtures:
@@ -317,20 +317,20 @@ fixtures/existing-github-actions/
 Acceptance criteria:
 
 ```text
-humanlint init --dry-run fixtures/empty-repo
+jankurai init --dry-run fixtures/empty-repo
   exits 0
   prints plan
   writes no files
 
-humanlint init --apply fixtures/empty-repo
+jankurai init --apply fixtures/empty-repo
   exits 0
-  creates AGENTS.md, agent/*, .github/workflows/humanlint.yml
+  creates AGENTS.md, agent/*, .github/workflows/jankurai.yml
 
-humanlint init --apply fixtures/empty-repo twice
+jankurai init --apply fixtures/empty-repo twice
   second run exits 0
   reports no changes
 
-humanlint adapters generate --agents all
+jankurai adapters generate --agents all
   creates short, canonical, non-conflicting adapter files
 ```
 
@@ -340,9 +340,9 @@ These are adoption blockers I found in the archive:
 
 ```text
 1. README and CI use npm ci, but the archive has no package-lock.json.
-2. .github/workflows/humanlint-audit.yml has security placeholder echo commands.
-3. README adoption snippet uses cargo run -p humanlint, which will fail in normal adopting repos.
-4. Root AGENTS.md contains a machine-specific path: /Users/bentaylor/Code/humanlint.
+2. .github/workflows/jankurai-audit.yml has security placeholder echo commands.
+3. README adoption snippet uses cargo run -p jankurai, which will fail in normal adopting repos.
+4. Root AGENTS.md contains a machine-specific path: /Users/bentaylor/Code/jankurai.
 5. repo-score.json appears stale: it reports lockfile/security confidence that the archive does not actually satisfy.
 6. README references directories like assets/, tips/, and reference/ that are not present in the archive.
 ```
@@ -363,14 +363,14 @@ run: echo "gitleaks syft grype zizmor cargo-audit"
 
 …and the audit currently treats that as security evidence because it scans for words, not executable proof.
 
-That is the biggest trust problem. Humanlint cannot become a standard if a repo can pass by mentioning tools in prose or `echo`.
+That is the biggest trust problem. Jankurai cannot become a standard if a repo can pass by mentioning tools in prose or `echo`.
 
 The audit needs to become a **proof-carrying gate**:
 
 ```bash
-humanlint audit .
-humanlint audit . --changed-from origin/main
-humanlint gate . --policy agent/audit-policy.toml --baseline agent/baseline.json
+jankurai audit .
+jankurai audit . --changed-from origin/main
+jankurai gate . --policy agent/audit-policy.toml --baseline agent/baseline.json
 ```
 
 ### What to build
@@ -378,25 +378,25 @@ humanlint gate . --policy agent/audit-policy.toml --baseline agent/baseline.json
 Split the audit into real analyzers:
 
 ```text
-crates/humanlint/src/audit/inventory.rs
-crates/humanlint/src/audit/maps.rs
-crates/humanlint/src/audit/policy.rs
-crates/humanlint/src/audit/ci.rs
-crates/humanlint/src/audit/workflows.rs
-crates/humanlint/src/audit/security.rs
-crates/humanlint/src/audit/secrets.rs
-crates/humanlint/src/audit/generated.rs
-crates/humanlint/src/audit/layers.rs
-crates/humanlint/src/audit/rust.rs
-crates/humanlint/src/audit/typescript.rs
-crates/humanlint/src/audit/python.rs
-crates/humanlint/src/audit/sql.rs
-crates/humanlint/src/audit/deps.rs
-crates/humanlint/src/audit/agents.rs
-crates/humanlint/src/report/json.rs
-crates/humanlint/src/report/markdown.rs
-crates/humanlint/src/report/sarif.rs
-crates/humanlint/src/report/github.rs
+crates/jankurai/src/audit/inventory.rs
+crates/jankurai/src/audit/maps.rs
+crates/jankurai/src/audit/policy.rs
+crates/jankurai/src/audit/ci.rs
+crates/jankurai/src/audit/workflows.rs
+crates/jankurai/src/audit/security.rs
+crates/jankurai/src/audit/secrets.rs
+crates/jankurai/src/audit/generated.rs
+crates/jankurai/src/audit/layers.rs
+crates/jankurai/src/audit/rust.rs
+crates/jankurai/src/audit/typescript.rs
+crates/jankurai/src/audit/python.rs
+crates/jankurai/src/audit/sql.rs
+crates/jankurai/src/audit/deps.rs
+crates/jankurai/src/audit/agents.rs
+crates/jankurai/src/report/json.rs
+crates/jankurai/src/report/markdown.rs
+crates/jankurai/src/report/sarif.rs
+crates/jankurai/src/report/github.rs
 ```
 
 ### Add a stable policy file
@@ -482,7 +482,7 @@ Current findings should evolve to this:
 
 ```json
 {
-  "schema_version": "humanlint.report.v1",
+  "schema_version": "jankurai.report.v1",
   "repo": {
     "root": ".",
     "git_head": "abc123",
@@ -496,12 +496,12 @@ Current findings should evolve to this:
   "findings": [
     {
       "finding_id": "HLT-SECURITY-LANE-001",
-      "dedupe_key": "HLT-SECURITY-LANE:.github/workflows/humanlint-audit.yml",
+      "dedupe_key": "HLT-SECURITY-LANE:.github/workflows/jankurai-audit.yml",
       "rule_id": "HLT-SECURITY-LANE",
       "severity": "critical",
       "hard": true,
       "category": "ci_security",
-      "path": ".github/workflows/humanlint-audit.yml",
+      "path": ".github/workflows/jankurai-audit.yml",
       "span": {
         "start_line": 21,
         "end_line": 23
@@ -511,10 +511,10 @@ Current findings should evolve to this:
       "evidence": "Workflow mentions gitleaks through echo but does not execute it.",
       "why_it_matters": "The audit can be gamed by prose and gives a false security signal.",
       "fix": "Replace echo placeholders with real commands or pinned actions.",
-      "agent_prompt": "Edit .github/workflows/humanlint-audit.yml so the security job runs real gitleaks, cargo-audit/cargo-deny, zizmor, and dependency checks. Do not count echo statements as evidence.",
+      "agent_prompt": "Edit .github/workflows/jankurai-audit.yml so the security job runs real gitleaks, cargo-audit/cargo-deny, zizmor, and dependency checks. Do not count echo statements as evidence.",
       "commands_after_fix": [
-        "humanlint audit .",
-        "humanlint gate ."
+        "jankurai audit .",
+        "jankurai gate ."
       ],
       "issue": {
         "title": "Replace placeholder security lane with executable checks",
@@ -530,8 +530,8 @@ Current findings should evolve to this:
 Add:
 
 ```bash
-humanlint audit . --sarif humanlint.sarif
-humanlint audit . --github-annotations
+jankurai audit . --sarif jankurai.sarif
+jankurai audit . --github-annotations
 ```
 
 CI should upload SARIF so findings appear in code scanning.
@@ -559,7 +559,7 @@ Generated zones:
 Stack boundaries:
 - Rust/TS/Python boundaries are mostly text heuristics.
 - Direct DB checks can false-positive on prose and false-negative on real imports.
-- packages/ux-qa and crates/humanlint are excluded from “product code,” so the repo’s own code escapes some checks.
+- packages/ux-qa and crates/jankurai are excluded from “product code,” so the repo’s own code escapes some checks.
 
 Future-hostile terms:
 - Terms like “old,” “compat,” “fallback,” and “temp” are too broad.
@@ -619,7 +619,7 @@ Actually parse:
     {
       "glob": "apps/web/**",
       "owner": "frontend",
-      "test_lanes": ["npm:test", "npm:e2e", "humanlint:ux"]
+      "test_lanes": ["npm:test", "npm:e2e", "jankurai:ux"]
     },
     {
       "glob": "crates/domain/**",
@@ -739,26 +739,26 @@ proptest                path/rule fuzzing
 Keep AST mode optional at first:
 
 ```bash
-humanlint audit .              # fast default
-humanlint audit . --deep       # AST/import/dependency graph
-humanlint audit . --changed-from origin/main
+jankurai audit .              # fast default
+jankurai audit . --deep       # AST/import/dependency graph
+jankurai audit . --changed-from origin/main
 ```
 
 ### Tests to add
 
 ```text
-crates/humanlint/tests/audit_security_lane.rs
-crates/humanlint/tests/audit_owner_map.rs
-crates/humanlint/tests/audit_test_map.rs
-crates/humanlint/tests/audit_generated_zones.rs
-crates/humanlint/tests/audit_layer_boundaries.rs
-crates/humanlint/tests/audit_lockfiles.rs
-crates/humanlint/tests/audit_false_green.rs
-crates/humanlint/tests/audit_python_containment.rs
-crates/humanlint/tests/audit_sarif.rs
-crates/humanlint/tests/audit_stdout_contract.rs
-crates/humanlint/tests/audit_baseline_gate.rs
-crates/humanlint/tests/audit_performance.rs
+crates/jankurai/tests/audit_security_lane.rs
+crates/jankurai/tests/audit_owner_map.rs
+crates/jankurai/tests/audit_test_map.rs
+crates/jankurai/tests/audit_generated_zones.rs
+crates/jankurai/tests/audit_layer_boundaries.rs
+crates/jankurai/tests/audit_lockfiles.rs
+crates/jankurai/tests/audit_false_green.rs
+crates/jankurai/tests/audit_python_containment.rs
+crates/jankurai/tests/audit_sarif.rs
+crates/jankurai/tests/audit_stdout_contract.rs
+crates/jankurai/tests/audit_baseline_gate.rs
+crates/jankurai/tests/audit_performance.rs
 ```
 
 Critical fixture repos:
@@ -792,28 +792,28 @@ fn echoing_security_tools_does_not_count_as_security_lane() {
 ### Acceptance criteria
 
 ```text
-humanlint audit fixtures/security-echo-placeholder
+jankurai audit fixtures/security-echo-placeholder
   returns critical security finding
 
-humanlint audit fixtures/security-real-lane
+jankurai audit fixtures/security-real-lane
   no security-placeholder finding
 
-humanlint audit fixtures/no-package-lock
+jankurai audit fixtures/no-package-lock
   hard fails if package.json exists without lockfile
 
-humanlint audit fixtures/generated-hand-edit --changed-from base
+jankurai audit fixtures/generated-hand-edit --changed-from base
   hard fails unless source contract changed or receipt exists
 
-humanlint audit . --json -
+jankurai audit . --json -
   prints valid JSON only
 
-humanlint audit . --md -
+jankurai audit . --md -
   prints Markdown only
 
-humanlint audit . --json out.json --md out.md --sarif out.sarif
+jankurai audit . --json out.json --md out.md --sarif out.sarif
   writes all three
 
-humanlint gate . --baseline baseline.json
+jankurai gate . --baseline baseline.json
   fails only on new/regressed findings unless policy says otherwise
 ```
 
@@ -833,7 +833,7 @@ This is how you stop human scatter: give agents and humans one excellent default
 .
 ├── AGENTS.md
 ├── agent/
-│   ├── HUMANLINT_STANDARD.md
+│   ├── JANKURAI_STANDARD.md
 │   ├── audit-policy.toml
 │   ├── owner-map.json
 │   ├── test-map.json
@@ -995,7 +995,7 @@ templates/stack/rust-ts-vite-react-postgres/crates/adapters/*
 templates/stack/rust-ts-vite-react-postgres/contracts/openapi/*
 templates/stack/rust-ts-vite-react-postgres/db/migrations/*
 templates/stack/rust-ts-vite-react-postgres/docs/boundaries.md
-templates/stack/rust-ts-vite-react-postgres/.github/workflows/humanlint.yml
+templates/stack/rust-ts-vite-react-postgres/.github/workflows/jankurai.yml
 ```
 
 Expand:
@@ -1005,7 +1005,7 @@ docs/boundaries.md
 docs/testing.md
 docs/audit-rubric.md
 docs/agent-native-standard.md
-paper/humanlint.md
+paper/jankurai.md
 paper/sections/*
 ```
 
@@ -1033,7 +1033,7 @@ HL0 — Observed
 
 HL1 — Agent-readable
 - AGENTS.md
-- HUMANLINT_STANDARD.md
+- JANKURAI_STANDARD.md
 - owner-map/test-map
 - basic CI audit
 
@@ -1123,7 +1123,7 @@ Add config:
   "allow": [
     {
       "rule": "edge-clearance",
-      "selector": "[data-humanlint-allow-edge]"
+      "selector": "[data-jankurai-allow-edge]"
     }
   ]
 }
@@ -1132,17 +1132,17 @@ Add config:
 Better CLI:
 
 ```bash
-humanlint-ux audit --config .humanlint/ux-qa.json
-humanlint-ux audit --base-url http://localhost:5173 --routes routes.json
-humanlint-ux audit --changed-from origin/main
-humanlint-ux audit --fail-on error
+jankurai-ux audit --config .jankurai/ux-qa.json
+jankurai-ux audit --base-url http://localhost:5173 --routes routes.json
+jankurai-ux audit --changed-from origin/main
+jankurai-ux audit --fail-on error
 ```
 
-Humanlint integration:
+Jankurai integration:
 
 ```bash
-humanlint audit . --include-ux
-humanlint ux audit --changed-from origin/main
+jankurai audit . --include-ux
+jankurai ux audit --changed-from origin/main
 ```
 
 ### UX QA tests to add
@@ -1177,7 +1177,7 @@ Specific test cases:
 The adopting repo should get this:
 
 ```yaml
-name: humanlint
+name: jankurai
 
 on:
   pull_request:
@@ -1185,30 +1185,30 @@ on:
     branches: [main]
 
 jobs:
-  humanlint:
+  jankurai:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: humanlint/setup-humanlint@v1
-      - run: humanlint audit . --json humanlint.json --md humanlint.md --sarif humanlint.sarif
-      - run: humanlint gate . --policy agent/audit-policy.toml
+      - uses: jankurai/setup-jankurai@v1
+      - run: jankurai audit . --json jankurai.json --md jankurai.md --sarif jankurai.sarif
+      - run: jankurai gate . --policy agent/audit-policy.toml
       - uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: humanlint.sarif
+          sarif_file: jankurai.sarif
 
   ux-qa:
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.changed_files, 'apps/web')
     steps:
       - uses: actions/checkout@v4
-      - uses: humanlint/setup-humanlint@v1
+      - uses: jankurai/setup-jankurai@v1
       - run: npm ci
       - run: npm run build
       - run: npm run preview -- --host 127.0.0.1 &
-      - run: humanlint ux audit --config .humanlint/ux-qa.json --fail-on error
+      - run: jankurai ux audit --config .jankurai/ux-qa.json --fail-on error
 ```
 
-For the Humanlint repo itself, do not use `npm ci` unless `package-lock.json` is committed.
+For the Jankurai repo itself, do not use `npm ci` unless `package-lock.json` is committed.
 
 ---
 
@@ -1231,8 +1231,8 @@ The paper has the right energy, but it should be sharpened into an adoption spec
 
 The most important conceptual change:
 
-> Humanlint should not say “humans are wrong, AI is right.”
-> It should say: “Unstructured repositories are hostile to both humans and agents. Humanlint makes the repo legible, bounded, testable, and repairable.”
+> Jankurai should not say “humans are wrong, AI is right.”
+> It should say: “Unstructured repositories are hostile to both humans and agents. Jankurai makes the repo legible, bounded, testable, and repairable.”
 
 That phrasing will get broader adoption without losing the ambition.
 
@@ -1247,8 +1247,8 @@ I would fix these before announcing or publishing a standard release:
 2. Add Cargo.lock if the CLI is intended to be installed as an application.
 3. Replace placeholder security workflow lines with real tools.
 4. Make the audit reject echo-only security evidence.
-5. Remove /Users/bentaylor/Code/humanlint from AGENTS.md.
-6. Change README CI snippets from cargo run -p humanlint to installed binary or GitHub Action.
+5. Remove /Users/bentaylor/Code/jankurai from AGENTS.md.
+6. Change README CI snippets from cargo run -p jankurai to installed binary or GitHub Action.
 7. Fix stdout contract: JSON stdout must never be mixed with Markdown stdout.
 8. Regenerate repo-score.json after fixing lockfiles and CI.
 9. Include missing README-referenced directories or remove those references.
@@ -1261,24 +1261,24 @@ I would fix these before announcing or publishing a standard release:
 
 ```bash
 # Install
-cargo install humanlint --locked
+cargo install jankurai --locked
 
 # Adopt
-humanlint init --profile rust-ts-vite-react-postgres --agents all --ci github --ux-qa --apply
+jankurai init --profile rust-ts-vite-react-postgres --agents all --ci github --ux-qa --apply
 
 # Check
-humanlint audit . --json humanlint.json --md humanlint.md --sarif humanlint.sarif
+jankurai audit . --json jankurai.json --md jankurai.md --sarif jankurai.sarif
 
 # Gate
-humanlint gate . --policy agent/audit-policy.toml
+jankurai gate . --policy agent/audit-policy.toml
 
 # Fix queue
-humanlint issues export --backend github
-humanlint issues export --backend beads
+jankurai issues export --backend github
+jankurai issues export --backend beads
 
 # Agent loop
-humanlint audit . --changed-from origin/main
-humanlint doctor --dry-run
+jankurai audit . --changed-from origin/main
+jankurai doctor --dry-run
 ```
 
 The winning standard is not just the paper. It is the loop:
@@ -1294,7 +1294,7 @@ CI enforces hard checks.
 Repo ratchets upward over time.
 ```
 
-That is the path to making Humanlint feel like the default operating system for agentic coding rather than another style guide.
+That is the path to making Jankurai feel like the default operating system for agentic coding rather than another style guide.
 
 [1]: https://agents.md/ "AGENTS.md"
 

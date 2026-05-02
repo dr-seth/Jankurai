@@ -57,7 +57,7 @@ Kotlin/Java JVM + TS/Vite/React          87 | ##################################
 
 The scores are synthesis scores, not laboratory measurements. The small gap between ranks two through five matters less than the large strategic gap between "good local choice" and "standard worth specifying globally."
 
-Kafka deserves a separate note because it is both strong and not the standard. It remains a serious event-streaming contender in brownfield systems: its semantics, ecosystem, and operational familiarity are real. But JVM-bound streaming infrastructure carries exactly the runtime and legacy surface this paper is trying to shrink. The humanlint position is therefore explicit: use Kafka when the system already needs it, treat it as necessary-evil infrastructure rather than stack identity, and expect the agent-native direction to move toward a Kafka-class, Rust-native replacement as AI compresses the cost of systems implementation.
+Kafka deserves a separate note because it is both strong and not the standard. It remains a serious event-streaming contender in brownfield systems: its semantics, ecosystem, and operational familiarity are real. But JVM-bound streaming infrastructure carries exactly the runtime and legacy surface this paper is trying to shrink. The jankurai position is therefore explicit: use Kafka when the system already needs it, treat it as necessary-evil infrastructure rather than stack identity, and expect the agent-native direction to move toward a Kafka-class, Rust-native replacement as AI compresses the cost of systems implementation.
 
 ### Why Rust Wins
 

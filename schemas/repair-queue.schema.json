@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/repair-queue.schema.json",
-  "title": "humanlint repair queue item",
+  "$id": "https://jankurai.dev/schemas/repair-queue.schema.json",
+  "title": "jankurai repair queue item",
   "type": "object",
   "required": ["path", "priority", "task", "why"],
   "properties": {

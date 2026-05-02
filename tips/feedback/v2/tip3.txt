@@ -1,4 +1,4 @@
-Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, README, standard docs, audit workflow, Python audit package, and `@humanlint/ux-qa` package. The central idea is strong: repos should become verification interfaces for generated code. The biggest credibility risk is not the thesis; it is the gap between a broad standards claim and the current evidence/tooling maturity. 
+Reviewed scope: uploaded paper PDF plus the public `jankurai` GitHub repo, README, standard docs, audit workflow, Python audit package, and `@jankurai/ux-qa` package. The central idea is strong: repos should become verification interfaces for generated code. The biggest credibility risk is not the thesis; it is the gap between a broad standards claim and the current evidence/tooling maturity. 
 
 ## Highest-leverage feedback
 
@@ -8,7 +8,7 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 * **Location:** Abstract; Sections I–II; Conclusion
 * **Issue:** The thesis is clear, but “AI coding failure is not mainly a model problem” still reads like a false dichotomy. The paper’s stronger claim is: model errors become production failures when repositories lack ownership, proof routing, boundary checks, and repair evidence.
 * **Why it matters:** A skeptical reviewer can agree with the repo-control-plane thesis while objecting that model quality, context retrieval, tool design, and agent scaffolding still matter. DORA’s framing that AI amplifies existing organizational strengths/weaknesses supports your argument, but not a pure “not model” framing. ([Dora][1])
-* **Proposed fix:** Add a guardrail paragraph early: “The claim is not that model capability is irrelevant. The claim is that production safety depends on repository controls that make model output rejectable, localizable, and repairable. Humanlint targets those controllable repository conditions.”
+* **Proposed fix:** Add a guardrail paragraph early: “The claim is not that model capability is irrelevant. The claim is that production safety depends on repository controls that make model output rejectable, localizable, and repairable. Jankurai targets those controllable repository conditions.”
 * **Type:** Needs writing/editing
 
 ### 2.
@@ -32,7 +32,7 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 ### 4.
 
 * **Severity:** Critical
-* **Location:** Section VI; Appendix A; repo `.github/workflows/humanlint-audit.yml`; `humanlint/cli.py`
+* **Location:** Section VI; Appendix A; repo `.github/workflows/jankurai-audit.yml`; `jankurai/cli.py`
 * **Issue:** The standard promises hard gates and conformance, but the implementation is still mostly heuristic. The GitHub Actions “Security lane placeholders” currently echo commands like `gitleaks`, `syft`, `grype`, and `zizmor` instead of running them. ([GitHub][4])
 * **Why it matters:** This is the fastest way for a serious engineer to lose trust: the paper says “hard gates,” while the repo demonstrates placeholders. The standard requires audit JSON/Markdown, owner maps, proof lanes, generated-zone manifests, CI outputs, and agent fix queues, so the implementation needs to visibly match the conformance story. ([GitHub][5])
 * **Proposed fix:** Ship v0.3 around one promise: real hard gates. Implement actual scanner invocation or evidence ingestion for secrets/SCA/SBOM/workflow risk; return nonzero exit codes by mode; add SARIF; add JSON Schema; add changed-path owner/test-map coverage; and publish a sample failed/green report.
@@ -44,7 +44,7 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 * **Location:** Section XII; Tables XIII–XIV; repo `packages/ux-qa`
 * **Issue:** The rendered UX section is one of the paper’s best ideas, but the current tool does not yet justify a “world-class” claim. The package has a real seed runtime: it collects page metrics, elements, violations, artifacts, and rules such as edge clearance, target size, overlap, clipping, button wrapping, overflow, sticky obstruction, z-index, focus visibility, form labels, and nested scrollbars. But it does not yet integrate Storybook state discovery, axe, visual baseline review, CLS measurement, design-token parsing, or human label feedback. ([GitHub][6])
 * **Why it matters:** The paper correctly argues that typechecks and component tests miss rendered failures. But adopters will expect the product to do more than geometry linting if the section discusses Storybook, Playwright screenshots, ARIA snapshots, visual regression, accessibility automation, design tokens, mocks, AI/CV triage, and feedback loops. Playwright and WCAG already provide strong external anchors for screenshots, ARIA snapshots, and 24×24 CSS-pixel target-size checks. ([Playwright][7])
-* **Proposed fix:** Split the claim into layers: “implemented now,” “integrates externally,” and “planned.” Build `@humanlint/ux-qa` v0.3 with Storybook story enumeration, axe integration, CLS capture, artifact crops per violation, baseline-review metadata, and a label schema for human review decisions.
+* **Proposed fix:** Split the claim into layers: “implemented now,” “integrates externally,” and “planned.” Build `@jankurai/ux-qa` v0.3 with Storybook story enumeration, axe integration, CLS capture, artifact crops per violation, baseline-review metadata, and a label schema for human review decisions.
 * **Type:** Needs internal product building
 
 ### 6.
@@ -77,7 +77,7 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 ### 9.
 
 * **Severity:** High
-* **Location:** Appendix A; `humanlint/cli.py`; audit rules
+* **Location:** Appendix A; `jankurai/cli.py`; audit rules
 * **Issue:** Missing hard catches should be added before broadening the standard further: GitHub Actions `permissions:` defaults, `pull_request_target` misuse, unpinned actions/images, curl-to-shell installers, conflicting lockfiles, missing lockfile for package manifests, dependency added without license/provenance, generated zone stale output, CODEOWNERS/owner-map mismatch, test `.only`, unreviewed skipped tests, destructive SQL without transaction/rollback/lock-timeout, and artifact/transcript secret leakage.
 * **Why it matters:** These are concrete, auditable, high-signal checks. They make the tool feel serious faster than more rhetoric.
 * **Proposed fix:** Add these as HLT subrules with stable IDs, e.g. `HLT-016A-UNPINNED-ACTION`, `HLT-010A-ARTIFACT-SECRET`, `HLT-008A-TEST-ONLY`, `HLT-006A-MIGRATION-NO-ROLLBACK`.
@@ -86,7 +86,7 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 ### 10.
 
 * **Severity:** High
-* **Location:** `humanlint/cli.py`; hard/soft rule semantics
+* **Location:** `jankurai/cli.py`; hard/soft rule semantics
 * **Issue:** Several current soft signals are likely to create false positives: “dead language” terms, “fallback,” “legacy,” “utils,” “helpers,” LOC caps, “non-optimal language,” and Python ratio.
 * **Why it matters:** Engineers will tolerate noisy advisory findings, but not noisy blocking findings. False positives are especially risky for a standard trying to influence architecture.
 * **Proposed fix:** Split each noisy heuristic into: `evidence-only`, `warning`, and `hard only with context`. For example, `fallback` in product runtime plus no reason code is a finding; `fallback` in docs or product copy is not. Add precision/recall tests over 10–20 fixture repos.
@@ -116,7 +116,7 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 * **Location:** Section VI; Appendix A; standard docs
 * **Issue:** Conformance needs machine-readable schemas, not just prose. The standard defines required output fields and conformance levels, but the repo should ship schemas for `repo-score.json`, `owner-map.json`, `test-map.json`, `generated-zones.toml`, `repair receipt`, and `exception`. ([GitHub][5])
 * **Why it matters:** Standards become credible when third parties can validate conformance independently. Schemas also make findings more actionable for agents.
-* **Proposed fix:** Add `/schema/v1/*.schema.json`, a `humanlint validate-config` command, fixture tests, and a “conformance test suite” that other repos can run.
+* **Proposed fix:** Add `/schema/v1/*.schema.json`, a `jankurai validate-config` command, fixture tests, and a “conformance test suite” that other repos can run.
 * **Type:** Needs internal product building
 
 ### 14.
@@ -140,10 +140,10 @@ Reviewed scope: uploaded paper PDF plus the public `humanlint` GitHub repo, READ
 ### 16.
 
 * **Severity:** High
-* **Location:** Section XII; `@humanlint/ux-qa`
-* **Issue:** The paper cites strong UX tooling concepts, but `humanlint` should build the missing integration layer, not only name the ecosystem.
-* **Why it matters:** Storybook is widely used for isolated UI states, Playwright supports screenshot comparison and ARIA snapshots, and WCAG target-size rules give objective accessibility thresholds. Humanlint’s opportunity is to connect these into one evidence contract. ([Storybook][10])
-* **Proposed fix:** Build `humanlint ux plan` to discover changed UI paths, map them to Storybook stories/routes, run Playwright screenshots, run axe, capture ARIA snapshots, run geometry rules, and emit one `ux-qa.json` artifact with merge decision and repair hints.
+* **Location:** Section XII; `@jankurai/ux-qa`
+* **Issue:** The paper cites strong UX tooling concepts, but `jankurai` should build the missing integration layer, not only name the ecosystem.
+* **Why it matters:** Storybook is widely used for isolated UI states, Playwright supports screenshot comparison and ARIA snapshots, and WCAG target-size rules give objective accessibility thresholds. Jankurai’s opportunity is to connect these into one evidence contract. ([Storybook][10])
+* **Proposed fix:** Build `jankurai ux plan` to discover changed UI paths, map them to Storybook stories/routes, run Playwright screenshots, run axe, capture ARIA snapshots, run geometry rules, and emit one `ux-qa.json` artifact with merge decision and repair hints.
 * **Type:** Needs internal product building
 
 ### 17.
@@ -234,15 +234,15 @@ The paper is hardest to dismiss when it talks about agent-native repositories as
 The next best move is not more rhetoric. It is a small, excellent v0.3: real hard gates, schemas, sample reports, sample repo, calibrated score caveats, and a visibly useful UX QA artifact workflow.
 
 [1]: https://dora.dev/dora-report-2025/?utm_source=chatgpt.com "DORA | State of AI-assisted Software Development 2025"
-[2]: https://github.com/jeppsontaylor/humanlint "GitHub - jeppsontaylor/humanlint: Turns out humans were a bug, we're fixing that · GitHub"
+[2]: https://github.com/jeppsontaylor/jankurai "GitHub - jeppsontaylor/jankurai: Turns out humans were a bug, we're fixing that · GitHub"
 [3]: https://www.veracode.com/resources/analyst-reports/2025-genai-code-security-report/?utm_source=chatgpt.com "October 2025 Update: GenAI Code Security Report"
-[4]: https://github.com/jeppsontaylor/humanlint/blob/main/.github/workflows/humanlint-audit.yml "humanlint/.github/workflows/humanlint-audit.yml at main · jeppsontaylor/humanlint · GitHub"
-[5]: https://github.com/jeppsontaylor/humanlint/raw/refs/heads/main/docs/agent-native-standard.md "raw.githubusercontent.com"
-[6]: https://github.com/jeppsontaylor/humanlint/blob/main/packages/ux-qa/src/rules.ts "humanlint/packages/ux-qa/src/rules.ts at main · jeppsontaylor/humanlint · GitHub"
+[4]: https://github.com/jeppsontaylor/jankurai/blob/main/.github/workflows/jankurai-audit.yml "jankurai/.github/workflows/jankurai-audit.yml at main · jeppsontaylor/jankurai · GitHub"
+[5]: https://github.com/jeppsontaylor/jankurai/raw/refs/heads/main/docs/agent-native-standard.md "raw.githubusercontent.com"
+[6]: https://github.com/jeppsontaylor/jankurai/blob/main/packages/ux-qa/src/rules.ts "jankurai/packages/ux-qa/src/rules.ts at main · jeppsontaylor/jankurai · GitHub"
 [7]: https://playwright.dev/docs/test-snapshots?utm_source=chatgpt.com "Visual comparisons"
 [8]: https://owasp.org/www-project-top-10-for-large-language-model-applications/?utm_source=chatgpt.com "OWASP Top 10 for Large Language Model Applications"
 [9]: https://arxiv.org/abs/2507.09063?utm_source=chatgpt.com "SetupBench: Assessing Software Engineering Agents' Ability to Bootstrap Development Environments"
 [10]: https://storybook.js.org/?utm_source=chatgpt.com "Storybook: Frontend workshop for UI development"
 [11]: https://www.gitguardian.com/state-of-secrets-sprawl-report-2026?utm_source=chatgpt.com "The State of Secrets Sprawl 2026"
-[12]: https://github.com/jeppsontaylor/humanlint/blob/main/agent/standard-version.toml "humanlint/agent/standard-version.toml at main · jeppsontaylor/humanlint · GitHub"
+[12]: https://github.com/jeppsontaylor/jankurai/blob/main/agent/standard-version.toml "jankurai/agent/standard-version.toml at main · jeppsontaylor/jankurai · GitHub"
 

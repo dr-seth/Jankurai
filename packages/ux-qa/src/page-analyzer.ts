@@ -4,7 +4,7 @@ import { UxQaAssertionError } from "./errors.js";
 import { runUxRules } from "./rules.js";
 import type { UxQaConfig, UxQaDecision, UxQaReport, UxQaRuleId, UxQaRunContext, UxQaSummary } from "./types.js";
 
-export const UX_QA_SCHEMA_VERSION = "1.2.0";
+export const UX_QA_SCHEMA_VERSION = "1.3.0";
 export const UX_QA_TOOL_VERSION = "0.4.0";
 
 export async function analyzePage(page: Page, config: UxQaConfig = {}, context: UxQaRunContext = {}): Promise<UxQaReport> {
@@ -22,6 +22,11 @@ export async function analyzePage(page: Page, config: UxQaConfig = {}, context: 
     elements,
     violations,
     artifacts: [],
+    artifactCoverage: {
+      required: [],
+      present: [],
+      missing: []
+    },
     summary: summarizeViolations(violations),
     stateCoverage: {
       required: requiredStates,
@@ -40,7 +45,7 @@ export async function expectNoUxViolations(page: Page, config: UxQaConfig = {}):
   const report = await analyzePage(page, config);
   if (report.violations.length === 0) return;
   const summary = report.violations.map((item) => `${item.ruleId} ${item.selector}: ${item.evidence}`).join("\n");
-  throw new UxQaAssertionError(`humanlint UX QA found ${report.violations.length} violation(s)\n${summary}`);
+  throw new UxQaAssertionError(`jankurai UX QA found ${report.violations.length} violation(s)\n${summary}`);
 }
 
 function summarizeViolations(violations: UxQaReport["violations"]): UxQaSummary {

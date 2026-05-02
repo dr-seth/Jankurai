@@ -1,12 +1,12 @@
 export class UxQaAssertionError extends Error {
   readonly purpose = "block rendered UX violations before merge";
   readonly reason_code = "UX_QA_VIOLATION";
-  readonly docs_url = "https://github.com/jeppsontaylor/humanlint#rendered-ux-qa";
+  readonly docs_url = "https://github.com/jeppsontaylor/jankurai#rendered-ux-qa";
   readonly owner = "packages/ux-qa";
   readonly retryable = false;
   readonly severity = "error";
   readonly correlation_id = "local";
-  readonly source = "@humanlint/ux-qa";
+  readonly source = "@jankurai/ux-qa";
   readonly contract_version = "0.4.0";
   readonly common_fixes = [
     "increase target size or spacing",

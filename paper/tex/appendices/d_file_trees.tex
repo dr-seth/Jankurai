@@ -1,6 +1,6 @@
 \section{Canonical File Tree Diagrams}
 
-The body uses short diagrams so the reader can see the intended shape without leaving the ranking argument. The expanded diagrams below are the normative target shape for a default humanlint repository. Names may vary, but ownership, proof lanes, generated zones, durable truth, and repair evidence should remain explicit.
+The body uses short diagrams so the reader can see the intended shape without leaving the ranking argument. The expanded diagrams below are the normative target shape for a default jankurai repository. Names may vary, but ownership, proof lanes, generated zones, durable truth, and repair evidence should remain explicit.
 
 \begin{lstlisting}[style=codebox]
 repo/
@@ -47,7 +47,7 @@ repo/
 repo/
   AGENTS.md                      short root router
   agent/
-    HUMANLINT_STANDARD.md        brief agent bootstrap
+    JANKURAI_STANDARD.md        brief agent bootstrap
     owner-map.json               path -> accountable owner
     test-map.json                path -> proof lane
     proof-lanes.toml             runnable validation commands
@@ -65,7 +65,7 @@ repo/
     runbooks/                    operational repair procedures
   .github/
     workflows/
-      humanlint.yml              audit, UX QA, paper lanes
+      jankurai.yml              audit, UX QA, paper lanes
   agent/repo-score.json                generated audit output
   agent/repo-score.md                  generated review surface
 \end{lstlisting}

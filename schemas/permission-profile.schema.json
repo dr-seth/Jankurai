@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/permission-profile.schema.json",
-  "title": "humanlint permission profile",
+  "$id": "https://jankurai.dev/schemas/permission-profile.schema.json",
+  "title": "jankurai permission profile",
   "type": "object",
   "required": [
     "name",

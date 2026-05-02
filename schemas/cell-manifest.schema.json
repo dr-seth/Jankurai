@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/cell-manifest.schema.json",
-  "title": "humanlint cell manifest",
+  "$id": "https://jankurai.dev/schemas/cell-manifest.schema.json",
+  "title": "jankurai cell manifest",
   "type": "object",
   "required": [
     "cell_id",

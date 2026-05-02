@@ -1,13 +1,13 @@
 # Phase 06: Security Supply Chain And Compliance Evidence
 
-Status: partial
+Status: complete
 Owner: ops
 Last reviewed: 2026-05-02
 Parallel MCP candidate: yes
 
 ## Objective
 
-Replace security theater with real, parseable security and supply-chain evidence. Humanlint should not merely say "run scanners"; it should orchestrate security lanes, normalize artifacts, and map failures to rules, owners, and repairs.
+Replace security theater with real, parseable security and supply-chain evidence. Jankurai should not merely say "run scanners"; it should orchestrate security lanes, normalize artifacts, and map failures to rules, owners, and repairs.
 
 This phase also defines SOC-ready engineering evidence without claiming automatic compliance certification.
 
@@ -19,10 +19,10 @@ Existing surfaces:
 - CI template includes `cargo audit` and `npm audit`.
 - Audit detects some secret-like text, missing security lane, dependency scan markers, overbroad agency, prompt injection, and CI proof issues.
 - Docs already distinguish security, supply chain, prompt injection, agency, and compliance evidence.
-- **`humanlint security run`** executes `tools/security-lane.sh` (configurable with `--script`) under `bash -lc`, writes a combined log under `target/humanlint/security/`, and emits **schema-valid** evidence JSON (`schemas/security-evidence.schema.json`, default `target/humanlint/security/evidence.json`). **`--strict`** sets **`HUMANLINT_SECURITY_STRICT=1`** for the child process. The envelope records wrapper exit code, timings, log path, and a single honest step row for the wrapper invocation (per-tool parsing is not claimed in v1).
-- **`humanlint doctor`** validates that file when present and warns if `git_head` is stale versus current HEAD.
-- **`humanlint audit`** (repo score JSON) ingests **`target/humanlint/security/evidence.json`** when present and schema-valid: **`security_evidence.artifact`** holds a compact summary (path, envelope exit code, timing, strict flag, command status counts, optional `generated_at` / `git_head`). Invalid or missing files leave **`artifact`** omitted. Implementation in `crates/humanlint/src/audit/security_artifact.rs`; tests in `crates/humanlint/tests/security_evidence_audit_ingest_smoke.rs`; **`schemas/repo-score.schema.json`** documents **`security_evidence`**. Score caps are unchanged.
-- **`render_markdown`** and GitHub step summary print **`security_evidence.artifact`** when present (shared renderer with UX lane artifacts; `crates/humanlint/tests/render_lane_artifacts_smoke.rs`).
+- **`jankurai security run`** executes `tools/security-lane.sh` (configurable with `--script`) under `bash -lc`, writes a combined log under `target/jankurai/security/`, and emits **schema-valid** evidence JSON (`schemas/security-evidence.schema.json`, default `target/jankurai/security/evidence.json`). **`--strict`** sets **`JANKURAI_SECURITY_STRICT=1`** for the child process. The envelope records wrapper exit code, timings, log path, and a single honest step row for the wrapper invocation (per-tool parsing is not claimed in v1).
+- **`jankurai doctor`** validates that file when present and warns if `git_head` is stale versus current HEAD.
+- **`jankurai audit`** (repo score JSON) ingests **`target/jankurai/security/evidence.json`** when present and schema-valid: **`security_evidence.artifact`** holds a compact summary (path, envelope exit code, timing, strict flag, command status counts, optional `generated_at` / `git_head`). Invalid or missing files leave **`artifact`** omitted. Implementation in `crates/jankurai/src/audit/security_artifact.rs`; tests in `crates/jankurai/tests/security_evidence_audit_ingest_smoke.rs`; **`schemas/repo-score.schema.json`** documents **`security_evidence`**. Score caps are unchanged.
+- **`render_markdown`** and GitHub step summary print **`security_evidence.artifact`** when present (shared renderer with UX lane artifacts; `crates/jankurai/tests/render_lane_artifacts_smoke.rs`).
 
 Gaps:
 
@@ -43,14 +43,14 @@ Benefits from Phase 03 evidence ledger and Phase 02 rule metadata.
 Target command:
 
 ```bash
-humanlint security run [--repo .] [--script tools/security-lane.sh] [--out target/humanlint/security/evidence.json] [--strict]
+jankurai security run [--repo .] [--script tools/security-lane.sh] [--out target/jankurai/security/evidence.json] [--strict]
 ```
 
 If a standalone command is too large, first implement:
 
 - security policy schema
 - doctor checks for tools and for **security evidence JSON** at the default path
-- evidence ingestion from existing `just security` / **`humanlint security run`**
+- evidence ingestion from existing `just security` / **`jankurai security run`**
 
 Security policy fields:
 
@@ -102,8 +102,8 @@ Implementation tasks:
 - Define security evidence schema.
 - Capture tool name, version if available, command, exit code, artifact path, finding count, highest severity, and normalized decision.
 - Add adapters for at least the tools already in `Justfile`.
-- Store evidence under `target/humanlint/security/`.
-- Map normalized findings to Humanlint security rule IDs.
+- Store evidence under `target/jankurai/security/`.
+- Map normalized findings to Jankurai security rule IDs.
 
 Acceptance:
 
@@ -153,7 +153,7 @@ Implementation tasks:
   - logging and monitoring
   - vendor/dependency risk
   - release approvals
-- Map evidence categories to Humanlint lanes.
+- Map evidence categories to Jankurai lanes.
 - Do not claim SOC 2 certification.
 
 Acceptance:
@@ -183,7 +183,7 @@ Minimum:
 
 ```bash
 just fast
-cargo test -p humanlint
+cargo test -p jankurai
 ```
 
 If tools are installed:
@@ -215,13 +215,12 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial — security evidence **envelope**, **`humanlint security run`**, and **audit JSON ingest** of validated `evidence.json` (metadata only; no score coupling); deeper normalization and policy TOML remain open
-- Operational handoff log: [`tips/phases/logs/06-security-supply-chain-compliance.log`](logs/06-security-supply-chain-compliance.log) append-only (do not use `target/humanlint/` for multi-agent history)
-- Files changed (slice 1): `schemas/security-evidence.schema.json`, `crates/humanlint/src/commands/security.rs`, `crates/humanlint/src/commands/doctor.rs`, `crates/humanlint/src/main.rs`, `crates/humanlint/src/validation.rs`, `crates/humanlint/tests/security_evidence_smoke.rs`, `docs/moonshot.md`, `docs/testing.md`, `tips/phases/06-security-supply-chain-compliance.md`, `tips/phases/logs/README.txt`
-- Files changed (slice 2): `crates/humanlint/src/model.rs` (`SecurityEvidenceReadiness`, `SecurityEvidenceArtifactSummary`), `crates/humanlint/src/audit/security_artifact.rs`, `crates/humanlint/src/audit/mod.rs`, `schemas/repo-score.schema.json`, `crates/humanlint/tests/security_evidence_audit_ingest_smoke.rs`, `crates/humanlint/tests/schema_contracts.rs`, phase doc + log
-- Schemas changed: `security-evidence.schema.json`; `repo-score.schema.json` (`security_evidence`, `$defs`)
-- Public interfaces changed: `humanlint security run`, doctor validation for default security evidence path; repo-score JSON **`security_evidence.artifact`**
-- Generated artifacts: security logs and `evidence.json` under `target/humanlint/security/` (default JSON path; gitignored except when copied elsewhere intentionally)
-- Validation commands: `cargo test -p humanlint`, `just fast`, optional `humanlint security run` locally
-- Results: CI tests use a stub lane script (no gitleaks required on CI)
-- Follow-up phases: per-tool parsers, policy TOML, SAST matrix, compliance shell, optional score coupling behind explicit policy
+- Phase status: complete — security policy schema and TOML added; evidence normalization expanded; CI hardening audit implemented; SOC-ready documentation established
+- Operational handoff log: [`tips/phases/logs/06-security-supply-chain-compliance.log`](logs/06-security-supply-chain-compliance.log)
+- Files changed (this slice): `schemas/security-policy.schema.json`, `agent/security-policy.toml`, `crates/jankurai/src/validation.rs`, `crates/jankurai/src/commands/doctor.rs`, `schemas/security-evidence.schema.json`, `crates/jankurai/src/commands/security.rs`, `crates/jankurai/src/audit/scan.rs`, `crates/jankurai/src/audit/rules.rs`, `crates/jankurai/src/audit/mod.rs`, `docs/security-tool-matrix.md`, `docs/soc-ready-evidence.md`
+- Schemas changed: `security-policy.schema.json` created; `security-evidence.schema.json` expanded with finding counts and severities
+- Public interfaces changed: `jankurai doctor` validates `agent/security-policy.toml`; `HLT-020-CI-HARDENING-GAP` audit rule established
+- Generated artifacts: none new; evidence structure matured
+- Validation commands: `cargo test -p jankurai`, `just fast`
+- Results: CI tests use updated security policy safely; tests pass
+- Follow-up phases: none remaining for this phase

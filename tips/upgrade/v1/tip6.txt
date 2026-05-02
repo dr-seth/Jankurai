@@ -1,16 +1,16 @@
-I studied the archive closely. My read: **the thesis is strong, and the Rust audit + UX QA package are a very good nucleus, but the project is not yet “standard-ready” because the install path, evidence model, and CI proof loop are not hard enough.** The biggest opportunity is to turn Humanlint from a paper + repo scanner into an **agent passport**: one command installs the standard, writes the right agent-help files, configures CI, creates actionable repair queues, and gives every agent IDE the same repo contract.
+I studied the archive closely. My read: **the thesis is strong, and the Rust audit + UX QA package are a very good nucleus, but the project is not yet “standard-ready” because the install path, evidence model, and CI proof loop are not hard enough.** The biggest opportunity is to turn Jankurai from a paper + repo scanner into an **agent passport**: one command installs the standard, writes the right agent-help files, configures CI, creates actionable repair queues, and gives every agent IDE the same repo contract.
 
 A few concrete breakpoints I found in the provided archive:
 
 | Area             | Issue                                                                                                                                                                                                        | Why it matters                                                                                                                              |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Installability   | No `Cargo.lock` or `package-lock.json` in the source archive. `npm ci` fails immediately; `cargo install --locked`/locked install story is inconsistent.                                                     | The first-run experience must never fail on missing lockfiles.                                                                              |
-| Paper build      | `latexmk` fails because `paper/tex/frontmatter.tex` references missing `assets/humanlint_header.png`. README also references missing assets.                                                                 | A “standard” cannot ship with broken reproducible docs.                                                                                     |
+| Paper build      | `latexmk` fails because `paper/tex/frontmatter.tex` references missing `assets/jankurai_header.png`. README also references missing assets.                                                                 | A “standard” cannot ship with broken reproducible docs.                                                                                     |
 | Release hygiene  | Archive contains many AppleDouble `._*` files.                                                                                                                                                               | Signals weak packaging; can pollute audits and confuse agents.                                                                              |
 | CI security lane | Workflow currently echoes tools like `gitleaks`, `syft`, `grype`, `zizmor` rather than running them.                                                                                                         | The audit can mistake “tool name mentioned” for proof. This is exactly the kind of vibe-coding false-green the project is meant to prevent. |
 | Audit evidence   | Several checks scan all text, so docs or the audit source itself can satisfy operational requirements. Example: UX/web evidence can be satisfied by mentioning React/Vite/Storybook in docs or scanner code. | The audit needs scoped evidence: docs are not proof, real commands/artifacts are proof.                                                     |
 | Reporting        | JSON/Markdown reports exist, but they do not yet produce a stable repair queue with rule IDs, exact commands, owner/lane, exception template, SARIF, ratchet, or issue sync.                                 | Agents need the report to be directly executable.                                                                                           |
-| Productization   | There is no `humanlint init` or installer that writes Codex/Cursor/Claude/Gemini/Copilot/Antigravity adapter files.                                                                                          | Adoption dies unless setup is one-command.                                                                                                  |
+| Productization   | There is no `jankurai init` or installer that writes Codex/Cursor/Claude/Gemini/Copilot/Antigravity adapter files.                                                                                          | Adoption dies unless setup is one-command.                                                                                                  |
 
 Also, I could not run Cargo tests in this environment because `cargo`/`rustc` are not installed here. I did run the available Node/paper checks: `npm ci` failed due missing lockfile, and `latexmk` failed due the missing header asset.
 
@@ -22,11 +22,11 @@ Below are the **best 3 upgrades** I would make. These are intentionally large en
 
 ## Goal
 
-Make Humanlint installable in one command:
+Make Jankurai installable in one command:
 
 ```bash
-humanlint init . --yes --tools all --ci github --mode advisory
-humanlint audit . --md repo-score.md --json repo-score.json
+jankurai init . --yes --tools all --ci github --mode advisory
+jankurai audit . --md repo-score.md --json repo-score.json
 ```
 
 This should create the repo’s **Agent Passport**: the canonical contract that every coding agent and IDE reads before touching code.
@@ -38,7 +38,7 @@ This aligns with where agent tooling is going. Codex reads `AGENTS.md` files glo
 Add a new CLI subcommand:
 
 ```bash
-humanlint init [repo]
+jankurai init [repo]
   --yes
   --dry-run
   --force
@@ -54,19 +54,19 @@ humanlint init [repo]
 Default behavior should be safe:
 
 ```bash
-humanlint init .
+jankurai init .
 ```
 
 should inspect the repo, produce a plan, and ask only when ambiguity matters. In noninteractive mode, it should create the minimum safe files and mark unresolved items as TODOs.
 
 ## Files it should create or update
 
-### Canonical Humanlint files
+### Canonical Jankurai files
 
 ```text
 AGENTS.md
-agent/HUMANLINT_STANDARD.md
-agent/humanlint.toml
+agent/JANKURAI_STANDARD.md
+agent/jankurai.toml
 agent/audit-policy.toml
 agent/owner-map.json
 agent/test-map.json
@@ -74,7 +74,7 @@ agent/generated-zones.toml
 agent/proof-lanes.toml
 agent/repo-score.json
 agent/repo-score.md
-docs/decisions/0001-adopt-humanlint.md
+docs/decisions/0001-adopt-jankurai.md
 docs/exceptions/.gitkeep
 ```
 
@@ -87,30 +87,30 @@ apps/web/AGENTS.md                       # optional scoped override
 crates/*/AGENTS.md                       # optional scoped override
 
 # Cursor
-.cursor/rules/humanlint-core.mdc
-.cursor/rules/humanlint-web.mdc
-.cursor/rules/humanlint-rust.mdc
+.cursor/rules/jankurai-core.mdc
+.cursor/rules/jankurai-web.mdc
+.cursor/rules/jankurai-rust.mdc
 
 # Claude
 CLAUDE.md
-.claude/skills/humanlint-audit/SKILL.md
+.claude/skills/jankurai-audit/SKILL.md
 
 # Gemini
 GEMINI.md
 
 # GitHub Copilot
 .github/copilot-instructions.md
-.github/instructions/humanlint.instructions.md
-.github/skills/humanlint-audit/SKILL.md
+.github/instructions/jankurai.instructions.md
+.github/skills/jankurai-audit/SKILL.md
 
 # Portable / future agents
-.agents/skills/humanlint-audit/SKILL.md
-.agents/skills/humanlint-ux-qa/SKILL.md
-.agents/skills/humanlint-init/SKILL.md
+.agents/skills/jankurai-audit/SKILL.md
+.agents/skills/jankurai-ux-qa/SKILL.md
+.agents/skills/jankurai-init/SKILL.md
 
 # Antigravity-style adapter
-.agent/rules/humanlint.md
-.agent/workflows/humanlint-audit.md
+.agent/rules/jankurai.md
+.agent/workflows/jankurai-audit.md
 ```
 
 GitHub’s current skill docs explicitly support project skills under `.github/skills`, `.claude/skills`, or `.agents/skills`, with `SKILL.md` as the required manifest file. ([GitHub Docs][2])
@@ -122,12 +122,12 @@ Root `AGENTS.md` should be short. It should not duplicate the full standard.
 ```md
 # AGENTS.md
 
-This repository follows Humanlint.
+This repository follows Jankurai.
 
 Read these before making changes:
 
-1. `agent/HUMANLINT_STANDARD.md`
-2. `agent/humanlint.toml`
+1. `agent/JANKURAI_STANDARD.md`
+2. `agent/jankurai.toml`
 3. `agent/owner-map.json`
 4. `agent/test-map.json`
 5. `agent/generated-zones.toml`
@@ -141,7 +141,7 @@ Before editing:
 - Do not change UI without running the relevant UX proof lane.
 
 Before final response:
-- Run `humanlint audit . --changed`.
+- Run `jankurai audit . --changed`.
 - Report score changes, hard findings, and proof commands run.
 ```
 
@@ -168,11 +168,11 @@ This is the anti-scatter rule. The standard should say: **Rust and PostgreSQL ow
 
 ## Repo organization repair
 
-`humanlint init` should detect common messy layouts and produce a migration plan:
+`jankurai init` should detect common messy layouts and produce a migration plan:
 
 ```text
-docs/migration/humanlint-plan.md
-agent/humanlint-init-plan.json
+docs/migration/jankurai-plan.md
+agent/jankurai-init-plan.json
 ```
 
 Example findings:
@@ -191,7 +191,7 @@ Example findings:
 Do not silently move large trees. Instead:
 
 ```bash
-humanlint init . --apply-moves
+jankurai init . --apply-moves
 ```
 
 should be required for actual file moves.
@@ -201,27 +201,27 @@ should be required for actual file moves.
 Add:
 
 ```text
-crates/humanlint/src/init/mod.rs
-crates/humanlint/src/init/detect.rs
-crates/humanlint/src/init/planner.rs
-crates/humanlint/src/init/templates.rs
-crates/humanlint/src/init/writer.rs
-crates/humanlint/src/init/adapters.rs
-crates/humanlint/src/init/issues.rs
-crates/humanlint/src/templates/
+crates/jankurai/src/init/mod.rs
+crates/jankurai/src/init/detect.rs
+crates/jankurai/src/init/planner.rs
+crates/jankurai/src/init/templates.rs
+crates/jankurai/src/init/writer.rs
+crates/jankurai/src/init/adapters.rs
+crates/jankurai/src/init/issues.rs
+crates/jankurai/src/templates/
 ```
 
 Update:
 
 ```text
-crates/humanlint/src/main.rs
-crates/humanlint/src/model.rs
-crates/humanlint/src/render.rs
+crates/jankurai/src/main.rs
+crates/jankurai/src/model.rs
+crates/jankurai/src/render.rs
 Cargo.toml
 README.md
 AGENTS.md
 docs/agent-native-standard.md
-paper/humanlint.md
+paper/jankurai.md
 ```
 
 Suggested structs:
@@ -253,19 +253,19 @@ pub struct InitPlan {
 ## Tests to add
 
 ```text
-crates/humanlint/tests/init_smoke.rs
-crates/humanlint/tests/init_idempotent.rs
-crates/humanlint/tests/init_dry_run.rs
-crates/humanlint/tests/init_existing_agents.rs
-crates/humanlint/tests/init_tool_adapters.rs
-crates/humanlint/tests/init_repo_detection.rs
-crates/humanlint/tests/init_lockfiles.rs
+crates/jankurai/tests/init_smoke.rs
+crates/jankurai/tests/init_idempotent.rs
+crates/jankurai/tests/init_dry_run.rs
+crates/jankurai/tests/init_existing_agents.rs
+crates/jankurai/tests/init_tool_adapters.rs
+crates/jankurai/tests/init_repo_detection.rs
+crates/jankurai/tests/init_lockfiles.rs
 ```
 
 Test cases:
 
 1. Empty repo gets minimal passport.
-2. Existing `AGENTS.md` gets a Humanlint pointer, not overwritten.
+2. Existing `AGENTS.md` gets a Jankurai pointer, not overwritten.
 3. `--dry-run` writes nothing.
 4. `--tools all` creates every adapter.
 5. Missing lockfiles are flagged.
@@ -280,8 +280,8 @@ Test cases:
 A user should be able to do this in a random repo:
 
 ```bash
-humanlint init . --yes --tools all --ci github
-humanlint audit . --mode advisory
+jankurai init . --yes --tools all --ci github
+jankurai audit . --mode advisory
 ```
 
 and receive:
@@ -375,17 +375,17 @@ Hard checks should fail `standard` and `release` mode. Soft checks should affect
 ## New CLI modes
 
 ```bash
-humanlint audit .
-humanlint audit . --changed
-humanlint audit . --changed-from origin/main
-humanlint audit . --mode advisory
-humanlint audit . --mode standard
-humanlint audit . --mode ratchet
-humanlint audit . --mode release
-humanlint audit . --sarif humanlint.sarif
-humanlint audit . --github-step-summary
-humanlint audit . --beads
-humanlint audit . --github-issues
+jankurai audit .
+jankurai audit . --changed
+jankurai audit . --changed-from origin/main
+jankurai audit . --mode advisory
+jankurai audit . --mode standard
+jankurai audit . --mode ratchet
+jankurai audit . --mode release
+jankurai audit . --sarif jankurai.sarif
+jankurai audit . --github-step-summary
+jankurai audit . --beads
+jankurai audit . --github-issues
 ```
 
 Modes:
@@ -404,8 +404,8 @@ Current reports need to become agent-executable.
 Add:
 
 ```text
-schemas/humanlint-report.schema.json
-schemas/humanlint-finding.schema.json
+schemas/jankurai-report.schema.json
+schemas/jankurai-finding.schema.json
 ```
 
 Every finding should include:
@@ -418,14 +418,14 @@ Every finding should include:
   "severity": "high",
   "hardness": "hard",
   "confidence": 0.96,
-  "path": ".github/workflows/humanlint-audit.yml",
+  "path": ".github/workflows/jankurai-audit.yml",
   "line": 42,
   "owner": "platform",
   "proof_lane": "security",
   "evidence_scope": "OperationalConfig",
   "why_it_matters": "Echoed tool names are not proof.",
   "agent_fix": "Replace echo placeholders with real tool installation and execution.",
-  "validation_command": "humanlint audit . --mode standard",
+  "validation_command": "jankurai audit . --mode standard",
   "exception_template": "docs/exceptions/HLT-SEC-001.md",
   "autofixable": false,
   "issue_refs": [],
@@ -452,7 +452,7 @@ Also add:
     {
       "rank": 1,
       "finding_id": "hl_...",
-      "next_command": "humanlint init . --repair HLT-SEC-001"
+      "next_command": "jankurai init . --repair HLT-SEC-001"
     }
   ]
 }
@@ -463,14 +463,14 @@ Also add:
 Add:
 
 ```bash
-humanlint issues sync --backend beads
-humanlint issues sync --backend github
-humanlint issues export --jsonl repair-queue.jsonl
+jankurai issues sync --backend beads
+jankurai issues sync --backend github
+jankurai issues export --jsonl repair-queue.jsonl
 ```
 
 Beads is a strong fit because it is a distributed graph issue tracker designed for coding agents, with dependency-aware issue structure and persistent local project memory. ([GitHub][3])
 
-Humanlint should not require Beads, though. It should always write:
+Jankurai should not require Beads, though. It should always write:
 
 ```text
 agent/repair-queue.jsonl
@@ -492,33 +492,33 @@ That lets findings survive across CI runs and prevents duplicate issues.
 Refactor audit into modules:
 
 ```text
-crates/humanlint/src/audit/mod.rs
-crates/humanlint/src/audit/context.rs
-crates/humanlint/src/audit/scope.rs
-crates/humanlint/src/audit/policy.rs
-crates/humanlint/src/audit/rules.rs
-crates/humanlint/src/audit/report.rs
-crates/humanlint/src/audit/ratchet.rs
-crates/humanlint/src/audit/issues.rs
-crates/humanlint/src/audit/sarif.rs
+crates/jankurai/src/audit/mod.rs
+crates/jankurai/src/audit/context.rs
+crates/jankurai/src/audit/scope.rs
+crates/jankurai/src/audit/policy.rs
+crates/jankurai/src/audit/rules.rs
+crates/jankurai/src/audit/report.rs
+crates/jankurai/src/audit/ratchet.rs
+crates/jankurai/src/audit/issues.rs
+crates/jankurai/src/audit/sarif.rs
 
-crates/humanlint/src/audit/detectors/agents.rs
-crates/humanlint/src/audit/detectors/ci.rs
-crates/humanlint/src/audit/detectors/security.rs
-crates/humanlint/src/audit/detectors/rust.rs
-crates/humanlint/src/audit/detectors/web.rs
-crates/humanlint/src/audit/detectors/python.rs
-crates/humanlint/src/audit/detectors/db.rs
-crates/humanlint/src/audit/detectors/contracts.rs
-crates/humanlint/src/audit/detectors/ux.rs
-crates/humanlint/src/audit/detectors/generated.rs
-crates/humanlint/src/audit/detectors/naming.rs
+crates/jankurai/src/audit/detectors/agents.rs
+crates/jankurai/src/audit/detectors/ci.rs
+crates/jankurai/src/audit/detectors/security.rs
+crates/jankurai/src/audit/detectors/rust.rs
+crates/jankurai/src/audit/detectors/web.rs
+crates/jankurai/src/audit/detectors/python.rs
+crates/jankurai/src/audit/detectors/db.rs
+crates/jankurai/src/audit/detectors/contracts.rs
+crates/jankurai/src/audit/detectors/ux.rs
+crates/jankurai/src/audit/detectors/generated.rs
+crates/jankurai/src/audit/detectors/naming.rs
 
-crates/humanlint/src/graph/mod.rs
-crates/humanlint/src/graph/files.rs
-crates/humanlint/src/graph/imports.rs
-crates/humanlint/src/graph/owners.rs
-crates/humanlint/src/graph/proof_lanes.rs
+crates/jankurai/src/graph/mod.rs
+crates/jankurai/src/graph/files.rs
+crates/jankurai/src/graph/imports.rs
+crates/jankurai/src/graph/owners.rs
+crates/jankurai/src/graph/proof_lanes.rs
 ```
 
 Recommended crates:
@@ -555,7 +555,7 @@ Do not overdo AST on day one. The first win is **evidence scoping**. AST can com
 
 ## External Rust/security proof tools
 
-The standard should recommend these tools as optional lanes, not as required dependencies for the Humanlint binary:
+The standard should recommend these tools as optional lanes, not as required dependencies for the Jankurai binary:
 
 | Tool                           | Why                                                                                                  |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
@@ -583,29 +583,29 @@ It should never accept a string mention as proof.
 Add fixture repos:
 
 ```text
-crates/humanlint/tests/fixtures/minimal_pass/
-crates/humanlint/tests/fixtures/docs_only_false_positive/
-crates/humanlint/tests/fixtures/echo_security_false_positive/
-crates/humanlint/tests/fixtures/missing_lockfile/
-crates/humanlint/tests/fixtures/web_without_ux/
-crates/humanlint/tests/fixtures/generated_zone_hand_edit/
-crates/humanlint/tests/fixtures/python_product_truth/
-crates/humanlint/tests/fixtures/db_wrong_layer/
-crates/humanlint/tests/fixtures/destructive_migration/
-crates/humanlint/tests/fixtures/beads_existing/
+crates/jankurai/tests/fixtures/minimal_pass/
+crates/jankurai/tests/fixtures/docs_only_false_positive/
+crates/jankurai/tests/fixtures/echo_security_false_positive/
+crates/jankurai/tests/fixtures/missing_lockfile/
+crates/jankurai/tests/fixtures/web_without_ux/
+crates/jankurai/tests/fixtures/generated_zone_hand_edit/
+crates/jankurai/tests/fixtures/python_product_truth/
+crates/jankurai/tests/fixtures/db_wrong_layer/
+crates/jankurai/tests/fixtures/destructive_migration/
+crates/jankurai/tests/fixtures/beads_existing/
 ```
 
 Add tests:
 
 ```text
-crates/humanlint/tests/audit_scope.rs
-crates/humanlint/tests/audit_policy.rs
-crates/humanlint/tests/audit_sarif.rs
-crates/humanlint/tests/audit_ratchet.rs
-crates/humanlint/tests/audit_issue_queue.rs
-crates/humanlint/tests/audit_security_lane.rs
-crates/humanlint/tests/audit_ux_lane.rs
-crates/humanlint/tests/audit_generated_zones.rs
+crates/jankurai/tests/audit_scope.rs
+crates/jankurai/tests/audit_policy.rs
+crates/jankurai/tests/audit_sarif.rs
+crates/jankurai/tests/audit_ratchet.rs
+crates/jankurai/tests/audit_issue_queue.rs
+crates/jankurai/tests/audit_security_lane.rs
+crates/jankurai/tests/audit_ux_lane.rs
+crates/jankurai/tests/audit_generated_zones.rs
 ```
 
 Must-have regression tests:
@@ -632,7 +632,7 @@ Paper asset missing
 Security lane uses echo placeholders
 Docs/tool-code evidence cannot satisfy UX proof
 AppleDouble files in release archive
-No humanlint init installer
+No jankurai init installer
 No SARIF / ratchet / repair queue
 ```
 
@@ -649,7 +649,7 @@ Make the standard effortless to run in CI and make the UX QA tester a first-clas
 The target experience:
 
 ```yaml
-- uses: humanlint/humanlint-action@v1
+- uses: jankurai/jankurai-action@v1
   with:
     mode: ratchet
     changed-only: true
@@ -659,9 +659,9 @@ The target experience:
 and locally:
 
 ```bash
-humanlint audit . --changed
-humanlint ux discover
-humanlint ux audit --config ux-qa.config.toml
+jankurai audit . --changed
+jankurai ux discover
+jankurai ux audit --config ux-qa.config.toml
 ```
 
 ## GitHub Action
@@ -671,7 +671,7 @@ Add:
 ```text
 action.yml
 .github/workflows/release.yml
-.github/workflows/humanlint.yml
+.github/workflows/jankurai.yml
 ```
 
 `action.yml` inputs:
@@ -712,10 +712,10 @@ The action should prefer a prebuilt release binary. Do not make every adopter co
 
 ## CI workflow template
 
-Generated by `humanlint init --ci github`:
+Generated by `jankurai init --ci github`:
 
 ```yaml
-name: Humanlint
+name: Jankurai
 
 on:
   pull_request:
@@ -729,13 +729,13 @@ permissions:
   issues: write
 
 jobs:
-  humanlint:
+  jankurai:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Humanlint audit
-        uses: humanlint/humanlint-action@v1
+      - name: Jankurai audit
+        uses: jankurai/jankurai-action@v1
         with:
           mode: ratchet
           changed-only: true
@@ -755,7 +755,7 @@ cargo geiger
 npm ci
 npm test --workspace packages/ux-qa
 npm run build --workspace packages/ux-qa
-latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex
+latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex
 ```
 
 No more echo placeholders.
@@ -809,11 +809,11 @@ critical = false
 New commands:
 
 ```bash
-humanlint ux init
-humanlint ux discover
-humanlint ux audit --config ux-qa.config.toml
-humanlint ux audit --url http://localhost:4173 --viewport 390x844
-humanlint ux audit --storybook
+jankurai ux init
+jankurai ux discover
+jankurai ux audit --config ux-qa.config.toml
+jankurai ux audit --url http://localhost:4173 --viewport 390x844
+jankurai ux audit --storybook
 ```
 
 ## UX hard/soft rules
@@ -844,7 +844,7 @@ The current package uses a 24px minimum target. Keep 24px as a lower-level point
 
 ## UX report integration
 
-Humanlint’s main report should include UX results:
+Jankurai’s main report should include UX results:
 
 ```json
 {
@@ -895,10 +895,10 @@ playwright-report/
 Fix the paper build by either including the assets or making the TeX resilient:
 
 ```tex
-\IfFileExists{assets/humanlint_header.png}{
-  \includegraphics[width=\linewidth]{assets/humanlint_header.png}
+\IfFileExists{assets/jankurai_header.png}{
+  \includegraphics[width=\linewidth]{assets/jankurai_header.png}
 }{
-  \fbox{\Large Humanlint}
+  \fbox{\Large Jankurai}
 }
 ```
 
@@ -913,12 +913,12 @@ Then update CI to prove the release archive:
 
 ```bash
 scripts/package-source.sh
-tar -xzf dist/humanlint-source.tar.gz -C /tmp/humanlint-smoke
-cd /tmp/humanlint-smoke
+tar -xzf dist/jankurai-source.tar.gz -C /tmp/jankurai-smoke
+cd /tmp/jankurai-smoke
 npm ci
 cargo test --workspace
-latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex
-humanlint audit . --mode advisory
+latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex
+jankurai audit . --mode advisory
 ```
 
 ## Tests to add
@@ -931,9 +931,9 @@ packages/ux-qa/tests/storybook.spec.ts
 packages/ux-qa/tests/reporters.spec.ts
 packages/ux-qa/tests/mobile-targets.spec.ts
 
-crates/humanlint/tests/ci_template.rs
-crates/humanlint/tests/release_archive.rs
-crates/humanlint/tests/ux_report_integration.rs
+crates/jankurai/tests/ci_template.rs
+crates/jankurai/tests/release_archive.rs
+crates/jankurai/tests/ux_report_integration.rs
 ```
 
 Must-have tests:
@@ -944,7 +944,7 @@ Must-have tests:
 4. Artifacts are written deterministically.
 5. JUnit/SARIF/Markdown reporters work.
 6. Storybook discovery works when story index exists.
-7. UX report merges into Humanlint report.
+7. UX report merges into Jankurai report.
 8. Generated GitHub workflow contains real commands, not echoes.
 9. Release archive contains no `._*`.
 10. Source archive paper build does not fail on missing image.
@@ -954,11 +954,11 @@ Must-have tests:
 A fresh Vite/React repo should be able to run:
 
 ```bash
-humanlint init . --ux-qa --ci github --tools all --yes
+jankurai init . --ux-qa --ci github --tools all --yes
 npm ci
 npm run build
-humanlint ux audit --config ux-qa.config.toml
-humanlint audit . --mode ratchet
+jankurai ux audit --config ux-qa.config.toml
+jankurai audit . --mode ratchet
 ```
 
 and get a useful result without reading the paper first.
@@ -971,20 +971,20 @@ The paper is compelling, but it should become more install-first and less manife
 
 I would add or rewrite these sections:
 
-## 1. “The Humanlint Contract in 90 Seconds”
+## 1. “The Jankurai Contract in 90 Seconds”
 
 Put this near the front:
 
 ```md
 Install:
 
-cargo install humanlint
-humanlint init . --tools all --ci github --ux-qa
-humanlint audit . --mode advisory
+cargo install jankurai
+jankurai init . --tools all --ci github --ux-qa
+jankurai audit . --mode advisory
 
 This creates:
 - AGENTS.md
-- agent/HUMANLINT_STANDARD.md
+- agent/JANKURAI_STANDARD.md
 - owner/test/proof maps
 - IDE-specific agent adapters
 - CI audit workflow
@@ -1038,9 +1038,9 @@ Add a table:
 | Tool        | Primary file                        | Scoped/project files                     | Skill/workflow support      |
 | ----------- | ----------------------------------- | ---------------------------------------- | --------------------------- |
 | Codex       | `AGENTS.md`                         | nested `AGENTS.md`                       | `.agents/skills/*/SKILL.md` |
-| Cursor      | `.cursor/rules/*.mdc` + `AGENTS.md` | rule-specific files                      | generated Humanlint rules   |
+| Cursor      | `.cursor/rules/*.mdc` + `AGENTS.md` | rule-specific files                      | generated Jankurai rules   |
 | Claude      | `CLAUDE.md`                         | `.claude/*`                              | `.claude/skills/*/SKILL.md` |
-| Gemini      | `GEMINI.md`                         | hierarchical context files               | generated Humanlint context |
+| Gemini      | `GEMINI.md`                         | hierarchical context files               | generated Jankurai context |
 | Copilot     | `.github/copilot-instructions.md`   | `.github/instructions/*.instructions.md` | `.github/skills/*/SKILL.md` |
 | Antigravity | rules/workflows adapter             | project rules                            | skills/workflows adapter    |
 
@@ -1049,7 +1049,7 @@ Add a table:
 The paper currently has a strong rubric. To become a global standard, add a benchmark plan:
 
 ```text
-Run Humanlint on 100 repos:
+Run Jankurai on 100 repos:
 - 25 Rust/TS web apps
 - 25 Python-heavy apps
 - 25 JS/TS apps
@@ -1087,7 +1087,7 @@ I would implement these before anything else:
 4. Remove AppleDouble files from archive.
 5. Replace echo security lane with real commands or mark as TODO/advisory.
 6. Add evidence scopes so docs cannot satisfy operational proof.
-7. Add humanlint init skeleton.
+7. Add jankurai init skeleton.
 8. Add SARIF + repair_queue.jsonl.
 9. Add ux-qa.config.toml support.
 10. Add release archive smoke test.
@@ -1100,10 +1100,10 @@ I would implement these before anything else:
 Hand this to an implementation agent:
 
 ```md
-Implement Humanlint v0.3 around three deliverables:
+Implement Jankurai v0.3 around three deliverables:
 
 1. Agent Passport Installer
-   - Add `humanlint init`.
+   - Add `jankurai init`.
    - Generate root AGENTS.md, agent/*.toml/json, tool adapters, GitHub workflow, UX QA config.
    - Must be idempotent and support --dry-run.
 
@@ -1123,13 +1123,13 @@ Acceptance:
 - `npm ci` works.
 - paper builds.
 - no `._*` in release archive.
-- `humanlint init --yes --tools all --ci github --ux-qa` works in temp repo.
-- `humanlint audit --mode advisory` produces JSON, Markdown, SARIF, and repair queue.
+- `jankurai init --yes --tools all --ci github --ux-qa` works in temp repo.
+- `jankurai audit --mode advisory` produces JSON, Markdown, SARIF, and repair queue.
 - docs-only claims do not satisfy proof.
 - echo commands do not satisfy proof.
 ```
 
-My strongest recommendation: **make Upgrade 1 the headline, Upgrade 2 the trust engine, and Upgrade 3 the adoption engine.** The paper can stay ambitious, but the project wins when an agent can enter any repo, run `humanlint init`, read the generated passport, run `humanlint audit --changed`, and know exactly what to fix next.
+My strongest recommendation: **make Upgrade 1 the headline, Upgrade 2 the trust engine, and Upgrade 3 the adoption engine.** The paper can stay ambitious, but the project wins when an agent can enter any repo, run `jankurai init`, read the generated passport, run `jankurai audit --changed`, and know exactly what to fix next.
 
 [1]: https://developers.openai.com/codex/guides/agents-md "Custom instructions with AGENTS.md – Codex | OpenAI Developers"
 [2]: https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills "Adding agent skills for GitHub Copilot - GitHub Docs"

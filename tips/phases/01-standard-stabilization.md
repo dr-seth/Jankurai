@@ -13,7 +13,7 @@ This file does not implement Phase 01 itself. It is a docs-only execution plan f
 
 ## Phase 01 Goal
 
-Stabilize the v0.4 foundation so the current humanlint release surface is coherent, versioned, and defensible before any later phase adds more behavior.
+Stabilize the v0.4 foundation so the current jankurai release surface is coherent, versioned, and defensible before any later phase adds more behavior.
 
 Phase 01 must:
 
@@ -28,7 +28,7 @@ Phase 01 must:
 
 Before starting any Phase 01 implementation, read these in order:
 
-1. `agent/HUMANLINT_STANDARD.md`
+1. `agent/JANKURAI_STANDARD.md`
 2. `docs/agent-native-standard.md`
 3. `docs/moonshot.md`
 4. `tips/phases/00-phase-index.md`
@@ -48,7 +48,7 @@ Before starting any Phase 01 implementation, read these in order:
 
 As of 2026-05-02, the repo already has:
 
-- Rust CLI package at `crates/humanlint/`
+- Rust CLI package at `crates/jankurai/`
 - `audit`, `init`, `doctor`, `ci install`, `issues export`, `explain`, `versions`, adapter sync/verify, and UX passthrough commands
 - JSON, Markdown, SARIF, JUnit, GitHub summary, and repair queue exports
 - machine-readable agent files under `agent/`
@@ -72,7 +72,7 @@ Known Phase 01 gaps to verify or close:
 
 Phase 01 implementation may touch:
 
-- `crates/humanlint/` report, doctor, and validation code
+- `crates/jankurai/` report, doctor, and validation code
 - `schemas/` for additive or tightened compatibility surfaces
 - `docs/` for boundary, release, and validation wording
 - `agent/` for generated-zone, version, policy, and receipt metadata
@@ -117,7 +117,7 @@ Required docs:
 - `docs/agent-native-standard.md`
 - `docs/release-plan.md`
 - `docs/audit-rubric.md`
-- `agent/HUMANLINT_STANDARD.md`
+- `agent/JANKURAI_STANDARD.md`
 
 Required schema surfaces:
 
@@ -170,12 +170,12 @@ Forbidden later without migration notes:
 
 | Workstream | Objective | Owned paths | Forbidden paths | Input contracts | Output contracts | Implementation tasks | Acceptance evidence | Validation commands | Handoff notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Artifact Contract Audit | Make every machine-readable artifact point to a schema or documented exemption. | `schemas/`, `docs/release-plan.md`, `docs/agent-native-standard.md`, `crates/humanlint/tests/` | `paper/`, `reference/`, hand-edited generated outputs, `agent/owner-map.json`, `agent/test-map.json` for this plan-only edit | schema list, agent artifact inputs, report outputs | schema index or matrix, parsed fixtures, compatibility notes | Verify all artifacts; add missing schemas; add tests for representative artifacts; document exemptions | Each artifact has a schema or documented reason; `agent/repo-score.json` remains parseable; no report field is removed without a migration note | `just fast`; `cargo test -p humanlint` | List new schemas and any intentional exemptions. |
-| Report Compatibility Guard | Keep report JSON, Markdown, SARIF, JUnit, and repair queue shapes stable. | `crates/humanlint/src/report/`, `crates/humanlint/tests/`, `schemas/finding.schema.json`, `schemas/repair-queue.schema.json`, `schemas/repo-score.schema.json` | `paper/`, `reference/`, generated outputs by hand | version fields, report shape, finding shape, repair queue shape | semantic assertions on top-level and finding fields | Add or expand report compatibility tests; verify SARIF structure; verify repair queue JSONL; verify Markdown score and findings sections | Tests fail if required version fields or finding keys disappear | `just fast`; `cargo test -p humanlint` | Include exact test names and any compatibility carve-outs. |
-| Doctor And Security Lane Reality Check | Distinguish missing tools from broken repo state and make security lane failures actionable. | `crates/humanlint/src/commands/doctor.rs`, `Justfile`, `docs/testing.md`, `docs/release-plan.md`, `.github/workflows/humanlint.yml` | `paper/`, report schema changes, generated artifacts by hand | `agent/audit-policy.toml`, `agent/boundaries.toml`, `agent/proof-lanes.toml`, `just security` command shape | actionable missing-tool diagnostics, security prerequisites, lane-specific failure text | Inspect `just security` and workflow; distinguish missing tools from repo defects; document prerequisites; flag placeholder proof | `doctor --fail-on high` reports missing control files and lane issues; security failures are actionable | `just fast`; `cargo run -p humanlint -- doctor --fail-on high`; `just security` | Note any tools that remain optional and any new prerequisite text. |
+| Artifact Contract Audit | Make every machine-readable artifact point to a schema or documented exemption. | `schemas/`, `docs/release-plan.md`, `docs/agent-native-standard.md`, `crates/jankurai/tests/` | `paper/`, `reference/`, hand-edited generated outputs, `agent/owner-map.json`, `agent/test-map.json` for this plan-only edit | schema list, agent artifact inputs, report outputs | schema index or matrix, parsed fixtures, compatibility notes | Verify all artifacts; add missing schemas; add tests for representative artifacts; document exemptions | Each artifact has a schema or documented reason; `agent/repo-score.json` remains parseable; no report field is removed without a migration note | `just fast`; `cargo test -p jankurai` | List new schemas and any intentional exemptions. |
+| Report Compatibility Guard | Keep report JSON, Markdown, SARIF, JUnit, and repair queue shapes stable. | `crates/jankurai/src/report/`, `crates/jankurai/tests/`, `schemas/finding.schema.json`, `schemas/repair-queue.schema.json`, `schemas/repo-score.schema.json` | `paper/`, `reference/`, generated outputs by hand | version fields, report shape, finding shape, repair queue shape | semantic assertions on top-level and finding fields | Add or expand report compatibility tests; verify SARIF structure; verify repair queue JSONL; verify Markdown score and findings sections | Tests fail if required version fields or finding keys disappear | `just fast`; `cargo test -p jankurai` | Include exact test names and any compatibility carve-outs. |
+| Doctor And Security Lane Reality Check | Distinguish missing tools from broken repo state and make security lane failures actionable. | `crates/jankurai/src/commands/doctor.rs`, `Justfile`, `docs/testing.md`, `docs/release-plan.md`, `.github/workflows/jankurai.yml` | `paper/`, report schema changes, generated artifacts by hand | `agent/audit-policy.toml`, `agent/boundaries.toml`, `agent/proof-lanes.toml`, `just security` command shape | actionable missing-tool diagnostics, security prerequisites, lane-specific failure text | Inspect `just security` and workflow; distinguish missing tools from repo defects; document prerequisites; flag placeholder proof | `doctor --fail-on high` reports missing control files and lane issues; security failures are actionable | `just fast`; `cargo run -p jankurai -- doctor --fail-on high`; `just security` | Note any tools that remain optional and any new prerequisite text. |
 | Documentation Boundary | Make current behavior and roadmap-only behavior easy to tell apart. | `docs/release-plan.md`, `docs/moonshot.md`, `docs/agent-native-standard.md`, `README.md` if needed | `paper/`, `reference/`, generated outputs, runtime code | current baseline, release lines, phase sequence | explicit current-vs-future wording and links between release plan and phase plans | Separate implemented behavior from moonshot claims; keep root guidance short; avoid contradiction among docs | A new reader can tell what is implemented today and what is future-only | `just fast` | Cite any doc section that now points to the phase plan router. |
 | Release Evidence Convention | Define where receipts live and what evidence a release candidate must show. | `docs/release-plan.md`, `docs/testing.md`, `agent/standard-version.toml`, `agent/repo-score.*`, ignored local receipt paths if introduced | `paper/`, generated output hand edits, moving canonical score artifacts | score report, doctor output, security output, UX proof paths, compatibility tests | receipt convention, evidence path list, source-vs-generated guidance | Define receipt location; document evidence bundle contents; describe which artifacts are source and which are generated | A release candidate can point to audit, security, UX, contract, and paper evidence paths without guesswork | `just fast`; `just score` | Include receipt path convention and any ignored-output assumptions. |
-| Routing Map And Generated Zone Hygiene | Keep routing metadata and generated-zone declarations current for any new durable path. | `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/boundaries.toml`, `agent/audit-policy.toml`, `agent/standard-version.toml` | `paper/`, `reference/`, hand-edited generated files, report shape changes without compatibility notes | generated-zone manifest, proof lanes, boundary policy, version manifest | updated routing metadata and generated-zone declarations for any new durable path | Confirm every new durable path has owner/test coverage; keep generated zones stamped; update routing metadata only when new paths appear | Generated outputs are declared, stamped, and reproducible; new durable paths are routed before use | `just fast`; `cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md` | Mention any new path that forced a map update. |
+| Routing Map And Generated Zone Hygiene | Keep routing metadata and generated-zone declarations current for any new durable path. | `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/boundaries.toml`, `agent/audit-policy.toml`, `agent/standard-version.toml` | `paper/`, `reference/`, hand-edited generated files, report shape changes without compatibility notes | generated-zone manifest, proof lanes, boundary policy, version manifest | updated routing metadata and generated-zone declarations for any new durable path | Confirm every new durable path has owner/test coverage; keep generated zones stamped; update routing metadata only when new paths appear | Generated outputs are declared, stamped, and reproducible; new durable paths are routed before use | `just fast`; `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md` | Mention any new path that forced a map update. |
 | Final Receipt And Phase Handoff | Collect the closeout evidence and make the next phase unambiguous. | this phase plan file and any receipt or handoff doc for Phase 01 | implementation files outside the Phase 01 scope, paper edits, generated-output hand edits | results from all previous workstreams | completion receipt, unblocked Phase 02 and 03 checklist, unresolved exceptions | Gather evidence; record validation; note skipped commands; summarize remaining risks | The phase completion receipt can be filled without inventing facts | `just fast` | Note the Phase 02 and Phase 03 readiness gate status and any follow-up tickets. |
 
 ## Parallel MCP Work Plan
@@ -211,9 +211,9 @@ This phase is docs-only right now, so no parallel worker is needed to apply the 
 | Change surface | Minimum validation | Add when relevant |
 | --- | --- | --- |
 | Phase 01 plan-only edit | `just fast` | `git status --short tips`, `git diff -- tips/phases/01-standard-stabilization.md`, `git diff --cached --name-only -- tips` |
-| Schemas or report contracts | `just fast` | `cargo test -p humanlint`, semantic compatibility checks |
-| Doctor or security lane changes | `just fast` | `cargo run -p humanlint -- doctor --fail-on high`, `just security` |
-| Routing metadata or generated zones | `just fast` | `cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md` |
+| Schemas or report contracts | `just fast` | `cargo test -p jankurai`, semantic compatibility checks |
+| Doctor or security lane changes | `just fast` | `cargo run -p jankurai -- doctor --fail-on high`, `just security` |
+| Routing metadata or generated zones | `just fast` | `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md` |
 | Release evidence docs | `just fast` | `just score` |
 | Paper | `just paper` | only if paper files change, which Phase 01 should avoid |
 
@@ -232,12 +232,12 @@ This phase is docs-only right now, so no parallel worker is needed to apply the 
 ## Phase 01 Completion Receipt
 
 - Phase completed: 01 standard stabilization
-- Files changed: `Justfile`, `.github/workflows/humanlint.yml`, `crates/humanlint/src/audit/mod.rs`, `crates/humanlint/src/commands/ci.rs`, `crates/humanlint/src/commands/doctor.rs`, `docs/release-plan.md`, `docs/testing.md`, `db/README.md`, `tools/security-lane.sh`, and the phase logs under `target/humanlint/phase-logs/`
+- Files changed: `Justfile`, `.github/workflows/jankurai.yml`, `crates/jankurai/src/audit/mod.rs`, `crates/jankurai/src/commands/ci.rs`, `crates/jankurai/src/commands/doctor.rs`, `docs/release-plan.md`, `docs/testing.md`, `db/README.md`, `tools/security-lane.sh`, and the phase logs under `target/jankurai/phase-logs/`
 - Schemas added or changed: report and repair/schema surfaces under `schemas/`
 - Public report fields changed: compatibility preserved; additive receipt/policy/decision bindings added
 - Generated artifacts: `agent/repo-score.json`, `agent/repo-score.md`
 - Routing maps changed: `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`
-- Validation commands: `cargo test -p humanlint`, `just fast`, `just security`, `npm --workspace @humanlint/ux-qa run build`, `npm --workspace @humanlint/ux-qa run test`, `just score`
+- Validation commands: `cargo test -p jankurai`, `just fast`, `just security`, `npm --workspace @jankurai/ux-qa run build`, `npm --workspace @jankurai/ux-qa run test`, `just score`
 - Results: passed
 - Skipped validation: none
 - Exceptions created: wrapper-based security lane is advisory for missing optional tools outside strict mode

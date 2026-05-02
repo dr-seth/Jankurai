@@ -1,4 +1,4 @@
-# Humanlint Moonshot Phase Index
+# Jankurai Moonshot Phase Index
 
 Status: complete
 Owner: standard
@@ -7,7 +7,7 @@ Applies to: all files under `tips/phases/`
 
 ## Purpose
 
-This file is the canonical router for executing the Humanlint moonshot phases. It is the first stop for a fresh session, a parallel MCP worker, or a maintainer deciding which phase can safely start next.
+This file is the canonical router for executing the Jankurai moonshot phases. It is the first stop for a fresh session, a parallel MCP worker, or a maintainer deciding which phase can safely start next.
 
 It does not implement any phase. It locks the execution order, dependency blockers, shared contracts, write scopes, validation lanes, handoff evidence, and cleanup policy for the phase plans in this directory.
 
@@ -30,7 +30,7 @@ Phase 00 is docs-only. It changes only `tips/phases/00-phase-index.md`.
 
 Before implementing any phase, read these in order:
 
-1. `agent/HUMANLINT_STANDARD.md`
+1. `agent/JANKURAI_STANDARD.md`
 2. `agent/MASTER_PLAN.md`
 3. `docs/agent-native-standard.md`
 4. `docs/moonshot.md`
@@ -47,7 +47,7 @@ For this Phase 00 index-only edit, do not update `agent/owner-map.json` or `agen
 
 As of 2026-05-02, the repo already has:
 
-- Rust CLI package at `crates/humanlint/`
+- Rust CLI package at `crates/jankurai/`
 - commands for audit, init, doctor, CI install, issue export, explain, versions, adapter verification/sync, and UX passthrough
 - JSON, Markdown, SARIF, JUnit-ish, GitHub summary, and repair queue exports
 - machine-readable agent files under `agent/`
@@ -72,7 +72,7 @@ Treat the existing dirty worktree as project state. Do not revert unrelated chan
 - Use stricter validation for later phases when their touched paths require it.
 - Never mark a phase complete without a phase completion receipt.
 - Treat `tips/phases/logs/` as the canonical tracked append-only phase history.
-- Keep `target/humanlint/` for volatile proof receipts, generated evidence, command logs, and artifacts only.
+- Keep `target/jankurai/` for volatile proof receipts, generated evidence, command logs, and artifacts only.
 
 ## Phase Dependency Graph
 
@@ -100,15 +100,15 @@ Treat the existing dirty worktree as project state. Do not revert unrelated chan
 
 | Phase | Objective | Dependency blockers | Allowed write scope | Shared contracts | Parallelization status | Required validation | Handoff evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 01 Standard Stabilization | Make v0.4 foundations coherent, versioned, defensible, and release-ready before new features expand. | Phase 00 complete; no prior implementation phase. | `agent/`, `docs/`, `schemas/`, `crates/humanlint/`, root validation metadata, and generated score outputs by command only. No paper edits. | report schema, version manifest, owner/test maps, generated zones, release receipts. | Yes; docs/schema and CLI report work are already split across the implemented surfaces. | `just fast`; add `cargo test -p humanlint`, `just versions`, or schema checks when touched paths require them. | compatibility notes, updated routing maps for new paths, release evidence convention, validation output. |
-| 02 Rule Engine And Semantic Oracle | Move audit from centralized text heuristics toward a versioned rule registry with semantic ownership and boundary checks. | Phase 01 report compatibility decisions. | `crates/humanlint/src/audit/`, rule metadata, `agent/boundaries.toml`, schemas, tests, and supporting docs. | stable rule IDs, rule registry schema, boundary oracle input format, report compatibility. | Yes after rule metadata contract is sketched. | `just fast`; add focused Rust tests for each analyzer and regression fixture. | rule registry contract, analyzer fixtures, finding examples, compatibility proof. |
-| 03 Proof Router And Evidence Ledger | Make Humanlint choose the smallest sufficient proof lanes and record proof receipts that agents can reuse. | Phase 01 report stability; Phase 02 metadata is useful but not a hard start blocker. | proof/lane commands, `agent/test-map.json`, `agent/proof-lanes.toml`, evidence schemas, receipt storage docs, Rust tests. | proof plan schema, evidence receipt schema, owner/test maps, lane names. | Yes; planner and receipt surfaces are split enough for parallel proof workers. | `just fast`; add CLI tests for changed path routing and receipt parsing. | proof plan examples, receipt examples, changed-path routing evidence, skipped-lane rationale. |
-| 04 Init Profiles And Golden Repos | Turn `humanlint init` into a profile-driven repo generator and golden repo creation layer. | Phase 01; benefits from Phase 03 proof routing. | init command, profile manifests, templates, generated repo fixtures, docs, schemas, tests. | profile manifest schema, generator contract, conflict/merge policy, generated-zone declarations. | Yes after generator contract is locked. | `just fast`; add init golden tests and generated repo audit checks. | profile contract, generated fixture proof, rerun/idempotency evidence, docs for profile selection. |
-| 05 UX Proof Platform | Make rendered UX proof a first-class lane with deterministic browser, geometry, ARIA, accessibility, and state evidence. | Phase 01; benefits from Phase 03 receipts. | `packages/ux-qa/`, UX config, UX receipt schemas, Rust ingestion, docs, tests. | UX policy schema, receipt schema, viewport/story matrix, artifact path convention. | Yes; TypeScript runtime, Rust ingestion, and docs can split after receipt schema locks. | `just fast`; add `npm --workspace @humanlint/ux-qa run build` and `npm --workspace @humanlint/ux-qa run test`. | UX artifact examples, receipt output, route/story coverage docs, integration evidence. |
+| 01 Standard Stabilization | Make v0.4 foundations coherent, versioned, defensible, and release-ready before new features expand. | Phase 00 complete; no prior implementation phase. | `agent/`, `docs/`, `schemas/`, `crates/jankurai/`, root validation metadata, and generated score outputs by command only. No paper edits. | report schema, version manifest, owner/test maps, generated zones, release receipts. | Yes; docs/schema and CLI report work are already split across the implemented surfaces. | `just fast`; add `cargo test -p jankurai`, `just versions`, or schema checks when touched paths require them. | compatibility notes, updated routing maps for new paths, release evidence convention, validation output. |
+| 02 Rule Engine And Semantic Oracle | Move audit from centralized text heuristics toward a versioned rule registry with semantic ownership and boundary checks. | Phase 01 report compatibility decisions. | `crates/jankurai/src/audit/`, rule metadata, `agent/boundaries.toml`, schemas, tests, and supporting docs. | stable rule IDs, rule registry schema, boundary oracle input format, report compatibility. | Yes after rule metadata contract is sketched. | `just fast`; add focused Rust tests for each analyzer and regression fixture. | rule registry contract, analyzer fixtures, finding examples, compatibility proof. |
+| 03 Proof Router And Evidence Ledger | Make Jankurai choose the smallest sufficient proof lanes and record proof receipts that agents can reuse. | Phase 01 report stability; Phase 02 metadata is useful but not a hard start blocker. | proof/lane commands, `agent/test-map.json`, `agent/proof-lanes.toml`, evidence schemas, receipt storage docs, Rust tests. | proof plan schema, evidence receipt schema, owner/test maps, lane names. | Yes; planner and receipt surfaces are split enough for parallel proof workers. | `just fast`; add CLI tests for changed path routing and receipt parsing. | proof plan examples, receipt examples, changed-path routing evidence, skipped-lane rationale. |
+| 04 Init Profiles And Golden Repos | Turn `jankurai init` into a profile-driven repo generator and golden repo creation layer. | Phase 01; benefits from Phase 03 proof routing. | init command, profile manifests, templates, generated repo fixtures, docs, schemas, tests. | profile manifest schema, generator contract, conflict/merge policy, generated-zone declarations. | Yes after generator contract is locked. | `just fast`; add init golden tests and generated repo audit checks. | profile contract, generated fixture proof, rerun/idempotency evidence, docs for profile selection. |
+| 05 UX Proof Platform | Make rendered UX proof a first-class lane with deterministic browser, geometry, ARIA, accessibility, and state evidence. | Phase 01; benefits from Phase 03 receipts. | `packages/ux-qa/`, UX config, UX receipt schemas, Rust ingestion, docs, tests. | UX policy schema, receipt schema, viewport/story matrix, artifact path convention. | Yes; TypeScript runtime, Rust ingestion, and docs can split after receipt schema locks. | `just fast`; add `npm --workspace @jankurai/ux-qa run build` and `npm --workspace @jankurai/ux-qa run test`. | UX artifact examples, receipt output, route/story coverage docs, integration evidence. |
 | 06 Security Supply Chain And Compliance Evidence | Replace security theater with parseable security, supply-chain, provenance, and compliance evidence. | Phase 01; benefits from Phase 02 metadata and Phase 03 ledger. | security commands, `.github/`, ops/security docs, evidence schemas, scanner config, tests. Never add secrets. | security receipt schema, scanner matrix, control map, CI evidence contract. | Yes; tool matrix, normalization, CI hardening, and compliance docs can split. | `just fast`; add available security lane checks when tool changes require them. | scanner matrix, normalized evidence examples, CI policy proof, compliance language review. |
 | 07 Contracts DB And Generated Boundaries | Enforce public API, event, generated client, DB migration, and durable truth boundaries. | Phase 01; strongly benefits from Phase 02 and Phase 03. | contracts, schemas, DB policy docs, generated-zone metadata, analyzer code, tests. Do not hand-edit generated outputs. | contract source metadata, generated-zone contract, DB migration safety contract, event schema policy. | Yes after shared contract metadata is locked. | `just fast`; add contract, DB, and analyzer tests for touched surfaces. | drift examples, migration safety evidence, generated-zone reproduction proof, report integration. |
-| 08 Agent Context And Repair | Make Humanlint a control plane for bounded agent context, permissions, repair packets, and adapters. | Phase 01; benefits from Phase 02 and Phase 03. | `agent/`, adapter files, context-pack and repair-plan commands, permission profiles, MCP design docs, tests. | context pack schema, repair packet schema, permission profile contract, source hierarchy. | Yes; adapters, context/repair schemas, policy checks, and docs can split after schema locks. | `just fast`; add adapter verification and CLI tests where changed. | token-minimized context example, repair packet example, permission profile proof, adapter verification. |
-| 09 Reference Product Platform | Build the canonical Humanlint-native fullstack SaaS reference proving the COLD stack end to end. | Requires phases 04, 05, 06, 07, and 08. | declared golden repo path, apps/API/domain/adapters/contracts/db/UX/security/observability docs and fixtures. | golden repo contract, generated client contract, DB truth contract, UX/security/proof receipts. | Yes; the in-tree example scaffold and fixture routing now split cleanly by surface. | `just fast` for Humanlint repo plus generated repo proof lane defined by the phase. | golden repo score, end-to-end proof receipts, minimal exceptions, stack doctrine evidence. |
+| 08 Agent Context And Repair | Make Jankurai a control plane for bounded agent context, permissions, repair packets, and adapters. | Phase 01; benefits from Phase 02 and Phase 03. | `agent/`, adapter files, context-pack and repair-plan commands, permission profiles, MCP design docs, tests. | context pack schema, repair packet schema, permission profile contract, source hierarchy. | Yes; adapters, context/repair schemas, policy checks, and docs can split after schema locks. | `just fast`; add adapter verification and CLI tests where changed. | token-minimized context example, repair packet example, permission profile proof, adapter verification. |
+| 09 Reference Product Platform | Build the canonical Jankurai-native fullstack SaaS reference proving the COLD stack end to end. | Requires phases 04, 05, 06, 07, and 08. | declared golden repo path, apps/API/domain/adapters/contracts/db/UX/security/observability docs and fixtures. | golden repo contract, generated client contract, DB truth contract, UX/security/proof receipts. | Yes; the in-tree example scaffold and fixture routing now split cleanly by surface. | `just fast` for Jankurai repo plus generated repo proof lane defined by the phase. | golden repo score, end-to-end proof receipts, minimal exceptions, stack doctrine evidence. |
 | 10 Reuse Registry Certified Cells | Provide certified reusable product and engineering cells so agents stop rebuilding common primitives badly. | Requires phases 04 and 07; strongly benefits from Phase 09 and Phase 08. | registry manifests, cell templates, contracts, migrations, UI, tests, docs, certification harness. | cell manifest schema, install contract, proof receipt, upgrade path contract. | Yes after registry manifest and install contract lock. | `just fast`; add cell install, generation, and certification tests. | first certified cells, install proof, reproducible certification receipt, upgrade notes. |
 | 11 Migration Engine | Make legacy modernization measurable, sliced, and agent-executable without reckless rewrites. | Requires phases 02, 03, 07, and 08; benefits from Phase 10 cells. | migrate commands, analyzers, liability scoring, plan schemas, fixtures, docs, tests. | legacy inventory schema, liability score model, slice plan schema, equivalence proof contract. | Yes; inventory, scoring, planning, and docs can split after schemas lock. | `just fast`; add migration fixture tests and scoring snapshot/compatibility checks. | sample liability score, migration plan, equivalence proof template, rollback guidance. |
 | 12 Benchmark Certification And Governance | Prove the thesis publicly with benchmarks, conformance badges, signed attestations, and governance. | Requires real surfaces from phases 01 through 11. | benchmark corpus, certification schemas, badge/report outputs, governance docs, release evidence. | benchmark manifest, attestation schema, badge fingerprint, governance policy. | Yes; benchmark corpus, metrics, governance, badges, and org reporting can split. | `just fast`; add benchmark/certification tests and report compatibility checks. | benchmark results, signed or reproducible attestations, badge evidence, governance process. |
@@ -190,7 +190,7 @@ Tracked phase logs live under `tips/phases/logs/`. Use one file per phase and ap
 timestamp_utc | actor/tool | phase | action | changed_paths | validation | artifacts | git_sha | residual_risk
 ```
 
-The phase log is the durable cross-agent history. Proof receipts, generated reports, screenshots, and command output remain volatile evidence under `target/humanlint/` and should be cited from the log when relevant.
+The phase log is the durable cross-agent history. Proof receipts, generated reports, screenshots, and command output remain volatile evidence under `target/jankurai/` and should be cited from the log when relevant.
 
 ## Validation Matrix
 
@@ -199,10 +199,10 @@ The phase log is the durable cross-agent history. Proof receipts, generated repo
 | Phase 00 index only | `just fast` | None unless this file grows past standard limits. |
 | `tips/phases/` phase plan docs | `just fast` | `just score` when routing maps or generated zones change. |
 | `agent/` maps and policy | `just fast` | `just score`, adapter verification, or schema checks for machine-readable changes. |
-| Rust CLI behavior | `cargo test -p humanlint` and `just fast` | focused integration tests, `just versions`, report compatibility fixtures. |
+| Rust CLI behavior | `cargo test -p jankurai` and `just fast` | focused integration tests, `just versions`, report compatibility fixtures. |
 | Schemas or contracts | `just fast` | schema validation, contract compatibility checks, generated client regeneration. |
 | Generated artifacts | generator command plus `just fast` | generated-zone proof and diff evidence. |
-| UX QA runtime | `npm --workspace @humanlint/ux-qa run build` and `npm --workspace @humanlint/ux-qa run test` | browser artifact review for changed rendered surfaces. |
+| UX QA runtime | `npm --workspace @jankurai/ux-qa run build` and `npm --workspace @jankurai/ux-qa run test` | browser artifact review for changed rendered surfaces. |
 | Security and supply chain | `just fast` | available security lane commands from `just security` or the phase-specific scanner matrix. |
 | Paper | `just paper` | only after all phase plans are complete and paper work is explicitly in scope. |
 | Release or certification | phase-specific full proof lane | signed or reproducible receipt bundle. |

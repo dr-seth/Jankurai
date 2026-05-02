@@ -7,19 +7,19 @@ Parallel MCP candidate: yes
 
 ## Objective
 
-Build the canonical Humanlint-native product platform: a small but serious fullstack SaaS reference that proves the Cold stack works end to end.
+Build the canonical Jankurai-native product platform: a small but serious fullstack SaaS reference that proves the Cold stack works end to end.
 
 This is not a demo toy. It is the golden repo that shows how Rust, TypeScript/React/Vite, PostgreSQL, generated contracts, bounded Python, UX QA, security, observability, proof routing, and agent repair fit together.
 
 ## Current State
 
-The Humanlint repo now contains a concrete reference scaffold under `examples/perfect-web-api-db/`, with a supporting `examples/legacy-node-api/` fixture and routing updates to keep the proof surface honest.
+The Jankurai repo now contains a concrete reference scaffold under `examples/perfect-web-api-db/`, with a supporting `examples/legacy-node-api/` fixture and routing updates to keep the proof surface honest.
 
 Existing assets to reuse:
 
 - `docs/agent-native-standard.md`
 - `docs/moonshot.md`
-- `crates/humanlint/`
+- `crates/jankurai/`
 - `packages/ux-qa/`
 - init templates from Phase 04
 - proof router from Phase 03
@@ -160,11 +160,11 @@ Acceptance:
 - Security lane produces or points to evidence.
 - Runtime failures are agent-repairable.
 
-### 6. Humanlint Score And Proof
+### 6. Jankurai Score And Proof
 
 Implementation tasks:
 
-- Run Humanlint audit against the golden repo.
+- Run Jankurai audit against the golden repo.
 - Store expected score fixture or benchmark expectation.
 - Ensure proof router selects correct lanes for representative changes.
 - Add docs showing before/after of a compliant change.
@@ -199,11 +199,11 @@ Merge order:
 
 ## Validation
 
-For Humanlint repo:
+For Jankurai repo:
 
 ```bash
 just fast
-cargo test -p humanlint
+cargo test -p jankurai
 ```
 
 For the golden platform, define its own:
@@ -229,7 +229,7 @@ Leave:
 
 - location of golden platform
 - exact profile used to generate it
-- current Humanlint score
+- current Jankurai score
 - proof commands
 - known exceptions
 - next certified cell candidates
@@ -237,12 +237,12 @@ Leave:
 ## Phase Status Receipt
 
 - Phase status: partial reference product platform implementation slice
-- Files changed: `examples/perfect-web-api-db/README.md`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/backend/src/domain.rs`, `examples/perfect-web-api-db/backend/src/application.rs`, `examples/perfect-web-api-db/frontend/src/App.tsx`, `examples/perfect-web-api-db/contracts/openapi.json`, `examples/perfect-web-api-db/db/migrations/001_init.sql`, `examples/perfect-web-api-db/db/constraints/001_accounts.sql`, `examples/perfect-web-api-db/ops/observability.md`, `examples/perfect-web-api-db/ops/security.md`, `examples/perfect-web-api-db/ux/routes.md`, `examples/legacy-node-api/README.md`, `examples/legacy-node-api/package.json`, `examples/legacy-node-api/src/index.js`, `agent/owner-map.json`, `agent/test-map.json`, `crates/humanlint/src/audit/mod.rs`, and `target/humanlint/phase-logs/09-reference-product-platform.md.log`
+- Files changed: `examples/perfect-web-api-db/README.md`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/backend/src/domain.rs`, `examples/perfect-web-api-db/backend/src/application.rs`, `examples/perfect-web-api-db/frontend/src/App.tsx`, `examples/perfect-web-api-db/contracts/openapi.json`, `examples/perfect-web-api-db/db/migrations/001_init.sql`, `examples/perfect-web-api-db/db/constraints/001_accounts.sql`, `examples/perfect-web-api-db/ops/observability.md`, `examples/perfect-web-api-db/ops/security.md`, `examples/perfect-web-api-db/ux/routes.md`, `examples/legacy-node-api/README.md`, `examples/legacy-node-api/package.json`, `examples/legacy-node-api/src/index.js`, `agent/owner-map.json`, `agent/test-map.json`, `crates/jankurai/src/audit/mod.rs`, and `target/jankurai/phase-logs/09-reference-product-platform.md.log`
 - Schemas changed: reference-platform contract surfaces under `schemas/`
 - Public interfaces changed: in-tree reference scaffold, fixture routing, and proof-routing expectations
 - Generated artifacts: example scaffold, UX/security/docs fixtures, proof-lane outputs
 - Routing maps changed: `agent/owner-map.json`, `agent/test-map.json`
-- Validation commands: `cargo test -p humanlint`, `just fast`, `just score`, `npm --workspace @humanlint/ux-qa run build`, `npm --workspace @humanlint/ux-qa run test`
+- Validation commands: `cargo test -p jankurai`, `just fast`, `just score`, `npm --workspace @jankurai/ux-qa run build`, `npm --workspace @jankurai/ux-qa run test`
 - Results: validation passed; reference scaffold remains partial
 - Skipped validation: external golden repo split remains optional
 - Exceptions created: examples are routed out of workspace score handling as fixtures

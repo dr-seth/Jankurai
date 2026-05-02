@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/repo-score.schema.json",
-  "title": "humanlint repo score",
+  "$id": "https://jankurai.dev/schemas/repo-score.schema.json",
+  "title": "jankurai repo score",
   "type": "object",
   "required": [
     "report_fingerprint",
@@ -41,7 +41,7 @@
     "dirty_worktree": { "type": "boolean" },
     "generated_at": { "type": "string" },
     "schema_url": { "const": "schemas/repo-score.schema.json" },
-    "standard": { "const": "humanlint" },
+    "standard": { "const": "jankurai" },
     "standard_version": { "type": "string" },
     "auditor_version": { "type": "string" },
     "schema_version": { "type": "string" },
@@ -74,14 +74,23 @@
     },
     "uxQaReportArtifactSummary": {
       "type": "object",
-      "description": "Validated ingest summary for target/humanlint/ux-qa.json (audit only; does not drive score).",
+      "description": "Validated ingest summary for target/jankurai/ux-qa.json (audit only; does not drive score).",
       "required": [
         "path",
         "report_count",
         "worst_decision",
         "total_violations",
         "summary_errors",
-        "summary_warnings"
+        "summary_warnings",
+        "reports_missing_required_states",
+        "missing_state_names",
+        "artifact_counts_by_kind",
+        "reports_missing_required_artifacts",
+        "missing_artifact_kinds",
+        "reports_missing_required_accessibility_artifact",
+        "accessibility_violation_total",
+        "accessibility_incomplete_total",
+        "accessibility_pass_total"
       ],
       "properties": {
         "path": { "type": "string" },
@@ -92,7 +101,28 @@
         },
         "total_violations": { "type": "integer", "minimum": 0 },
         "summary_errors": { "type": "integer", "minimum": 0 },
-        "summary_warnings": { "type": "integer", "minimum": 0 }
+        "summary_warnings": { "type": "integer", "minimum": 0 },
+        "reports_missing_required_states": { "type": "integer", "minimum": 0 },
+        "missing_state_names": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "artifact_counts_by_kind": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "reports_missing_required_artifacts": { "type": "integer", "minimum": 0 },
+        "missing_artifact_kinds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "reports_missing_required_accessibility_artifact": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accessibility_violation_total": { "type": "integer", "minimum": 0 },
+        "accessibility_incomplete_total": { "type": "integer", "minimum": 0 },
+        "accessibility_pass_total": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": false
     },
@@ -118,7 +148,7 @@
     },
     "securityEvidenceArtifactSummary": {
       "type": "object",
-      "description": "Validated ingest summary for target/humanlint/security/evidence.json (audit only; does not drive score).",
+      "description": "Validated ingest summary for target/jankurai/security/evidence.json (audit only; does not drive score).",
       "required": [
         "path",
         "envelope_exit_code",

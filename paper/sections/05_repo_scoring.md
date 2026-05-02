@@ -1,6 +1,6 @@
 ## Automatic Scorer: Scoring Repos Against The Standard
 
-`crates/humanlint/` contains the reference implementation of the audit in Section 8. The scorer is not a benchmark harness and not style police. It is a fast local filter for the question that matters in the AI era: does this repo make wrong code easy to reject, localize, prove, audit, and repair, or does it hide drift until it becomes expensive?
+`crates/jankurai/` contains the reference implementation of the audit in Section 8. The scorer is not a benchmark harness and not style police. It is a fast local filter for the question that matters in the AI era: does this repo make wrong code easy to reject, localize, prove, audit, and repair, or does it hide drift until it becomes expensive?
 
 The implementation is intentionally fast and dependency-light. It is a Rust binary, so it can scan an arbitrary checkout immediately and emit the same contract in a clean environment or a messy one without a Python bootstrap step.
 
@@ -41,7 +41,7 @@ Caps are ceilings, not extra penalties. If a repo misses one of these conditions
 | Generated contracts or public API drift untested | 80 |
 | Python has direct product truth or production DB ownership | 72 |
 | No secret or dependency scanning in CI | 78 |
-| No humanlint audit lane in CI | 82 |
+| No jankurai audit lane in CI | 82 |
 | Non-optimal product language found | 74 |
 | Too much Python in product surface | 72 |
 | Vibe placeholders in product code | 68 |
@@ -64,7 +64,7 @@ Required top-level fields:
 
 - `score`: final integer score from 0 to 100 after caps
 - `raw_score`: weighted score before caps
-- `standard_version`: humanlint standard version used by the auditor
+- `standard_version`: jankurai standard version used by the auditor
 - `target_stack`: the exact stack the audit is judging
 - `caps_applied`: list of cap identifiers or names that lowered the ceiling
 - `dimensions`: list of per-dimension results
@@ -91,7 +91,7 @@ Example shape:
 
 ```json
 {
-  "standard": "humanlint",
+  "standard": "jankurai",
   "standard_version": "0.3.0",
   "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service",
   "score": 86,
@@ -143,8 +143,8 @@ The scanner should prefer direct evidence over inference. If it flags a repo, it
 ### Command contract
 
 ```bash
-cargo run -p humanlint -- /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
-cargo run -p humanlint -- /path/to/repo --changed src/foo.rs contracts/api.yaml
+cargo run -p jankurai -- /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
+cargo run -p jankurai -- /path/to/repo --changed src/foo.rs contracts/api.yaml
 ```
 
 The first command scores the whole repository and writes both output files. The second narrows the scan to changed paths when a diff-sensitive pass is enough.
@@ -156,7 +156,7 @@ The contract is simple on purpose. If a repo needs extra packages, extra setup, 
 Changed-path mode does not excuse repo-level checks. It narrows file-scoped inspection while still checking root evidence such as instructions, CI, security lanes, and test maps.
 
 ```bash
-cargo run -p humanlint -- . --changed apps/web/src/foo.ts contracts/openapi/public.yaml
+cargo run -p jankurai -- . --changed apps/web/src/foo.ts contracts/openapi/public.yaml
 ```
 
 Agents should use changed mode for local repair loops and full mode before merge.
@@ -172,4 +172,4 @@ The ordered `agent_fix_queue` is the most important output. It should be small e
 | `task` | imperative repair instruction |
 | `why` | short reason tied to the finding |
 
-The audit is successful only when it creates useful work. A vague finding such as "improve architecture" is not acceptable. A humanlint finding should say where to go, what to change, which rule was broken, and why that repair makes future agent work safer.
+The audit is successful only when it creates useful work. A vague finding such as "improve architecture" is not acceptable. A jankurai finding should say where to go, what to change, which rule was broken, and why that repair makes future agent work safer.

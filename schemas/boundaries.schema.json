@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://humanlint.dev/schemas/boundaries.schema.json",
-  "title": "humanlint boundary manifest",
+  "$id": "https://jankurai.dev/schemas/boundaries.schema.json",
+  "title": "jankurai boundary manifest",
   "type": "object",
   "required": ["stack", "queues"],
   "properties": {

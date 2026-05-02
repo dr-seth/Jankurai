@@ -1,4 +1,4 @@
-standard = "humanlint"
+standard = "jankurai"
 standard_version = "0.4.0"
 paper_edition = "2026.05-ed3"
 auditor_version = "0.4.0"
@@ -8,7 +8,7 @@ published = "2026-05-02"
 
 [[artifact]]
 id = "paper-source"
-path = "paper/humanlint.tex"
+path = "paper/jankurai.tex"
 kind = "tex-wrapper"
 version_field = "paper_edition"
 version = "2026.05-ed3"
@@ -18,21 +18,21 @@ generated = false
 
 [[artifact]]
 id = "paper-render"
-path = "paper/humanlint.pdf"
+path = "paper/jankurai.pdf"
 kind = "pdf"
 version_field = "paper_edition"
 version = "2026.05-ed3"
-source = "paper/humanlint.tex"
+source = "paper/jankurai.tex"
 command = "just paper"
 generated = true
 
 [[artifact]]
 id = "paper-agent-md"
-path = "paper/humanlint.md"
+path = "paper/jankurai.md"
 kind = "agent-markdown"
 version_field = "paper_edition"
 version = "2026.05-ed3"
-source = "paper/humanlint.tex"
+source = "paper/jankurai.tex"
 command = "manual companion update"
 generated = false
 
@@ -48,7 +48,7 @@ generated = false
 
 [[artifact]]
 id = "agent-standard-brief"
-path = "agent/HUMANLINT_STANDARD.md"
+path = "agent/JANKURAI_STANDARD.md"
 kind = "agent-brief"
 version_field = "standard_version"
 version = "0.4.0"
@@ -63,5 +63,5 @@ kind = "typescript-package"
 version_field = "auditor_version"
 version = "0.4.0"
 source = "tips/UX_QA/"
-command = "npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test"
+command = "npm --workspace @jankurai/ux-qa run build && npm --workspace @jankurai/ux-qa run test"
 generated = false

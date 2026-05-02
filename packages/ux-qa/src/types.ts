@@ -2,6 +2,7 @@ export type UxQaSeverity = "error" | "warning";
 export type UxQaDecision = "pass" | "warn" | "review" | "block";
 export type UxQaState = "loading" | "empty" | "error" | "success" | "permission-denied";
 export type UxQaBaselineMode = "pass" | "review" | "block";
+export type UxQaReportSchemaVersion = "1.2.0" | "1.3.0";
 
 export type UxQaRuleId =
   | "edge-clearance"
@@ -101,12 +102,27 @@ export interface UxQaViolation {
   artifactPath?: string;
 }
 
+export type UxQaArtifactKind = "screenshot" | "crop" | "aria-snapshot" | "accessibility";
+
 export interface UxQaArtifact {
-  kind: "screenshot" | "crop" | "aria-snapshot";
+  kind: UxQaArtifactKind;
   path: string;
   viewport: UxQaViewport;
   selector?: string;
   ruleId?: UxQaRuleId;
+}
+
+export interface UxQaArtifactCoverage {
+  required: UxQaArtifactKind[];
+  present: UxQaArtifactKind[];
+  missing: UxQaArtifactKind[];
+}
+
+export interface UxQaAccessibilitySummary {
+  violations: number;
+  incomplete: number;
+  passes: number;
+  artifactPath?: string;
 }
 
 export interface UxQaSummary {
@@ -122,6 +138,7 @@ export interface UxQaRunContext {
   artifactsDir?: string | undefined;
   screenshot?: boolean | undefined;
   ariaSnapshot?: boolean | undefined;
+  accessibilityScan?: boolean | undefined;
   requiredStates?: UxQaState[] | undefined;
   declaredStates?: UxQaState[] | undefined;
 }
@@ -133,7 +150,7 @@ export interface UxQaStateCoverage {
 }
 
 export interface UxQaReport {
-  schemaVersion: "1.2.0";
+  schemaVersion: UxQaReportSchemaVersion;
   toolVersion: string;
   url: string;
   routeId?: string;
@@ -145,6 +162,8 @@ export interface UxQaReport {
   elements: UxQaElement[];
   violations: UxQaViolation[];
   artifacts: UxQaArtifact[];
+  artifactCoverage?: UxQaArtifactCoverage;
+  accessibility?: UxQaAccessibilitySummary;
   summary: UxQaSummary;
   stateCoverage?: UxQaStateCoverage;
   decision: UxQaDecision;

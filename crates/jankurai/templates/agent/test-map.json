@@ -1,0 +1,57 @@
+{
+  "workspace": "jankurai",
+  "tests": {
+    "AGENTS.md": {
+      "command": "just score",
+      "purpose": "verify root routing remains visible to the audit"
+    },
+    "agent/MASTER_PLAN.md": {
+      "command": "just score",
+      "purpose": "verify master plan routing remains visible to the audit"
+    },
+    "agent/": {
+      "command": "just score",
+      "purpose": "verify manifests remain parseable and authoritative"
+    },
+    "contracts/": {
+      "command": "true",
+      "purpose": "scaffold: replace with contract drift checks when OpenAPI exists"
+    },
+    "db/migrations/": {
+      "command": "true",
+      "purpose": "scaffold: add migration tests before production"
+    },
+    "db/": {
+      "command": "true",
+      "purpose": "scaffold database docs"
+    },
+    "db/constraints/": {
+      "command": "true",
+      "purpose": "scaffold: add constraint checks before production"
+    },
+    "docs/architecture/": {
+      "command": "true",
+      "purpose": "scaffold architecture docs only"
+    },
+    "docs/decisions/": {
+      "command": "true",
+      "purpose": "scaffold ADR slot only"
+    },
+    "README-jankurai-scaffold.md": {
+      "command": "true",
+      "purpose": "scaffold marker file"
+    },
+    "tools/": {
+      "command": "true",
+      "purpose": "verify tooling stubs"
+    },
+    "crates/": {
+      "command": "cargo test",
+      "purpose": "verify Rust behavior and audit checks"
+    },
+    "docs/": {
+      "command": "just score",
+      "purpose": "verify agent-readable documentation remains routed"
+    }
+  }
+}

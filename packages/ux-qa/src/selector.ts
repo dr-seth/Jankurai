@@ -1,5 +1,5 @@
 export const SELECTOR_PRIORITY = [
-  "data-humanlint-id",
+  "data-jankurai-id",
   "data-testid",
   "role/name",
   "stable-id",

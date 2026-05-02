@@ -2,17 +2,17 @@
 
 Paper title: "Humans Were the Bug: From Vibe Coding to Agent-Native Engineering"
 
-humanlint exists to make agent-native engineering concrete. The claim is deliberately sharp: most repositories were shaped around human comfort, human memory, human navigation, and human tolerance for ambiguity. That design target is now wrong. Agents can generate code quickly, but they still fail when a repo hides ownership, accepts duplicate truth, lacks deterministic proof lanes, or forces the model to infer architecture from scattered convention.
+Jankurai exists to make agent-native engineering concrete. The claim is deliberately sharp: most repositories were shaped around human comfort, human memory, human navigation, and human tolerance for ambiguity. That design target is now wrong. Agents can generate code quickly, but they still fail when a repo hides ownership, accepts duplicate truth, lacks deterministic proof lanes, or forces the model to infer architecture from scattered convention.
 
 The new standard is not "make coding pleasant." The new standard is "make wrong code easy to reject, localize, prove, audit, and repair."
 
 The current working thesis for this repository is:
 
-1. `humanlint init` installs the control plane.
-2. `humanlint audit` and `humanlint doctor` make proof and drift visible.
+1. `jankurai init` installs the control plane.
+2. `jankurai audit` and `jankurai doctor` make proof and drift visible.
 3. The blessed stack is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python.
 
-Kafka deserves respect as proven brownfield streaming infrastructure, but it is not the stack identity. humanlint should isolate event buses behind generated event contracts and Rust queue adapters, then evaluate Rust-native replacements as they earn compatibility and operations proof.
+Kafka deserves respect as proven brownfield streaming infrastructure, but it is not the stack identity. Jankurai should isolate event buses behind generated event contracts and Rust queue adapters, then evaluate Rust-native replacements as they earn compatibility and operations proof.
 
 ## Paper Mission
 
@@ -37,7 +37,7 @@ The paper should not pretend every language hype cycle was foolish. It should se
 
 ## Dead Hype And Stalled Promise
 
-humanlint needs a serious subsection on languages and platforms that were technically interesting but failed to become the universal answer. This is not a dunk list. It is a warning against confusing elegance with ecosystem victory.
+jankurai needs a serious subsection on languages and platforms that were technically interesting but failed to become the universal answer. This is not a dunk list. It is a warning against confusing elegance with ecosystem victory.
 
 Required angle:
 
@@ -56,7 +56,7 @@ The lesson: technical promise is not enough. In the agent era, the same rule get
 
 ## Winner Doctrine
 
-humanlint chooses one default stack:
+jankurai chooses one default stack:
 
 ```text
 Rust core + TypeScript/React/Vite product surface + PostgreSQL truth
@@ -101,7 +101,7 @@ The graph ranking should make the point visually: Rust/TypeScript/PostgreSQL win
 
 ## Audit Vision
 
-The humanlint audit is the enforcement layer for the paper.
+The jankurai audit is the enforcement layer for the paper.
 
 It must run in every CI pipeline. It must fail fast. It must produce two outputs: a machine-readable contract and a human-readable repair brief. The audit is not allowed to merely complain. Every finding must include:
 
@@ -152,7 +152,7 @@ Hard line: if a pattern makes agent repair slower, less local, or less provable,
 
 ## Agent-Friendly Exceptions
 
-Agent-friendly exceptions are a major humanlint idea. They turn repeated failure knowledge into code and documentation, not tribal memory.
+Agent-friendly exceptions are a major jankurai idea. They turn repeated failure knowledge into code and documentation, not tribal memory.
 
 Every intentional exception class or error enum variant should carry:
 
@@ -204,7 +204,7 @@ The CI layout should have at least:
 | `db` | migrations, constraints, schema drift |
 | `ui` | component and browser smoke checks |
 | `full` | slower integration and E2E suite |
-| `audit` | humanlint score and hard-rule findings |
+| `audit` | jankurai score and hard-rule findings |
 
 The audit should punish missing lanes because missing proof is not neutral. It is permission for bad generated code to survive.
 
@@ -245,7 +245,7 @@ Compressed writing styles can help in personal workflows, but they should not be
 
 ## Versioned Standard
 
-humanlint must version three things separately:
+jankurai must version three things separately:
 
 | Artifact | Versioned as | Reason |
 | --- | --- | --- |
@@ -286,7 +286,7 @@ Agent-specific sources to keep in view:
 - Evaluating `AGENTS.md`: https://arxiv.org/abs/2602.11988
 - Claude manifest study: https://arxiv.org/abs/2509.14744
 
-Important caveat: emerging research is mixed. Some studies suggest repository context files can increase exploration cost or reduce task success when they add unnecessary requirements. humanlint should respond by making instructions smaller, more specific, more local, and auditable, not by abandoning repo guidance.
+Important caveat: emerging research is mixed. Some studies suggest repository context files can increase exploration cost or reduce task success when they add unnecessary requirements. jankurai should respond by making instructions smaller, more specific, more local, and auditable, not by abandoning repo guidance.
 
 ## Future Research
 
@@ -296,7 +296,7 @@ Research agenda:
 
 | Question | Needed evidence |
 | --- | --- |
-| Do humanlint repos reduce wrong-owner edits? | controlled agent tasks before/after owner maps and proof lanes |
+| Do jankurai repos reduce wrong-owner edits? | controlled agent tasks before/after owner maps and proof lanes |
 | Do generated contracts reduce repair time? | drift-injection experiments across UI/API/Rust boundaries |
 | What file/function limits best improve agent repair? | benchmark edit locality, token use, and regression rate |
 | Which exception shapes help agents self-repair? | compare structured exceptions against plain errors |
@@ -322,7 +322,7 @@ Known gaps must stay explicit:
 
 ## Adoption Mission
 
-humanlint should become the agent-native engineering standard by being useful before it is famous.
+jankurai should become the agent-native engineering standard by being useful before it is famous.
 
 The adoption path is:
 

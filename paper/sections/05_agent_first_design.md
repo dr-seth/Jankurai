@@ -10,7 +10,7 @@ The usable pattern is strong enough to standardize.
 
 Human developers can survive a repo that relies on hallway memory. Agents cannot. A repo that wants agent work must expose a small set of machine-readable surfaces:
 
-| Surface | Job | humanlint rule |
+| Surface | Job | jankurai rule |
 | --- | --- | --- |
 | `AGENTS.md` | root routing and non-negotiable rules | short, canonical, loaded by agent tools |
 | local agent files | path-specific deviations | scoped, never contradicting root hard rules |
@@ -108,7 +108,7 @@ The local files should not repeat the whole standard. They should answer only th
 
 ### Generally Accepted Rules, Not Prompt Folklore
 
-The paper intentionally excludes tricks that depend on a single user's preference. Compressed writing styles can help in some sessions, and highly terse "caveman" notes may be useful for local memory compression, but that is not a universal engineering standard. humanlint only standardizes practices that have broad support across tool docs, benchmarks, or mature engineering practice:
+The paper intentionally excludes tricks that depend on a single user's preference. Compressed writing styles can help in some sessions, and highly terse "caveman" notes may be useful for local memory compression, but that is not a universal engineering standard. jankurai only standardizes practices that have broad support across tool docs, benchmarks, or mature engineering practice:
 
 - short and scoped agent instructions
 - one-command setup and validation
