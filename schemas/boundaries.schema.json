@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/boundaries.schema.json",
+  "title": "humanlint boundary manifest",
+  "type": "object",
+  "required": ["stack", "queues"],
+  "properties": {
+    "stack": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "queues": {
+      "type": "object",
+      "required": ["adapter_paths", "event_contract_paths", "generated_type_paths"],
+      "properties": {
+        "adapter_paths": { "type": "array", "items": { "type": "string" } },
+        "event_contract_paths": { "type": "array", "items": { "type": "string" } },
+        "generated_type_paths": { "type": "array", "items": { "type": "string" } },
+        "client_markers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "streaming_exception": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["runtime", "owner", "expires", "migration_path"],
+        "properties": {
+          "runtime": { "type": "string" },
+          "classification": { "type": "string" },
+          "reason": { "type": "string" },
+          "owner": { "type": "string" },
+          "expires": { "type": "string" },
+          "migration_path": { "type": "string" }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

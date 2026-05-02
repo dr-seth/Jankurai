@@ -20,20 +20,20 @@ Use separate versions because the paper, rules, and tooling will move at differe
 
 | Version | Format | Example | Rule |
 | --- | --- | --- | --- |
-| Paper edition | date plus edition | `2026.05-ed1` | changes when the argument or evidence changes |
-| Standard version | SemVer | `0.2.0` | breaking compliance rule means major bump |
-| Audit version | SemVer | `0.2.3` | implementation release of the scanner |
-| Output schema | SemVer | `1.0.0` | breaking JSON/Markdown contract means major bump |
-| Rule pack version | SemVer plus tool | `codex-0.2.0` | tracks standard version with tool-specific packaging |
+| Paper edition | date plus edition | `2026.05-ed3` | changes when the argument or evidence changes |
+| Standard version | SemVer | `0.4.0` | breaking compliance rule means major bump |
+| Audit version | SemVer | `0.4.0` | implementation release of the scanner |
+| Output schema | SemVer | `1.2.0` | breaking JSON/Markdown contract means major bump |
+| Rule pack version | SemVer plus tool | `codex-0.4.0` | tracks standard version with tool-specific packaging |
 
 Every audit output should include:
 
 ```json
 {
-  "standard_version": "0.2.0",
-  "auditor_version": "0.2.0",
-  "schema_version": "1.0.0",
-  "paper_edition": "2026.05-ed1",
+  "standard_version": "0.4.0",
+  "auditor_version": "0.4.0",
+  "schema_version": "1.2.0",
+  "paper_edition": "2026.05-ed3",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
 }
@@ -43,8 +43,8 @@ Every adopted repo should pin:
 
 ```json
 {
-  "humanlint_standard": "0.2.0",
-  "audit_min_version": "0.2.0",
+  "humanlint_standard": "0.4.0",
+  "audit_min_version": "0.4.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
   "advisory_on": ["medium", "low"]
@@ -64,6 +64,17 @@ Required artifact bindings:
 | `agent/HUMANLINT_STANDARD.md` | `agent-standard-brief` | source `docs/agent-native-standard.md` |
 
 Paper artifacts MUST use the `humanlint.*` prefix. `main.md`, `main.tex`, and `main.pdf` are forbidden anywhere in this repository.
+
+## Receipt Convention
+
+Operational receipts are volatile evidence, not source material.
+
+- `humanlint doctor` and `humanlint init` write receipts under `target/humanlint/receipts/<action>-<unix-seconds>.json`
+- release closeouts should cite the command, changed paths, and the receipt path
+- the canonical score artifacts remain `agent/repo-score.json` and `agent/repo-score.md`
+- `target/humanlint/` is the shared scratch root for audit, doctor, init, UX, and future proof outputs
+
+Use those receipts to make phase handoffs and release evidence reproducible without promoting them into tracked source files.
 
 ## Standard Channels
 
@@ -93,7 +104,7 @@ Minimum CI lanes:
 
 | Lane | Required command shape |
 | --- | --- |
-| `audit` | `cargo run -p humanlint -- . --json repo-score.json --md repo-score.md` |
+| `audit` | `cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md` |
 | `fast` | one deterministic command for local agent edits |
 | `contracts` | generated API/schema drift check |
 | `security` | secret scan, dependency scan, SBOM/SCA where available |
@@ -124,7 +135,7 @@ Exit criteria:
 - emits stable top-level output
 - runs without third-party dependencies
 
-### v0.2.0: Vibe Coding Rules
+### v0.3.0: Vibe Coding Rules
 
 Add hard-rule checks:
 
@@ -164,30 +175,31 @@ Exit criteria:
 - generated exception catalog can route repairs to owners
 - examples exist for Rust, TypeScript, SQL, and Python service boundary
 
-### v0.4.0: Rule Packs
+### v0.4.0: Release Completion
 
-Ship agent-specific packs:
+Ship the release surface as one product:
 
-| Tool | Artifact |
+| Surface | Artifact |
 | --- | --- |
-| Codex | `AGENTS.md` template and nested override examples |
-| Claude Code | `CLAUDE.md`, `.claude/rules`, memory hygiene guide |
-| Cursor | `.cursor/rules` path-scoped examples |
-| GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` |
-| Aider | repo-map/token-budget guidance |
-| Antigravity-style IDEs | mission-control checklist, terminal/browser approval policy |
+| Audit exports | JSON, Markdown, SARIF, JUnit, GitHub summary, repair queue JSONL, issue export |
+| Install | idempotent `init --profile --ide --mode --dry-run --yes --diff` |
+| Doctor | stale score, root artifact, path leak, echo-only proof, UX artifact, boundary, and paper-source checks |
+| CI | `humanlint ci install --github --mode ratchet --min-score 85` |
+| Boundaries | authoritative streaming and queue manifest with Kafka brownfield exception shape |
+| UX QA | route-matrix and Storybook audit commands with artifact-backed proof |
 
 Exit criteria:
 
-- each pack maps to the same humanlint standard
-- no pack contradicts another pack
-- root instruction file stays under a strict line/token target
+- every below-floor audit output includes routed repair work
+- canonical score artifacts remain under `agent/`
+- `paper/tex/` is the canonical paper source and Markdown sections are marked legacy-only
+- version bindings align at standard/auditor `0.4.0`, schema `1.2.0`, and paper `2026.05-ed3`
 
 ### v0.5.0: GitHub Action And Badges
 
 Ship:
 
-- `humanlint-audit` GitHub Action
+- `humanlint` GitHub Action
 - reusable workflow
 - PR comment summary
 - score badge
@@ -200,7 +212,23 @@ Exit criteria:
 - failed PR shows exact findings and repair queue
 - badge reflects pinned standard version
 
-### v0.6.0: Benchmark Pack
+### v0.6.0: Streaming Evaluation Pack
+
+Ship:
+
+- `agent/boundaries.toml` schema and examples
+- Kafka brownfield exception template
+- Tansu Kafka-compatible evaluation harness
+- Apache Iggy and Fluvio greenfield evaluation notes
+- replay, consumer-group, retention, compaction, ACL, quota, observability, and migration proof checklist
+
+Exit criteria:
+
+- streaming clients outside adapters produce `HLT-019-STREAMING-RUNTIME-DRIFT`
+- Kafka exceptions require owner, expiry, brownfield reason, and migration path
+- benchmark fixtures distinguish Kafka-compatible replacement readiness from greenfield Rust-native alternatives
+
+### v0.7.0: Benchmark Pack
 
 Ship a public task suite:
 
@@ -228,7 +256,7 @@ Exit criteria:
 - publish methodology and raw evidence
 - include multiple coding agents
 
-### v1.0.0: Stable Compliance Standard
+### v1.2.0: Stable Compliance Standard
 
 Requirements:
 
@@ -262,7 +290,7 @@ The paper should include a ranking graph, a concrete winner architecture, and th
 The first public experience should be:
 
 ```bash
-cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 No bootstrap. No service. No API key. No dependency install. Immediate findings.
@@ -304,6 +332,8 @@ Templates should include:
 - `agent/owner-map.json`
 - `agent/test-map.json`
 - `agent/generated-zones.toml`
+- `schemas/cell-manifest.schema.json`
+- `schemas/cell-registry.schema.json`
 - `agent/humanlint-standard.json`
 - Rust workspace with `domain`, `application`, `adapters`, `workers`
 - Vite/React app with generated client path
@@ -438,7 +468,7 @@ Strict defaults:
 - Every ownership cell must have local README or equivalent instructions when behavior is not obvious from code.
 - Exceptions must link to docs.
 - TODOs must include owner, date, issue, and exit condition.
-- CI workflows must name proof lanes consistently: `fast`, `contracts`, `security`, `db`, `ui`, `full`, `audit`.
+- CI workflows must name proof lanes consistently. The live `agent/proof-lanes.toml` currently defines the minimal set `fast`, `audit`, `paper`, `security`, and `full`; broader target lanes such as `contracts`, `db`, `ui`, and `observability` are roadmap vocabulary, not live config.
 
 ## Future Research Releases
 

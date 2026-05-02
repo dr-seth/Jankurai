@@ -81,15 +81,52 @@ test("CLI emits artifact-backed UX proof receipts", async ({}, testInfo) => {
     "--artifacts-dir",
     artifactsDir,
     "--screenshot",
-    "--aria-snapshot"
+    "--aria-snapshot",
+    "--wait-for",
+    "load",
+    "--timeout-ms",
+    "20000"
   ]);
 
   const payload = JSON.parse(await readFile(reportPath, "utf8"));
   const report = payload.reports[0];
   expect(exitCode).toBe(1);
-  expect(report.schemaVersion).toBe("1.0.0");
+  expect(report.schemaVersion).toBe("1.2.0");
+  expect(report.toolVersion).toBe("0.4.0");
   expect(report.decision).toBe("block");
   expect(report.routeId).toBe("fixture/tiny-controls");
   expect(report.artifacts.map((item: { kind: string }) => item.kind)).toEqual(expect.arrayContaining(["screenshot", "aria-snapshot", "crop"]));
   expect(report.violations.some((item: { artifactPath?: string }) => item.artifactPath)).toBe(true);
+});
+
+test("CLI records state matrix coverage in reports", async ({}, testInfo) => {
+  const pagePath = testInfo.outputPath("fixture.html");
+  const configPath = testInfo.outputPath("ux-qa.toml");
+  const reportPath = testInfo.outputPath("ux-qa.json");
+  await writeFile(pagePath, `<main><p>Go</p></main>`, "utf8");
+  await writeFile(configPath, `
+requiredStates = ["loading", "success"]
+
+[[routes]]
+id = "dashboard"
+url = "${pathToFileURL(pagePath).toString()}"
+states = ["success"]
+`, "utf8");
+
+  const exitCode = await runCli([
+    "audit",
+    "--config",
+    configPath,
+    "--out",
+    reportPath
+  ]);
+
+  const payload = JSON.parse(await readFile(reportPath, "utf8"));
+  const report = payload.reports[0];
+  expect(exitCode).toBe(0);
+  expect(report.stateCoverage).toEqual({
+    required: ["loading", "success"],
+    declared: ["success"],
+    missing: ["loading"]
+  });
 });

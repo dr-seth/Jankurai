@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/repair-plan.schema.json",
+  "title": "humanlint repair plan",
+  "description": "V1 envelope emitted by humanlint repair-plan (packet-centric). Planner-only fields such as plan_mode and planned_edits are deferred.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source_report",
+    "generated_at",
+    "target_stack_id",
+    "packets"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "source_report": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "target_stack_id": { "type": "string" },
+    "packets": {
+      "type": "array",
+      "items": { "$ref": "repair-packet.schema.json" }
+    },
+    "plan_mode": { "type": "string" },
+    "planned_edits": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

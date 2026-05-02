@@ -1,4 +1,9 @@
 pub mod audit;
+pub mod boundaries;
+pub mod commands;
+pub mod init;
 pub mod model;
 pub mod render;
+pub mod report;
+pub mod validation;
 pub mod versions;

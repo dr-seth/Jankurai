@@ -1,0 +1,4 @@
+# UX Routes
+
+- `/admin/accounts`
+

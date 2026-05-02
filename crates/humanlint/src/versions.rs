@@ -2,6 +2,7 @@ use crate::model::{
     AUDITOR_VERSION, PAPER_EDITION, SCHEMA_VERSION, STANDARD_VERSION, TARGET_STACK_ID,
 };
 use anyhow::{anyhow, Result};
+use serde_json::Value as JsonValue;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -48,6 +49,19 @@ pub fn check_versions(repo: &Path) -> Result<()> {
         STANDARD_VERSION,
         "crates/humanlint/Cargo.toml package.version",
     )?;
+
+    let ux_pkg = root.join("packages/ux-qa/package.json");
+    let ux_text = fs::read_to_string(&ux_pkg)?;
+    let ux_val: JsonValue = serde_json::from_str(&ux_text)?;
+    let ux_version = ux_val
+        .get("version")
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| anyhow!("missing packages/ux-qa/package.json version"))?;
+    if ux_version != STANDARD_VERSION {
+        return Err(anyhow!(
+            "packages/ux-qa/package.json version: expected {STANDARD_VERSION}, got {ux_version}"
+        ));
+    }
 
     if standard_version != STANDARD_VERSION
         || auditor_version != AUDITOR_VERSION

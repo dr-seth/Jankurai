@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/cell-registry.schema.json",
+  "title": "humanlint cell registry",
+  "type": "object",
+  "required": ["registry_version", "generated_at", "cells"],
+  "properties": {
+    "registry_version": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "cells": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "cell-manifest.schema.json" }
+    }
+  },
+  "additionalProperties": false
+}

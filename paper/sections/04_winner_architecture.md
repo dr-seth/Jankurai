@@ -15,7 +15,7 @@ repo/
     test-map.json
     proof-lanes.toml
     generated-zones.toml
-    repo-score.json
+    agent/repo-score.json
   apps/
     web/                    # TypeScript, React, Vite, generated clients only
     api/                    # Rust Axum/Tower or ConnectRPC edge

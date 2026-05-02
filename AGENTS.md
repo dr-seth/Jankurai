@@ -1,18 +1,20 @@
 # humanlint Agent Instructions
 
-Read `agent/HUMANLINT_STANDARD.md` first. The full standard is in
-`docs/agent-native-standard.md`; the paper mission is in `docs/mission.md`.
+Read `agent/HUMANLINT_STANDARD.md` first. For phase or MASTER_PLAN work,
+read `agent/MASTER_PLAN.md` before `tips/phases/00-phase-index.md`. The full
+standard is in `docs/agent-native-standard.md`; the paper mission is in
+`docs/mission.md`.
 
 This workspace is writing and validating the paper:
 `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`.
 
 ## Rules
 
-- Keep all new files under `/Users/bentaylor/Code/humanlint`.
+- Keep new files inside the repository root.
 - Treat `reference/` as read-only source material.
 - Do not hand-edit generated artifacts unless the generator/source is changed.
 - Keep root guidance short; put durable detail in `docs/` or `agent/`.
-- Use `cargo run -p humanlint -- . --json repo-score.json --md repo-score.md`
+- Use `cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md`
   for the audit lane.
 - Use `latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex`
   for the paper lane.

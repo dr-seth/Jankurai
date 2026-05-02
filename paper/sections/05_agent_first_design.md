@@ -19,7 +19,7 @@ Human developers can survive a repo that relies on hallway memory. Agents cannot
 | `agent/generated-zones.toml` | generated output manifest | generated files are read-only unless source changes |
 | `agent/proof-lanes.toml` | canonical validation commands | no hidden local-only rituals |
 | `docs/exceptions/` | approved standard violations | owner, reason, expiration, repair plan |
-| `repo-score.json` | audit contract | CI and agents consume it |
+| `agent/repo-score.json` | audit contract | CI and agents consume it |
 
 Official Codex docs describe hierarchical `AGENTS.md` discovery, root-to-local merge order, and a default project-doc size cap. Claude Code docs describe project `CLAUDE.md`, local memory, and the risk of vague or conflicting instructions. GitHub Copilot supports repository, path-specific, and agent instruction files. Cursor rules support scoped project rules. These are tool-specific surfaces, but they all reward the same repo design: small root instructions, local detail, no contradiction, and executable commands.
 

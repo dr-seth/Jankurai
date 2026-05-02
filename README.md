@@ -4,7 +4,7 @@
 
 `humanlint` is an open-source standard, paper, and audit CLI for agent-native engineering: repositories built so coding agents can reject wrong code, localize the repair, run the right proof lane, and leave evidence.
 
-Use it in two steps: audit now, then ratchet toward conformance. The audit works on any repo; the default target profile is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+Use it in three steps: install the standard, audit now, then ratchet toward conformance. The audit works on any repo; the default target profile is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
 
 <img src="assets/vibe-coding-tlr-pie.svg" alt="Vibe-coding top-level risk shares" width="100%">
 
@@ -28,7 +28,7 @@ Install the audit CLI from GitHub:
 
 ```bash
 cargo install --git https://github.com/jeppsontaylor/humanlint --package humanlint --locked
-humanlint . --json repo-score.json --md repo-score.md
+humanlint audit . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 From a checkout:
@@ -37,71 +37,50 @@ From a checkout:
 git clone https://github.com/jeppsontaylor/humanlint.git
 cd humanlint
 cargo install --path crates/humanlint --locked
-humanlint /path/to/repo --json repo-score.json --md repo-score.md
+humanlint audit /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 Without installing:
 
 ```bash
-cargo run -p humanlint -- /path/to/repo --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- audit /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
 ```
 
-The Rust audit path is dependency-light. It emits one machine-readable JSON report and one Markdown review surface.
+The Rust audit path is dependency-light. It emits one machine-readable JSON report and one Markdown review surface. The canonical score artifacts now live under `agent/repo-score.json` and `agent/repo-score.md`.
 
 Read the Markdown report first. Fix the highest-priority `agent_fix_queue` item, rerun the audit, and repeat until caps are gone. Scores below `70` usually mean the repo is not agent-operable; `70-84` is advisory/ratchet territory; `85+` is the target floor for standard-mode conformance.
 
-## Add The Agent Standard
+## Streaming Stance
 
-Download the short agent bootstrap into your repo:
+Kafka remains valid brownfield streaming infrastructure when a system needs its durable distributed log, ecosystem, and operational proof. It is not part of the default stack identity. Keep Kafka and any Tansu, Apache Iggy, Fluvio, NATS, Redis Streams, or equivalent client behind generated event contracts and Rust queue adapters. Tansu is the leading Kafka-compatible Rust candidate to evaluate; Iggy and Fluvio are Rust-native greenfield candidates, not Kafka drop-ins.
 
-```bash
-mkdir -p agent
-curl -fsSL https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/agent/HUMANLINT_STANDARD.md \
-  -o agent/HUMANLINT_STANDARD.md
-```
+## Install The Standard
 
-`wget` equivalent:
+Use `humanlint init` first in a new repo or when backfilling the agent control plane:
 
 ```bash
-mkdir -p agent
-wget -qO agent/HUMANLINT_STANDARD.md \
-  https://raw.githubusercontent.com/jeppsontaylor/humanlint/main/agent/HUMANLINT_STANDARD.md
+humanlint init --profile rust-ts-vite-react-postgres --ide all --mode advisory --dry-run
+humanlint init --profile rust-ts-vite-react-postgres --ide all --mode advisory --yes
+humanlint doctor --fail-on high
+humanlint audit --changed-from origin/main --mode ratchet
+humanlint ci install --github --mode ratchet --min-score 85
 ```
 
-If you do not already have `AGENTS.md`, create one:
-
-```bash
-cat > AGENTS.md <<'EOF'
-# Agent Instructions
-
-Read `agent/HUMANLINT_STANDARD.md` first.
-
-Run the smallest mapped validation lane before final response.
-Do not edit generated files by hand.
-Keep durable project detail in `docs/` or `agent/`, not root prose.
-EOF
-```
-
-If your repo already has `AGENTS.md`, add this line near the top instead:
-
-```md
-Read `agent/HUMANLINT_STANDARD.md` first.
-```
-
-Then run the audit and fix the highest-severity findings first:
-
-```bash
-humanlint . --json repo-score.json --md repo-score.md
-```
-
-For real conformance, add the machine-readable maps the audit expects:
+`init` writes the canonical agent files, `doctor` reports missing controls, and `audit` produces the score contract. The standard files are:
 
 | File | Purpose |
 | --- | --- |
-| `agent/owner-map.json` | maps changed paths to ownership cells |
-| `agent/test-map.json` | maps changed paths to proof lanes |
-| `agent/generated-zones.toml` | names generated outputs, sources, and regeneration commands |
-| `agent/standard-version.toml` | pins standard, audit, schema, paper, and artifact versions |
+| `AGENTS.md` | short root router |
+| `agent/HUMANLINT_STANDARD.md` | brief agent bootstrap |
+| `agent/owner-map.json` | path ownership map |
+| `agent/test-map.json` | path-to-proof routing |
+| `agent/generated-zones.toml` | generated output manifest |
+| `agent/proof-lanes.toml` | runnable validation lanes |
+| `agent/standard-version.toml` | version bindings |
+
+## Add The Agent Standard
+
+For a current repo, run `humanlint init --dry-run` first. It will show what the standard would install before it writes anything.
 
 ## CI
 
@@ -123,24 +102,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo run -p humanlint -- versions
       - name: Run humanlint
-        run: cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
+        run: cargo run -p humanlint -- audit . --json agent/repo-score.json --md agent/repo-score.md
       - name: Add score and repair queue to the step summary
         run: |
           {
             echo "### humanlint"
             echo ""
-            echo "- score: $(jq -r '.score' repo-score.json)"
-            echo "- raw score: $(jq -r '.raw_score' repo-score.json)"
+            echo "- score: $(jq -r '.score' agent/repo-score.json)"
+            echo "- raw score: $(jq -r '.raw_score' agent/repo-score.json)"
             echo ""
             echo "#### agent_fix_queue"
-            jq -r '.agent_fix_queue[] | "- [\(.priority)] \(.path): \(.task) — \(.why)"' repo-score.json
+            jq -r '.agent_fix_queue[] | "- [\(.priority)] \(.path): \(.task) - \(.why)"' agent/repo-score.json
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: humanlint-score
           path: |
-            repo-score.json
-            repo-score.md
+            agent/repo-score.json
+            agent/repo-score.md
 ```
 
 Teams usually start in advisory mode, then ratchet toward a score floor of `85` and no high-severity findings without an exception.
@@ -180,17 +159,26 @@ node packages/ux-qa/dist/cli.js audit \
   --artifacts-dir ux-qa-artifacts \
   --screenshot \
   --aria-snapshot \
+  --wait-for domcontentloaded \
+  --timeout-ms 15000 \
   --viewport 390x844 \
   --viewport 1440x900
 ```
 
-The CLI expects a running app or preview URL. Reports include rule IDs, selectors, viewport data, severity, merge decision, and artifact paths for screenshots, crops, and ARIA snapshots when requested. Deterministic geometry failures should block; visual baseline diffs should route to owner approval; AI/VLM visual opinions should stay review-only unless backed by deterministic evidence.
+Through the Rust CLI after building the workspace package:
+
+```bash
+humanlint ux audit --config agent/ux-qa.toml --out target/humanlint/ux-qa.json
+humanlint ux storybook --url http://localhost:6006 --config agent/ux-qa.toml
+```
+
+The CLI expects a running app or preview URL. It defaults to `domcontentloaded`; use `--wait-for` and `--timeout-ms` to tune readiness for slower previews or local dev servers. Reports include rule IDs, selectors, viewport data, severity, merge decision, and artifact paths for screenshots, crops, and ARIA snapshots when requested. Deterministic geometry failures should block; visual baseline diffs should route to owner approval; AI/VLM visual opinions should stay review-only unless backed by deterministic evidence.
 
 ## Repository Map
 
 - `crates/humanlint/` - installable Rust audit package
 - `packages/ux-qa/` - optional Playwright rendered-UX geometry runtime
-- `agent/` - standard version, owner/test maps, generated zones, proof lanes
+- `agent/` - standard version, owner/test maps, generated zones, proof lanes, repo score
 - `docs/` - standard, rubric, testing doctrine, architecture, release plan
 - `paper/` - IEEE-style paper source and generated PDF
 - `tips/` - source notes feeding the paper and standard
@@ -206,10 +194,12 @@ Current paper artifacts are intentionally named after the project:
 - `paper/tex/` - included TeX source sections
 
 Do not add `main.md`, `main.tex`, or `main.pdf` anywhere in this repo. `just versions` enforces this so every paper artifact stays project-titled.
+Do not add root `repo-score.json` or `repo-score.md`; the canonical audit outputs are `agent/repo-score.json` and `agent/repo-score.md`.
 
 ## Development
 
 ```bash
+just versions
 just fast
 just ux-qa
 just paper

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/cell-manifest.schema.json",
+  "title": "humanlint cell manifest",
+  "type": "object",
+  "required": [
+    "cell_id",
+    "version",
+    "category",
+    "lifecycle",
+    "supported_profiles",
+    "dependencies",
+    "source_paths",
+    "generated_paths",
+    "contract_paths",
+    "migration_paths",
+    "ui_routes",
+    "proof_lanes",
+    "security_assumptions",
+    "observability_events",
+    "docs",
+    "upgrade_notes",
+    "certification_status"
+  ],
+  "properties": {
+    "cell_id": { "type": "string" },
+    "version": { "type": "string" },
+    "category": { "type": "string" },
+    "lifecycle": {
+      "type": "string",
+      "enum": ["draft", "experimental", "certified", "deprecated"]
+    },
+    "supported_profiles": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "generated_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "contract_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "migration_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ui_routes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "proof_lanes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "security_assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "observability_events": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "docs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "upgrade_notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "certification_status": {
+      "type": "string",
+      "enum": ["not-certified", "candidate", "certified", "revoked"]
+    }
+  },
+  "additionalProperties": false
+}

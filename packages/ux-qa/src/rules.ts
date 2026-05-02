@@ -84,11 +84,11 @@ function horizontalOverflowViolations(metrics: UxQaPageMetrics): UxQaViolation[]
 }
 
 function stickyObstructionViolations(elements: UxQaElement[], interactive: UxQaElement[]): UxQaViolation[] {
-  const fixed = elements.filter((element) => ["fixed", "sticky"].includes(element.position));
-  return fixed.flatMap((overlay) => interactive.flatMap((element) => {
-    if (overlay.selector === element.selector || overlapArea(overlay, element) <= 8) return [];
-    return [violation("sticky-obstruction", element, `obstructed by ${overlay.selector}`)];
-  }));
+  void elements;
+  return interactive.flatMap((element) => {
+    if (!element.obstructedBy) return [];
+    return [violation("sticky-obstruction", element, `center hit-test resolves to ${element.obstructedBy}`)];
+  });
 }
 
 function zIndexTokenViolations(elements: UxQaElement[], maximum: number): UxQaViolation[] {

@@ -1,0 +1,19 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "perfect-web-api-db",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/admin/accounts": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "account list"
+          }
+        }
+      }
+    }
+  }
+}
+

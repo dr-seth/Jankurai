@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/security-evidence.schema.json",
+  "title": "humanlint security evidence envelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "standard_version",
+    "generated_at",
+    "repo_root",
+    "lane",
+    "wrapper",
+    "exit_code",
+    "elapsed_ms",
+    "log_path",
+    "commands"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "standard_version": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "repo_root": { "type": "string" },
+    "git_head": { "type": "string" },
+    "lane": { "const": "security" },
+    "wrapper": {
+      "type": "object",
+      "required": ["kind", "path", "strict"],
+      "properties": {
+        "kind": { "const": "bash_script" },
+        "path": { "type": "string" },
+        "strict": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "exit_code": { "type": "integer" },
+    "elapsed_ms": { "type": "integer", "minimum": 0 },
+    "log_path": { "type": "string" },
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["label", "shell_command", "status", "advisory"],
+        "properties": {
+          "label": { "type": "string" },
+          "shell_command": { "type": "string" },
+          "tool": { "type": "string" },
+          "status": { "enum": ["ran", "skipped", "failed"] },
+          "exit_code": { "type": "integer" },
+          "advisory": { "type": "boolean" },
+          "stderr_excerpt": { "type": "string", "maxLength": 500 }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

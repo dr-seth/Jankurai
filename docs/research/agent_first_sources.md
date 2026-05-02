@@ -209,7 +209,7 @@ repo/
     proof-lanes.toml
     generated-zones.toml
     audit-policy.toml
-    repo-score.json
+    agent/repo-score.json
   apps/
     web/
       AGENTS.md

@@ -2,9 +2,9 @@
 
 Subtitle: **From Vibe Coding to Agent-Native Engineering**
 
-Paper edition: `2026.05-ed1`
+Paper edition: `2026.05-ed3`
 
-Standard version: `0.2.0`
+Standard version: `0.4.0`
 
 Canonical source: `paper/humanlint.tex` plus `paper/tex/`
 
@@ -55,6 +55,7 @@ Appendices:
 - Hard caps and score weights are versioned policy, not final empirical truth.
 - The TLR pie chart is computed from the visible taxonomy RPN rows; it is a policy-priority model, not an incident-frequency chart.
 - Rendered UX QA is first-class for critical UI flows: Storybook states, screenshots, ARIA snapshots, accessibility, CLS, visual review, design-token evidence, generated mocks, and DOM geometry rules should catch routine layout defects before human taste review.
+- Streaming infrastructure is workload-specific. Kafka is valid brownfield infrastructure behind generated event contracts and Rust adapters; Tansu is the leading Kafka-compatible Rust candidate to evaluate; Apache Iggy and Fluvio are Rust-native greenfield candidates, not drop-ins.
 
 ## Key Rules
 
@@ -76,6 +77,7 @@ Appendices:
 - `HLT-016-SUPPLY-CHAIN-DRIFT`: dependency and provenance changes need review evidence.
 - `HLT-017-OPAQUE-OBSERVABILITY`: boundary failures need repairable telemetry.
 - `HLT-018-PERF-CONCURRENCY-DRIFT`: performance and concurrency risk needs proof.
+- `HLT-019-STREAMING-RUNTIME-DRIFT`: broker clients and Kafka stack identity must stay behind adapter boundaries or dated exceptions.
 
 ## Artifact Map
 
@@ -104,7 +106,7 @@ just check
 The audit lane is:
 
 ```bash
-cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 The paper lane is:

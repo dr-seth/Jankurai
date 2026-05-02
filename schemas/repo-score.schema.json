@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/repo-score.schema.json",
+  "title": "humanlint repo score",
+  "type": "object",
+  "required": [
+    "report_fingerprint",
+    "input_fingerprint",
+    "policy_fingerprint",
+    "manifest_fingerprints",
+    "dirty_worktree",
+    "generated_at",
+    "schema_url",
+    "standard",
+    "standard_version",
+    "auditor_version",
+    "schema_version",
+    "score",
+    "raw_score",
+    "decision",
+    "dimensions",
+    "findings",
+    "agent_fix_queue"
+  ],
+  "properties": {
+    "report_fingerprint": { "$ref": "#/$defs/sha256" },
+    "input_fingerprint": { "$ref": "#/$defs/sha256" },
+    "policy_fingerprint": { "$ref": "#/$defs/sha256" },
+    "manifest_fingerprints": {
+      "type": "object",
+      "properties": {
+        "owner_map": { "$ref": "#/$defs/sha256" },
+        "test_map": { "$ref": "#/$defs/sha256" },
+        "generated_zones": { "$ref": "#/$defs/sha256" },
+        "boundaries": { "$ref": "#/$defs/sha256" },
+        "proof_lanes": { "$ref": "#/$defs/sha256" },
+        "standard_version": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": false
+    },
+    "dirty_worktree": { "type": "boolean" },
+    "generated_at": { "type": "string" },
+    "schema_url": { "const": "schemas/repo-score.schema.json" },
+    "standard": { "const": "humanlint" },
+    "standard_version": { "type": "string" },
+    "auditor_version": { "type": "string" },
+    "schema_version": { "type": "string" },
+    "score": { "type": "integer" },
+    "raw_score": { "type": "integer" },
+    "decision": { "$ref": "#/$defs/decision" },
+    "proof_receipts": {
+      "type": "array",
+      "items": { "$ref": "proof-receipt.schema.json" }
+    },
+    "findings": { "type": "array", "items": { "$ref": "finding.schema.json" } },
+    "agent_fix_queue": { "type": "array", "items": { "$ref": "repair-queue.schema.json" } },
+    "ux_qa": { "$ref": "#/$defs/uxQaReadiness" },
+    "security_evidence": { "$ref": "#/$defs/securityEvidenceReadiness" },
+    "boundaries": { "$ref": "#/$defs/boundariesReadiness" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "decision": {
+      "type": "object",
+      "required": ["status", "minimum_score", "passed"],
+      "properties": {
+        "status": { "enum": ["pass", "fail", "advisory"] },
+        "minimum_score": { "type": "integer" },
+        "passed": { "type": "boolean" }
+      }
+    },
+    "uxQaReportArtifactSummary": {
+      "type": "object",
+      "description": "Validated ingest summary for target/humanlint/ux-qa.json (audit only; does not drive score).",
+      "required": [
+        "path",
+        "report_count",
+        "worst_decision",
+        "total_violations",
+        "summary_errors",
+        "summary_warnings"
+      ],
+      "properties": {
+        "path": { "type": "string" },
+        "report_count": { "type": "integer", "minimum": 0 },
+        "worst_decision": {
+          "type": "string",
+          "enum": ["pass", "warn", "review", "block"]
+        },
+        "total_violations": { "type": "integer", "minimum": 0 },
+        "summary_errors": { "type": "integer", "minimum": 0 },
+        "summary_warnings": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "uxQaReadiness": {
+      "type": "object",
+      "required": [
+        "web_surface",
+        "has_rendered_ux_lane",
+        "missing_categories",
+        "evidence"
+      ],
+      "properties": {
+        "web_surface": { "type": "boolean" },
+        "has_rendered_ux_lane": { "type": "boolean" },
+        "missing_categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": true,
+        "artifact": { "$ref": "#/$defs/uxQaReportArtifactSummary" }
+      },
+      "additionalProperties": false
+    },
+    "securityEvidenceArtifactSummary": {
+      "type": "object",
+      "description": "Validated ingest summary for target/humanlint/security/evidence.json (audit only; does not drive score).",
+      "required": [
+        "path",
+        "envelope_exit_code",
+        "elapsed_ms",
+        "wrapper_strict",
+        "commands_ran",
+        "commands_skipped",
+        "commands_failed"
+      ],
+      "properties": {
+        "path": { "type": "string" },
+        "envelope_exit_code": { "type": "integer" },
+        "elapsed_ms": { "type": "integer", "minimum": 0 },
+        "wrapper_strict": { "type": "boolean" },
+        "commands_ran": { "type": "integer", "minimum": 0 },
+        "commands_skipped": { "type": "integer", "minimum": 0 },
+        "commands_failed": { "type": "integer", "minimum": 0 },
+        "generated_at": { "type": "string" },
+        "git_head": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "securityEvidenceReadiness": {
+      "type": "object",
+      "properties": {
+        "artifact": { "$ref": "#/$defs/securityEvidenceArtifactSummary" }
+      },
+      "additionalProperties": false
+    },
+    "boundariesManifestSummary": {
+      "type": "object",
+      "description": "Validated ingest summary for agent/boundaries.toml (audit only; does not drive score).",
+      "required": [
+        "path",
+        "content_fingerprint",
+        "stack_id",
+        "adapter_path_count",
+        "event_contract_path_count",
+        "generated_type_path_count",
+        "client_marker_count",
+        "streaming_exception_count"
+      ],
+      "properties": {
+        "path": { "type": "string" },
+        "content_fingerprint": { "$ref": "#/$defs/sha256" },
+        "stack_id": { "type": "string" },
+        "stack_version": { "type": "string" },
+        "adapter_path_count": { "type": "integer", "minimum": 0 },
+        "event_contract_path_count": { "type": "integer", "minimum": 0 },
+        "generated_type_path_count": { "type": "integer", "minimum": 0 },
+        "client_marker_count": { "type": "integer", "minimum": 0 },
+        "streaming_exception_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "boundariesReadiness": {
+      "type": "object",
+      "properties": {
+        "artifact": { "$ref": "#/$defs/boundariesManifestSummary" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

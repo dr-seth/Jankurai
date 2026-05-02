@@ -1,10 +1,10 @@
 minimum_score = 85
 fail_on = ["critical", "high"]
 advisory_on = ["medium", "low"]
-standard_version = "0.2.0"
-auditor_version = "0.2.0"
-schema_version = "1.0.0"
-paper_edition = "2026.05-ed1"
+standard_version = "0.4.0"
+auditor_version = "0.4.0"
+schema_version = "1.2.0"
+paper_edition = "2026.05-ed3"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 
 [caps]
@@ -34,6 +34,7 @@ destructive_migration_risk = 70
 missing_rust_property_or_integration_tests = 82
 no_agent_friendly_exception_pattern = 76
 missing_agent_readable_docs = 80
+streaming_runtime_drift = 78
 
 [limits]
 rust_file_hard = 350

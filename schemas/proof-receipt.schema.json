@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/proof-receipt.schema.json",
+  "title": "humanlint proof receipt",
+  "type": "object",
+  "required": ["lane", "command", "exit_code", "elapsed_ms", "artifacts"],
+  "properties": {
+    "lane": { "type": "string" },
+    "command": { "type": "string" },
+    "exit_code": { "type": "integer" },
+    "elapsed_ms": { "type": "integer", "minimum": 0 },
+    "artifacts": { "type": "array", "items": { "type": "string" } },
+    "changed_paths": { "type": "array", "items": { "type": "string" } },
+    "owner": { "type": "string" },
+    "skipped_reason": { "type": "string" },
+    "residual_risk": { "type": "array", "items": { "type": "string" } },
+    "log_path": { "type": "string" },
+    "receipt_path": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "repo_root": { "type": "string" },
+    "git_head": { "type": "string" },
+    "run_id": { "type": "string" },
+    "plan_path": { "type": "string" },
+    "rules_covered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule_id": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "required": ["rule_id", "status"]
+      }
+    },
+    "retryable": { "type": "boolean" },
+    "stdout_stderr_bytes": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": true
+}

@@ -1,5 +1,7 @@
 export type UxQaSeverity = "error" | "warning";
 export type UxQaDecision = "pass" | "warn" | "review" | "block";
+export type UxQaState = "loading" | "empty" | "error" | "success" | "permission-denied";
+export type UxQaBaselineMode = "pass" | "review" | "block";
 
 export type UxQaRuleId =
   | "edge-clearance"
@@ -27,12 +29,32 @@ export interface UxQaBox {
 }
 
 export interface UxQaConfig {
+  artifactRoot?: string;
   edgeClearancePx?: number;
   minimumTargetPx?: number;
   allowButtonWrap?: boolean;
   maximumZIndex?: number;
   allowNestedScrollbars?: boolean;
   decisionThreshold?: UxQaSeverity;
+  readyState?: "domcontentloaded" | "load" | "networkidle";
+  timeoutMs?: number;
+  outputRoot?: string;
+  storybookUrl?: string;
+  requiredStates?: UxQaState[];
+  visualBaselineMode?: UxQaBaselineMode;
+  screenshotRequired?: boolean;
+  ariaSnapshotRequired?: boolean;
+  accessibilityScanRequired?: boolean;
+  routes?: UxQaRoute[];
+  viewports?: UxQaViewport[];
+}
+
+export interface UxQaRoute {
+  id: string;
+  url: string;
+  storyId?: string;
+  states?: UxQaState[];
+  viewports?: UxQaViewport[];
 }
 
 export interface UxQaElement {
@@ -52,8 +74,14 @@ export interface UxQaElement {
   overflowY: string;
   position: string;
   zIndex: string;
+  pointerEvents: string;
+  disabled: boolean;
+  inert: boolean;
   focusVisible: boolean;
   labelled: boolean;
+  hitTargetSelector: string | null;
+  obstructedBy: string | null;
+  selectorResolved: boolean;
 }
 
 export interface UxQaPageMetrics {
@@ -94,10 +122,18 @@ export interface UxQaRunContext {
   artifactsDir?: string | undefined;
   screenshot?: boolean | undefined;
   ariaSnapshot?: boolean | undefined;
+  requiredStates?: UxQaState[] | undefined;
+  declaredStates?: UxQaState[] | undefined;
+}
+
+export interface UxQaStateCoverage {
+  required: UxQaState[];
+  declared: UxQaState[];
+  missing: UxQaState[];
 }
 
 export interface UxQaReport {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.2.0";
   toolVersion: string;
   url: string;
   routeId?: string;
@@ -110,5 +146,6 @@ export interface UxQaReport {
   violations: UxQaViolation[];
   artifacts: UxQaArtifact[];
   summary: UxQaSummary;
+  stateCoverage?: UxQaStateCoverage;
   decision: UxQaDecision;
 }

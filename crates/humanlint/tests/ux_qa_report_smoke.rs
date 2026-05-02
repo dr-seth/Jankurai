@@ -1,0 +1,67 @@
+use humanlint::validation::{self, ArtifactSchema};
+use std::path::PathBuf;
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+}
+
+fn minimal_valid_envelope() -> serde_json::Value {
+    serde_json::json!({
+        "reports": [{
+            "schemaVersion": "1.2.0",
+            "toolVersion": "0.4.0",
+            "url": "about:blank",
+            "checkedAt": "2026-05-02T12:00:00.000Z",
+            "viewport": { "width": 1280, "height": 720 },
+            "metrics": {
+                "scrollWidth": 1280,
+                "clientWidth": 1280,
+                "scrollHeight": 720,
+                "clientHeight": 720
+            },
+            "elements": [],
+            "violations": [],
+            "artifacts": [],
+            "summary": { "errors": 0, "warnings": 0, "byRule": {} },
+            "decision": "pass"
+        }]
+    })
+}
+
+#[test]
+fn ux_qa_report_envelope_validates() {
+    let repo = repo_root();
+    let value = minimal_valid_envelope();
+    validation::validate_value(&repo, ArtifactSchema::UxQaReport, &value).unwrap();
+}
+
+#[test]
+fn ux_qa_report_missing_checked_at_fails() {
+    let repo = repo_root();
+    let mut value = minimal_valid_envelope();
+    value["reports"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("checkedAt");
+    let err = validation::validate_value(&repo, ArtifactSchema::UxQaReport, &value).unwrap_err();
+    assert!(
+        err.to_string().contains("checkedAt") || err.to_string().contains("missing required"),
+        "{}",
+        err
+    );
+}
+
+#[test]
+fn ux_qa_report_wrong_schema_version_fails() {
+    let repo = repo_root();
+    let mut value = minimal_valid_envelope();
+    value["reports"][0]["schemaVersion"] = serde_json::json!("1.0.0");
+    let err = validation::validate_value(&repo, ArtifactSchema::UxQaReport, &value).unwrap_err();
+    let s = err.to_string();
+    assert!(
+        s.contains("1.2.0") || s.contains("constant") || s.contains("const"),
+        "unexpected error: {s}"
+    );
+}

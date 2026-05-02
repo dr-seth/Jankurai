@@ -1,7 +1,7 @@
 # humanlint Agent-Native Repository Standard
 
-Standard version: `0.2.0`
-Published: `2026-05-01`
+Standard version: `0.4.0`
+Published: `2026-05-02`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
 
@@ -81,6 +81,7 @@ Stable rule IDs:
 | `HLT-016-SUPPLY-CHAIN-DRIFT` | dependency/provenance change lacks review evidence |
 | `HLT-017-OPAQUE-OBSERVABILITY` | boundary failure lacks repairable telemetry |
 | `HLT-018-PERF-CONCURRENCY-DRIFT` | performance/concurrency risk lacks proof |
+| `HLT-019-STREAMING-RUNTIME-DRIFT` | broker client or Kafka stack identity escapes adapter boundaries |
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 
@@ -154,7 +155,7 @@ repo/
     owner-map.json
     test-map.json
     generated-zones.toml
-    repo-score.json
+    agent/repo-score.json
   apps/
     web/                 # TypeScript, React, Vite, generated clients only
     api/                 # Rust Axum/Tower HTTP or ConnectRPC edge
@@ -223,6 +224,7 @@ Forbidden direction:
 - `crates/domain` importing adapters, HTTP, SQL, env, time, logging, metrics, or filesystem.
 - `apps/web` importing SQL clients, secrets, database URLs, or product authorization internals.
 - Python importing application database clients for production truth.
+- Kafka, Tansu, Iggy, Fluvio, NATS, Redis Streams, or similar clients outside declared queue adapters.
 - Adapters calling UI or product surface code.
 - Generated code importing handwritten implementation code.
 
@@ -439,6 +441,8 @@ Audit findings MUST include:
 - docs link
 
 Audit JSON MUST include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, raw score, final score, hard caps, dimension breakdown, findings, and ordered `agent_fix_queue`.
+
+Operational receipts from `doctor`, `init`, and future phase closeouts should live under `target/humanlint/receipts/<action>-<unix-seconds>.json`. Keep them volatile and cite them in release notes or phase receipts instead of promoting them into tracked source.
 
 ## 14. Vibe-Coding Failure Catalog
 

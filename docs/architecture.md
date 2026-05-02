@@ -12,13 +12,16 @@ The canonical architecture is documented in:
 
 - `docs/agent-native-standard.md`
 - `agent/HUMANLINT_STANDARD.md`
-- `paper/sections/04_winner_architecture.md`
+- `paper/tex/sections/09_winner_architecture.tex`
+
+The Markdown files under `paper/sections/` are legacy-only planning companions.
+They are not canonical release sources.
 
 Local workspace ownership:
 
 | Path | Role |
 | --- | --- |
-| `paper/` | manuscript, TeX wrapper, figures, citation ledgers |
+| `paper/` | canonical TeX manuscript, figures, citation ledgers, legacy companions |
 | `tools/` | dependency-free audit script |
 | `docs/` | mission, standard, research, release, audit doctrine |
 | `agent/` | machine-readable maps and agent bootstrap |

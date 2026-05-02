@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/audit-policy.schema.json",
+  "title": "humanlint audit policy",
+  "type": "object",
+  "required": ["minimum_score"],
+  "properties": {
+    "minimum_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "fail_on": { "type": "array", "items": { "type": "string" } },
+    "advisory_on": { "type": "array", "items": { "type": "string" } },
+    "standard_version": { "type": "string" },
+    "auditor_version": { "type": "string" },
+    "schema_version": { "type": "string" },
+    "paper_edition": { "type": "string" },
+    "target_stack": { "type": "string" }
+  }
+}

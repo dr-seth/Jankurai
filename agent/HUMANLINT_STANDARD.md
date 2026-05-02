@@ -1,7 +1,7 @@
 # humanlint Standard Agent Bootstrap
 
-Standard version: `0.2.0`
-Published: `2026-05-01`
+Standard version: `0.4.0`
+Published: `2026-05-02`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
@@ -92,6 +92,7 @@ Stop or fix first when any condition is true:
 | `HLT-016-SUPPLY-CHAIN-DRIFT` | dependency/provenance change lacks review evidence |
 | `HLT-017-OPAQUE-OBSERVABILITY` | boundary failure lacks repairable telemetry |
 | `HLT-018-PERF-CONCURRENCY-DRIFT` | performance/concurrency risk lacks proof |
+| `HLT-019-STREAMING-RUNTIME-DRIFT` | broker client or Kafka stack identity escapes adapter boundaries |
 
 ## Ownership Boundaries
 
@@ -101,7 +102,7 @@ Stop or fix first when any condition is true:
 | `apps/api` | HTTP/RPC edge, extraction, response mapping | domain rules, raw SQL decisions |
 | `crates/domain` | IDs, invariants, pure decisions | IO, env, time, random, DB, framework types |
 | `crates/application` | commands, authz, idempotency, transactions | UI, external protocol details |
-| `crates/adapters` | DB, queues, external APIs, filesystem, env | domain rules |
+| `crates/adapters` | DB, queue/streaming clients, external APIs, filesystem, env | domain rules, event schema ownership |
 | `crates/workers` | jobs, backpressure, workflow glue | product truth outside application |
 | `contracts` | OpenAPI/protobuf/JSON Schema and generated clients | handwritten drift |
 | `db` | migrations, constraints, indexes, RLS | app-only durable invariants |
@@ -162,6 +163,18 @@ For non-trivial fixes, leave enough evidence for the next agent:
 - artifact versions
 - screenshot, crop, trace, ARIA snapshot, or audit report paths when UI or browser behavior changed
 - remaining exception or follow-up
+
+Operational receipts from `doctor`, `init`, and phase closeouts belong under `target/humanlint/receipts/` and should be cited by path when they matter.
+
+## Master Plan Work
+
+When asked to progress `MASTER_PLAN`, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active phase file under `tips/phases/`.
+
+Default to the earliest incomplete or blocked phase whose dependencies can be advanced, unless the user names a phase. Do not regress phase status, shorten phase plans, erase receipts, or move canonical phase history out of `tips/phases/logs/`.
+
+Before editing, append a start entry to the matching phase log. Before broad validation, run `humanlint lane` or `humanlint proof` against changed paths to choose the smallest credible proof lane. For audit requests, run `cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md`.
+
+At handoff, append a finish entry with changed paths, validation, proof artifacts, current git SHA, and residual risk. Keep volatile proof receipts under `target/humanlint/`; keep tracked phase history under `tips/phases/logs/`.
 
 ## Local Commands
 

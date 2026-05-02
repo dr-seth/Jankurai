@@ -1,6 +1,6 @@
 # humanlint Audit Rubric
 
-Version: `0.2.0`
+Version: `0.4.0`
 
 Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + bounded Python AI/data service.
 
@@ -168,7 +168,7 @@ Rust should prefer enum error types with `thiserror` or equivalent plus structur
 Every repository adopting this standard should run:
 
 ```bash
-cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 The JSON is the machine contract. The Markdown is the review surface. CI should upload both artifacts and fail when score or hard-cap policy crosses the team threshold.

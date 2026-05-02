@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" role="img" aria-labelledby="title desc">
   <title id="title">Vibe-coding Top-Level Risk shares</title>
-  <desc id="desc">Policy-weighted RPN share by Top-Level Risk bucket for humanlint 0.2.0.</desc>
+  <desc id="desc">Policy-weighted RPN share by Top-Level Risk bucket for humanlint 0.3.0.</desc>
   <rect width="920" height="420" fill="#ffffff"/>
   <g transform="translate(210 210) rotate(-90)">
     <circle r="118" cx="0" cy="0" fill="none" stroke="#dc2626" stroke-width="64" pathLength="100" stroke-dasharray="32 68" stroke-dashoffset="0"/>
@@ -14,7 +14,7 @@
   <circle cx="210" cy="210" r="76" fill="#ffffff"/>
   <text x="210" y="198" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Policy</text>
   <text x="210" y="222" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">RPN share</text>
-  <text x="210" y="248" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#4b5563">humanlint 0.2.0</text>
+  <text x="210" y="248" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#4b5563">humanlint 0.3.0</text>
   <g font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#111827">
     <text x="420" y="82" font-size="24" font-weight="700">Vibe-Coding Top-Level Risks</text>
     <text x="420" y="112" font-size="13" fill="#4b5563">Shares are computed from the visible taxonomy RPN rows, not incident frequency.</text>

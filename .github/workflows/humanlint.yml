@@ -1,4 +1,4 @@
-name: humanlint-audit
+name: humanlint
 
 on:
   pull_request:
@@ -14,19 +14,19 @@ jobs:
       - name: Check audit versions
         run: cargo run -p humanlint -- versions
       - name: humanlint audit
-        run: cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
-      - name: Security lane placeholders
-        run: |
-          echo "gitleaks detect --source ."
-          echo "syft . -o spdx-json"
-          echo "grype ."
-          echo "zizmor .github/workflows"
+        run: cargo run -p humanlint -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md --sarif target/humanlint/humanlint.sarif --github-step-summary target/humanlint/summary.md --repair-queue-jsonl target/humanlint/repair-queue.jsonl
+      - name: Publish humanlint summary
+        run: cat target/humanlint/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Security lane
+        run: bash tools/security-lane.sh
       - uses: actions/upload-artifact@v4
         with:
           name: humanlint-score
           path: |
-            repo-score.json
-            repo-score.md
+            agent/repo-score.json
+            agent/repo-score.md
+            target/humanlint/humanlint.sarif
+            target/humanlint/repair-queue.jsonl
 
   ux-qa:
     runs-on: ubuntu-latest

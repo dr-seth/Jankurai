@@ -17,15 +17,15 @@ command = "just paper"
 read_only = true
 
 [[zone]]
-path = "repo-score.json"
+path = "agent/repo-score.json"
 source = "crates/humanlint"
-command = "cargo run -p humanlint -- . --json repo-score.json --md repo-score.md"
+command = "cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md"
 read_only = false
 
 [[zone]]
-path = "repo-score.md"
+path = "agent/repo-score.md"
 source = "crates/humanlint"
-command = "cargo run -p humanlint -- . --json repo-score.json --md repo-score.md"
+command = "cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md"
 read_only = false
 
 [[zone]]

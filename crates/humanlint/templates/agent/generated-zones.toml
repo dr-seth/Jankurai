@@ -1,0 +1,11 @@
+[[zone]]
+path = "agent/repo-score.json"
+source = "crates/humanlint"
+command = "cargo run -p humanlint -- audit . --json agent/repo-score.json --md agent/repo-score.md"
+read_only = false
+
+[[zone]]
+path = "agent/repo-score.md"
+source = "crates/humanlint"
+command = "cargo run -p humanlint -- audit . --json agent/repo-score.json --md agent/repo-score.md"
+read_only = false

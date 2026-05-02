@@ -2,7 +2,7 @@
 
 Status is tracked by TeX source file so the canonical paper can be reviewed without reopening the planning thread.
 
-Paper edition: `2026.05-ed1`
+Paper edition: `2026.05-ed3`
 
 ## Sections
 

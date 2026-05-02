@@ -1,0 +1,233 @@
+# Phase 04: Init Profiles And Golden Repos
+
+Status: complete
+Owner: tools
+Last reviewed: 2026-05-02
+Parallel MCP candidate: yes after generator contract is locked
+
+## Objective
+
+Turn `humanlint init` from a control-file installer into a profile-driven repo generator. This is the phase where Humanlint starts becoming a creation layer, not only an audit layer.
+
+The exit state is not every possible template. The exit state is a robust generator contract, one excellent default profile, and golden repo fixtures that prove generated repos are audit-ready.
+
+## Current State
+
+Existing implementation:
+
+- `humanlint init` supports `--profile`, `--ide`, `--mode`, `--ci`, `--issue-backend`, `--ux-qa`, `--dry-run`, `--diff`, `--plan-json`, `--yes`, and `--apply`.
+- **`rust-ts-postgres` profile** is loaded from bundled [`crates/humanlint/templates/profiles/rust-ts-postgres.json`](../../crates/humanlint/templates/profiles/rust-ts-postgres.json), validated with **`ArtifactSchema::InitProfile`** before use.
+- **Plan and apply** iterate **`generatedPaths`** from that manifest only (sorted); missing templates are a hard error at plan time.
+- Unknown profile IDs are rejected with a message listing supported aliases.
+- Templates live in `crates/humanlint/src/init/templates.rs` (plus `include_str!` agent files under `crates/humanlint/templates/agent/`).
+- Golden tests in `crates/humanlint/tests/init_golden.rs` cover unknown profile, plan/action consistency, greenfield `audit` + `doctor --fail-on high`, and preserving an existing `contracts/README.md`.
+- Operational handoff log: [`tips/phases/logs/04-init-profiles-golden-repos.log`](../logs/04-init-profiles-golden-repos.log).
+
+Gaps (follow-on):
+
+- Additional bundled profiles (`rust-api`, `b2b-saas`, etc.) and multi-profile selection UX.
+- Deeper merge policy beyond adapter markers and AGENTS / HUMANLINT_STANDARD.
+- Optional: load profile JSON from the target repo instead of only bundled artifacts.
+
+## Dependencies
+
+Requires Phase 01 stabilization.
+
+Benefits from Phase 03 proof router for generated repo validation.
+
+## Public Interface Changes
+
+Profiles to support, in order:
+
+```bash
+humanlint init --profile rust-api
+humanlint init --profile react-web
+humanlint init --profile rust-ts-postgres
+humanlint init --profile b2b-saas
+humanlint init --profile ai-product
+humanlint init --profile regulated-saas
+humanlint init --profile migration-target
+```
+
+Start with `rust-ts-postgres` if only one can be completed.
+
+Profile manifest fields:
+
+- profile ID
+- display name
+- target stack ID
+- generated paths
+- required lanes
+- optional lanes
+- included agent adapters
+- included CI templates
+- included docs
+- included security controls
+- included UX controls
+- included contract system
+- included DB policy
+- validation commands
+
+## Workstreams
+
+### 1. Generator Contract
+
+Implementation tasks:
+
+- Define a profile manifest schema.
+- Separate template metadata from hard-coded Rust constants where practical.
+- Keep template rendering deterministic.
+- Preserve dry-run and diff behavior.
+- Add generated adapter markers where files are safe to refresh.
+- Add clear merge-marker policy for user-owned files.
+
+Acceptance:
+
+- `init --dry-run --plan-json` emits all planned actions and selected profile metadata.
+- Existing files are not overwritten unless generated and explicitly refreshable.
+- New paths appear in owner/test maps.
+
+### 2. Default Profile: `rust-ts-postgres`
+
+Generated repo should include at minimum:
+
+- root `AGENTS.md`
+- `agent/HUMANLINT_STANDARD.md`
+- owner map
+- test map
+- generated zones
+- proof lanes
+- audit policy
+- standard version
+- basic `Justfile`
+- GitHub workflow
+- Rust workspace skeleton
+- TypeScript/Vite app placeholder or documented slot
+- `contracts/` skeleton
+- `db/migrations/` skeleton
+- `docs/architecture/`
+- `docs/decisions/`
+- `docs/exceptions/`
+- security docs or config placeholders
+- UX QA config if web surface is included
+
+Acceptance:
+
+- Generated repo can run `humanlint audit` and produce a score report.
+- Generated repo has no missing root control files.
+- Generated repo docs clearly mark scaffold placeholders that must be replaced before production.
+
+### 3. Golden Repo Fixtures
+
+Implementation tasks:
+
+- Create fixture repos under an allowed test fixture path, not `reference/` unless explicitly treated as source material.
+- Add one "minimal generated repo" fixture.
+- Add one "existing repo with partial files" fixture.
+- Add tests that run init dry-run and apply into tempdirs.
+- Assert generated paths and no overwrite behavior.
+
+Acceptance:
+
+- Tests prove `init` is idempotent.
+- Tests prove generated adapters can be refreshed when marker and flag allow it.
+- Tests prove profile manifests parse.
+
+### 4. Profile Expansion
+
+After default profile is stable, add profiles:
+
+- `rust-api`: Rust API, agent maps, security, contract hooks, no web UX lane by default.
+- `react-web`: TypeScript/React/Vite, generated client slots, UX QA, web tests, no DB ownership.
+- `b2b-saas`: fullstack stack plus auth/org/audit/admin placeholders and SOC-ready evidence shell.
+- `ai-product`: bounded Python service, eval harness docs, prompt/version/eval policy, no product truth.
+- `regulated-saas`: stricter evidence shell, PII classification, backup/restore, exception expiry.
+- `migration-target`: containment docs, boundary maps, migration evidence slots.
+
+Acceptance:
+
+- Each profile declares which lanes are required.
+- Each profile avoids installing irrelevant tools by default.
+
+### 5. Documentation
+
+Implementation tasks:
+
+- Document profile selection.
+- Document generated files versus source files.
+- Document safe rerun behavior.
+- Add examples for greenfield and existing repo adoption.
+
+Acceptance:
+
+- A founder can understand which profile to choose.
+- A coding agent can safely rerun init without broad damage.
+
+## Parallel MCP Breakdown
+
+Parallel after manifest schema is locked:
+
+- Agent A: generator/profile manifest core. Owns Rust init modules.
+- Agent B: template content. Owns `crates/humanlint/templates/` and generated profile docs.
+- Agent C: tests and golden fixtures. Owns init tests.
+- Agent D: docs. Owns install/profile docs.
+
+Merge order:
+
+1. Manifest schema and generator contract.
+2. Default profile template.
+3. Tests.
+4. Additional profiles.
+5. Docs final pass.
+
+## Validation
+
+Minimum:
+
+```bash
+cargo test -p humanlint
+just fast
+```
+
+Profile smoke:
+
+```bash
+humanlint init --profile rust-ts-postgres --dry-run --plan-json target/humanlint/init-plan.json
+humanlint init --profile rust-ts-postgres --diff
+```
+
+If tempdir apply tests are added, ensure they run under:
+
+```bash
+cargo test -p humanlint init
+```
+
+## Risks
+
+- Templates can become large and fragile if they are not manifest-driven.
+- Generated repos can overpromise by including placeholders that look production-ready.
+- Installing too many tools in every profile violates the no-sprawl law.
+
+## Handoff Notes
+
+Leave:
+
+- profile manifest schema
+- list of supported profiles
+- generated path inventory
+- idempotency test names
+- known profile limitations
+- exact generated repo score for the default profile
+
+## Phase Status Receipt
+
+- Phase status: partial init profiles and golden repos (profile-driven plan/apply slice 2026-05-02)
+- Files changed: `crates/humanlint/src/init/profiles.rs`, `crates/humanlint/src/init/plan.rs`, `crates/humanlint/src/init/templates.rs`, `crates/humanlint/src/commands/init.rs`, `crates/humanlint/templates/profiles/rust-ts-postgres.json`, `crates/humanlint/templates/agent/*`, `crates/humanlint/src/validation.rs`, `crates/humanlint/tests/init_golden.rs`, `docs/install.md`, `tips/phases/04-init-profiles-golden-repos.md`, `tips/phases/logs/04-init-profiles-golden-repos.log`
+- Schemas changed: `InitProfile` artifact validation hook (existing `init-profile.schema.json`)
+- Public interfaces changed: unknown init profiles error; init plan/actions match `generatedPaths` only
+- Routing maps changed: embedded template `agent/owner-map.json`, `agent/test-map.json`, `agent/proof-lanes.toml`
+- Validation commands: `cargo test -p humanlint`, `just fast`
+- Results: see `tips/phases/logs/04-init-profiles-golden-repos.log`
+- Skipped validation: none
+- Exceptions created: only bundled `rust-ts-postgres` (+aliases); other profile names reserved
+- Follow-up phases: 09 reference product platform, 10 reuse registry certified cells

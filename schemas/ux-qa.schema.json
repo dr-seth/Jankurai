@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanlint.dev/schemas/ux-qa.schema.json",
+  "title": "humanlint UX QA report",
+  "type": "object",
+  "required": ["reports"],
+  "properties": {
+    "reports": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uxQaReport" }
+    }
+  },
+  "$defs": {
+    "uxQaRuleId": {
+      "type": "string",
+      "enum": [
+        "edge-clearance",
+        "target-size",
+        "interactive-overlap",
+        "text-clipping",
+        "button-wrap",
+        "horizontal-overflow",
+        "sticky-obstruction",
+        "z-index-token",
+        "focus-visible",
+        "form-label",
+        "nested-scrollbar"
+      ]
+    },
+    "uxQaSeverity": {
+      "type": "string",
+      "enum": ["error", "warning"]
+    },
+    "uxQaDecision": {
+      "type": "string",
+      "enum": ["pass", "warn", "review", "block"]
+    },
+    "uxQaState": {
+      "type": "string",
+      "enum": ["loading", "empty", "error", "success", "permission-denied"]
+    },
+    "uxQaViewport": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "number" },
+        "height": { "type": "number" }
+      }
+    },
+    "uxQaBox": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" }
+      }
+    },
+    "uxQaPageMetrics": {
+      "type": "object",
+      "required": ["scrollWidth", "clientWidth", "scrollHeight", "clientHeight"],
+      "properties": {
+        "scrollWidth": { "type": "number" },
+        "clientWidth": { "type": "number" },
+        "scrollHeight": { "type": "number" },
+        "clientHeight": { "type": "number" }
+      }
+    },
+    "uxQaElement": {
+      "type": "object",
+      "required": [
+        "selector",
+        "tag",
+        "role",
+        "interactive",
+        "name",
+        "text",
+        "box",
+        "lineCount",
+        "scrollWidth",
+        "scrollHeight",
+        "clientWidth",
+        "clientHeight",
+        "overflowX",
+        "overflowY",
+        "position",
+        "zIndex",
+        "pointerEvents",
+        "disabled",
+        "inert",
+        "focusVisible",
+        "labelled",
+        "hitTargetSelector",
+        "obstructedBy",
+        "selectorResolved"
+      ],
+      "properties": {
+        "selector": { "type": "string" },
+        "tag": { "type": "string" },
+        "role": {
+          "type": ["string", "null"]
+        },
+        "interactive": { "type": "boolean" },
+        "name": { "type": "string" },
+        "text": { "type": "string" },
+        "box": { "$ref": "#/$defs/uxQaBox" },
+        "lineCount": { "type": "integer", "minimum": 0 },
+        "scrollWidth": { "type": "number" },
+        "scrollHeight": { "type": "number" },
+        "clientWidth": { "type": "number" },
+        "clientHeight": { "type": "number" },
+        "overflowX": { "type": "string" },
+        "overflowY": { "type": "string" },
+        "position": { "type": "string" },
+        "zIndex": { "type": "string" },
+        "pointerEvents": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "inert": { "type": "boolean" },
+        "focusVisible": { "type": "boolean" },
+        "labelled": { "type": "boolean" },
+        "hitTargetSelector": {
+          "type": ["string", "null"]
+        },
+        "obstructedBy": {
+          "type": ["string", "null"]
+        },
+        "selectorResolved": { "type": "boolean" }
+      }
+    },
+    "uxQaViolation": {
+      "type": "object",
+      "required": ["ruleId", "severity", "message", "selector", "evidence"],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/uxQaRuleId" },
+        "severity": { "$ref": "#/$defs/uxQaSeverity" },
+        "message": { "type": "string" },
+        "selector": { "type": "string" },
+        "evidence": { "type": "string" },
+        "box": { "$ref": "#/$defs/uxQaBox" },
+        "artifactPath": { "type": "string" }
+      }
+    },
+    "uxQaArtifactKind": {
+      "type": "string",
+      "enum": ["screenshot", "crop", "aria-snapshot"]
+    },
+    "uxQaArtifact": {
+      "type": "object",
+      "required": ["kind", "path", "viewport"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/uxQaArtifactKind" },
+        "path": { "type": "string" },
+        "viewport": { "$ref": "#/$defs/uxQaViewport" },
+        "selector": { "type": "string" },
+        "ruleId": { "$ref": "#/$defs/uxQaRuleId" }
+      }
+    },
+    "uxQaSummary": {
+      "type": "object",
+      "required": ["errors", "warnings", "byRule"],
+      "properties": {
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "byRule": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "uxQaStateCoverage": {
+      "type": "object",
+      "required": ["required", "declared", "missing"],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uxQaState" }
+        },
+        "declared": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uxQaState" }
+        },
+        "missing": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uxQaState" }
+        }
+      }
+    },
+    "uxQaReport": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "toolVersion",
+        "url",
+        "checkedAt",
+        "viewport",
+        "metrics",
+        "elements",
+        "violations",
+        "artifacts",
+        "summary",
+        "decision"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.2.0" },
+        "toolVersion": { "type": "string" },
+        "url": { "type": "string" },
+        "routeId": { "type": "string" },
+        "storyId": { "type": "string" },
+        "browserName": { "type": "string" },
+        "checkedAt": { "type": "string" },
+        "viewport": { "$ref": "#/$defs/uxQaViewport" },
+        "metrics": { "$ref": "#/$defs/uxQaPageMetrics" },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uxQaElement" }
+        },
+        "violations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uxQaViolation" }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uxQaArtifact" }
+        },
+        "summary": { "$ref": "#/$defs/uxQaSummary" },
+        "stateCoverage": { "$ref": "#/$defs/uxQaStateCoverage" },
+        "decision": { "$ref": "#/$defs/uxQaDecision" }
+      }
+    }
+  }
+}

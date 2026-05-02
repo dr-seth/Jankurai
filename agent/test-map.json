@@ -2,16 +2,104 @@
   "workspace": "humanlint",
   "tests": {
     "AGENTS.md": {
-      "command": "cargo run -p humanlint -- . --json repo-score.json --md repo-score.md",
+      "command": "just score",
       "purpose": "verify agent instruction routing is visible to the audit"
     },
+    "agent/MASTER_PLAN.md": {
+      "command": "cargo run -p humanlint -- lane . --changed agent/MASTER_PLAN.md --out target/humanlint/master-plan-proof.json --md target/humanlint/master-plan-proof.md",
+      "purpose": "verify master plan routing selects the smallest proof lane for agent guidance"
+    },
+    "CLAUDE.md": {
+      "command": "cargo run -p humanlint -- adapters verify",
+      "purpose": "verify thin Claude adapter pointer"
+    },
+    "GEMINI.md": {
+      "command": "cargo run -p humanlint -- adapters verify",
+      "purpose": "verify thin Gemini adapter pointer"
+    },
+    ".gitignore": {
+      "command": "just score",
+      "purpose": "verify workspace ignore policy does not hide canonical artifacts"
+    },
+    ".gitleaksignore": {
+      "command": "just security",
+      "purpose": "verify approved secret-scan exceptions stay narrow and documented"
+    },
+    ".latexmkrc": {
+      "command": "just paper",
+      "purpose": "verify paper build configuration"
+    },
+    "Cargo.toml": {
+      "command": "cargo test -p humanlint && cargo run -p humanlint -- versions",
+      "purpose": "verify Rust workspace manifests"
+    },
+    "Cargo.lock": {
+      "command": "cargo test -p humanlint && cargo run -p humanlint -- versions",
+      "purpose": "verify locked Rust dependencies"
+    },
+    "VERSION": {
+      "command": "just versions",
+      "purpose": "verify canonical version metadata"
+    },
+    "Justfile": {
+      "command": "just fast",
+      "purpose": "verify canonical command lanes"
+    },
+    "README.md": {
+      "command": "just score",
+      "purpose": "verify root workspace routing remains audit-visible"
+    },
+    "README-humanlint-scaffold.md": {
+      "command": "just score",
+      "purpose": "verify generated scaffold guidance remains audit-visible"
+    },
+    ".github/": {
+      "command": "cargo run -p humanlint -- doctor --fail-on high",
+      "purpose": "verify CI and GitHub instruction surfaces"
+    },
+    ".cursor/": {
+      "command": "cargo run -p humanlint -- adapters verify",
+      "purpose": "verify thin IDE adapter pointers"
+    },
+    ".claude/": {
+      "command": "cargo run -p humanlint -- adapters verify",
+      "purpose": "verify thin IDE adapter pointers"
+    },
+    ".agents/": {
+      "command": "cargo run -p humanlint -- adapters verify",
+      "purpose": "verify thin agent adapter pointers"
+    },
     "agent/": {
-      "command": "cargo run -p humanlint -- . --json repo-score.json --md repo-score.md",
+      "command": "just score",
       "purpose": "verify machine-readable maps and policy remain scannable"
     },
+    "tips/phases/logs/": {
+      "command": "cargo run -p humanlint -- lane . --changed tips/phases/logs/README.txt --out target/humanlint/phase-proof.json --md target/humanlint/phase-proof.md",
+      "purpose": "verify phase logs remain routed as tracked append-only agent history"
+    },
     "docs/": {
-      "command": "cargo run -p humanlint -- . --json repo-score.json --md repo-score.md",
+      "command": "just score",
       "purpose": "verify docs remain agent-readable and routed"
+    },
+    "examples/perfect-web-api-db/": {
+      "command": "cargo test -p humanlint",
+      "purpose": "verify the reference platform scaffold stays machine-readable"
+    },
+    "examples/legacy-node-api/": {
+      "command": "cargo run -p humanlint -- migrate examples/legacy-node-api --json target/humanlint/migration/node.json",
+      "purpose": "verify migration analysis can classify the legacy Node fixture"
+    },
+    "schemas/": {
+      "command": "cargo test -p humanlint && npm --workspace @humanlint/ux-qa run build",
+      "purpose": "verify schema-carrying Rust and TypeScript reports still compile"
+    },
+    "contracts/": {
+      "command": "just score",
+      "purpose": "verify contract source guidance remains audit-visible"
+    },
+    "db/": {
+      "command": "just fast",
+      "purpose": "verify database policy and migration root remains routed"
     },
     "crates/humanlint/": {
       "command": "cargo test -p humanlint && cargo run -p humanlint -- versions",
@@ -21,25 +109,33 @@
       "command": "npm ci && npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
       "purpose": "verify the npm workspace and UX QA runtime"
     },
+    "package-lock.json": {
+      "command": "npm ci && npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
+      "purpose": "verify locked npm dependencies"
+    },
     "packages/ux-qa/": {
-      "command": "npm --workspace @humanlint/ux-qa run build && npm --workspace @humanlint/ux-qa run test",
+      "command": "just ux-qa",
       "purpose": "verify the Playwright geometry runtime"
     },
     "paper/humanlint.tex": {
-      "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
+      "command": "just paper",
       "purpose": "build the paper"
     },
     "assets/": {
-      "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
+      "command": "just paper",
       "purpose": "verify paper image assets render"
     },
     "paper/": {
-      "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/humanlint.tex",
+      "command": "just paper",
       "purpose": "build the paper"
     },
     "tools/": {
-      "command": "cargo run -p humanlint -- . --json repo-score.json --md repo-score.md",
+      "command": "just score",
       "purpose": "score the workspace"
+    },
+    "tips/": {
+      "command": "just score",
+      "purpose": "verify upgrade and feedback source material remains routed into the standard"
     }
   }
 }

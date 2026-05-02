@@ -1,19 +1,17 @@
 import type { Page } from "playwright";
-import { collectPageMetrics, collectUxElements, collectViewport } from "./collector.js";
+import { collectPageState } from "./collector.js";
 import { UxQaAssertionError } from "./errors.js";
 import { runUxRules } from "./rules.js";
 import type { UxQaConfig, UxQaDecision, UxQaReport, UxQaRuleId, UxQaRunContext, UxQaSummary } from "./types.js";
 
-export const UX_QA_SCHEMA_VERSION = "1.0.0";
-export const UX_QA_TOOL_VERSION = "0.2.0";
+export const UX_QA_SCHEMA_VERSION = "1.2.0";
+export const UX_QA_TOOL_VERSION = "0.4.0";
 
 export async function analyzePage(page: Page, config: UxQaConfig = {}, context: UxQaRunContext = {}): Promise<UxQaReport> {
-  const [viewport, metrics, elements] = await Promise.all([
-    collectViewport(page),
-    collectPageMetrics(page),
-    collectUxElements(page)
-  ]);
+  const { viewport, metrics, elements } = await collectPageState(page);
   const violations = runUxRules(elements, viewport, metrics, config);
+  const requiredStates = context.requiredStates ?? config.requiredStates ?? [];
+  const declaredStates = context.declaredStates ?? [];
   const report: UxQaReport = {
     schemaVersion: UX_QA_SCHEMA_VERSION,
     toolVersion: UX_QA_TOOL_VERSION,
@@ -25,6 +23,11 @@ export async function analyzePage(page: Page, config: UxQaConfig = {}, context: 
     violations,
     artifacts: [],
     summary: summarizeViolations(violations),
+    stateCoverage: {
+      required: requiredStates,
+      declared: declaredStates,
+      missing: requiredStates.filter((state) => !declaredStates.includes(state))
+    },
     decision: decide(violations, config.decisionThreshold ?? "error")
   };
   if (context.routeId) report.routeId = context.routeId;

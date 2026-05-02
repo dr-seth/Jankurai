@@ -7,7 +7,7 @@ export class UxQaAssertionError extends Error {
   readonly severity = "error";
   readonly correlation_id = "local";
   readonly source = "@humanlint/ux-qa";
-  readonly contract_version = "0.2.0";
+  readonly contract_version = "0.4.0";
   readonly common_fixes = [
     "increase target size or spacing",
     "remove clipping or wrapping",

@@ -84,7 +84,7 @@ The audit must emit JSON and Markdown. JSON is for agents and CI. Markdown is fo
 ```json
 {
   "standard": "humanlint",
-  "standard_version": "0.2.0",
+  "standard_version": "0.3.0",
   "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service",
   "score": 86,
   "raw_score": 91,
@@ -111,7 +111,7 @@ Every finding needs path, evidence, and repair text. A score without repair guid
 Every adopting repo should run:
 
 ```bash
-cargo run -p humanlint -- . --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
 CI should upload both outputs and fail when policy thresholds are crossed. Adoption can be phased:

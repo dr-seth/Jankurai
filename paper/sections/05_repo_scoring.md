@@ -4,7 +4,7 @@
 
 The implementation is intentionally fast and dependency-light. It is a Rust binary, so it can scan an arbitrary checkout immediately and emit the same contract in a clean environment or a messy one without a Python bootstrap step.
 
-The current auditor line is `0.2.0`. It is intentionally strict for one target stack only:
+The current auditor line is `0.3.0`. It is intentionally strict for one target stack only:
 
 ```text
 Rust core + TypeScript/React/Vite + PostgreSQL truth
@@ -92,7 +92,7 @@ Example shape:
 ```json
 {
   "standard": "humanlint",
-  "standard_version": "0.2.0",
+  "standard_version": "0.3.0",
   "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service",
   "score": 86,
   "raw_score": 91,
@@ -143,7 +143,7 @@ The scanner should prefer direct evidence over inference. If it flags a repo, it
 ### Command contract
 
 ```bash
-cargo run -p humanlint -- /path/to/repo --json repo-score.json --md repo-score.md
+cargo run -p humanlint -- /path/to/repo --json agent/repo-score.json --md agent/repo-score.md
 cargo run -p humanlint -- /path/to/repo --changed src/foo.rs contracts/api.yaml
 ```
 

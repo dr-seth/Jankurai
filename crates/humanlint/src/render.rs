@@ -1,9 +1,15 @@
 use crate::model::Report;
+use crate::report::proof;
 use anyhow::Result;
 use std::fs;
 
 pub fn write_json(path: &str, content: &str) -> Result<()> {
     if path != "-" {
+        if let Some(parent) = std::path::Path::new(path).parent() {
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)?;
+            }
+        }
         fs::write(path, content)?;
     } else {
         print!("{content}");
@@ -13,6 +19,11 @@ pub fn write_json(path: &str, content: &str) -> Result<()> {
 
 pub fn write_markdown(path: &str, content: &str) -> Result<()> {
     if path != "-" {
+        if let Some(parent) = std::path::Path::new(path).parent() {
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)?;
+            }
+        }
         fs::write(path, content)?;
     } else {
         print!("{content}");
@@ -32,12 +43,26 @@ pub fn render_markdown(report: &Report) -> String {
     let _ = writeln!(out, "- Target stack ID: `{}`", report.target_stack_id);
     let _ = writeln!(out, "- Target stack: `{}`", report.target_stack);
     let _ = writeln!(out, "- Repo: `{}`", report.repo);
+    if let Some(run_id) = &report.run_id {
+        let _ = writeln!(out, "- Run ID: `{}`", run_id);
+    }
+    if let Some(started_at) = &report.started_at {
+        let _ = writeln!(out, "- Started at: `{}`", started_at);
+    }
+    if let Some(elapsed_ms) = report.elapsed_ms {
+        let _ = writeln!(out, "- Elapsed: `{}` ms", elapsed_ms);
+    }
     let _ = writeln!(out, "- Scope: `{}`", report.scope.mode);
     if !report.scope.paths.is_empty() {
         let _ = writeln!(out, "- Changed: `{}`", report.scope.paths.join(", "));
     }
+    proof::append_proof_receipts(&mut out, report);
     let _ = writeln!(out, "- Raw score: `{}`", report.raw_score);
     let _ = writeln!(out, "- Final score: `{}`", report.score);
+    if let Some(decision) = &report.decision {
+        let _ = writeln!(out, "- Decision: `{}`", decision.status);
+        let _ = writeln!(out, "- Minimum score: `{}`", decision.minimum_score);
+    }
     let _ = writeln!(
         out,
         "- Caps applied: `{}`",
@@ -97,6 +122,40 @@ pub fn render_markdown(report: &Report) -> String {
             report.ux_qa.missing_categories.join(", ")
         }
     );
+    if let Some(art) = &report.ux_qa.artifact {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "### Ingested UX QA report (`{}`)", art.path);
+        let _ = writeln!(out, "- Report count: `{}`", art.report_count);
+        let _ = writeln!(out, "- Worst decision: `{}`", art.worst_decision);
+        let _ = writeln!(out, "- Total violations: `{}`", art.total_violations);
+        let _ = writeln!(
+            out,
+            "- Summary errors / warnings: `{}` / `{}`",
+            art.summary_errors, art.summary_warnings
+        );
+    }
+    if let Some(art) = &report.security_evidence.artifact {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Security evidence (ingested)");
+        let _ = writeln!(out);
+        let _ = writeln!(out, "- Source: `{}`", art.path);
+        let _ = writeln!(
+            out,
+            "- Envelope exit code: `{}` · elapsed: `{}` ms · strict: `{}`",
+            art.envelope_exit_code, art.elapsed_ms, art.wrapper_strict
+        );
+        let _ = writeln!(
+            out,
+            "- Commands — ran: `{}`, skipped: `{}`, failed: `{}`",
+            art.commands_ran, art.commands_skipped, art.commands_failed
+        );
+        if let Some(ts) = &art.generated_at {
+            let _ = writeln!(out, "- Generated at: `{}`", ts);
+        }
+        if let Some(gh) = &art.git_head {
+            let _ = writeln!(out, "- Git HEAD (envelope): `{}`", gh);
+        }
+    }
     let _ = writeln!(out);
     let _ = writeln!(out, "## Findings");
     let _ = writeln!(out);
@@ -120,6 +179,11 @@ pub fn render_markdown(report: &Report) -> String {
             if let Some(rule) = &finding.rule_id {
                 let _ = writeln!(out, "   Rule: `{}`", rule);
             }
+            let _ = writeln!(
+                out,
+                "   Check: `{}` `{}` confidence `{:.2}`",
+                finding.check_id, finding.hardness, finding.confidence
+            );
             if finding.tlr.is_some() || finding.lane.is_some() || finding.owner.is_some() {
                 let _ = writeln!(
                     out,
@@ -141,10 +205,20 @@ pub fn render_markdown(report: &Report) -> String {
                 finding.reason.as_deref().unwrap_or(&finding.problem)
             );
             let _ = writeln!(out, "   Fix: {}", finding.agent_fix);
+            let _ = writeln!(out, "   Rerun: `{}`", finding.rerun_command);
+            let _ = writeln!(out, "   Fingerprint: `{}`", finding.fingerprint);
             if !finding.evidence.is_empty() {
                 let _ = writeln!(out, "   Evidence: {}", finding.evidence.join(", "));
             }
         }
+    }
+    let _ = writeln!(out);
+    if let Some(policy) = &report.policy {
+        let _ = writeln!(out, "## Policy");
+        let _ = writeln!(out);
+        let _ = writeln!(out, "- Policy file: `{}`", policy.path);
+        let _ = writeln!(out, "- Minimum score: `{}`", policy.minimum_score);
+        let _ = writeln!(out, "- Fail on: `{}`", policy.fail_on.join(", "));
     }
     let _ = writeln!(out);
     let _ = writeln!(out, "## Agent Fix Queue");

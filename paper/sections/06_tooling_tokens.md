@@ -67,8 +67,8 @@ The standard must version quickly because agent tooling is changing quickly. Eve
 
 ```json
 {
-  "humanlint_standard": "0.2.0",
-  "audit_min_version": "0.2.0",
+  "humanlint_standard": "0.3.0",
+  "audit_min_version": "0.3.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
   "advisory_on": ["medium", "low"]

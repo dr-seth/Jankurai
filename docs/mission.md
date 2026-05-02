@@ -6,6 +6,14 @@ humanlint exists to make agent-native engineering concrete. The claim is deliber
 
 The new standard is not "make coding pleasant." The new standard is "make wrong code easy to reject, localize, prove, audit, and repair."
 
+The current working thesis for this repository is:
+
+1. `humanlint init` installs the control plane.
+2. `humanlint audit` and `humanlint doctor` make proof and drift visible.
+3. The blessed stack is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python.
+
+Kafka deserves respect as proven brownfield streaming infrastructure, but it is not the stack identity. humanlint should isolate event buses behind generated event contracts and Rust queue adapters, then evaluate Rust-native replacements as they earn compatibility and operations proof.
+
 ## Paper Mission
 
 The paper argues that programming language history is a history of compression around the active bottleneck.
