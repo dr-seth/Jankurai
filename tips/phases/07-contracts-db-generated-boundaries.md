@@ -1,6 +1,6 @@
 # Phase 07: Contracts DB And Generated Boundaries
 
-Status: partial
+Status: complete
 Owner: standard
 Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
@@ -211,7 +211,7 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial contracts, DB, and generated boundaries; **doctor** validates boundary manifest; **audit** surfaces validated manifest digest on **`repo-score`** JSON; **Markdown audit output** and **GitHub step summaries** include **`## Boundary manifest (ingested)`** / lane-artifacts **`boundaries`** line when **`boundaries.artifact`** is present; **prove** may add **`boundaries_manifest_path`** on evidence index
+- Phase status: complete contracts, DB, and generated boundaries; **doctor** validates boundary manifest; **audit** surfaces validated manifest digest on **`repo-score`** JSON; **Markdown audit output** and **GitHub step summaries** include **`## Boundary manifest (ingested)`** / lane-artifacts **`boundaries`** line when **`boundaries.artifact`** is present; **prove** may add **`boundaries_manifest_path`** on evidence index
 - Operational handoff: [`tips/phases/logs/07-contracts-db-generated-boundaries.log`](logs/07-contracts-db-generated-boundaries.log) (append-only)
 - Files changed (slice 1): `schemas/boundaries.schema.json`, `crates/jankurai/src/validation.rs`, `crates/jankurai/src/commands/doctor.rs`, `crates/jankurai/tests/boundaries_manifest_smoke.rs`, `crates/jankurai/tests/init_doctor.rs`, `crates/jankurai/tests/schema_contracts.rs`, `docs/moonshot.md`, `docs/testing.md`, `tips/phases/07-contracts-db-generated-boundaries.md`, `tips/phases/logs/README.txt`
 - Files changed (slice 2): `crates/jankurai/src/model.rs`, `crates/jankurai/src/audit/boundaries_artifact.rs`, `crates/jankurai/src/audit/mod.rs`, `schemas/repo-score.schema.json`, `schemas/evidence-index.schema.json`, `crates/jankurai/src/commands/proof.rs`, `crates/jankurai/tests/boundaries_audit_ingest_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `crates/jankurai/tests/proof_surface_smoke.rs`, phase doc + log
@@ -220,12 +220,13 @@ Leave:
 - Files changed (slice 5): `crates/jankurai/src/audit/scan.rs`, `crates/jankurai/src/audit/mod.rs`, `crates/jankurai/src/audit/rules.rs`, `crates/jankurai/src/audit/finding_builder.rs`, `crates/jankurai/src/boundaries/sql.rs`, `crates/jankurai/src/commands/repair_plan.rs`, `crates/jankurai/src/commands/context_pack.rs`, `agent/proof-lanes.toml`, `agent/test-map.json`, `crates/jankurai/tests/migration_safety_audit_smoke.rs`, `crates/jankurai/tests/rule_registry_smoke.rs`, `crates/jankurai/tests/render_lane_artifacts_smoke.rs` (visual-baseline count expectations), phase doc + log
 - Files changed (slice 5c): `crates/jankurai/src/audit/scan.rs`, `crates/jankurai/tests/migration_safety_audit_smoke.rs`, `docs/testing.md`, phase doc + log
 - Files changed (slice 6): `crates/jankurai/src/report/sarif.rs`, `crates/jankurai/tests/audit_smoke.rs`, `crates/jankurai/tests/migration_safety_audit_smoke.rs`, `docs/testing.md`, phase doc + log
+- Files changed (slice 7): `crates/jankurai/tests/audit_smoke.rs`, `tips/phases/07-contracts-db-generated-boundaries.md`, `tips/phases/logs/07-contracts-db-generated-boundaries.log`
 - Schemas changed: `boundaries.schema.json` (slice 1); `repo-score.schema.json`, `evidence-index.schema.json` (slice 2); `migration-report.schema.json`, `migration-plan.schema.json` (slice 4: command/status envelope)
 - Public interfaces changed: `ArtifactSchema::Boundaries`, `validation::validate_boundaries_toml_text`, doctor **`boundaries-manifest-schema`**; repo-score **`boundaries.artifact`**; evidence index **`boundaries_manifest_path`**; audit rule **`HLT-021-DESTRUCTIVE-MIGRATION`**
 - Generated artifacts: none
 - Routing maps changed: **`agent/test-map.json`** (`db/migrations/`); **`agent/proof-lanes.toml`** (`db-migration-analyze`)
-- Validation commands: `cargo test -p jankurai`, `cargo run -p jankurai -- lane . --changed crates/jankurai/src/report/sarif.rs --out target/jankurai/p07-sarif-lane.json --md target/jankurai/p07-sarif-lane.md`, `just fast`
-- Results: validation passed; DB enforcement remains partial; SARIF uses absolute **helpUri** for rule docs, **endLine**, and **snippet** (evidence or **problem** excerpt)
+- Validation commands: `cargo test -p jankurai`, `cargo run -p jankurai -- lane . --changed crates/jankurai/tests/audit_smoke.rs --out target/jankurai/p07-contract-cap-lane.json --md target/jankurai/p07-contract-cap-lane.md`, `just fast`
+- Results: validation passed; DB enforcement remains partial; contract-drift cap now has an explicit regression; SARIF uses absolute **helpUri** for rule docs, **endLine**, and **snippet** (evidence or **problem** excerpt)
 - Skipped validation: none
 - Exceptions created: none
 - Follow-up phases: 09 reference product platform, 10 reuse registry certified cells, 11 migration engine
