@@ -54,7 +54,11 @@ fn rule_descriptor(finding: &Finding) -> serde_json::Value {
 }
 
 pub fn render_sarif(report: &Report) -> String {
-    let rules = report.findings.iter().map(rule_descriptor).collect::<Vec<_>>();
+    let rules = report
+        .findings
+        .iter()
+        .map(rule_descriptor)
+        .collect::<Vec<_>>();
     let results = report
         .findings
         .iter()

@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
+use jankurai::validation::ArtifactSchema;
+
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
@@ -219,12 +221,106 @@ fn cell_registry_and_manifest_schemas_parse() {
         &fs::read_to_string(repo.join("schemas/repair-plan.schema.json")).unwrap(),
     )
     .unwrap();
+    let repair_packet: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/repair-packet.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let repair_run: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/repair-run.schema.json")).unwrap(),
+    )
+    .unwrap();
     assert_eq!(
         repair_plan["$id"],
         "https://jankurai.dev/schemas/repair-plan.schema.json"
     );
     let rp_required = repair_plan["required"].as_array().unwrap();
     assert!(rp_required.iter().any(|value| value == "packets"));
+    for key in [
+        "plan_mode",
+        "planned_edits",
+        "planned_commands",
+        "proof_lanes",
+        "rollback_guidance",
+        "human_approval_requirements",
+    ] {
+        assert!(rp_required.iter().any(|value| value == key));
+    }
+    assert_eq!(repair_plan["properties"]["plan_mode"]["const"], "dry-run");
+    assert_eq!(
+        repair_plan["properties"]["planned_edits"]["items"]["properties"]["operation"]["enum"],
+        serde_json::json!([
+            "modify",
+            "regenerate",
+            "review-only",
+            "none",
+            "append-text",
+            "replace-exact",
+            "create-file"
+        ])
+    );
+    let planned_edit_props = repair_plan["properties"]["planned_edits"]["items"]["properties"]
+        .as_object()
+        .unwrap();
+    for key in [
+        "finding_fingerprint",
+        "rule_id",
+        "apply_strategy",
+        "match_text",
+        "replacement_text",
+        "append_text",
+        "create_text",
+    ] {
+        assert!(planned_edit_props.contains_key(key));
+    }
+    assert_eq!(
+        repair_packet["$id"],
+        "https://jankurai.dev/schemas/repair-packet.schema.json"
+    );
+    let packet_required = repair_packet["required"].as_array().unwrap();
+    for key in ["repair_eligibility", "risk_level", "eligibility_reason"] {
+        assert!(packet_required.iter().any(|value| value == key));
+    }
+    assert_eq!(
+        repair_packet["properties"]["repair_eligibility"]["enum"],
+        serde_json::json!([
+            "auto-safe",
+            "agent-assisted",
+            "human-required",
+            "never-auto"
+        ])
+    );
+    assert_eq!(
+        repair_run["$id"],
+        "https://jankurai.dev/schemas/repair-run.schema.json"
+    );
+    let run_required = repair_run["required"].as_array().unwrap();
+    for key in [
+        "execution_mode",
+        "auto_pr_status",
+        "risk_summary",
+        "blocked_packets",
+        "applied_edits",
+        "skipped_edits",
+        "files_written",
+        "proof_lanes",
+    ] {
+        assert!(run_required.iter().any(|value| value == key));
+    }
+    assert_eq!(
+        repair_run["properties"]["status"]["enum"],
+        serde_json::json!(["complete", "blocked", "failed"])
+    );
+    assert_eq!(
+        repair_run["properties"]["execution_mode"]["enum"],
+        serde_json::json!(["dry-run", "fixture-apply"])
+    );
+    assert_eq!(
+        repair_run["properties"]["auto_pr_status"]["enum"],
+        serde_json::json!(["not-requested", "eligible-dry-run-only", "blocked"])
+    );
+    assert!(repair_run["properties"]
+        .get("proof_evidence_index")
+        .is_some());
 
     let boundaries: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/boundaries.schema.json")).unwrap(),
@@ -335,4 +431,37 @@ fn cell_registry_and_manifest_schemas_parse() {
     );
     let b_ready = &repo_score["$defs"]["boundariesReadiness"];
     assert!(b_ready["properties"].get("artifact").is_some());
+}
+
+#[test]
+fn repair_run_schema_requires_execution_mode() {
+    let repo = repo_root();
+    let mut run: serde_json::Value = serde_json::json!({
+        "schema_version": "1.0.0",
+        "repo": ".",
+        "plan": "plan.json",
+        "generated_at": "0",
+        "status": "complete",
+        "dry_run": true,
+        "auto_pr_requested": false,
+        "auto_pr_status": "not-requested",
+        "max_risk": "medium",
+        "planned_packets": 0,
+        "risk_summary": {"low": 0, "medium": 0, "high": 0, "critical": 0},
+        "blocked_packets": [],
+        "applied_edits": [],
+        "skipped_edits": [],
+        "files_written": [],
+        "proof_lanes": [],
+        "notes": []
+    });
+    run.as_object_mut().unwrap().remove("execution_mode");
+
+    let error = jankurai::validation::validate_value(&repo, ArtifactSchema::RepairRun, &run)
+        .expect_err("missing execution_mode should fail validation");
+    let message = error.to_string();
+    assert!(
+        message.contains("execution_mode"),
+        "expected execution_mode validation failure, got {message}"
+    );
 }

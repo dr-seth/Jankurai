@@ -212,11 +212,7 @@ pub fn render_markdown(report: &Report) -> String {
         let _ = writeln!(out);
         let _ = writeln!(out, "- Path: `{}`", art.path);
         if let Some(v) = &art.stack_version {
-            let _ = writeln!(
-                out,
-                "- Stack: `{}` · version: `{}`",
-                art.stack_id, v
-            );
+            let _ = writeln!(out, "- Stack: `{}` · version: `{}`", art.stack_id, v);
         } else {
             let _ = writeln!(out, "- Stack: `{}`", art.stack_id);
         }

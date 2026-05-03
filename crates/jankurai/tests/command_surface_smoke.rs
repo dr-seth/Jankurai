@@ -96,6 +96,21 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
             "source_report": "agent/repo-score.json",
             "generated_at": "0",
             "target_stack_id": "jankurai:v0.4",
+            "plan_mode": "dry-run",
+            "planned_edits": [{
+                "path": "docs/testing.md",
+                "operation": "modify",
+                "reason": "add docs",
+                "finding_fingerprint": "sha256:test",
+                "rule_id": "HLT-017-OPAQUE-OBSERVABILITY",
+                "apply_strategy": "none",
+                "risk_level": "medium",
+                "repair_eligibility": "agent-assisted"
+            }],
+            "planned_commands": ["just fast"],
+            "proof_lanes": ["audit"],
+            "rollback_guidance": ["restore docs"],
+            "human_approval_requirements": [],
             "packets": [{
                 "finding_fingerprint": "sha256:test",
                 "finding_path": "docs/testing.md",
@@ -112,7 +127,10 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
                 "expected_patch_shape": "add docs",
                 "required_proof": ["just fast"],
                 "stop_conditions": ["stop"],
-                "human_review_required": true,
+                "repair_eligibility": "agent-assisted",
+                "risk_level": "medium",
+                "eligibility_reason": "observability repairs are typically scoped to telemetry and error receipts",
+                "human_review_required": false,
                 "rollback_guidance": "restore docs"
             }]
         })
@@ -124,8 +142,15 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
         &["repair", "--plan", plan_path.to_str().unwrap(), "--dry-run"],
     );
     assert_eq!(repair["status"], "complete");
+    assert_eq!(repair["execution_mode"], "dry-run");
     assert_eq!(repair["dry_run"], true);
+    assert_eq!(repair["auto_pr_status"], "not-requested");
     assert_eq!(repair["planned_packets"], 1);
+    assert!(repair["applied_edits"].as_array().unwrap().is_empty());
+    assert!(repair["skipped_edits"].as_array().unwrap().is_empty());
+    assert!(repair["files_written"].as_array().unwrap().is_empty());
+    assert!(repair["proof_evidence_index"].is_null());
+    validation::validate_value(repo.path(), ArtifactSchema::RepairRun, &repair).unwrap();
     assert!(repair_md.starts_with("# jankurai Repair Run"));
     fs::remove_file(&plan_path).unwrap();
 
@@ -147,6 +172,10 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
         .iter()
         .find(|cell| cell["cell_id"] == "crud-resource")
         .expect("crud-resource cell");
+    let rbac = cells
+        .iter()
+        .find(|cell| cell["cell_id"] == "rbac")
+        .expect("rbac cell");
     assert_eq!(audit_log["certification_status"], "certified");
     assert!(audit_log["proof_lanes"]
         .as_array()
@@ -154,6 +183,13 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
         .iter()
         .any(|lane| lane == "audit"));
     assert_eq!(crud["dependencies"].as_array().unwrap()[0], "audit-log");
+    assert_eq!(rbac["certification_status"], "certified");
+    assert_eq!(rbac["dependencies"].as_array().unwrap()[0], "crud-resource");
+    assert!(rbac["proof_lanes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|lane| lane == "security"));
 
     let (cell, _cell_md) = run_command(&repo, &["cell", "--cell-id", "audit-log"]);
     validation::validate_value(&repo, ArtifactSchema::CellManifest, &cell["manifest"]).unwrap();
@@ -171,4 +207,11 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
         .unwrap()
         .is_empty());
     assert!(!prove["proof_commands"].as_array().unwrap().is_empty());
+
+    let (rbac_prove, _rbac_md) =
+        run_command(&repo, &["cell", "--cell-id", "rbac", "--mode", "prove"]);
+    validation::validate_value(&repo, ArtifactSchema::CellManifest, &rbac_prove["manifest"])
+        .unwrap();
+    assert_eq!(rbac_prove["manifest"]["cell_id"], "rbac");
+    assert_eq!(rbac_prove["manifest"]["certification_status"], "certified");
 }

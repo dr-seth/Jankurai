@@ -24,7 +24,9 @@ command = "npm run codegen"
         .filter(|f| {
             f.path == "agent/generated-zones.toml"
                 && f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
-                && f.evidence.iter().any(|e| e.contains("incomplete reproducibility metadata"))
+                && f.evidence
+                    .iter()
+                    .any(|e| e.contains("incomplete reproducibility metadata"))
         })
         .collect();
     assert_eq!(manifest.len(), 1, "{:?}", report.findings);
@@ -52,7 +54,9 @@ command = ""
     let report = run_audit(dir.path(), &[]).unwrap();
     assert!(report.findings.iter().any(|f| {
         f.path == "agent/generated-zones.toml"
-            && f.evidence.iter().any(|e| e.contains("missing or empty `command`"))
+            && f.evidence
+                .iter()
+                .any(|e| e.contains("missing or empty `command`"))
     }));
 }
 
@@ -73,5 +77,8 @@ read_only = true
     .unwrap();
 
     let report = run_audit(dir.path(), &[]).unwrap();
-    assert!(!report.findings.iter().any(|f| f.path == "agent/generated-zones.toml"));
+    assert!(!report
+        .findings
+        .iter()
+        .any(|f| f.path == "agent/generated-zones.toml"));
 }

@@ -52,7 +52,8 @@ fn destructive_migration_sql_applies_destructive_migration_risk_cap() {
     .unwrap();
     let report = run_audit(dir.path(), &[]).unwrap();
     assert!(
-        report.caps_applied
+        report
+            .caps_applied
             .iter()
             .any(|c| c == "destructive-migration-risk"),
         "expected destructive-migration-risk cap, caps={:?}",
@@ -95,9 +96,10 @@ fn jankurai_migration_safe_marker_suppresses_destructive_finding() {
     )
     .unwrap();
     let report = run_audit(dir.path(), &[]).unwrap();
-    assert!(!report.findings.iter().any(|f| {
-        f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION")
-    }));
+    assert!(!report
+        .findings
+        .iter()
+        .any(|f| { f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION") }));
 }
 
 #[test]
@@ -171,9 +173,10 @@ fn destructive_migration_suppressed_when_safety_evidence_present() {
     )
     .unwrap();
     let report = run_audit(dir.path(), &[]).unwrap();
-    assert!(!report.findings.iter().any(|f| {
-        f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION")
-    }));
+    assert!(!report
+        .findings
+        .iter()
+        .any(|f| { f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION") }));
 }
 
 #[test]
@@ -187,9 +190,10 @@ fn alter_table_add_column_is_not_flagged() {
     )
     .unwrap();
     let report = run_audit(dir.path(), &[]).unwrap();
-    assert!(!report.findings.iter().any(|f| {
-        f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION")
-    }));
+    assert!(!report
+        .findings
+        .iter()
+        .any(|f| { f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION") }));
 }
 
 #[test]
@@ -226,8 +230,7 @@ fn delete_without_where_triggers_hlt021() {
     let report = run_audit(dir.path(), &[]).unwrap();
     assert!(report.findings.iter().any(|f| {
         f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION")
-            && f
-                .evidence
+            && f.evidence
                 .iter()
                 .any(|e| e.contains("delete without where"))
     }));

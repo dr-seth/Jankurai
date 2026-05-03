@@ -1,3 +1,4 @@
+use crate::audit::rules::{self, RepairEligibility, RepairRisk};
 use crate::commands::context_data::{push_unique, RepoCatalog};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{Context, Result};
@@ -20,11 +21,39 @@ pub struct RepairPlan {
     pub source_report: String,
     pub generated_at: String,
     pub target_stack_id: String,
+    #[serde(default)]
+    pub plan_mode: String,
+    #[serde(default)]
+    pub planned_edits: Vec<PlannedEdit>,
+    #[serde(default)]
+    pub planned_commands: Vec<String>,
+    #[serde(default)]
+    pub proof_lanes: Vec<String>,
+    #[serde(default)]
+    pub rollback_guidance: Vec<String>,
+    #[serde(default)]
+    pub human_approval_requirements: Vec<String>,
     pub packets: Vec<RepairPacket>,
+}
+
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+pub struct PlannedEdit {
+    pub path: String,
+    pub operation: String,
+    pub reason: String,
+    pub finding_fingerprint: String,
+    pub rule_id: String,
+    pub apply_strategy: String,
+    pub risk_level: String,
+    pub repair_eligibility: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub plan_mode: Option<String>,
+    pub match_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub planned_edits: Option<Vec<String>>,
+    pub replacement_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub append_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub create_text: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
@@ -44,6 +73,12 @@ pub struct RepairPacket {
     pub expected_patch_shape: String,
     pub required_proof: Vec<String>,
     pub stop_conditions: Vec<String>,
+    #[serde(default)]
+    pub repair_eligibility: String,
+    #[serde(default)]
+    pub risk_level: String,
+    #[serde(default)]
+    pub eligibility_reason: String,
     pub human_review_required: bool,
     pub rollback_guidance: String,
 }
@@ -80,14 +115,39 @@ pub fn build_repair_plan(repo: &Path, report_path: &str) -> Result<RepairPlan> {
     for finding in findings {
         packets.push(packet_from_finding(&catalog, &finding));
     }
+    let planned_edits = packets.iter().map(planned_edit_from_packet).collect();
+    let mut planned_commands = Vec::new();
+    let mut proof_lanes = Vec::new();
+    let mut rollback_guidance = Vec::new();
+    let mut human_approval_requirements = Vec::new();
+    for packet in &packets {
+        for command in &packet.required_proof {
+            push_unique(&mut planned_commands, command.clone());
+        }
+        push_unique(&mut proof_lanes, packet.lane.clone());
+        push_unique(&mut rollback_guidance, packet.rollback_guidance.clone());
+        if packet.human_review_required {
+            push_unique(
+                &mut human_approval_requirements,
+                format!(
+                    "{} {} requires approval: {}",
+                    packet.rule_id, packet.finding_fingerprint, packet.eligibility_reason
+                ),
+            );
+        }
+    }
     Ok(RepairPlan {
         schema_version: "1.0.0".to_string(),
         source_report: report_path.to_string(),
         generated_at: now_string(),
         target_stack_id: crate::model::TARGET_STACK_ID.to_string(),
+        plan_mode: "dry-run".to_string(),
+        planned_edits,
+        planned_commands,
+        proof_lanes,
+        rollback_guidance,
+        human_approval_requirements,
         packets,
-        plan_mode: None,
-        planned_edits: None,
     })
 }
 
@@ -104,6 +164,8 @@ fn packet_from_finding(catalog: &RepoCatalog, finding: &serde_json::Value) -> Re
         .unwrap_or(&problem)
         .to_string();
     let permission_profile = infer_permission_profile(&severity, &rule_id, &finding_path, &owner);
+    let (repair_eligibility, risk_level, eligibility_reason) =
+        repair_policy_for_finding(&rule_id, &severity);
     let mut allowed_paths = repair_allowed_paths(catalog, &finding_path, &owner);
     if allowed_paths.is_empty() {
         push_unique(&mut allowed_paths, finding_path.clone());
@@ -134,8 +196,14 @@ fn packet_from_finding(catalog: &RepoCatalog, finding: &serde_json::Value) -> Re
             "stop if the source contract or generator is not identified first",
         );
     }
-    let human_review_required =
-        human_review_required(&severity, &rule_id, &finding_path, &permission_profile);
+    let human_review_required = human_review_required(
+        &severity,
+        &rule_id,
+        &finding_path,
+        &permission_profile,
+        &repair_eligibility,
+        &risk_level,
+    );
     let rollback_guidance = rollback_guidance(&permission_profile, &finding_path, &rule_id);
     RepairPacket {
         finding_fingerprint: str_field(finding, "fingerprint"),
@@ -153,8 +221,42 @@ fn packet_from_finding(catalog: &RepoCatalog, finding: &serde_json::Value) -> Re
         expected_patch_shape,
         required_proof,
         stop_conditions,
+        repair_eligibility,
+        risk_level,
+        eligibility_reason,
         human_review_required,
         rollback_guidance,
+    }
+}
+
+fn planned_edit_from_packet(packet: &RepairPacket) -> PlannedEdit {
+    PlannedEdit {
+        path: packet.finding_path.clone(),
+        operation: planned_operation(packet).to_string(),
+        reason: packet.expected_patch_shape.clone(),
+        finding_fingerprint: packet.finding_fingerprint.clone(),
+        rule_id: packet.rule_id.clone(),
+        apply_strategy: "none".to_string(),
+        risk_level: packet.risk_level.clone(),
+        repair_eligibility: packet.repair_eligibility.clone(),
+        match_text: None,
+        replacement_text: None,
+        append_text: None,
+        create_text: None,
+    }
+}
+
+fn planned_operation(packet: &RepairPacket) -> &'static str {
+    if packet.finding_path.is_empty() {
+        "none"
+    } else if packet.rule_id == "HLT-002-GENERATED-MUTATION"
+        || packet.permission_profile == "generated-regeneration"
+    {
+        "regenerate"
+    } else if packet.human_review_required {
+        "review-only"
+    } else {
+        "modify"
     }
 }
 
@@ -166,6 +268,13 @@ fn render_markdown(plan: &RepairPlan) -> String {
     let _ = writeln!(out, "- source report: `{}`", plan.source_report);
     let _ = writeln!(out, "- generated at: `{}`", plan.generated_at);
     let _ = writeln!(out, "- target stack: `{}`", plan.target_stack_id);
+    let _ = writeln!(out, "- mode: `{}`", plan.plan_mode);
+    let _ = writeln!(
+        out,
+        "- planned commands: `{}`",
+        join_or_none(&plan.planned_commands)
+    );
+    let _ = writeln!(out, "- proof lanes: `{}`", join_or_none(&plan.proof_lanes));
     for packet in &plan.packets {
         let _ = writeln!(out);
         let _ = writeln!(out, "## {} {}", packet.rule_id, packet.finding_path);
@@ -174,6 +283,9 @@ fn render_markdown(plan: &RepairPlan) -> String {
         let _ = writeln!(out, "- owner: `{}`", packet.owner);
         let _ = writeln!(out, "- lane: `{}`", packet.lane);
         let _ = writeln!(out, "- profile: `{}`", packet.permission_profile);
+        let _ = writeln!(out, "- eligibility: `{}`", packet.repair_eligibility);
+        let _ = writeln!(out, "- risk: `{}`", packet.risk_level);
+        let _ = writeln!(out, "- eligibility reason: {}", packet.eligibility_reason);
         let _ = writeln!(out, "- problem: {}", packet.problem);
         let _ = writeln!(out, "- why: {}", packet.why);
         let _ = writeln!(out, "- allowed: `{}`", join_or_none(&packet.allowed_paths));
@@ -277,8 +389,12 @@ fn human_review_required(
     rule_id: &str,
     path: &str,
     permission_profile: &str,
+    repair_eligibility: &str,
+    risk_level: &str,
 ) -> bool {
     severity == "critical"
+        || matches!(repair_eligibility, "human-required" | "never-auto")
+        || matches!(risk_level, "high" | "critical")
         || matches!(
             rule_id,
             "HLT-010-SECRET-SPRAWL"
@@ -293,6 +409,31 @@ fn human_review_required(
         )
         || path.starts_with("reference/")
         || permission_profile == "security-investigation"
+}
+
+fn repair_policy_for_finding(rule_id: &str, severity: &str) -> (String, String, String) {
+    if let Some(rule) = rules::lookup(rule_id) {
+        return (
+            rule.repair_eligibility.as_str().to_string(),
+            rule.repair_risk.as_str().to_string(),
+            rule.repair_reason.to_string(),
+        );
+    }
+    let risk = risk_from_severity(severity);
+    (
+        RepairEligibility::HumanRequired.as_str().to_string(),
+        risk.as_str().to_string(),
+        "unknown rule requires human review".to_string(),
+    )
+}
+
+fn risk_from_severity(severity: &str) -> RepairRisk {
+    match severity {
+        "low" => RepairRisk::Low,
+        "medium" => RepairRisk::Medium,
+        "critical" => RepairRisk::Critical,
+        _ => RepairRisk::High,
+    }
 }
 
 fn rollback_guidance(permission_profile: &str, path: &str, rule_id: &str) -> String {

@@ -20,6 +20,7 @@ Current certified cells:
 
 - `audit-log`
 - `crud-resource`
+- `rbac` (depends on `crud-resource`; sources and proof lanes tied to `examples/perfect-web-api-db/` authorization surface)
 
 The installer remains dry-run only and never overwrites user files. `cell
 --mode prove` emits certification evidence and proof commands, but does not
@@ -82,7 +83,7 @@ Build in this order:
 
 1. audit-log
 2. CRUD table/form
-3. RBAC
+3. RBAC — certified as registry cell `rbac` (depends on `crud-resource`)
 4. auth/session shell
 5. organization/team shell
 6. background job
@@ -233,14 +234,15 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: complete reuse registry certified cells implementation slice
-- Files changed: `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, and `tips/phases/logs/10-reuse-registry-certified-cells.log`
+- Phase status: complete; **three** certified cells (`audit-log`, `crud-resource`, `rbac`)
+- Files changed (rbac slice, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
+- Files changed (registry foundation): `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Schemas changed: cell manifest and cell registry
 - Public interfaces changed: `jankurai cell --mode <install-ready|prove>`
 - Generated artifacts: registry, cell dry-run, prove evidence, lane, fast score, and repo score JSON/Markdown outputs
 - Routing maps changed: none beyond existing owner/test inputs
-- Validation commands: `rtk cargo test -p jankurai`; `rtk cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/cell.rs --changed crates/jankurai/src/commands/registry.rs --changed schemas/cell-manifest.schema.json --out target/jankurai/p10-cell-registry-lane.json --md target/jankurai/p10-cell-registry-lane.md`; `rtk just fast`; `rtk just score`
-- Results: validation passed; `just fast` and `just score` both reported score 93, caps 0, findings 0
+- Validation commands: `cargo test -p jankurai`; `cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/cell_catalog.rs --changed crates/jankurai/tests/command_surface_smoke.rs --out target/jankurai/p10-rbac-cell-lane.json --md target/jankurai/p10-rbac-cell-lane.md`; `just fast`
+- Results: rbac slice validation passed (119 tests); `just fast` score 93, caps 0, findings 0
 - Skipped validation: mutating install execution remains bounded for later extension
 - Exceptions created: provider-backed and mutating cells deferred
-- Follow-up phases: 11 migration engine, 12 benchmark certification and governance, 13 autonomous repair and optimization
+- Follow-up phases: next registry cell **auth/session shell** (Initial Cell Order item 4); phases 11–13 as before

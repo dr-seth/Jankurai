@@ -109,7 +109,10 @@ struct StackDetection {
 
 impl StackDetection {
     fn primary_language(&self) -> &str {
-        self.languages.first().map(|s| s.as_str()).unwrap_or("unknown")
+        self.languages
+            .first()
+            .map(|s| s.as_str())
+            .unwrap_or("unknown")
     }
 
     fn summary(&self) -> String {
@@ -162,7 +165,9 @@ fn detect_stack(repo: &Path) -> StackDetection {
 
         if let Ok(text) = fs::read_to_string(repo.join("package.json")) {
             let lower = text.to_ascii_lowercase();
-            for fw in ["express", "fastify", "next", "nuxt", "react", "vue", "angular", "svelte"] {
+            for fw in [
+                "express", "fastify", "next", "nuxt", "react", "vue", "angular", "svelte",
+            ] {
                 if lower.contains(fw) {
                     push_unique(&mut det.frameworks, fw);
                 }
@@ -351,13 +356,23 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
     let db_surfaces = if det.db_clients.is_empty() {
         None
     } else {
-        Some(det.db_clients.iter().map(|c| format!("db-client:{c}")).collect())
+        Some(
+            det.db_clients
+                .iter()
+                .map(|c| format!("db-client:{c}"))
+                .collect(),
+        )
     };
 
     let api_surfaces = if det.frameworks.is_empty() {
         None
     } else {
-        Some(det.frameworks.iter().map(|f| format!("api-framework:{f}")).collect())
+        Some(
+            det.frameworks
+                .iter()
+                .map(|f| format!("api-framework:{f}"))
+                .collect(),
+        )
     };
 
     let strangler_candidates = if det.db_clients.is_empty() && det.frameworks.is_empty() {
@@ -384,19 +399,20 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
     recommended_slice_order.push("prove-equivalence".to_string());
     recommended_slice_order.push("cutover-and-retire".to_string());
 
-    let required_proof_lanes = vec![
-        "fast".to_string(),
-        "contract".to_string(),
-    ];
+    let required_proof_lanes = vec!["fast".to_string(), "contract".to_string()];
 
     let missing_tests = if !det.has_tests() {
-        Some(vec!["no test framework detected — migration risk is elevated".to_string()])
+        Some(vec![
+            "no test framework detected — migration risk is elevated".to_string(),
+        ])
     } else {
         None
     };
 
     let high_risk_areas = if !det.has_ci() {
-        Some(vec!["no CI system detected — migration cannot be verified automatically".to_string()])
+        Some(vec![
+            "no CI system detected — migration cannot be verified automatically".to_string(),
+        ])
     } else {
         None
     };
@@ -468,7 +484,9 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
                 contracts: vec!["OpenAPI or JSON Schema contract".to_string()],
                 tests: vec!["consumer/provider contract test".to_string()],
                 proof_lanes: vec!["contract".to_string(), "fast".to_string()],
-                rollback_notes: vec!["revert contract extraction if provider tests fail".to_string()],
+                rollback_notes: vec![
+                    "revert contract extraction if provider tests fail".to_string()
+                ],
                 cutover_notes: None,
                 notes: Some(format!("extract contract for {api}")),
             });
@@ -479,7 +497,11 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
     slices.push(MigrationSlice {
         slice_id: "equivalence-proof".to_string(),
         owner: "tools".to_string(),
-        status: if slices.is_empty() { "blocked".to_string() } else { "candidate".to_string() },
+        status: if slices.is_empty() {
+            "blocked".to_string()
+        } else {
+            "candidate".to_string()
+        },
         allowed_paths: vec!["tests/equivalence/".to_string()],
         forbidden_paths: vec![],
         contracts: vec!["golden input/output equivalence".to_string()],
@@ -493,11 +515,10 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
         notes: Some("prove equivalent behavior before retiring old code".to_string()),
     });
 
-    let mut human_approvals = vec![
-        "high-risk cutovers require human review".to_string(),
-    ];
+    let mut human_approvals = vec!["high-risk cutovers require human review".to_string()];
     if report.liability_score > 70 {
-        human_approvals.push("liability score above 70 — all slices require human approval".to_string());
+        human_approvals
+            .push("liability score above 70 — all slices require human approval".to_string());
     }
 
     Ok(MigrationPlan {
@@ -515,7 +536,10 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
             "jankurai migrate plan . --json target/jankurai/migration-plan.json".to_string(),
         ]),
         warnings: if report.liability_score > 60 {
-            Some(vec![format!("liability score {} indicates elevated migration risk", report.liability_score)])
+            Some(vec![format!(
+                "liability score {} indicates elevated migration risk",
+                report.liability_score
+            )])
         } else {
             None
         },
@@ -571,7 +595,11 @@ fn render_report_markdown(report: &MigrationReport) -> String {
     let _ = writeln!(out, "- source stack: `{}`", report.source_stack);
     let _ = writeln!(out, "- target stack: `{}`", report.target_stack);
     let _ = writeln!(out, "- liability score: `{}`", report.liability_score);
-    let _ = writeln!(out, "- module inventory: `{}`", report.module_inventory.join(", "));
+    let _ = writeln!(
+        out,
+        "- module inventory: `{}`",
+        report.module_inventory.join(", ")
+    );
     if let Some(ref db) = report.db_surfaces {
         let _ = writeln!(out, "- DB surfaces: `{}`", db.join(", "));
     }
@@ -581,9 +609,21 @@ fn render_report_markdown(report: &MigrationReport) -> String {
     if let Some(ref strangler) = report.strangler_candidates {
         let _ = writeln!(out, "- strangler candidates: `{}`", strangler.join(", "));
     }
-    let _ = writeln!(out, "- recommended slice order: `{}`", report.recommended_slice_order.join(" → "));
-    let _ = writeln!(out, "- required proof lanes: `{}`", report.required_proof_lanes.join(", "));
-    let _ = writeln!(out, "- rollback notes: `{}`", report.rollback_cutover_notes.join("; "));
+    let _ = writeln!(
+        out,
+        "- recommended slice order: `{}`",
+        report.recommended_slice_order.join(" → ")
+    );
+    let _ = writeln!(
+        out,
+        "- required proof lanes: `{}`",
+        report.required_proof_lanes.join(", ")
+    );
+    let _ = writeln!(
+        out,
+        "- rollback notes: `{}`",
+        report.rollback_cutover_notes.join("; ")
+    );
     out
 }
 

@@ -63,7 +63,10 @@ fn summarize(value: &Value) -> Option<UxQaReportArtifactSummary> {
                     artifact_fingerprint_count += 1;
                 }
             }
-            for kind in arr.iter().filter_map(|artifact| artifact.get("kind").and_then(Value::as_str)) {
+            for kind in arr
+                .iter()
+                .filter_map(|artifact| artifact.get("kind").and_then(Value::as_str))
+            {
                 *artifact_counts_by_kind.entry(kind.to_string()).or_insert(0) += 1;
             }
         }

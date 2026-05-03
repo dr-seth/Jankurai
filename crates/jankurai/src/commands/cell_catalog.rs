@@ -47,6 +47,7 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
     vec![
         audit_log_manifest(repo, catalog),
         crud_resource_manifest(repo, catalog),
+        rbac_manifest(repo, catalog),
     ]
 }
 
@@ -217,6 +218,72 @@ fn crud_resource_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
             rollback_notes: strings(&[
                 "dry-run install writes no files",
                 "for applied templates, reverse resource tables through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
+fn rbac_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/docs/exceptions.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&["examples/perfect-web-api-db/contracts/openapi.json"]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "rbac".to_string(),
+            version: "0.1.0".to_string(),
+            category: "authorization".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["crud-resource"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "roles and permissions are enforced in the Rust application layer before any command runs",
+                "API security schemes in OpenAPI align with session or token checks at the edge",
+                "dangerous role changes emit audit events through the audit-log cell",
+            ]),
+            observability_events: strings(&["authorization.denied", "authorization.allowed"]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&[
+                "model new roles in domain.rs before exposing them in OpenAPI",
+                "expand ux/routes.md with permission-denied coverage for each protected surface",
+            ]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "reverse RBAC table or policy changes only through reviewed migrations",
             ]),
             certification_status: "candidate".to_string(),
             certification_evidence: Vec::new(),

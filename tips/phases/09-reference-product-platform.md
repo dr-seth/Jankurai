@@ -1,8 +1,8 @@
 # Phase 09: Reference Product Platform
 
-Status: hardened
+Status: complete
 Owner: standard
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
 
 ## Objective
@@ -236,7 +236,7 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: hardened reference product platform — domain/application/adapters layers with real invariants, typed RBAC, audit events, RFC 9457 errors; production-grade OpenAPI 3.1 contract; PostgreSQL migration with ENUMs, FKs, indexes; frontend with all UI states and ARIA; architecture decisions and exception inventory
+- Phase status: **complete** (promoted from hardened, 2026-05-03); optional external golden repo split remains out-of-band. Technical receipt: hardened reference product platform — domain/application/adapters layers with real invariants, typed RBAC, audit events, RFC 9457 errors; production-grade OpenAPI 3.1 contract; PostgreSQL migration with ENUMs, FKs, indexes; frontend with all UI states and ARIA; architecture decisions and exception inventory
 - Files changed (initial scaffold): `examples/perfect-web-api-db/README.md`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/backend/src/domain.rs`, `examples/perfect-web-api-db/backend/src/application.rs`, `examples/perfect-web-api-db/frontend/src/App.tsx`, `examples/perfect-web-api-db/contracts/openapi.json`, `examples/perfect-web-api-db/db/migrations/001_init.sql`, `examples/perfect-web-api-db/db/constraints/001_accounts.sql`, `examples/perfect-web-api-db/ops/observability.md`, `examples/perfect-web-api-db/ops/security.md`, `examples/perfect-web-api-db/ux/routes.md`, `examples/legacy-node-api/README.md`, `examples/legacy-node-api/package.json`, `examples/legacy-node-api/src/index.js`, `agent/owner-map.json`, `agent/test-map.json`, `crates/jankurai/src/audit/mod.rs`, and `target/jankurai/phase-logs/09-reference-product-platform.md.log`
 - Files changed (hardening slice): `examples/perfect-web-api-db/backend/src/domain.rs` (typed IDs, RBAC, audit events, domain errors, tests), `examples/perfect-web-api-db/backend/src/application.rs` (port traits, commands, authorization, idempotency, tests), `examples/perfect-web-api-db/backend/src/adapters.rs` (new — adapter boundary documentation), `examples/perfect-web-api-db/backend/src/lib.rs` (updated — layer docs), `examples/perfect-web-api-db/contracts/openapi.json` (full OpenAPI 3.1 with schemas, security, ProblemDetail), `examples/perfect-web-api-db/db/migrations/001_init.sql` (production-grade SQL with ENUMs, FKs, indexes), `examples/perfect-web-api-db/db/constraints/001_accounts.sql` (constraint-to-invariant mapping), `examples/perfect-web-api-db/frontend/src/App.tsx` (all UI states, ARIA, typed components), `examples/perfect-web-api-db/ops/observability.md` (trace IDs, logging, metrics, health), `examples/perfect-web-api-db/ops/security.md` (secrets, deps, auth, CI, compliance), `examples/perfect-web-api-db/ux/routes.md` (route matrix, state coverage, a11y), `examples/perfect-web-api-db/docs/architecture.md` (new — ADRs), `examples/perfect-web-api-db/docs/exceptions.md` (new — exception inventory), `examples/perfect-web-api-db/README.md` (comprehensive COLD stack documentation)
 - Schemas changed: reference-platform contract surfaces under `schemas/`

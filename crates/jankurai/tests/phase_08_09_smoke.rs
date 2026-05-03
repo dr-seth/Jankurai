@@ -128,9 +128,36 @@ fn repair_plan_command_writes_packets() {
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
     validation::validate_value(dir.path(), ArtifactSchema::RepairPlan, &value).unwrap();
+    assert_eq!(value["plan_mode"], "dry-run");
+    assert_eq!(value["planned_edits"][0]["operation"], "review-only");
+    assert_eq!(value["planned_edits"][0]["risk_level"], "high");
+    assert_eq!(
+        value["planned_edits"][0]["repair_eligibility"],
+        "human-required"
+    );
+    assert!(value["planned_commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item == "just security"));
+    assert!(value["proof_lanes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item == "security"));
+    assert!(!value["human_approval_requirements"]
+        .as_array()
+        .unwrap()
+        .is_empty());
     assert_eq!(value["packets"].as_array().unwrap().len(), 1);
     let packet = &value["packets"][0];
     assert_eq!(packet["permission_profile"], "security-investigation");
+    assert_eq!(packet["repair_eligibility"], "human-required");
+    assert_eq!(packet["risk_level"], "high");
+    assert!(packet["eligibility_reason"]
+        .as_str()
+        .unwrap()
+        .contains("prompt injection"));
     assert!(packet["human_review_required"].as_bool().unwrap());
     assert!(packet["required_proof"]
         .as_array()

@@ -30,3 +30,30 @@ fn hlt021_destructive_migration_is_registered() {
     assert_eq!(rule.category, "data");
     assert_eq!(rule.lane, "db-migration-analyze");
 }
+
+#[test]
+fn every_rule_has_repair_policy_metadata() {
+    for rule in rules::all() {
+        assert!(
+            !rule.repair_reason.trim().is_empty(),
+            "{} has empty repair reason",
+            rule.id
+        );
+        assert!(
+            matches!(
+                rule.repair_eligibility.as_str(),
+                "auto-safe" | "agent-assisted" | "human-required" | "never-auto"
+            ),
+            "{} has invalid repair eligibility",
+            rule.id
+        );
+        assert!(
+            matches!(
+                rule.repair_risk.as_str(),
+                "low" | "medium" | "high" | "critical"
+            ),
+            "{} has invalid repair risk",
+            rule.id
+        );
+    }
+}

@@ -314,6 +314,8 @@ struct RepairArgs {
     #[arg(long)]
     dry_run: bool,
     #[arg(long)]
+    fixture_apply: bool,
+    #[arg(long)]
     auto_pr: bool,
     #[arg(long, default_value = "low")]
     max_risk: String,
@@ -538,6 +540,7 @@ fn main() -> anyhow::Result<()> {
                 repo: args.repo,
                 plan: args.plan,
                 dry_run: args.dry_run,
+                fixture_apply: args.fixture_apply,
                 auto_pr: args.auto_pr,
                 max_risk: args.max_risk,
                 out: args.out,
@@ -643,7 +646,9 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             category: "proof".into(),
             path: "agent/test-map.json".into(),
             problem: "release mode requires proof receipts for the audited scope".into(),
-            agent_fix: "run `jankurai prove` and feed its receipts into `jankurai audit --proof-receipts`".into(),
+            agent_fix:
+                "run `jankurai prove` and feed its receipts into `jankurai audit --proof-receipts`"
+                    .into(),
             evidence: vec!["no proof receipts were supplied".into()],
             check_id: "proof-receipts".into(),
             hardness: "hard".into(),
@@ -689,10 +694,7 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
         )?;
     }
     if let Some(path) = args.repair_queue_jsonl.as_deref() {
-        write_json(
-            path,
-            &jankurai::report::issues::repair_queue_jsonl(&report),
-        )?;
+        write_json(path, &jankurai::report::issues::repair_queue_jsonl(&report))?;
     }
     eprintln!(
         "score={} raw={} caps={} findings={}",

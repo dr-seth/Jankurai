@@ -222,7 +222,9 @@ fn audit_ux_qa_aggregates_visual_baseline_review_and_missing_counts() {
     review_report["visualBaseline"]["status"] = serde_json::json!("missing-baseline");
     review_report["visualBaseline"]["decision"] = serde_json::json!("review");
     review_report["visualBaseline"]["mode"] = serde_json::json!("review");
-    review_report["artifacts"][0]["sha256"] = serde_json::json!("sha256:3333333333333333333333333333333333333333333333333333333333333333");
+    review_report["artifacts"][0]["sha256"] = serde_json::json!(
+        "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    );
     let env = ux_qa_envelope(vec![evidence_report(), review_report]);
     fs::write(
         dir.path().join("target/jankurai/ux-qa.json"),

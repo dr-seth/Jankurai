@@ -141,9 +141,7 @@ fn markdown_and_github_summary_include_lane_artifacts() {
         counts_line
     );
     assert!(md.contains("- Artifact fingerprints: `1`"));
-    assert!(md.contains(
-        "- Visual baseline counts: missing=`0` changed=`1` review=`1` block=`0`"
-    ));
+    assert!(md.contains("- Visual baseline counts: missing=`0` changed=`1` review=`1` block=`0`"));
     assert!(md.contains("- Missing required artifacts: `1` report(s) `aria-snapshot`"));
     assert!(md.contains("- Accessibility violations / incomplete / passes: `1` / `2` / `9`"));
     assert!(md.contains("## Security evidence (ingested)"));
@@ -155,7 +153,10 @@ fn markdown_and_github_summary_include_lane_artifacts() {
         "- Queue path counts — adapter: `1`, event_contract: `0`, generated_type: `1`, client_marker: `1`, streaming_exception: `0`"
     ));
     let b = report.boundaries.artifact.as_ref().unwrap();
-    assert!(md.contains(&format!("- Content fingerprint: `{}`", b.content_fingerprint)));
+    assert!(md.contains(&format!(
+        "- Content fingerprint: `{}`",
+        b.content_fingerprint
+    )));
 
     let gh = github::render_step_summary(&report);
     assert!(gh.contains("#### lane artifacts"));

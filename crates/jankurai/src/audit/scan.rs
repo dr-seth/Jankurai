@@ -416,7 +416,9 @@ pub fn destructive_sql_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             let Some(class) = destructive_migration_class(frag) else {
                 continue;
             };
-            if class == "delete without where" && delete_has_where_on_following_lines(&file.text, idx) {
+            if class == "delete without where"
+                && delete_has_where_on_following_lines(&file.text, idx)
+            {
                 continue;
             }
             let line_no = idx + 1;
@@ -577,9 +579,7 @@ pub fn generated_zone_manifest_metadata_issues(ctx: &AuditContext) -> Vec<Findin
     vec![FindingHit::new(
         GENERATED_ZONES_MANIFEST,
         1,
-        &format!(
-            "generated zone manifest has incomplete reproducibility metadata: {detail}"
-        ),
+        &format!("generated zone manifest has incomplete reproducibility metadata: {detail}"),
     )]
 }
 

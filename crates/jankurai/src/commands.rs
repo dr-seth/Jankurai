@@ -14,5 +14,6 @@ pub mod proof;
 pub mod registry;
 pub mod release_data;
 pub mod repair;
+pub mod repair_apply;
 pub mod repair_plan;
 pub mod security;

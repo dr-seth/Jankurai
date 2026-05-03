@@ -8,7 +8,11 @@ fn analyze_produces_valid_migration_report() {
     let report = migrate::build_migration_report(&repo).expect("build_migration_report");
     assert_eq!(report.schema_version, "1.0.0");
     assert!(!report.source_stack.is_empty());
-    assert!(report.source_stack.contains("rust"), "expected rust in source_stack, got {}", report.source_stack);
+    assert!(
+        report.source_stack.contains("rust"),
+        "expected rust in source_stack, got {}",
+        report.source_stack
+    );
     assert!(report.liability_score <= 100);
     assert!(!report.module_inventory.is_empty());
     assert!(!report.recommended_slice_order.is_empty());
@@ -32,7 +36,8 @@ fn plan_produces_valid_migration_plan() {
         assert!(!slice.slice_id.is_empty());
         assert!(!slice.owner.is_empty());
         assert!(
-            ["candidate", "ready", "blocked", "do-not-migrate-yet"].contains(&slice.status.as_str()),
+            ["candidate", "ready", "blocked", "do-not-migrate-yet"]
+                .contains(&slice.status.as_str()),
             "unexpected status: {}",
             slice.status
         );
@@ -47,7 +52,11 @@ fn liability_score_is_bounded() {
         .join("..")
         .join("..");
     let report = migrate::build_migration_report(&repo).expect("build_migration_report");
-    assert!(report.liability_score <= 100, "score should be <= 100, got {}", report.liability_score);
+    assert!(
+        report.liability_score <= 100,
+        "score should be <= 100, got {}",
+        report.liability_score
+    );
 }
 
 #[test]

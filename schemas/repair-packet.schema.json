@@ -19,6 +19,9 @@
     "expected_patch_shape",
     "required_proof",
     "stop_conditions",
+    "repair_eligibility",
+    "risk_level",
+    "eligibility_reason",
     "human_review_required",
     "rollback_guidance"
   ],
@@ -38,6 +41,13 @@
     "expected_patch_shape": { "type": "string" },
     "required_proof": { "type": "array", "items": { "type": "string" } },
     "stop_conditions": { "type": "array", "items": { "type": "string" } },
+    "repair_eligibility": {
+      "enum": ["auto-safe", "agent-assisted", "human-required", "never-auto"]
+    },
+    "risk_level": {
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "eligibility_reason": { "type": "string" },
     "human_review_required": { "type": "boolean" },
     "rollback_guidance": { "type": "string" }
   }
