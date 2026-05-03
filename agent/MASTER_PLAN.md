@@ -29,7 +29,7 @@ Before phase work, read:
 
 Read `docs/agent-native-standard.md` when policy detail matters.
 
-## Phase Selection
+Reconciliation of `tips/phases_feedback/` notes with shipped behavior lives in `docs/phases-feedback-status.md`. Artifact/schema index: `docs/artifact-contracts.md`. After changing audit output or export flags, run `cargo test -p jankurai --test report_compatibility_guard` (or `just compat`) in addition to the usual crate tests. The security lane proof for this repo is `just security` (wraps `jankurai security run`).
 
 Default to the earliest incomplete or blocked phase whose dependencies can be advanced. If the user names a phase, use that phase unless its dependencies make progress impossible.
 

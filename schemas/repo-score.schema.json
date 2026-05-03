@@ -15,10 +15,25 @@
     "standard_version",
     "auditor_version",
     "schema_version",
+    "paper_edition",
+    "target_stack_id",
+    "target_stack",
+    "repo",
+    "run_id",
+    "started_at",
+    "elapsed_ms",
+    "scope",
     "score",
     "raw_score",
     "decision",
+    "git",
+    "policy",
+    "caps_applied",
+    "hard_rules",
     "dimensions",
+    "ux_qa",
+    "security_evidence",
+    "boundaries",
     "findings",
     "agent_fix_queue"
   ],
@@ -45,12 +60,34 @@
     "standard_version": { "type": "string" },
     "auditor_version": { "type": "string" },
     "schema_version": { "type": "string" },
+    "paper_edition": { "type": "string" },
+    "target_stack_id": { "type": "string" },
+    "target_stack": { "type": "string" },
+    "repo": { "type": "string" },
+    "run_id": { "type": "string" },
+    "started_at": { "type": "string" },
+    "elapsed_ms": { "type": "integer", "minimum": 0 },
+    "scope": { "$ref": "#/$defs/scope" },
     "score": { "type": "integer" },
     "raw_score": { "type": "integer" },
-    "decision": { "$ref": "#/$defs/decision" },
+    "decision": { "$ref": "#/$defs/reportDecision" },
+    "git": { "$ref": "#/$defs/gitSummary" },
+    "policy": { "$ref": "#/$defs/policySummary" },
     "proof_receipts": {
       "type": "array",
       "items": { "$ref": "proof-receipt.schema.json" }
+    },
+    "caps_applied": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "hard_rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/hardRule" }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/dimensionResult" }
     },
     "findings": { "type": "array", "items": { "$ref": "finding.schema.json" } },
     "agent_fix_queue": { "type": "array", "items": { "$ref": "repair-queue.schema.json" } },
@@ -63,14 +100,108 @@
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
-    "decision": {
+    "scope": {
       "type": "object",
-      "required": ["status", "minimum_score", "passed"],
+      "required": ["mode", "paths"],
       "properties": {
-        "status": { "enum": ["pass", "fail", "advisory"] },
+        "mode": { "type": "string" },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "hardRule": {
+      "type": "object",
+      "required": ["id", "max_score"],
+      "properties": {
+        "id": { "type": "string" },
+        "max_score": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "dimensionResult": {
+      "type": "object",
+      "required": ["name", "weight", "score", "weighted_points", "evidence", "notes"],
+      "properties": {
+        "name": { "type": "string" },
+        "weight": { "type": "integer", "minimum": 0 },
+        "score": { "type": "integer" },
+        "weighted_points": { "type": "number" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "reportDecision": {
+      "type": "object",
+      "required": [
+        "status",
+        "minimum_score",
+        "passed",
+        "hard_findings",
+        "soft_findings"
+      ],
+      "properties": {
+        "status": { "type": "string" },
         "minimum_score": { "type": "integer" },
-        "passed": { "type": "boolean" }
-      }
+        "passed": { "type": "boolean" },
+        "hard_findings": { "type": "integer", "minimum": 0 },
+        "soft_findings": { "type": "integer", "minimum": 0 },
+        "ratchet": {
+          "type": "object",
+          "required": ["baseline_score", "allowed_drop", "passed"],
+          "properties": {
+            "baseline_score": { "type": "integer" },
+            "allowed_drop": { "type": "integer" },
+            "passed": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "gitSummary": {
+      "type": "object",
+      "required": ["head", "base", "changed_files", "mode", "dirty_worktree"],
+      "properties": {
+        "head": { "type": ["string", "null"] },
+        "base": { "type": ["string", "null"] },
+        "changed_files": { "type": "integer", "minimum": 0 },
+        "mode": { "type": "string" },
+        "dirty_worktree": { "type": ["boolean", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "policySummary": {
+      "type": "object",
+      "required": ["path", "minimum_score", "fail_on", "advisory_on"],
+      "properties": {
+        "path": { "type": "string" },
+        "minimum_score": { "type": "integer" },
+        "fail_on": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "advisory_on": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mode": { "type": "string" },
+        "standard_version": { "type": "string" },
+        "auditor_version": { "type": "string" },
+        "schema_version": { "type": "string" },
+        "paper_edition": { "type": "string" },
+        "target_stack": { "type": "string" }
+      },
+      "additionalProperties": false
     },
     "uxQaReportArtifactSummary": {
       "type": "object",

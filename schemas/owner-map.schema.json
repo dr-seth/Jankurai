@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/owner-map.schema.json",
+  "title": "jankurai owner map",
+  "type": "object",
+  "required": ["workspace", "owners"],
+  "properties": {
+    "workspace": { "type": "string" },
+    "owners": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

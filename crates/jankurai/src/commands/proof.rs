@@ -1,5 +1,5 @@
 use crate::commands::context_data::{push_unique, RepoCatalog};
-use crate::model::{ProofReceipt, STANDARD_VERSION};
+use crate::model::{ProofReceipt, RuleCoverage, STANDARD_VERSION};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,8 @@ pub struct ProveArgs {
     pub plan: Option<String>,
     pub changed: Vec<PathBuf>,
     pub changed_from: Option<String>,
+    pub plan_out: String,
+    pub plan_md: String,
     pub out_dir: String,
     pub evidence_index: String,
     pub continue_on_error: bool,
@@ -122,19 +124,43 @@ pub fn run_proof(args: ProofPlanArgs) -> Result<()> {
 }
 
 pub fn run_prove(args: ProveArgs) -> Result<()> {
-    let plan_text = if let Some(plan_path) = &args.plan {
-        fs::read_to_string(plan_path).with_context(|| format!("read proof plan {}", plan_path))?
-    } else if !args.changed.is_empty() || args.changed_from.is_some() {
+    let has_changed_input = !args.changed.is_empty() || args.changed_from.is_some();
+    if args.plan.is_some() && has_changed_input {
+        anyhow::bail!("use either --plan or --changed/--changed-from, not both");
+    }
+
+    let (plan, plan_path_str) = if let Some(plan_path) = args.plan.as_deref() {
+        (load_proof_plan(&args.repo, plan_path)?, plan_path.to_string())
+    } else if has_changed_input {
+        if args.plan_out == "-" {
+            anyhow::bail!("--plan-out must be a file path when prove builds a plan");
+        }
         let plan = build_proof_plan(&args.repo, &args.changed, args.changed_from.as_deref())?;
-        serde_json::to_string(&plan)?
+        write_plan(
+            &args.repo,
+            &plan,
+            Some(args.plan_out.as_str()),
+            Some(args.plan_md.as_str()),
+        )?;
+        let persisted_plan = load_proof_plan(&args.repo, args.plan_out.as_str())?;
+        (persisted_plan, args.plan_out.clone())
     } else {
-        anyhow::bail!("must provide either --plan or --changed/--changed-from");
+        anyhow::bail!("provide --plan, --changed, or --changed-from");
     };
-    let plan_path_str = args.plan.clone().unwrap_or_else(|| "in-memory".to_string());
+
+    execute_proof_plan(args, plan, plan_path_str)
+}
+
+fn load_proof_plan(repo: &Path, plan_path: &str) -> Result<ProofPlan> {
+    let plan_text =
+        fs::read_to_string(plan_path).with_context(|| format!("read proof plan {plan_path}"))?;
     let plan_json: Value = serde_json::from_str(&plan_text)
-        .with_context(|| format!("parse proof plan {}", plan_path_str))?;
-    validation::validate_value(&args.repo, ArtifactSchema::ProofPlan, &plan_json)?;
-    let plan: ProofPlan = serde_json::from_value(plan_json)?;
+        .with_context(|| format!("parse proof plan {plan_path}"))?;
+    validation::validate_value(repo, ArtifactSchema::ProofPlan, &plan_json)?;
+    Ok(serde_json::from_value(plan_json)?)
+}
+
+fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -> Result<()> {
     let receipt_dir = PathBuf::from(&args.out_dir);
     let log_dir = args.repo.join("target/jankurai/logs");
     fs::create_dir_all(&receipt_dir)?;
@@ -239,6 +265,13 @@ pub fn run_prove(args: ProveArgs) -> Result<()> {
         ),
     };
     write_evidence_index(&args.repo, &evidence_index_path, &evidence)?;
+
+    if runs.is_empty() {
+        anyhow::bail!(
+            "proof plan contains no runnable proof commands; update agent/test-map.json \
+             or provide a persisted plan with planned_runs"
+        );
+    }
 
     if let Some(error) = failure {
         return Err(error);
@@ -639,7 +672,7 @@ fn execute_run(
         git_head: git_head(repo).ok(),
         run_id: Some(run_id),
         plan_path: Some(plan_path.to_string()),
-        rules_covered: vec![],
+        rules_covered: rules_covered_for_run(run),
         retryable,
         stdout_stderr_bytes,
     })
@@ -662,13 +695,13 @@ fn normalize_changed_paths(
     let mut paths = BTreeSet::new();
     for path in changed {
         if let Some(rel) = normalize_changed_path(repo, path) {
-            paths.insert(rel);
+            insert_changed_path(&mut paths, rel, path)?;
         }
     }
     if let Some(base_ref) = changed_from {
         for path in crate::audit::changed_paths_from_git(repo, base_ref)? {
             if let Some(rel) = normalize_changed_path(repo, &path) {
-                paths.insert(rel);
+                insert_changed_path(&mut paths, rel, path.as_path())?;
             }
         }
     }
@@ -685,6 +718,84 @@ fn normalize_changed_path(root: &Path, path: &Path) -> Option<String> {
         .strip_prefix(root)
         .ok()
         .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+}
+
+fn insert_changed_path(
+    paths: &mut BTreeSet<String>,
+    rel: String,
+    original: &Path,
+) -> Result<()> {
+    let normalized = rel
+        .trim_start_matches("./")
+        .trim_end_matches('/')
+        .to_string();
+    if normalized.is_empty() || normalized == "." {
+        anyhow::bail!(
+            "changed path `{}` resolves to the repository root; pass explicit changed files \
+             or a non-root subdirectory",
+            original.display()
+        );
+    }
+    paths.insert(normalized);
+    Ok(())
+}
+
+fn rules_covered_for_run(run: &PlannedRun) -> Vec<RuleCoverage> {
+    let mut rules = Vec::new();
+    match run.lane.as_str() {
+        "fast" | "audit" => {
+            push_rule(&mut rules, "HLT-003-OWNERLESS-PATH");
+            push_rule(&mut rules, "HLT-004-UNMAPPED-PROOF");
+        }
+        "contract" => {
+            push_rule(&mut rules, "HLT-002-GENERATED-MUTATION");
+            push_rule(&mut rules, "HLT-007-HANDWRITTEN-CONTRACT");
+        }
+        "db" => {
+            push_rule(&mut rules, "HLT-006-DIRECT-DB-WRONG-LAYER");
+            push_rule(&mut rules, "HLT-019-STREAMING-RUNTIME-DRIFT");
+        }
+        "db-migration-analyze" => {
+            push_rule(&mut rules, "HLT-021-DESTRUCTIVE-MIGRATION");
+        }
+        "web" | "ux-qa" => {
+            push_rule(&mut rules, "HLT-013-RENDERED-UX-GAP");
+            push_rule(&mut rules, "HLT-014-A11Y-GAP");
+        }
+        "security" => {
+            push_rule(&mut rules, "HLT-009-GENERATED-SECURITY");
+            push_rule(&mut rules, "HLT-010-SECRET-SPRAWL");
+            push_rule(&mut rules, "HLT-011-PROMPT-INJECTION");
+            push_rule(&mut rules, "HLT-012-OVERBROAD-AGENCY");
+            push_rule(&mut rules, "HLT-016-SUPPLY-CHAIN-DRIFT");
+            push_rule(&mut rules, "HLT-020-CI-HARDENING-GAP");
+        }
+        "observability" => {
+            push_rule(&mut rules, "HLT-017-OPAQUE-OBSERVABILITY");
+        }
+        _ => {}
+    }
+    rules
+}
+
+fn push_rule(rules: &mut Vec<RuleCoverage>, rule_id: &str) {
+    if crate::audit::rules::lookup(rule_id).is_none() {
+        return;
+    }
+    if rules.iter().any(|coverage| rule_coverage_id(coverage) == rule_id) {
+        return;
+    }
+    rules.push(RuleCoverage::Rich {
+        rule_id: rule_id.to_string(),
+        status: "covered".to_string(),
+    });
+}
+
+fn rule_coverage_id(coverage: &RuleCoverage) -> &str {
+    match coverage {
+        RuleCoverage::Rich { rule_id, .. } => rule_id.as_str(),
+        RuleCoverage::Simple(rule_id) => rule_id.as_str(),
+    }
 }
 
 fn receipt_file_name(index: usize, lane: &str, command: &str) -> String {

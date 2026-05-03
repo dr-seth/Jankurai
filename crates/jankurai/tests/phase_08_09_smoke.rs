@@ -233,12 +233,12 @@ fn seed_catalog(repo: &std::path::Path) {
     fs::create_dir_all(repo.join("agent")).unwrap();
     fs::write(
         repo.join("agent/owner-map.json"),
-        r#"{"owners":{"agent/":"agent","docs/":"standard","tips/":"paper","target/":"workspace"}}"#,
+        r#"{"workspace":"fixture","owners":{"agent/":"agent","docs/":"standard","tips/":"paper","target/":"workspace"}}"#,
     )
     .unwrap();
     fs::write(
         repo.join("agent/test-map.json"),
-        r#"{"tests":{"agent/":{"command":"cargo test -p jankurai","purpose":"agent checks"},"docs/":{"command":"cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md","purpose":"audit"}}}"#,
+        r#"{"workspace":"fixture","tests":{"agent/":{"command":"cargo test -p jankurai","purpose":"agent checks"},"docs/":{"command":"cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md","purpose":"audit"}}}"#,
     )
     .unwrap();
     fs::write(

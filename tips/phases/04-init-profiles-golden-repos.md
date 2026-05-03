@@ -15,19 +15,20 @@ The exit state is not every possible template. The exit state is a robust genera
 
 Existing implementation:
 
-- `jankurai init` supports `--profile`, `--ide`, `--mode`, `--ci`, `--issue-backend`, `--ux-qa`, `--dry-run`, `--diff`, `--plan-json`, `--yes`, and `--apply`.
+- `jankurai init` supports `--profile`, **`--profile-file`** (validated `InitProfile` JSON; resolution ignores bundled `--profile` when set), `--ide`, `--mode`, `--ci`, `--issue-backend`, `--ux-qa`, `--dry-run`, `--diff`, `--plan-json`, `--yes`, and `--apply`.
+- Init plan JSON field **`profile`** is always the manifest **`id`** (canonical bundled id or id read from `--profile-file`), not a CLI alias string.
 - **`rust-ts-postgres` profile** is loaded from bundled [`crates/jankurai/templates/profiles/rust-ts-postgres.json`](../../crates/jankurai/templates/profiles/rust-ts-postgres.json), validated with **`ArtifactSchema::InitProfile`** before use.
 - **Plan and apply** iterate **`generatedPaths`** from that manifest only (sorted); missing templates are a hard error at plan time.
-- Unknown profile IDs are rejected with a message listing supported aliases.
+- Unknown profile IDs are rejected with a message listing bundled profile IDs (see `BUNDLED_PROFILE_IDS` in `crates/jankurai/src/init/profiles.rs`).
 - Templates live in `crates/jankurai/src/init/templates.rs` (plus `include_str!` agent files under `crates/jankurai/templates/agent/`).
 - Golden tests in `crates/jankurai/tests/init_golden.rs` cover unknown profile, plan/action consistency, greenfield `audit` + `doctor --fail-on high`, and preserving an existing `contracts/README.md`.
 - Operational handoff log: [`tips/phases/logs/04-init-profiles-golden-repos.log`](../logs/04-init-profiles-golden-repos.log).
 
 Gaps (follow-on):
 
-- Additional bundled profiles (`rust-api`, `b2b-saas`, etc.) and multi-profile selection UX.
 - Deeper merge policy beyond adapter markers and AGENTS / JANKURAI_STANDARD.
-- Optional: load profile JSON from the target repo instead of only bundled artifacts.
+
+Bundled profiles (2026-05-02): `rust-ts-postgres`, `rust-api`, `react-web`, `b2b-saas`, `ai-product`, `regulated-saas`, `migration-target`, plus aliases (`ai`, `regulated`, `migration`, and existing stack-name aliases for `rust-ts-postgres`).
 
 ## Dependencies
 
@@ -221,13 +222,13 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial init profiles and golden repos (profile-driven plan/apply slice 2026-05-02)
-- Files changed: `crates/jankurai/src/init/profiles.rs`, `crates/jankurai/src/init/plan.rs`, `crates/jankurai/src/init/templates.rs`, `crates/jankurai/src/commands/init.rs`, `crates/jankurai/templates/profiles/rust-ts-postgres.json`, `crates/jankurai/templates/agent/*`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/init_golden.rs`, `docs/install.md`, `tips/phases/04-init-profiles-golden-repos.md`, `tips/phases/logs/04-init-profiles-golden-repos.log`
+- Phase status: complete (bundled init profiles 2026-05-02; all seven profiles + golden tests)
+- Files changed: `crates/jankurai/src/init/profiles.rs`, `crates/jankurai/src/init/templates.rs`, `crates/jankurai/templates/profiles/ai-product.json`, `regulated-saas.json`, `migration-target.json`, `crates/jankurai/tests/init_golden.rs`, `crates/jankurai/src/commands/repair_apply.rs` (ProveArgs plan paths), `tips/phases/04-init-profiles-golden-repos.md`, `tips/phases/logs/04-init-profiles-golden-repos.log`
 - Schemas changed: `InitProfile` artifact validation hook (existing `init-profile.schema.json`)
 - Public interfaces changed: unknown init profiles error; init plan/actions match `generatedPaths` only
 - Routing maps changed: embedded template `agent/owner-map.json`, `agent/test-map.json`, `agent/proof-lanes.toml`
 - Validation commands: `cargo test -p jankurai`, `just fast`
 - Results: see `tips/phases/logs/04-init-profiles-golden-repos.log`
 - Skipped validation: none
-- Exceptions created: only bundled `rust-ts-postgres` (+aliases); other profile names reserved
+- Exceptions created: none; seven bundled profiles plus aliases documented in phase body
 - Follow-up phases: 09 reference product platform, 10 reuse registry certified cells

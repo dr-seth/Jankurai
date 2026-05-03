@@ -40,7 +40,7 @@ For this workspace:
 - Proof run artifacts: `target/jankurai/proof-receipts/*.json`, `target/jankurai/logs/*.log`, and `target/jankurai/evidence-index.json`, each validated against the matching `schemas/*.schema.json` on write where applicable.
 - `jankurai doctor` validates proof receipts, the evidence index, `target/jankurai/security/evidence.json`, and when present `target/jankurai/context-pack.json` / `target/jankurai/repair-plan.json`; it warns on stale proof `git_head`. It validates **`agent/boundaries.toml`** and, when present, **`agent/ux-qa.toml`** (`schemas/boundaries.schema.json`, `schemas/ux-qa-policy.schema.json`). Parse/schema failures are **medium** (use `--fail-on medium` to treat as blocking).
 - `jankurai context-pack` and `jankurai repair-plan` emit JSON validated against `schemas/context-pack.schema.json` and `schemas/repair-plan.schema.json` on every file write (and validate before printing to stdout when `--out` is omitted).
-- `jankurai security run` runs `tools/security-lane.sh` (override with `--script`) via `bash -lc`, writes a combined log under `target/jankurai/security/`, and emits evidence JSON validated against `schemas/security-evidence.schema.json`. Pass `--strict` to enforce `JANKURAI_SECURITY_STRICT=1` in the child environment (required tools must be present; advisory tools may still be skipped by the script depending on its logic).
+- `just security` invokes `jankurai security run` and writes `target/jankurai/security/evidence.json`. Use `just security-bash` only when debugging the shell script without the evidence envelope.
 - Receipts should record the command, exit code, changed paths, artifacts, and the rerun command that the next agent should trust.
 - Phase closeouts should cite the exact receipt path instead of relying on chat history.
 - Prefer structured errors, telemetry, and repair receipts that tell the next agent where to rerun proof.
@@ -57,7 +57,7 @@ Automated accessibility is evidence, not a complete inclusive testing replacemen
 
 Schema-first work should get a parse smoke test before command wiring lands. For new contract files under `schemas/`, add a Rust test that loads the JSON and checks the required fields or references the contract chain. Keep that proof under `cargo test -p jankurai` so the schema stays machine-readable while the CLI surface is still being planned.
 
-The security lane is wrapper-aware: `tools/security-lane.sh` is the canonical shell entrypoint for secret scanning, dependency review, SBOM, and workflow lint checks.
+The security lane is wrapper-aware: `tools/security-lane.sh` is the canonical shell entrypoint for secret scanning, dependency review, SBOM, and workflow lint checks. For **per-tool rows** in `target/jankurai/security/evidence.json` `commands[]`, the bundled script emits **`jankurai-security-step=`** JSON lines via **`python3`** when it is on `PATH`; without it, the envelope still validates but falls back to a single wrapper step until you install Python or emit those lines from a custom script.
 
 Observability repairs should stay typed. The auditor now carries repair-hint surfaces in `crates/jankurai/src/audit/mod.rs` with purpose, reason, common fixes, `docs_url`, and `repair_hint` fields so the next rerun stays local.
 

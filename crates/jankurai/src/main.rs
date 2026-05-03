@@ -148,6 +148,9 @@ struct InitArgs {
     dry_run: bool,
     #[arg(long, default_value = "rust-ts-vite-react-postgres-bounded-python")]
     profile: String,
+    /// Init profile manifest JSON (`schemas/init-profile.schema.json`). When set, bundled `--profile` is not used to resolve the manifest.
+    #[arg(long, value_name = "PATH")]
+    profile_file: Option<PathBuf>,
     #[arg(long, default_value = "all")]
     ide: String,
     #[arg(long, default_value = "advisory")]
@@ -228,6 +231,18 @@ struct ProveArgs {
     changed: Vec<PathBuf>,
     #[arg(long, value_name = "REF")]
     changed_from: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proof-plan.json"
+    )]
+    plan_out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proof-plan.md"
+    )]
+    plan_md: String,
     #[arg(
         long,
         value_name = "PATH",
@@ -458,6 +473,7 @@ fn main() -> anyhow::Result<()> {
                 dry_run: args.dry_run,
                 yes: args.yes,
                 profile: args.profile,
+                profile_file: args.profile_file,
                 ide: args.ide,
                 mode: args.mode,
                 diff: args.diff,
@@ -517,6 +533,8 @@ fn main() -> anyhow::Result<()> {
                 plan: args.plan,
                 changed: args.changed,
                 changed_from: args.changed_from,
+                plan_out: args.plan_out,
+                plan_md: args.plan_md,
                 out_dir: args.out_dir,
                 evidence_index: args.evidence_index,
                 continue_on_error: args.continue_on_error,

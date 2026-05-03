@@ -1,0 +1,27 @@
+# Artifact contracts
+
+Every durable or generated machine-readable surface should either validate against a schema under `schemas/`, be covered by an integration guard, or be explicitly exempt. This file is the index; the reconciliation ledger is `docs/phases-feedback-status.md`.
+
+| Artifact / surface | Schema or guard | Notes |
+| --- | --- | --- |
+| `agent/repo-score.json` | `schemas/repo-score.schema.json`; `audit_smoke`, `report_compatibility_guard` | Canonical audit report JSON |
+| `agent/repo-score.md` | Semantic: `report_compatibility_guard` (title + stable `##` sections) | Human score; see `render.rs` |
+| `target/jankurai/jankurai.sarif` | Semantic: `report_compatibility_guard` | SARIF 2.1.0 envelope |
+| `target/jankurai/jankurai.junit.xml` (or path passed to `--junit`) | Semantic: `report_compatibility_guard` | JUnit-style XML |
+| `target/jankurai/summary.md` | Semantic: `report_compatibility_guard` | GitHub step summary |
+| `jankurai issues export --format jsonl` | `schemas/finding.schema.json` per line; `report_compatibility_guard` | Same `Finding` shape as `repo-score` `findings[]` |
+| `agent/owner-map.json` | `schemas/owner-map.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/test-map.json` | `schemas/test-map.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/generated-zones.toml` | `schemas/generated-zones.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/proof-lanes.toml` | `schemas/proof-lanes.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/standard-version.toml` | `schemas/standard-version.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/audit-policy.toml` | `schemas/audit-policy.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/boundaries.toml` | `schemas/boundaries.schema.json`; `doctor` | |
+| `agent/security-policy.toml` | `schemas/security-policy.schema.json`; `doctor` | |
+| `agent/ux-qa.toml` | `schemas/ux-qa-policy.schema.json`; `doctor` | |
+| `target/jankurai/security/evidence.json` | `schemas/security-evidence.schema.json`; `security_evidence_smoke` | Written by `jankurai security run`. Optional multi-row **`commands[]`**: lines prefixed with **`jankurai-security-step=`** in the lane log (bundled script uses **`python3`** to emit JSON); otherwise one wrapper step. |
+| Proof / repair / cell / migration artifacts | Respective `schemas/*.schema.json`; command + crate tests | See `crates/jankurai/src/validation.rs` `ArtifactSchema` |
+
+**Exempt or prose-only:** `agent/repo-score.md` sections beyond the stable title (evolve with the renderer); adapter Markdown under `agent/` where only pointers are required; historical Markdown under `paper/sections/` where noted as legacy.
+
+**Validation shortcuts:** `just compat` (report + sidecars on this repo); `cargo test -p jankurai`; `just fast`.

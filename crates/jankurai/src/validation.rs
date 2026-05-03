@@ -34,6 +34,14 @@ pub enum ArtifactSchema {
     GovernancePolicy,
     CellManifest,
     CellRegistry,
+    AuditPolicy,
+    OwnerMap,
+    TestMap,
+    GeneratedZones,
+    ProofLanes,
+    StandardVersion,
+    Finding,
+    RepairQueueItem,
 }
 
 impl ArtifactSchema {
@@ -65,6 +73,14 @@ impl ArtifactSchema {
             Self::GovernancePolicy => "governance-policy.schema.json",
             Self::CellManifest => "cell-manifest.schema.json",
             Self::CellRegistry => "cell-registry.schema.json",
+            Self::AuditPolicy => "audit-policy.schema.json",
+            Self::OwnerMap => "owner-map.schema.json",
+            Self::TestMap => "test-map.schema.json",
+            Self::GeneratedZones => "generated-zones.schema.json",
+            Self::ProofLanes => "proof-lanes.schema.json",
+            Self::StandardVersion => "standard-version.schema.json",
+            Self::Finding => "finding.schema.json",
+            Self::RepairQueueItem => "repair-queue.schema.json",
         }
     }
 }
@@ -102,6 +118,55 @@ pub fn validate_security_policy_toml_text(repo: &Path, text: &str) -> Result<Val
     let json_value = serde_json::to_value(&toml_value)
         .context("convert security policy TOML to JSON for schema validation")?;
     validate_value(repo, ArtifactSchema::SecurityPolicy, &json_value)?;
+    Ok(json_value)
+}
+
+/// Parse `agent/audit-policy.toml` and validate against `audit-policy.schema.json`.
+pub fn validate_audit_policy_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value =
+        toml::from_str(text).context("parse agent/audit-policy.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert audit policy TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::AuditPolicy, &json_value)?;
+    Ok(json_value)
+}
+
+pub fn validate_owner_map_json_text(repo: &Path, text: &str) -> Result<Value> {
+    let v: Value = serde_json::from_str(text).context("parse agent/owner-map.json")?;
+    validate_value(repo, ArtifactSchema::OwnerMap, &v)?;
+    Ok(v)
+}
+
+pub fn validate_test_map_json_text(repo: &Path, text: &str) -> Result<Value> {
+    let v: Value = serde_json::from_str(text).context("parse agent/test-map.json")?;
+    validate_value(repo, ArtifactSchema::TestMap, &v)?;
+    Ok(v)
+}
+
+pub fn validate_generated_zones_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value =
+        toml::from_str(text).context("parse agent/generated-zones.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert generated-zones TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::GeneratedZones, &json_value)?;
+    Ok(json_value)
+}
+
+pub fn validate_proof_lanes_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value =
+        toml::from_str(text).context("parse agent/proof-lanes.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert proof-lanes TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::ProofLanes, &json_value)?;
+    Ok(json_value)
+}
+
+pub fn validate_standard_version_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value =
+        toml::from_str(text).context("parse agent/standard-version.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert standard-version TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::StandardVersion, &json_value)?;
     Ok(json_value)
 }
 

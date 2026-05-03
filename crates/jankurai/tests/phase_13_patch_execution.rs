@@ -13,12 +13,12 @@ fn seed_fixture_repo(repo: &Path) {
     fs::create_dir_all(repo.join("agent")).unwrap();
     fs::write(
         repo.join("agent/owner-map.json"),
-        r#"{"owners":{"agent/":"agent","docs/":"standard","paper/":"paper","reference/":"read-only","target/":"workspace","crates/":"tools"}}"#,
+        r#"{"workspace":"fixture","owners":{"agent/":"agent","docs/":"standard","paper/":"paper","reference/":"read-only","target/":"workspace","crates/":"tools"}}"#,
     )
     .unwrap();
     fs::write(
         repo.join("agent/test-map.json"),
-        r#"{"tests":{"docs/":{"command":"true","purpose":"fixture docs proof"},"agent/":{"command":"true","purpose":"fixture agent proof"}}}"#,
+        r#"{"workspace":"fixture","tests":{"docs/":{"command":"true","purpose":"fixture docs proof"},"agent/":{"command":"true","purpose":"fixture agent proof"}}}"#,
     )
     .unwrap();
     fs::write(

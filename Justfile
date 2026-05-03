@@ -29,8 +29,17 @@ paper:
 score:
     cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 
+compat:
+    cargo test -p jankurai --test report_compatibility_guard
+
 self-audit:
     cargo run -p jankurai -- audit . --self-audit --json target/jankurai/self-audit.json --md target/jankurai/self-audit.md
 
 security:
+    cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
+
+security-strict:
+    cargo run -p jankurai -- security run . --strict --out target/jankurai/security/evidence.json
+
+security-bash:
     bash tools/security-lane.sh

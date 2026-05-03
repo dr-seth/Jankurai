@@ -90,6 +90,16 @@ pub fn run_fixture_apply(args: RepairArgs, plan: RepairPlan, max_risk: RepairRis
             plan: None,
             changed: files_written.iter().map(PathBuf::from).collect(),
             changed_from: None,
+            plan_out: args
+                .repo
+                .join("target/jankurai/p13-fixture-proof-plan.json")
+                .display()
+                .to_string(),
+            plan_md: args
+                .repo
+                .join("target/jankurai/p13-fixture-proof-plan.md")
+                .display()
+                .to_string(),
             out_dir: receipt_dir.display().to_string(),
             evidence_index: evidence_index_path.display().to_string(),
             continue_on_error: false,

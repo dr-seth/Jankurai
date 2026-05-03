@@ -12,6 +12,7 @@ fn init_dry_run_writes_nothing() {
         dry_run: true,
         yes: false,
         profile: "rust-ts-vite-react-postgres".into(),
+        profile_file: None,
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -39,6 +40,7 @@ fn init_yes_is_idempotent_for_existing_root_guidance() {
             dry_run: false,
             yes: true,
             profile: "rust-ts-vite-react-postgres".into(),
+            profile_file: None,
             ide: "all".into(),
             mode: "advisory".into(),
             diff: false,
@@ -85,6 +87,7 @@ fn init_dry_run_plan_json_is_machine_readable() {
         dry_run: true,
         yes: false,
         profile: "rust-ts-vite-react-postgres-bounded-python".into(),
+        profile_file: None,
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -98,10 +101,7 @@ fn init_dry_run_plan_json_is_machine_readable() {
 
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(plan).unwrap()).unwrap();
-    assert_eq!(
-        value["profile"],
-        "rust-ts-vite-react-postgres-bounded-python"
-    );
+    assert_eq!(value["profile"], "rust-ts-postgres");
     assert!(value["actions"]
         .as_array()
         .unwrap()
@@ -121,6 +121,7 @@ fn init_dry_run_profile_manifest_is_included() {
         dry_run: true,
         yes: false,
         profile: "rust-ts-postgres".into(),
+        profile_file: None,
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -167,6 +168,7 @@ fn init_yes_keeps_existing_jankurai_guidance_without_marker() {
         dry_run: false,
         yes: true,
         profile: "rust-ts-vite-react-postgres".into(),
+        profile_file: None,
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -219,18 +221,49 @@ advisory_tools = ["gitleaks"]
 "#,
     )
     .unwrap();
-    for rel in [
-        "JANKURAI_STANDARD.md",
-        "owner-map.json",
-        "test-map.json",
-        "generated-zones.toml",
-        "proof-lanes.toml",
-        "standard-version.toml",
-        "repo-score.json",
-        "repo-score.md",
-    ] {
-        fs::write(dir.path().join("agent").join(rel), "{}\n").unwrap();
-    }
+    fs::write(
+        dir.path().join("agent/JANKURAI_STANDARD.md"),
+        "Canonical agent standard stub for smoke test.\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/owner-map.json"),
+        r#"{"workspace":"fixture","owners":{"./":"workspace"}}"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/test-map.json"),
+        r#"{"workspace":"fixture","tests":{".":{"command":"true","purpose":"smoke"}}}"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "agent/repo-score.json"
+source = "fixture"
+command = "true"
+read_only = true
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/proof-lanes.toml"),
+        r#"[[lane]]
+name = "fast"
+command = "true"
+purpose = "smoke"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/standard-version.toml"),
+        r#"standard = "fixture"
+standard_version = "0.0.0"
+"#,
+    )
+    .unwrap();
+    fs::write(dir.path().join("agent/repo-score.json"), "{}\n").unwrap();
+    fs::write(dir.path().join("agent/repo-score.md"), "# score\n").unwrap();
 
     let json = dir.path().join("score.json");
     let md = dir.path().join("score.md");
@@ -286,7 +319,8 @@ advisory_tools = ["gitleaks"]
     let workflow =
         fs::read_to_string(ci_dir.path().join(".github/workflows/jankurai.yml")).unwrap();
     assert!(workflow.contains("Enforce score floor"));
-    assert!(workflow.contains("bash tools/security-lane.sh"));
+    assert!(workflow.contains("security run"));
+    assert!(workflow.contains("target/jankurai/security/evidence.json"));
 
     assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
         .arg("explain")

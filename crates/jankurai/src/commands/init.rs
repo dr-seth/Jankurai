@@ -12,6 +12,8 @@ pub struct InitArgs {
     pub dry_run: bool,
     pub yes: bool,
     pub profile: String,
+    /// When set, load profile manifest from this JSON file (`InitProfile` schema); `--profile` is ignored for resolution.
+    pub profile_file: Option<PathBuf>,
     pub ide: String,
     pub mode: String,
     pub diff: bool,
@@ -26,6 +28,7 @@ pub fn run(args: InitArgs) -> Result<()> {
     let plan = crate::init::plan::build_plan(
         &args.repo,
         &args.profile,
+        args.profile_file.as_deref(),
         &args.ide,
         &args.mode,
         &args.ci,

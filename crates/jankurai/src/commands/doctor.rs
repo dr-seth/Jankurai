@@ -40,6 +40,12 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     check_boundaries_manifest_schema(&repo, &mut diagnostics);
     check_ux_qa_policy_schema(&repo, &mut diagnostics);
     check_security_policy_schema(&repo, &mut diagnostics);
+    check_audit_policy_schema(&repo, &mut diagnostics);
+    check_owner_map_schema(&repo, &mut diagnostics);
+    check_test_map_schema(&repo, &mut diagnostics);
+    check_generated_zones_schema(&repo, &mut diagnostics);
+    check_proof_lanes_schema(&repo, &mut diagnostics);
+    check_standard_version_schema(&repo, &mut diagnostics);
     check_lockfiles(&repo, &mut diagnostics);
     check_root_score_artifacts(&repo, &mut diagnostics);
     check_stale_score(&repo, &mut diagnostics);
@@ -230,6 +236,150 @@ fn check_security_policy_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) 
             severity: "medium".into(),
             path: "agent/security-policy.toml".into(),
             message: format!("security policy failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_audit_policy_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/audit-policy.toml");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "audit-policy-read".into(),
+            severity: "medium".into(),
+            path: "agent/audit-policy.toml".into(),
+            message: "could not read agent/audit-policy.toml".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_audit_policy_toml_text(repo, &text) {
+        diagnostics.push(Diagnostic {
+            check_id: "audit-policy-schema".into(),
+            severity: "medium".into(),
+            path: "agent/audit-policy.toml".into(),
+            message: format!("audit policy failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_owner_map_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/owner-map.json");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "owner-map-read".into(),
+            severity: "medium".into(),
+            path: "agent/owner-map.json".into(),
+            message: "could not read agent/owner-map.json".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_owner_map_json_text(repo, &text) {
+        diagnostics.push(Diagnostic {
+            check_id: "owner-map-schema".into(),
+            severity: "medium".into(),
+            path: "agent/owner-map.json".into(),
+            message: format!("owner map failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_test_map_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/test-map.json");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "test-map-read".into(),
+            severity: "medium".into(),
+            path: "agent/test-map.json".into(),
+            message: "could not read agent/test-map.json".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_test_map_json_text(repo, &text) {
+        diagnostics.push(Diagnostic {
+            check_id: "test-map-schema".into(),
+            severity: "medium".into(),
+            path: "agent/test-map.json".into(),
+            message: format!("test map failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_generated_zones_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/generated-zones.toml");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "generated-zones-read".into(),
+            severity: "medium".into(),
+            path: "agent/generated-zones.toml".into(),
+            message: "could not read agent/generated-zones.toml".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_generated_zones_toml_text(repo, &text) {
+        diagnostics.push(Diagnostic {
+            check_id: "generated-zones-schema".into(),
+            severity: "medium".into(),
+            path: "agent/generated-zones.toml".into(),
+            message: format!("generated zones manifest failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_proof_lanes_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/proof-lanes.toml");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "proof-lanes-read".into(),
+            severity: "medium".into(),
+            path: "agent/proof-lanes.toml".into(),
+            message: "could not read agent/proof-lanes.toml".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_proof_lanes_toml_text(repo, &text) {
+        diagnostics.push(Diagnostic {
+            check_id: "proof-lanes-schema".into(),
+            severity: "medium".into(),
+            path: "agent/proof-lanes.toml".into(),
+            message: format!("proof lanes manifest failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_standard_version_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/standard-version.toml");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "standard-version-read".into(),
+            severity: "medium".into(),
+            path: "agent/standard-version.toml".into(),
+            message: "could not read agent/standard-version.toml".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_standard_version_toml_text(repo, &text) {
+        diagnostics.push(Diagnostic {
+            check_id: "standard-version-schema".into(),
+            severity: "medium".into(),
+            path: "agent/standard-version.toml".into(),
+            message: format!("standard-version manifest failed schema validation: {err}"),
         });
     }
 }

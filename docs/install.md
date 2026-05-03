@@ -5,9 +5,11 @@
 Bundled init profiles are defined as JSON validated against `schemas/init-profile.schema.json`.
 
 - **`rust-ts-postgres`** (aliases: `rust-ts-vite-react-postgres`, `rust-ts-vite-react-postgres-bounded-python`) is the default full scaffold: agent constitution, IDE adapters, `contracts/` and `db/` README slots, `docs/architecture/` and `docs/decisions/` stubs, and `tools/security-lane.sh` stub.
-- Any other `--profile` value fails fast with an error listing supported IDs.
+- **`rust-api`**, **`react-web`**, **`b2b-saas`**, **`ai-product`**, **`regulated-saas`**, **`migration-target`** ship as bundled manifests under `crates/jankurai/templates/profiles/`.
+- **`--profile-file path/to/profile.json`** loads a repo-local or shared manifest (same schema). Bundled `--profile` is not used to resolve the manifest when this flag is set. Plan JSON uses the manifest **`id`** as **`profile`**.
+- Unknown bundled `--profile` values fail fast with an error listing supported IDs.
 
-The canonical manifest is shipped at `crates/jankurai/templates/profiles/rust-ts-postgres.json` in this repository. Planned file actions in dry-run / plan JSON are exactly the paths in `generatedPaths` (sorted); each path must have a matching entry in `crates/jankurai/src/init/templates.rs`.
+The canonical default manifest is `crates/jankurai/templates/profiles/rust-ts-postgres.json`. Planned file actions in dry-run / plan JSON are exactly the paths in `generatedPaths` (sorted); each path must have a matching entry in `crates/jankurai/src/init/templates.rs`.
 
 Dry-run first:
 

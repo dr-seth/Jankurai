@@ -47,3 +47,5 @@ Jankurai is the control plane for that workflow. It does not replace taste, prod
 ## Success Criteria
 
 If the moonshot is working, a fresh agent can open the repo, find the owner, choose the proof lane, run the checks, and leave evidence without learning the whole codebase first. Wrong code becomes easier to reject than to rationalize.
+
+Phase feedback from `tips/phases_feedback/` is reconciled against this loop in [`docs/phases-feedback-status.md`](phases-feedback-status.md) (see also `agent/MASTER_PLAN.md` and `tips/phases/00-phase-index.md`).

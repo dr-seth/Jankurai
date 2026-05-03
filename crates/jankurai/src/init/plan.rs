@@ -26,6 +26,7 @@ pub struct PlannedAction {
 pub fn build_plan(
     repo: &Path,
     profile: &str,
+    profile_file: Option<&Path>,
     ide: &str,
     mode: &str,
     ci: &str,
@@ -34,7 +35,11 @@ pub fn build_plan(
 ) -> Result<InitPlan> {
     let existing = super::detect::existing_standard_files(repo);
     let detected = super::detect::detect_surfaces(repo);
-    let profile_manifest = super::profiles::resolve_profile(repo, profile)?;
+    let profile_manifest = match profile_file {
+        Some(path) => super::profiles::load_profile_from_path(repo, path)?,
+        None => super::profiles::resolve_profile(repo, profile)?,
+    };
+    let profile = profile_manifest.id.clone();
     let mut paths = profile_manifest.generated_paths.clone();
     paths.sort();
     let mut actions = Vec::new();
@@ -59,7 +64,7 @@ pub fn build_plan(
         ));
     }
     Ok(InitPlan {
-        profile: profile.into(),
+        profile,
         profile_manifest,
         ide: ide.into(),
         mode: mode.into(),

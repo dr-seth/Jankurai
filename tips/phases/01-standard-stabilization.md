@@ -60,8 +60,9 @@ As of 2026-05-02, the repo already has:
 
 Known Phase 01 gaps to verify or close:
 
-- schema coverage is incomplete for the full agent artifact surface
-- report compatibility needs semantic tests so JSON and Markdown changes stay intentional
+- ~~repo-score JSON schema drift vs emitted `Report`~~ **closed 2026-05-02** (`schemas/repo-score.schema.json` + `audit_smoke::audit_report_serializes_against_repo_score_schema`)
+- ~~schema coverage is incomplete for optional standalone JSON schemas for every agent TOML/JSON control file (doctor validates many surfaces; full enum coverage remains incremental)~~ **closed 2026-05-02** for `owner-map`, `test-map`, `generated-zones`, `proof-lanes`, `standard-version`, and `audit-policy` (`validation` helpers, `doctor` checks, `schema_contracts` fixture test)
+- ~~report compatibility needs ongoing semantic tests when Markdown or auxiliary exports change shape~~ **baseline closed 2026-05-02** (`crates/jankurai/tests/report_compatibility_guard.rs`, `just compat`); extend assertions when SARIF/JUnit/summary/JSONL contracts evolve
 - doctor and security lane diagnostics need to distinguish missing tools from broken repo state
 - docs need a hard boundary between implemented behavior and roadmap-only claims
 - release evidence paths need a convention that future agents can reuse

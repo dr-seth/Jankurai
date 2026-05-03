@@ -277,12 +277,12 @@ fn seed_catalog(repo: &Path) {
     fs::create_dir_all(repo.join("agent")).unwrap();
     fs::write(
         repo.join("agent/owner-map.json"),
-        r#"{"owners":{"agent/":"agent","docs/":"standard","tips/":"paper","crates/":"tools","target/":"workspace"}}"#,
+        r#"{"workspace":"fixture","owners":{"agent/":"agent","docs/":"standard","tips/":"paper","crates/":"tools","target/":"workspace"}}"#,
     )
     .unwrap();
     fs::write(
         repo.join("agent/test-map.json"),
-        r#"{"tests":{"agent/":{"command":"just security","purpose":"security checks"},"docs/":{"command":"just fast","purpose":"docs checks"},"crates/":{"command":"just fast","purpose":"rust checks"}}}"#,
+        r#"{"workspace":"fixture","tests":{"agent/":{"command":"just security","purpose":"security checks"},"docs/":{"command":"just fast","purpose":"docs checks"},"crates/":{"command":"just fast","purpose":"rust checks"}}}"#,
     )
     .unwrap();
     fs::write(

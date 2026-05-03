@@ -531,6 +531,30 @@ fn cell_registry_and_manifest_schemas_parse() {
         repo_score["$id"],
         "https://jankurai.dev/schemas/repo-score.schema.json"
     );
+    let rs_required = repo_score["required"].as_array().unwrap();
+    for key in [
+        "paper_edition",
+        "target_stack_id",
+        "target_stack",
+        "repo",
+        "scope",
+        "caps_applied",
+        "hard_rules",
+        "decision",
+        "git",
+        "policy",
+    ] {
+        assert!(
+            rs_required.iter().any(|value| value == key),
+            "repo-score schema must require `{key}` for audit contract parity"
+        );
+    }
+    assert_eq!(
+        repo_score["properties"]["decision"]["$ref"],
+        "#/$defs/reportDecision"
+    );
+    assert!(repo_score["$defs"].get("dimensionResult").is_some());
+    assert!(repo_score["$defs"].get("scope").is_some());
     assert!(repo_score["properties"].get("ux_qa").is_some());
     assert_eq!(
         repo_score["properties"]["ux_qa"]["$ref"],
@@ -603,4 +627,53 @@ fn repair_run_schema_requires_execution_mode() {
         message.contains("execution_mode"),
         "expected execution_mode validation failure, got {message}"
     );
+}
+
+#[test]
+fn agent_control_plane_schemas_parse_and_repo_fixtures_validate() {
+    let repo = repo_root();
+    for (path, load) in [
+        ("schemas/owner-map.schema.json", "https://jankurai.dev/schemas/owner-map.schema.json"),
+        ("schemas/test-map.schema.json", "https://jankurai.dev/schemas/test-map.schema.json"),
+        (
+            "schemas/generated-zones.schema.json",
+            "https://jankurai.dev/schemas/generated-zones.schema.json",
+        ),
+        (
+            "schemas/proof-lanes.schema.json",
+            "https://jankurai.dev/schemas/proof-lanes.schema.json",
+        ),
+        (
+            "schemas/standard-version.schema.json",
+            "https://jankurai.dev/schemas/standard-version.schema.json",
+        ),
+        (
+            "schemas/audit-policy.schema.json",
+            "https://jankurai.dev/schemas/audit-policy.schema.json",
+        ),
+        (
+            "schemas/finding.schema.json",
+            "https://jankurai.dev/schemas/finding.schema.json",
+        ),
+        (
+            "schemas/repair-queue.schema.json",
+            "https://jankurai.dev/schemas/repair-queue.schema.json",
+        ),
+    ] {
+        let v: serde_json::Value = serde_json::from_str(&fs::read_to_string(repo.join(path)).unwrap()).unwrap();
+        assert_eq!(v["$id"], load);
+    }
+
+    let owner = fs::read_to_string(repo.join("agent/owner-map.json")).unwrap();
+    jankurai::validation::validate_owner_map_json_text(&repo, &owner).unwrap();
+    let tests = fs::read_to_string(repo.join("agent/test-map.json")).unwrap();
+    jankurai::validation::validate_test_map_json_text(&repo, &tests).unwrap();
+    let zones = fs::read_to_string(repo.join("agent/generated-zones.toml")).unwrap();
+    jankurai::validation::validate_generated_zones_toml_text(&repo, &zones).unwrap();
+    let lanes = fs::read_to_string(repo.join("agent/proof-lanes.toml")).unwrap();
+    jankurai::validation::validate_proof_lanes_toml_text(&repo, &lanes).unwrap();
+    let standard = fs::read_to_string(repo.join("agent/standard-version.toml")).unwrap();
+    jankurai::validation::validate_standard_version_toml_text(&repo, &standard).unwrap();
+    let audit = fs::read_to_string(repo.join("agent/audit-policy.toml")).unwrap();
+    jankurai::validation::validate_audit_policy_toml_text(&repo, &audit).unwrap();
 }

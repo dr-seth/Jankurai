@@ -53,7 +53,7 @@ jobs:
       - name: Enforce score floor
         run: test "$(jq -r '.score' agent/repo-score.json)" -ge {min_score}
       - name: Security lane
-        run: bash tools/security-lane.sh
+        run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
       - uses: actions/upload-artifact@v4
         with:
           name: jankurai-score
@@ -62,6 +62,7 @@ jobs:
             agent/repo-score.md
             target/jankurai/jankurai.sarif
             target/jankurai/repair-queue.jsonl
+            target/jankurai/security/evidence.json
 "#
     )
 }
@@ -71,9 +72,10 @@ mod tests {
     use super::workflow;
 
     #[test]
-    fn workflow_uses_shared_security_lane_script() {
+    fn workflow_runs_security_via_jankurai() {
         let rendered = workflow("ratchet", 85);
-        assert!(rendered.contains("bash tools/security-lane.sh"));
+        assert!(rendered.contains("security run"));
+        assert!(rendered.contains("target/jankurai/security/evidence.json"));
         assert!(rendered.contains("--mode ratchet"));
         assert!(rendered.contains("-ge 85"));
     }

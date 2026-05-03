@@ -1,7 +1,7 @@
 use crate::model::STANDARD_VERSION;
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -13,6 +13,19 @@ pub struct SecurityRunArgs {
     pub script: String,
     pub out: String,
     pub strict: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct ParsedSecurityStep {
+    label: String,
+    shell_command: String,
+    #[serde(default)]
+    tool: Option<String>,
+    status: String,
+    #[serde(default)]
+    advisory: bool,
+    #[serde(default)]
+    exit_code: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -116,7 +129,7 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
             log_text.push('\n');
         }
     }
-    fs::write(&log_abs, log_text)?;
+    fs::write(&log_abs, &log_text)?;
 
     let stderr_lossy = String::from_utf8_lossy(&output.stderr);
     let stderr_excerpt = if exit_code != 0 && !output.stderr.is_empty() {
@@ -131,6 +144,24 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
         .unwrap_or_default()
         .as_secs()
         .to_string();
+
+    let parsed_commands = parse_script_steps(&log_text);
+    let commands = if !parsed_commands.is_empty() {
+        parsed_commands
+    } else {
+        vec![SecurityLaneStep {
+            label: "security-lane".to_string(),
+            shell_command,
+            tool: Some("bash".to_string()),
+            status: step_status.to_string(),
+            exit_code: Some(exit_code),
+            advisory: false,
+            stderr_excerpt,
+            finding_count: None,
+            highest_severity: None,
+            normalized_decision: None,
+        }]
+    };
 
     let evidence = SecurityEvidence {
         schema_version: "1.0.0".to_string(),
@@ -147,18 +178,7 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
         exit_code,
         elapsed_ms: started.elapsed().as_millis() as u64,
         log_path: log_rel,
-        commands: vec![SecurityLaneStep {
-            label: "security-lane".to_string(),
-            shell_command,
-            tool: Some("bash".to_string()),
-            status: step_status.to_string(),
-            exit_code: Some(exit_code),
-            advisory: false,
-            stderr_excerpt,
-            finding_count: None,
-            highest_severity: None,
-            normalized_decision: None,
-        }],
+        commands,
     };
 
     validation::write_json(
@@ -173,6 +193,53 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn parse_script_steps(log: &str) -> Vec<SecurityLaneStep> {
+    let mut steps = Vec::new();
+    for line in log.lines() {
+        let rest = match line.trim_start().strip_prefix("jankurai-security-step=") {
+            Some(r) => r,
+            None => continue,
+        };
+        let Ok(p) = serde_json::from_str::<ParsedSecurityStep>(rest) else {
+            continue;
+        };
+        steps.push(SecurityLaneStep {
+            label: p.label,
+            shell_command: p.shell_command,
+            tool: p.tool,
+            status: p.status,
+            exit_code: p.exit_code,
+            advisory: p.advisory,
+            stderr_excerpt: None,
+            finding_count: None,
+            highest_severity: None,
+            normalized_decision: None,
+        });
+    }
+    steps
+}
+
+#[cfg(test)]
+mod parse_tests {
+    use super::*;
+
+    #[test]
+    fn parse_security_steps_extracts_prefixed_json_lines() {
+        let log = r#"
+prefix ignored
+jankurai-security-step={"label":"gitleaks","tool":"gitleaks","shell_command":"gitleaks detect","status":"ran","advisory":false,"exit_code":0}
+jankurai-security-step={"label":"syft","shell_command":"syft .","status":"skipped","advisory":true}
+"#;
+        let steps = parse_script_steps(log);
+        assert_eq!(steps.len(), 2);
+        assert_eq!(steps[0].label, "gitleaks");
+        assert_eq!(steps[0].exit_code, Some(0));
+        assert!(!steps[0].advisory);
+        assert_eq!(steps[1].status, "skipped");
+        assert!(steps[1].advisory);
+    }
 }
 
 fn cap_excerpt(s: &str, max: usize) -> String {

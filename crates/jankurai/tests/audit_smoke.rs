@@ -2,9 +2,41 @@ use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::model::ProofReceipt;
 use jankurai::render::render_markdown;
 use jankurai::report::{issues, junit, sarif};
+use jankurai::validation::{self, ArtifactSchema};
 use std::collections::HashSet;
 use std::fs;
 use tempfile::tempdir;
+
+#[test]
+fn audit_report_serializes_against_repo_score_schema() {
+    let dir = tempdir().unwrap();
+    fs::write(
+        dir.path().join("AGENTS.md"),
+        "Read `agent/JANKURAI_STANDARD.md` first.\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nlayout map validate workspace\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/JANKURAI_STANDARD.md"),
+        "Standard version: `0.4.0`\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("docs")).unwrap();
+    fs::write(
+        dir.path().join("docs/agent-native-standard.md"),
+        "Standard version: `0.4.0`\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    validation::validate_serializable(dir.path(), ArtifactSchema::RepoScore, &report).unwrap();
+}
 
 #[test]
 fn audit_emits_report_and_markdown() {
@@ -274,12 +306,12 @@ fn audit_owner_and_test_maps_are_authoritative() {
     fs::write(dir.path().join("src/lib.rs"), "pub fn ok() {}\n").unwrap();
     fs::write(
         dir.path().join("agent/owner-map.json"),
-        r#"{"owners":{"AGENTS.md":"agent","README.md":"workspace","Justfile":"workspace","agent/":"agent"}}"#,
+        r#"{"workspace":"fixture","owners":{"AGENTS.md":"agent","README.md":"workspace","Justfile":"workspace","agent/":"agent"}}"#,
     )
     .unwrap();
     fs::write(
         dir.path().join("agent/test-map.json"),
-        r#"{"tests":{"AGENTS.md":{"command":"cargo test"},"README.md":{"command":"cargo test"},"Justfile":{"command":"cargo test"},"agent/":{"command":"cargo test"}}}"#,
+        r#"{"workspace":"fixture","tests":{"AGENTS.md":{"command":"cargo test"},"README.md":{"command":"cargo test"},"Justfile":{"command":"cargo test"},"agent/":{"command":"cargo test"}}}"#,
     )
     .unwrap();
 

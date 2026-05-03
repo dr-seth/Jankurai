@@ -200,12 +200,12 @@ fn repair_command_emits_auto_pr_draft_artifact() {
     fs::create_dir_all(repo.path().join("agent")).unwrap();
     fs::write(
         repo.path().join("agent/owner-map.json"),
-        r#"{"owners":{"agent/":"agent","docs/":"standard","paper/":"paper","reference/":"read-only","target/":"workspace","crates/":"tools"}}"#,
+        r#"{"workspace":"fixture","owners":{"agent/":"agent","docs/":"standard","paper/":"paper","reference/":"read-only","target/":"workspace","crates/":"tools"}}"#,
     )
     .unwrap();
     fs::write(
         repo.path().join("agent/test-map.json"),
-        r#"{"tests":{"docs/":{"command":"true","purpose":"fixture docs proof"},"agent/":{"command":"true","purpose":"fixture agent proof"}}}"#,
+        r#"{"workspace":"fixture","tests":{"docs/":{"command":"true","purpose":"fixture docs proof"},"agent/":{"command":"true","purpose":"fixture agent proof"}}}"#,
     )
     .unwrap();
     fs::write(

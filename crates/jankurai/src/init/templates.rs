@@ -160,6 +160,66 @@ pub const TEMPLATES: &[Template] = &[
         body: "# Admin Tools\n\nDocument elevated privileges, support masquerading, and internal operational routes here.\n",
     },
     Template {
+        path: "docs/ai/README.md",
+        body: "# AI Product Boundary\n\nAI services may classify, retrieve, rank, generate, summarize, or recommend.\n\nThey may not silently own durable product truth. Version prompts and attach eval receipts to releases.\n",
+    },
+    Template {
+        path: "docs/product/README.md",
+        body: "# Product Intent\n\nDocument product intent, user-visible guarantees, non-goals, risk tolerance, and proof expectations here.\n",
+    },
+    Template {
+        path: "docs/backups/README.md",
+        body: "# Backup And Restore\n\nDocument backup scope, restore proof, retention, RPO/RTO targets, and test evidence here.\n",
+    },
+    Template {
+        path: "docs/compliance/README.md",
+        body: "# Compliance Evidence\n\nThis is an evidence shell, not a compliance claim.\n\nMap controls to durable, machine-readable evidence before claiming readiness.\n",
+    },
+    Template {
+        path: "docs/migration/README.md",
+        body: "# Migration Plan\n\nDocument legacy inventory, boundary map, migration slices, equivalence proof, rollback, and containment policy here.\n",
+    },
+    Template {
+        path: "docs/migration/boundary-map.md",
+        body: "# Boundary Map\n\nMap legacy surfaces to target owners, contracts, databases, generated zones, and proof lanes.\n",
+    },
+    Template {
+        path: "docs/migration/slices/README.md",
+        body: "# Migration Slices\n\nEach slice needs intent, owner, changed paths, proof lane, equivalence evidence, rollback plan, and residual risk.\n",
+    },
+    Template {
+        path: "docs/observability/README.md",
+        body: "# Observability\n\nDocument logs, metrics, traces, audit events, SLOs, and evidence retention boundaries here.\n",
+    },
+    Template {
+        path: "docs/privacy/README.md",
+        body: "# Privacy And PII\n\nClassify data, document retention, access boundaries, deletion flows, and proof lanes here.\n",
+    },
+    Template {
+        path: "docs/security/README.md",
+        body: "# Security\n\nDocument threat model, secret policy, dependency scanning, provenance, SBOM, and security evidence here.\n",
+    },
+    Template {
+        path: "evals/README.md",
+        body: "# Evals\n\nStore eval harness docs and receipt conventions here. Generated eval outputs belong under `target/jankurai/` unless explicitly declared.\n",
+    },
+    Template {
+        path: "evals/golden/README.md",
+        body: "# Golden Eval Cases\n\nKeep small, reviewed eval cases here. Do not store secrets or production data.\n",
+    },
+    Template {
+        path: "prompts/README.md",
+        body: "# Prompts\n\nVersion prompts here. Each prompt change needs an eval note and owner.\n",
+    },
+    Template {
+        path: "python/ai-service/README.md",
+        body: "# Bounded AI Service\n\nScaffold only. Keep retrieval, ranking, and generation behind explicit contracts; do not treat model output as source of truth.\n",
+    },
+    Template {
+        path: "python/ai-service/pyproject.toml",
+        body: "[project]\nname = \"ai-service\"\nversion = \"0.1.0\"\ndescription = \"Bounded AI service scaffold (non-production)\"\nrequires-python = \">=3.11\"\n",
+    },
+    Template {
         path: "tools/security-lane.sh",
         body: "#!/usr/bin/env bash\nset -euo pipefail\n# Scaffold stub: replace with real secret/dependency/SBOM checks (see jankurai `tools/security-lane.sh` in the standard repo).\necho \"security-lane scaffold: ok\"\n",
     },

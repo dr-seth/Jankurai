@@ -1,10 +1,49 @@
 use jankurai::commands::init;
+use jankurai::init::profiles::BUNDLED_PROFILE_IDS;
 use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
 
 fn binary_path() -> &'static str {
     env!("CARGO_BIN_EXE_jankurai")
+}
+
+fn dry_run_plan_args(repo: std::path::PathBuf, profile: &str, plan_json: Option<String>) -> init::InitArgs {
+    init::InitArgs {
+        repo,
+        apply: false,
+        dry_run: true,
+        yes: false,
+        profile: profile.into(),
+        profile_file: None,
+        ide: "all".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json,
+        force_generated_adapters: false,
+    }
+}
+
+fn greenfield_apply_args(repo: std::path::PathBuf, profile: &str) -> init::InitArgs {
+    init::InitArgs {
+        repo,
+        apply: false,
+        dry_run: false,
+        yes: true,
+        profile: profile.into(),
+        profile_file: None,
+        ide: "all".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: None,
+        force_generated_adapters: false,
+    }
 }
 
 #[test]
@@ -16,6 +55,7 @@ fn init_unknown_profile_errors() {
         dry_run: true,
         yes: false,
         profile: "not-a-real-profile".into(),
+        profile_file: None,
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -31,75 +71,71 @@ fn init_unknown_profile_errors() {
 }
 
 #[test]
-fn init_plan_paths_match_profile_manifest() {
+fn init_plan_paths_match_profile_manifest_for_all_bundled_profiles() {
+    for profile in BUNDLED_PROFILE_IDS {
+        let dir = tempdir().unwrap();
+        let plan_path = dir.path().join(format!("plan-{profile}.json"));
+        init::run(dry_run_plan_args(
+            dir.path().to_path_buf(),
+            profile,
+            Some(plan_path.to_string_lossy().into_owned()),
+        ))
+        .unwrap_or_else(|e| panic!("profile {profile}: {e:#}"));
+
+        let value: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
+        let mut expected: Vec<_> = value["profile_manifest"]["generated_paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|p| p.as_str().map(String::from))
+            .collect();
+        expected.sort();
+
+        let create_paths: Vec<_> = value["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|a| {
+                if a["action"] == "create" {
+                    a["path"].as_str().map(String::from)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let mut sorted_create = create_paths.clone();
+        sorted_create.sort();
+        assert_eq!(
+            sorted_create, expected,
+            "profile {profile}: every generated path should be a create action when missing"
+        );
+    }
+}
+
+#[test]
+fn init_profile_aliases_resolve_in_plan() {
     let dir = tempdir().unwrap();
     let plan_path = dir.path().join("plan.json");
-    init::run(init::InitArgs {
-        repo: dir.path().to_path_buf(),
-        apply: false,
-        dry_run: true,
-        yes: false,
-        profile: "rust-ts-postgres".into(),
-        ide: "all".into(),
-        mode: "advisory".into(),
-        diff: false,
-        ci: "github".into(),
-        issue_backend: "jsonl".into(),
-        ux_qa: false,
-        plan_json: Some(plan_path.to_string_lossy().into_owned()),
-        force_generated_adapters: false,
-    })
+    init::run(dry_run_plan_args(
+        dir.path().to_path_buf(),
+        "ai",
+        Some(plan_path.to_string_lossy().into_owned()),
+    ))
     .unwrap();
-
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
-    let mut expected: Vec<_> = value["profile_manifest"]["generated_paths"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(|p| p.as_str().map(String::from))
-        .collect();
-    expected.sort();
-
-    let create_paths: Vec<_> = value["actions"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(|a| {
-            if a["action"] == "create" {
-                a["path"].as_str().map(String::from)
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    let mut sorted_create = create_paths.clone();
-    sorted_create.sort();
-    assert_eq!(
-        sorted_create, expected,
-        "every generated path should be a create action when missing"
-    );
+    assert_eq!(value["profile_manifest"]["id"], "ai-product");
 }
 
 #[test]
 fn init_greenfield_apply_then_audit_and_doctor() {
     let dir = tempdir().unwrap();
-    init::run(init::InitArgs {
-        repo: dir.path().to_path_buf(),
-        apply: false,
-        dry_run: false,
-        yes: true,
-        profile: "rust-ts-postgres".into(),
-        ide: "all".into(),
-        mode: "advisory".into(),
-        diff: false,
-        ci: "github".into(),
-        issue_backend: "jsonl".into(),
-        ux_qa: false,
-        plan_json: None,
-        force_generated_adapters: false,
-    })
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
     .unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
@@ -145,6 +181,7 @@ fn init_respects_existing_contracts_readme() {
         dry_run: false,
         yes: true,
         profile: "rust-ts-postgres".into(),
+        profile_file: None,
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -167,22 +204,7 @@ fn init_respects_existing_contracts_readme() {
 #[test]
 fn init_greenfield_apply_rust_api_then_audit_and_doctor() {
     let dir = tempdir().unwrap();
-    init::run(init::InitArgs {
-        repo: dir.path().to_path_buf(),
-        apply: false,
-        dry_run: false,
-        yes: true,
-        profile: "rust-api".into(),
-        ide: "all".into(),
-        mode: "advisory".into(),
-        diff: false,
-        ci: "github".into(),
-        issue_backend: "jsonl".into(),
-        ux_qa: false,
-        plan_json: None,
-        force_generated_adapters: false,
-    })
-    .unwrap();
+    init::run(greenfield_apply_args(dir.path().to_path_buf(), "rust-api")).unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
@@ -218,22 +240,7 @@ fn init_greenfield_apply_rust_api_then_audit_and_doctor() {
 #[test]
 fn init_greenfield_apply_react_web_then_audit_and_doctor() {
     let dir = tempdir().unwrap();
-    init::run(init::InitArgs {
-        repo: dir.path().to_path_buf(),
-        apply: false,
-        dry_run: false,
-        yes: true,
-        profile: "react-web".into(),
-        ide: "all".into(),
-        mode: "advisory".into(),
-        diff: false,
-        ci: "github".into(),
-        issue_backend: "jsonl".into(),
-        ux_qa: false,
-        plan_json: None,
-        force_generated_adapters: false,
-    })
-    .unwrap();
+    init::run(greenfield_apply_args(dir.path().to_path_buf(), "react-web")).unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
@@ -269,22 +276,7 @@ fn init_greenfield_apply_react_web_then_audit_and_doctor() {
 #[test]
 fn init_greenfield_apply_b2b_saas_then_audit_and_doctor() {
     let dir = tempdir().unwrap();
-    init::run(init::InitArgs {
-        repo: dir.path().to_path_buf(),
-        apply: false,
-        dry_run: false,
-        yes: true,
-        profile: "b2b-saas".into(),
-        ide: "all".into(),
-        mode: "advisory".into(),
-        diff: false,
-        ci: "github".into(),
-        issue_backend: "jsonl".into(),
-        ux_qa: false,
-        plan_json: None,
-        force_generated_adapters: false,
-    })
-    .unwrap();
+    init::run(greenfield_apply_args(dir.path().to_path_buf(), "b2b-saas")).unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
@@ -320,4 +312,173 @@ fn init_greenfield_apply_b2b_saas_then_audit_and_doctor() {
         .status()
         .unwrap()
         .success());
+}
+
+#[test]
+fn init_greenfield_apply_ai_product_then_audit_and_doctor() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(dir.path().to_path_buf(), "ai-product")).unwrap();
+
+    assert!(dir.path().join("contracts/README.md").exists());
+    assert!(dir.path().join("python/ai-service/README.md").exists());
+    assert!(dir.path().join("prompts/README.md").exists());
+    assert!(
+        !dir.path().join("agent/ux-qa.toml").exists(),
+        "ai-product omits web UX controls by default"
+    );
+
+    let json = dir.path().join("agent/repo-score.json");
+    let md = dir.path().join("agent/repo-score.md");
+    assert!(Command::new(binary_path())
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(&json)
+        .arg("--md")
+        .arg(&md)
+        .status()
+        .unwrap()
+        .success());
+
+    assert!(Command::new(binary_path())
+        .arg("doctor")
+        .arg(dir.path())
+        .arg("--fail-on")
+        .arg("high")
+        .status()
+        .unwrap()
+        .success());
+}
+
+#[test]
+fn init_greenfield_apply_regulated_saas_then_audit_and_doctor() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "regulated-saas",
+    ))
+    .unwrap();
+
+    assert!(dir.path().join("docs/privacy/README.md").exists());
+    assert!(dir.path().join("docs/compliance/README.md").exists());
+    assert!(dir.path().join("agent/ux-qa.toml").exists());
+
+    let json = dir.path().join("agent/repo-score.json");
+    let md = dir.path().join("agent/repo-score.md");
+    assert!(Command::new(binary_path())
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(&json)
+        .arg("--md")
+        .arg(&md)
+        .status()
+        .unwrap()
+        .success());
+
+    assert!(Command::new(binary_path())
+        .arg("doctor")
+        .arg(dir.path())
+        .arg("--fail-on")
+        .arg("high")
+        .status()
+        .unwrap()
+        .success());
+}
+
+#[test]
+fn init_greenfield_apply_migration_target_then_audit_and_doctor() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "migration-target",
+    ))
+    .unwrap();
+
+    assert!(dir.path().join("docs/migration/boundary-map.md").exists());
+    assert!(
+        !dir.path().join("db/README.md").exists(),
+        "migration-target does not claim database ownership"
+    );
+
+    let json = dir.path().join("agent/repo-score.json");
+    let md = dir.path().join("agent/repo-score.md");
+    assert!(Command::new(binary_path())
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(&json)
+        .arg("--md")
+        .arg(&md)
+        .status()
+        .unwrap()
+        .success());
+
+    assert!(Command::new(binary_path())
+        .arg("doctor")
+        .arg(dir.path())
+        .arg("--fail-on")
+        .arg("high")
+        .status()
+        .unwrap()
+        .success());
+}
+
+#[test]
+fn init_profile_file_loads_manifest_from_disk() {
+    let dir = tempdir().unwrap();
+    let profile_path =
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates/profiles/rust-api.json");
+    let plan_path = dir.path().join("plan.json");
+    init::run(init::InitArgs {
+        repo: dir.path().to_path_buf(),
+        apply: false,
+        dry_run: true,
+        yes: false,
+        profile: "this-value-is-ignored-when-profile-file-is-set".into(),
+        profile_file: Some(profile_path),
+        ide: "all".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: Some(plan_path.to_string_lossy().into_owned()),
+        force_generated_adapters: false,
+    })
+    .unwrap();
+
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
+    assert_eq!(value["profile"], "rust-api");
+    assert_eq!(value["profile_manifest"]["id"], "rust-api");
+}
+
+#[test]
+fn init_profile_file_rejects_invalid_manifest() {
+    let dir = tempdir().unwrap();
+    let bad = dir.path().join("bad-profile.json");
+    fs::write(&bad, r#"{"id": "only-id"}"#).unwrap();
+    let err = init::run(init::InitArgs {
+        repo: dir.path().to_path_buf(),
+        apply: false,
+        dry_run: true,
+        yes: false,
+        profile: "rust-api".into(),
+        profile_file: Some(bad),
+        ide: "all".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: None,
+        force_generated_adapters: false,
+    })
+    .unwrap_err();
+    let msg = format!("{err:#}");
+    assert!(
+        msg.contains("displayName") || msg.contains("required") || msg.contains("schema"),
+        "{msg}"
+    );
 }

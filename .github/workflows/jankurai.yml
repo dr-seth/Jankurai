@@ -18,7 +18,7 @@ jobs:
       - name: Publish jankurai summary
         run: cat target/jankurai/summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Security lane
-        run: bash tools/security-lane.sh
+        run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
       - uses: actions/upload-artifact@v4
         with:
           name: jankurai-score
@@ -27,6 +27,7 @@ jobs:
             agent/repo-score.md
             target/jankurai/jankurai.sarif
             target/jankurai/repair-queue.jsonl
+            target/jankurai/security/evidence.json
 
   ux-qa:
     runs-on: ubuntu-latest
