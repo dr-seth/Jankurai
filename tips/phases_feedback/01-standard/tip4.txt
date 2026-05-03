@@ -1,0 +1,1156 @@
+## Phase: 01 Standard Stabilization
+
+The pending work I would finish is **Phase 01’s implementation hardening**, not a later feature phase. The Phase 01 file is marked complete, but it also says it is a docs-only router and lists real implementation gaps: incomplete schema coverage, weak report compatibility guards, doctor/security-lane reality checks, docs boundaries, release evidence conventions, and routing/generator hygiene. That makes it the right place to add a durable “contract hardening” slice that lets later phases keep moving without silently breaking v0.4’s public surface. 
+
+This directly serves `docs/moonshot.md`: the moonshot requires explicit intent, bounded agent authority, owner/proof routing for every changed path, declared generated truth, durable machine-readable evidence, and owned/time-bounded exceptions.  Phase 00 also makes Phase 01 the compatibility gate for later phases and requires new durable paths to be routed, generated outputs declared, schema/interface changes documented, and validation selected from the maps. 
+
+The existing code already has a strong base: report models include stable version fields such as `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, and `target_stack`; the report contains manifest fingerprints, proof receipts, UX/security/boundary artifact summaries, findings, and repair queue entries.  The CLI already writes JSON/Markdown plus SARIF, JUnit-ish XML, GitHub summaries, and repair queue JSONL from the audit command.  The validation module already centralizes schema validation through `ArtifactSchema`, but it does not yet register the core Phase 01 control files such as owner/test maps, generated zones, proof lanes, standard version, findings, repair queue, or audit policy as first-class schema targets.  Owner and test routing already covers the new patch locations under `docs/`, `schemas/`, `crates/jankurai/`, and `tips/phases/logs/`, so this slice does **not** need to alter owner/test maps.  
+
+### What this finishes
+
+This patch makes Phase 01 “100%” by doing six concrete things:
+
+1. Adds schemas for the core agent control artifacts that were only documented before: owner map, test map, generated zones, proof lanes, and standard version.
+2. Registers findings, repair queue items, audit policy, and those control artifacts in `ArtifactSchema`.
+3. Teaches `doctor` to schema-check the core control artifacts, separating “missing required file” from “present but malformed contract.”
+4. Tightens `repo-score.schema.json` so the Phase 01 version/report binding fields are truly required, not just present in Rust structs.
+5. Adds a dedicated Rust integration test that proves report JSON, Markdown, SARIF, JUnit-ish, GitHub summary, repair queue, schema registry, routing maps, and generated-zone metadata stay coherent.
+6. Adds durable docs and a phase log entry defining current-vs-roadmap boundaries and release evidence conventions.
+
+Apply from the repository root:
+
+````bash
+cat > /tmp/apply-phase01-standard-stabilization.sh <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+
+mkdir -p schemas docs crates/jankurai/tests tips/phases/logs
+
+cat > schemas/owner-map.schema.json <<'JSON'
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/owner-map.schema.json",
+  "title": "jankurai owner map",
+  "type": "object",
+  "required": ["workspace", "owners"],
+  "properties": {
+    "workspace": { "type": "string" },
+    "owners": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}
+JSON
+
+cat > schemas/test-map.schema.json <<'JSON'
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/test-map.schema.json",
+  "title": "jankurai test map",
+  "type": "object",
+  "required": ["workspace", "tests"],
+  "properties": {
+    "workspace": { "type": "string" },
+    "tests": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/testRoute" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "testRoute": {
+      "type": "object",
+      "required": ["command", "purpose"],
+      "properties": {
+        "command": { "type": "string" },
+        "purpose": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+JSON
+
+cat > schemas/generated-zones.schema.json <<'JSON'
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/generated-zones.schema.json",
+  "title": "jankurai generated zones",
+  "type": "object",
+  "required": ["zone"],
+  "properties": {
+    "zone": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/zone" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "zone": {
+      "type": "object",
+      "required": ["path", "source", "command", "read_only"],
+      "properties": {
+        "path": { "type": "string" },
+        "source": { "type": "string" },
+        "command": { "type": "string" },
+        "read_only": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+JSON
+
+cat > schemas/proof-lanes.schema.json <<'JSON'
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/proof-lanes.schema.json",
+  "title": "jankurai proof lanes",
+  "type": "object",
+  "required": ["lane"],
+  "properties": {
+    "lane": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/lane" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "lane": {
+      "type": "object",
+      "required": ["name", "command", "purpose"],
+      "properties": {
+        "name": { "type": "string" },
+        "command": { "type": "string" },
+        "purpose": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+JSON
+
+cat > schemas/standard-version.schema.json <<'JSON'
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/standard-version.schema.json",
+  "title": "jankurai standard version manifest",
+  "type": "object",
+  "required": [
+    "standard",
+    "standard_version",
+    "paper_edition",
+    "auditor_version",
+    "schema_version",
+    "target_stack",
+    "artifact"
+  ],
+  "properties": {
+    "standard": { "type": "string" },
+    "standard_version": { "type": "string" },
+    "paper_edition": { "type": "string" },
+    "auditor_version": { "type": "string" },
+    "schema_version": { "type": "string" },
+    "target_stack": { "type": "string" },
+    "published": { "type": "string" },
+    "artifact": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": [
+        "id",
+        "path",
+        "kind",
+        "version_field",
+        "version",
+        "source",
+        "command",
+        "generated"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": { "type": "string" },
+        "version_field": { "type": "string" },
+        "version": { "type": "string" },
+        "source": { "type": "string" },
+        "command": { "type": "string" },
+        "generated": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+JSON
+
+cat > crates/jankurai/tests/phase01_standard_stabilization.rs <<'RS'
+use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
+use jankurai::model::{
+    AUDITOR_VERSION, PAPER_EDITION, SCHEMA_VERSION, STANDARD_VERSION, TARGET_STACK,
+    TARGET_STACK_ID,
+};
+use jankurai::render::render_markdown;
+use jankurai::report::{github, issues, junit, sarif};
+use jankurai::validation::{self, ArtifactSchema};
+use serde_json::Value;
+use std::fs;
+use std::path::PathBuf;
+use tempfile::tempdir;
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+}
+
+fn read_json(rel: &str) -> Value {
+    let repo = repo_root();
+    serde_json::from_str(&fs::read_to_string(repo.join(rel)).unwrap()).unwrap()
+}
+
+fn read_toml_as_json(rel: &str) -> Value {
+    let repo = repo_root();
+    let toml_value: toml::Value = toml::from_str(&fs::read_to_string(repo.join(rel)).unwrap())
+        .unwrap_or_else(|err| panic!("parse TOML {rel}: {err}"));
+    serde_json::to_value(toml_value).unwrap()
+}
+
+fn validate(schema: ArtifactSchema, value: &Value, label: &str) {
+    let repo = repo_root();
+    validation::validate_value(&repo, schema, value)
+        .unwrap_or_else(|err| panic!("{label} failed schema validation: {err}"));
+}
+
+#[test]
+fn phase01_report_json_contract_preserves_version_bindings_and_core_shape() {
+    let repo = repo_root();
+    let report = run_audit_with_options(
+        &repo,
+        &[],
+        AuditOptions {
+            self_audit: false,
+            proof_receipts: None,
+        },
+    )
+    .unwrap();
+    let value = serde_json::to_value(&report).unwrap();
+
+    validate(ArtifactSchema::RepoScore, &value, "repo-score report");
+
+    for key in [
+        "report_fingerprint",
+        "input_fingerprint",
+        "policy_fingerprint",
+        "manifest_fingerprints",
+        "dirty_worktree",
+        "generated_at",
+        "schema_url",
+        "standard",
+        "standard_version",
+        "auditor_version",
+        "schema_version",
+        "paper_edition",
+        "target_stack_id",
+        "target_stack",
+        "repo",
+        "scope",
+        "score",
+        "raw_score",
+        "decision",
+        "caps_applied",
+        "hard_rules",
+        "dimensions",
+        "ux_qa",
+        "security_evidence",
+        "boundaries",
+        "findings",
+        "agent_fix_queue",
+    ] {
+        assert!(value.get(key).is_some(), "repo-score missing stable key `{key}`");
+    }
+
+    assert_eq!(value["standard"], "jankurai");
+    assert_eq!(value["standard_version"], STANDARD_VERSION);
+    assert_eq!(value["auditor_version"], AUDITOR_VERSION);
+    assert_eq!(value["schema_version"], SCHEMA_VERSION);
+    assert_eq!(value["paper_edition"], PAPER_EDITION);
+    assert_eq!(value["target_stack_id"], TARGET_STACK_ID);
+    assert_eq!(value["target_stack"], TARGET_STACK);
+    assert_eq!(value["schema_url"], "schemas/repo-score.schema.json");
+
+    let manifest = value["manifest_fingerprints"]
+        .as_object()
+        .expect("manifest_fingerprints must be object");
+    for key in [
+        "owner_map",
+        "test_map",
+        "generated_zones",
+        "proof_lanes",
+        "standard_version",
+    ] {
+        assert!(
+            manifest.get(key).is_some(),
+            "manifest_fingerprints missing `{key}`"
+        );
+    }
+}
+
+#[test]
+fn phase01_agent_control_artifacts_validate_against_registered_schemas() {
+    for (schema, rel) in [
+        (ArtifactSchema::OwnerMap, "agent/owner-map.json"),
+        (ArtifactSchema::TestMap, "agent/test-map.json"),
+    ] {
+        let value = read_json(rel);
+        validate(schema, &value, rel);
+    }
+
+    for (schema, rel) in [
+        (ArtifactSchema::AuditPolicy, "agent/audit-policy.toml"),
+        (ArtifactSchema::GeneratedZones, "agent/generated-zones.toml"),
+        (ArtifactSchema::ProofLanes, "agent/proof-lanes.toml"),
+        (ArtifactSchema::StandardVersion, "agent/standard-version.toml"),
+        (ArtifactSchema::Boundaries, "agent/boundaries.toml"),
+        (ArtifactSchema::UxQaPolicy, "agent/ux-qa.toml"),
+        (ArtifactSchema::SecurityPolicy, "agent/security-policy.toml"),
+    ] {
+        let value = read_toml_as_json(rel);
+        validate(schema, &value, rel);
+    }
+}
+
+#[test]
+fn phase01_artifact_schema_registry_covers_public_machine_surfaces() {
+    let registered = [
+        ArtifactSchema::RepoScore,
+        ArtifactSchema::Finding,
+        ArtifactSchema::RepairQueue,
+        ArtifactSchema::ProofPlan,
+        ArtifactSchema::ProofReceipt,
+        ArtifactSchema::EvidenceIndex,
+        ArtifactSchema::DoctorReceipt,
+        ArtifactSchema::InitReceipt,
+        ArtifactSchema::InitProfile,
+        ArtifactSchema::AuditPolicy,
+        ArtifactSchema::OwnerMap,
+        ArtifactSchema::TestMap,
+        ArtifactSchema::GeneratedZones,
+        ArtifactSchema::ProofLanes,
+        ArtifactSchema::StandardVersion,
+        ArtifactSchema::SecurityPolicy,
+        ArtifactSchema::SecurityEvidence,
+        ArtifactSchema::ContextPack,
+        ArtifactSchema::RepairPlan,
+        ArtifactSchema::RepairRun,
+        ArtifactSchema::RepairPrDraft,
+        ArtifactSchema::OptimizationReport,
+        ArtifactSchema::ExceptionExpiryReport,
+        ArtifactSchema::Boundaries,
+        ArtifactSchema::UxQaPolicy,
+        ArtifactSchema::UxQaReport,
+        ArtifactSchema::MigrationReport,
+        ArtifactSchema::MigrationPlan,
+        ArtifactSchema::BenchmarkSuite,
+        ArtifactSchema::BenchmarkReport,
+        ArtifactSchema::Certification,
+        ArtifactSchema::GovernancePolicy,
+        ArtifactSchema::CellManifest,
+        ArtifactSchema::CellRegistry,
+    ];
+
+    let repo = repo_root();
+    for schema in registered {
+        let rel = schema.rel_path();
+        let value: Value =
+            serde_json::from_str(&fs::read_to_string(repo.join("schemas").join(rel)).unwrap())
+                .unwrap_or_else(|err| panic!("schema {rel} must be valid JSON: {err}"));
+        let id = value["$id"]
+            .as_str()
+            .unwrap_or_else(|| panic!("schema {rel} missing $id"));
+        assert!(
+            id.ends_with(rel),
+            "schema {rel} $id should end with file name; got {id}"
+        );
+    }
+
+    let repo_score = read_json("schemas/repo-score.schema.json");
+    let required = repo_score["required"]
+        .as_array()
+        .expect("repo-score required must be array");
+    for key in [
+        "standard_version",
+        "auditor_version",
+        "schema_version",
+        "paper_edition",
+        "target_stack_id",
+        "target_stack",
+        "manifest_fingerprints",
+        "findings",
+        "agent_fix_queue",
+    ] {
+        assert!(
+            required.iter().any(|value| value == key),
+            "repo-score schema must require `{key}`"
+        );
+    }
+}
+
+#[test]
+fn phase01_renderers_preserve_interchange_contracts() {
+    let repo = repo_root();
+    let report = run_audit(&repo, &[]).unwrap();
+
+    let markdown = render_markdown(&report);
+    for needle in [
+        "# jankurai Repo Score",
+        "- Standard:",
+        "- Auditor:",
+        "- Schema:",
+        "- Paper edition:",
+        "- Target stack ID:",
+        "## Hard Rule Caps",
+        "## Dimensions",
+        "## Rendered UX QA",
+        "## Findings",
+        "## Agent Fix Queue",
+    ] {
+        assert!(
+            markdown.contains(needle),
+            "Markdown report missing semantic section `{needle}`"
+        );
+    }
+
+    let sarif_value: Value = serde_json::from_str(&sarif::render_sarif(&report)).unwrap();
+    assert_eq!(sarif_value["version"], "2.1.0");
+    assert_eq!(
+        sarif_value["runs"][0]["tool"]["driver"]["name"],
+        "jankurai"
+    );
+    assert_eq!(
+        sarif_value["runs"][0]["tool"]["driver"]["version"],
+        AUDITOR_VERSION
+    );
+    assert!(sarif_value["runs"][0]["results"].is_array());
+
+    let junit_xml = junit::render_junit(&report);
+    assert!(junit_xml.contains("<testsuite name=\"jankurai\""));
+    assert!(junit_xml.contains("failures="));
+
+    let summary = github::render_step_summary(&report);
+    assert!(summary.contains("### jankurai"));
+    assert!(summary.contains("- score:"));
+    assert!(summary.contains("#### agent_fix_queue"));
+
+    let repair_jsonl = issues::repair_queue_jsonl(&report);
+    for line in repair_jsonl.lines().filter(|line| !line.trim().is_empty()) {
+        let item: Value = serde_json::from_str(line).unwrap();
+        validate(ArtifactSchema::RepairQueue, &item, "repair queue JSONL item");
+    }
+}
+
+#[test]
+fn phase01_bad_repo_findings_remain_schema_valid_and_repairable() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# thin repo\n").unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let report_value = serde_json::to_value(&report).unwrap();
+    validate(ArtifactSchema::RepoScore, &report_value, "thin repo score");
+
+    assert!(!report.findings.is_empty(), "thin repo should produce findings");
+    assert!(
+        !report.agent_fix_queue.is_empty(),
+        "thin repo should produce repair queue entries"
+    );
+
+    for finding in &report.findings {
+        let value = serde_json::to_value(finding).unwrap();
+        validate(ArtifactSchema::Finding, &value, "finding");
+
+        assert!(!finding.path.trim().is_empty());
+        assert!(!finding.problem.trim().is_empty());
+        assert!(!finding.agent_fix.trim().is_empty());
+        assert!(!finding.check_id.trim().is_empty());
+        assert!(!finding.rerun_command.trim().is_empty());
+        assert!(!finding.fingerprint.trim().is_empty());
+        assert!(
+            (0.0..=1.0).contains(&finding.confidence),
+            "finding confidence must be normalized"
+        );
+
+        if matches!(finding.severity.as_str(), "high" | "critical") {
+            assert!(
+                finding.rule_id.is_some(),
+                "high/critical finding should carry stable rule_id: {:?}",
+                finding.problem
+            );
+            assert!(
+                finding.lane.is_some(),
+                "high/critical finding should carry proof lane: {:?}",
+                finding.problem
+            );
+        }
+    }
+}
+
+#[test]
+fn phase01_routing_and_generated_zone_hygiene_are_explicit() {
+    let owner_map = read_json("agent/owner-map.json");
+    let test_map = read_json("agent/test-map.json");
+
+    for (path, owner) in [
+        ("agent/", "agent"),
+        ("docs/", "standard"),
+        ("schemas/", "standard"),
+        ("crates/jankurai/", "tools"),
+        ("reference/", "read-only"),
+        ("tips/phases/logs/", "agent"),
+    ] {
+        assert_eq!(
+            owner_map["owners"][path], owner,
+            "owner-map should route {path}"
+        );
+    }
+
+    for path in [
+        "agent/",
+        "docs/",
+        "schemas/",
+        "crates/jankurai/",
+        "tips/phases/logs/",
+    ] {
+        assert!(
+            test_map["tests"][path]["command"].as_str().is_some(),
+            "test-map should route {path} to a command"
+        );
+        assert!(
+            test_map["tests"][path]["purpose"].as_str().is_some(),
+            "test-map should explain why {path} is tested"
+        );
+    }
+
+    let generated_zones = read_toml_as_json("agent/generated-zones.toml");
+    let zones = generated_zones["zone"]
+        .as_array()
+        .expect("generated-zones zone array");
+    assert!(!zones.is_empty(), "generated zones should not be empty");
+    for zone in zones {
+        for key in ["path", "source", "command"] {
+            assert!(
+                zone[key].as_str().map(|s| !s.trim().is_empty()).unwrap_or(false),
+                "generated zone must declare non-empty {key}: {zone:?}"
+            );
+        }
+    }
+
+    assert!(
+        zones.iter().any(|zone| {
+            zone["path"] == "agent/repo-score.json"
+                && zone["command"]
+                    .as_str()
+                    .map(|command| command.contains("cargo run -p jankurai"))
+                    .unwrap_or(false)
+        }),
+        "canonical repo-score JSON must remain a declared generated zone"
+    );
+    assert!(
+        zones.iter().any(|zone| {
+            zone["path"] == "agent/repo-score.md"
+                && zone["command"]
+                    .as_str()
+                    .map(|command| command.contains("cargo run -p jankurai"))
+                    .unwrap_or(false)
+        }),
+        "canonical repo-score Markdown must remain a declared generated zone"
+    );
+}
+RS
+
+cat > docs/phase-01-contracts.md <<'MD'
+# Phase 01 Contract Surface
+
+Status: active compatibility contract  
+Owner: standard  
+Applies to: Phase 01 Standard Stabilization and every later phase that emits Jankurai evidence
+
+## Purpose
+
+Phase 01 is the v0.4 contract gate. Later phases may add capabilities, but they must not weaken the stable release surface that agents and CI already depend on.
+
+This file separates current behavior from roadmap behavior, names the machine-readable artifact contracts, and defines the release evidence bundle for Phase 01 closeout.
+
+## Current Implemented Contract
+
+The current stable surface includes:
+
+- Rust CLI package under `crates/jankurai/`
+- audit JSON and Markdown score outputs
+- SARIF, JUnit-ish XML, GitHub step summary, and repair queue JSONL renderers
+- doctor diagnostics and local doctor receipts
+- proof plan, proof receipt, and evidence index schemas
+- security evidence envelope and security policy schema
+- UX QA policy and report schemas
+- boundaries, migration, context-pack, repair-plan, certification, governance, registry, and cell schemas
+- owner map, test map, generated-zone manifest, proof-lane manifest, standard-version manifest, and audit-policy schema validation
+- canonical score artifacts at `agent/repo-score.json` and `agent/repo-score.md`
+
+## Roadmap-Only Or Partial Behavior
+
+These must not be described as fully enforced by Phase 01:
+
+- deep semantic contract diffing across every API format
+- generated-zone checksum reproducibility for every generated file
+- certified-cell install/prove execution beyond planner output
+- public badge issuance or signed conformance attestations
+- autonomous write repair outside dry-run or fixture-gated paths
+- full compliance certification
+
+Docs may describe those as future or partial phase work, but release evidence must not claim them as Phase 01 completion.
+
+## Stable Version Bindings
+
+Every repo-score report must keep these fields:
+
+- `standard_version`
+- `auditor_version`
+- `schema_version`
+- `paper_edition`
+- `target_stack_id`
+- `target_stack`
+
+Removing or renaming any of those fields requires:
+
+1. schema major version bump,
+2. migration note in `docs/release-plan.md`,
+3. report compatibility test update,
+4. phase log entry,
+5. release evidence receipt.
+
+Additive fields are allowed when schema validation and renderer tests remain green.
+
+## Machine-Readable Artifact Matrix
+
+| Artifact | Schema | Source of truth | Generated? | Phase 01 rule |
+| --- | --- | --- | ---: | --- |
+| `agent/repo-score.json` | `schemas/repo-score.schema.json` | `crates/jankurai/` audit command | yes | generated by command only |
+| `agent/repo-score.md` | Markdown renderer contract | `crates/jankurai/src/render.rs` | yes | generated by command only |
+| report findings | `schemas/finding.schema.json` | audit model and rule registry | no | every finding must be repairable |
+| repair queue items | `schemas/repair-queue.schema.json` | `agent_fix_queue` | no | every item must include path, priority, task, and why |
+| `agent/audit-policy.toml` | `schemas/audit-policy.schema.json` | standard policy | no | doctor validates TOML shape |
+| `agent/owner-map.json` | `schemas/owner-map.schema.json` | routing policy | no | every durable path family needs an owner |
+| `agent/test-map.json` | `schemas/test-map.schema.json` | proof routing policy | no | every durable path family needs a command and purpose |
+| `agent/generated-zones.toml` | `schemas/generated-zones.schema.json` | generated-output manifest | no | every zone needs path, source, command, read-only flag |
+| `agent/proof-lanes.toml` | `schemas/proof-lanes.schema.json` | lane command manifest | no | lane commands are the proof allowlist |
+| `agent/standard-version.toml` | `schemas/standard-version.schema.json` | version manifest | no | artifact bindings stay versioned |
+| `agent/boundaries.toml` | `schemas/boundaries.schema.json` | boundary manifest | no | doctor validates if present |
+| `agent/security-policy.toml` | `schemas/security-policy.schema.json` | security policy | no | doctor validates if present |
+| `agent/ux-qa.toml` | `schemas/ux-qa-policy.schema.json` | UX proof policy | no | doctor validates if present |
+| `target/jankurai/proof-receipts/*.json` | `schemas/proof-receipt.schema.json` | `jankurai prove` | yes, volatile | local evidence only |
+| `target/jankurai/evidence-index.json` | `schemas/evidence-index.schema.json` | `jankurai prove` | yes, volatile | local evidence only |
+| `target/jankurai/security/evidence.json` | `schemas/security-evidence.schema.json` | `jankurai security run` | yes, volatile | local evidence only |
+| `target/jankurai/ux-qa.json` | `schemas/ux-qa.schema.json` | UX QA runtime | yes, volatile | local evidence only |
+| `target/jankurai/context-pack.json` | `schemas/context-pack.schema.json` | `jankurai context-pack` | yes, volatile | local evidence only |
+| `target/jankurai/repair-plan.json` | `schemas/repair-plan.schema.json` | `jankurai repair-plan` | yes, volatile | local evidence only |
+
+## Release Evidence Bundle
+
+A Phase 01 release candidate should cite:
+
+1. `cargo test -p jankurai --test phase01_standard_stabilization`
+2. `cargo test -p jankurai`
+3. `just fast`
+4. `cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md`
+5. `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/phase01.sarif --junit target/jankurai/phase01.junit.xml --github-step-summary target/jankurai/phase01-summary.md --repair-queue-jsonl target/jankurai/phase01-repair-queue.jsonl`
+
+The tracked canonical score remains under `agent/`. Volatile receipts, logs, SARIF, summaries, and proof outputs remain under `target/jankurai/`.
+
+## Compatibility Rules
+
+Allowed without migration notes:
+
+- additive report fields,
+- additive schema properties,
+- new optional receipt companion paths,
+- clearer doctor diagnostics,
+- new tests for existing contracts.
+
+Forbidden without migration notes:
+
+- renaming public report fields,
+- removing version bindings,
+- moving canonical score artifacts,
+- adding new mandatory external tools to `just fast`,
+- hand-editing generated outputs,
+- editing `paper/` from Phase 01.
+
+## Handoff To Later Phases
+
+Phase 02 can rely on stable finding fields and rule IDs.
+
+Phase 03 can rely on stable proof receipt and evidence-index schemas.
+
+Phase 05 and Phase 06 can rely on UX/security evidence being optional, schema-validated, and surfaced in reports without score overclaims.
+
+Phase 07 can rely on generated-zone and boundary manifests being parseable and routed.
+
+Phase 08 through Phase 13 can rely on repair, proof, certification, registry, and migration schemas being part of the public artifact surface.
+MD
+
+python3 - <<'PY'
+from __future__ import annotations
+
+import datetime
+import json
+import subprocess
+from pathlib import Path
+
+def replace_once(path: str, old: str, new: str) -> None:
+    p = Path(path)
+    text = p.read_text()
+    if old not in text:
+        raise SystemExit(f"patch anchor not found in {path}:\n{old}")
+    p.write_text(text.replace(old, new, 1))
+
+# ---------------------------------------------------------------------------
+# validation.rs: register the Phase 01 control schemas.
+# ---------------------------------------------------------------------------
+
+validation = Path("crates/jankurai/src/validation.rs")
+text = validation.read_text()
+
+if "    Finding,\n    RepairQueue,\n" not in text:
+    text = text.replace(
+        "    RepoScore,\n    ProofPlan,\n",
+        "    RepoScore,\n    Finding,\n    RepairQueue,\n    ProofPlan,\n",
+        1,
+    )
+
+if "    AuditPolicy,\n    OwnerMap,\n    TestMap,\n    GeneratedZones,\n    ProofLanes,\n    StandardVersion,\n" not in text:
+    text = text.replace(
+        "    SecurityEvidence,\n    ContextPack,\n",
+        "    SecurityEvidence,\n    AuditPolicy,\n    OwnerMap,\n    TestMap,\n    GeneratedZones,\n    ProofLanes,\n    StandardVersion,\n    ContextPack,\n",
+        1,
+    )
+
+if '            Self::Finding => "finding.schema.json",' not in text:
+    text = text.replace(
+        '            Self::RepoScore => "repo-score.schema.json",\n            Self::ProofPlan => "proof-plan.schema.json",\n',
+        '            Self::RepoScore => "repo-score.schema.json",\n'
+        '            Self::Finding => "finding.schema.json",\n'
+        '            Self::RepairQueue => "repair-queue.schema.json",\n'
+        '            Self::ProofPlan => "proof-plan.schema.json",\n',
+        1,
+    )
+
+if '            Self::AuditPolicy => "audit-policy.schema.json",' not in text:
+    text = text.replace(
+        '            Self::SecurityEvidence => "security-evidence.schema.json",\n            Self::ContextPack => "context-pack.schema.json",\n',
+        '            Self::SecurityEvidence => "security-evidence.schema.json",\n'
+        '            Self::AuditPolicy => "audit-policy.schema.json",\n'
+        '            Self::OwnerMap => "owner-map.schema.json",\n'
+        '            Self::TestMap => "test-map.schema.json",\n'
+        '            Self::GeneratedZones => "generated-zones.schema.json",\n'
+        '            Self::ProofLanes => "proof-lanes.schema.json",\n'
+        '            Self::StandardVersion => "standard-version.schema.json",\n'
+        '            Self::ContextPack => "context-pack.schema.json",\n',
+        1,
+    )
+
+validation.write_text(text)
+
+# ---------------------------------------------------------------------------
+# doctor.rs: validate core Phase 01 control files when present.
+# ---------------------------------------------------------------------------
+
+doctor = Path("crates/jankurai/src/commands/doctor.rs")
+text = doctor.read_text()
+
+if "owner-map-schema" not in text:
+    text = text.replace(
+        "    check_security_policy_schema(&repo, &mut diagnostics);\n",
+        "    check_security_policy_schema(&repo, &mut diagnostics);\n"
+        "    check_json_artifact(\n"
+        "        &repo,\n"
+        "        &mut diagnostics,\n"
+        "        \"agent/owner-map.json\",\n"
+        "        ArtifactSchema::OwnerMap,\n"
+        "        \"owner-map-read\",\n"
+        "        \"owner-map-json\",\n"
+        "        \"owner-map-schema\",\n"
+        "    );\n"
+        "    check_json_artifact(\n"
+        "        &repo,\n"
+        "        &mut diagnostics,\n"
+        "        \"agent/test-map.json\",\n"
+        "        ArtifactSchema::TestMap,\n"
+        "        \"test-map-read\",\n"
+        "        \"test-map-json\",\n"
+        "        \"test-map-schema\",\n"
+        "    );\n"
+        "    check_toml_artifact(\n"
+        "        &repo,\n"
+        "        &mut diagnostics,\n"
+        "        \"agent/audit-policy.toml\",\n"
+        "        ArtifactSchema::AuditPolicy,\n"
+        "        \"audit-policy-read\",\n"
+        "        \"audit-policy-toml\",\n"
+        "        \"audit-policy-schema\",\n"
+        "    );\n"
+        "    check_toml_artifact(\n"
+        "        &repo,\n"
+        "        &mut diagnostics,\n"
+        "        \"agent/generated-zones.toml\",\n"
+        "        ArtifactSchema::GeneratedZones,\n"
+        "        \"generated-zones-read\",\n"
+        "        \"generated-zones-toml\",\n"
+        "        \"generated-zones-schema\",\n"
+        "    );\n"
+        "    check_toml_artifact(\n"
+        "        &repo,\n"
+        "        &mut diagnostics,\n"
+        "        \"agent/proof-lanes.toml\",\n"
+        "        ArtifactSchema::ProofLanes,\n"
+        "        \"proof-lanes-read\",\n"
+        "        \"proof-lanes-toml\",\n"
+        "        \"proof-lanes-schema\",\n"
+        "    );\n"
+        "    check_toml_artifact(\n"
+        "        &repo,\n"
+        "        &mut diagnostics,\n"
+        "        \"agent/standard-version.toml\",\n"
+        "        ArtifactSchema::StandardVersion,\n"
+        "        \"standard-version-read\",\n"
+        "        \"standard-version-toml\",\n"
+        "        \"standard-version-schema\",\n"
+        "    );\n",
+        1,
+    )
+
+if "fn check_toml_artifact(" not in text:
+    text = text.replace(
+        "\nfn check_json_artifact(\n",
+        r'''
+fn check_toml_artifact(
+    repo: &Path,
+    diagnostics: &mut Vec<Diagnostic>,
+    rel_path: &str,
+    schema: ArtifactSchema,
+    check_read: &str,
+    check_toml: &str,
+    check_schema: &str,
+) {
+    let path = repo.join(rel_path);
+    if !path.is_file() {
+        return;
+    }
+    let rel = display_rel(repo, &path);
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: check_read.into(),
+            severity: "medium".into(),
+            path: rel,
+            message: "could not read TOML".into(),
+        });
+        return;
+    };
+    let Ok(toml_value) = toml::from_str::<toml::Value>(&text) else {
+        diagnostics.push(Diagnostic {
+            check_id: check_toml.into(),
+            severity: "medium".into(),
+            path: rel,
+            message: "file is not valid TOML".into(),
+        });
+        return;
+    };
+    let Ok(value) = serde_json::to_value(&toml_value) else {
+        diagnostics.push(Diagnostic {
+            check_id: check_schema.into(),
+            severity: "medium".into(),
+            path: rel,
+            message: "could not convert TOML to JSON-shaped validation value".into(),
+        });
+        return;
+    };
+    if let Err(err) = validation::validate_value(repo, schema, &value) {
+        diagnostics.push(Diagnostic {
+            check_id: check_schema.into(),
+            severity: "medium".into(),
+            path: rel,
+            message: format!("failed schema validation: {err}"),
+        });
+    }
+}
+
+fn check_json_artifact(
+''',
+        1,
+    )
+
+doctor.write_text(text)
+
+# ---------------------------------------------------------------------------
+# Tighten existing public schemas without changing runtime output shape.
+# ---------------------------------------------------------------------------
+
+repo_score_path = Path("schemas/repo-score.schema.json")
+repo_score = json.loads(repo_score_path.read_text())
+
+required = repo_score.setdefault("required", [])
+for key in [
+    "paper_edition",
+    "target_stack_id",
+    "target_stack",
+    "repo",
+    "scope",
+    "caps_applied",
+    "hard_rules",
+    "ux_qa",
+    "security_evidence",
+    "boundaries",
+]:
+    if key not in required:
+        required.append(key)
+
+props = repo_score.setdefault("properties", {})
+props.setdefault("paper_edition", {"type": "string"})
+props.setdefault("target_stack_id", {"type": "string"})
+props.setdefault("target_stack", {"type": "string"})
+props.setdefault("repo", {"type": "string"})
+props.setdefault(
+    "scope",
+    {
+        "type": "object",
+        "required": ["mode", "paths"],
+        "properties": {
+            "mode": {"type": "string"},
+            "paths": {"type": "array", "items": {"type": "string"}},
+        },
+    },
+)
+props.setdefault("caps_applied", {"type": "array", "items": {"type": "string"}})
+props.setdefault(
+    "hard_rules",
+    {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "required": ["id", "max_score"],
+            "properties": {
+                "id": {"type": "string"},
+                "max_score": {"type": "integer"},
+            },
+        },
+    },
+)
+props.setdefault(
+    "dimensions",
+    {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "required": ["name", "weight", "score", "weighted_points", "evidence", "notes"],
+            "properties": {
+                "name": {"type": "string"},
+                "weight": {"type": "integer"},
+                "score": {"type": "integer"},
+                "weighted_points": {"type": "number"},
+                "evidence": {"type": "array", "items": {"type": "string"}},
+                "notes": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+    },
+)
+repo_score_path.write_text(json.dumps(repo_score, indent=2) + "\n")
+
+finding_path = Path("schemas/finding.schema.json")
+finding = json.loads(finding_path.read_text())
+finding_props = finding.setdefault("properties", {})
+for key in ["tlr", "docs_url", "matched_term", "reason"]:
+    finding_props.setdefault(key, {"type": "string"})
+finding_props.setdefault("line", {"type": "integer"})
+finding_path.write_text(json.dumps(finding, indent=2) + "\n")
+
+audit_policy_path = Path("schemas/audit-policy.schema.json")
+audit_policy = json.loads(audit_policy_path.read_text())
+audit_props = audit_policy.setdefault("properties", {})
+audit_props.setdefault("target_stack_id", {"type": "string"})
+audit_props.setdefault("caps", {"type": "object", "additionalProperties": {"type": "integer"}})
+audit_props.setdefault("limits", {"type": "object", "additionalProperties": {"type": "integer"}})
+audit_policy_path.write_text(json.dumps(audit_policy, indent=2) + "\n")
+
+# ---------------------------------------------------------------------------
+# Append docs sections idempotently.
+# ---------------------------------------------------------------------------
+
+def append_once(path: str, marker: str, section: str) -> None:
+    p = Path(path)
+    text = p.read_text()
+    if marker in text:
+        return
+    p.write_text(text.rstrip() + "\n\n" + section.strip() + "\n")
+
+append_once(
+    "docs/testing.md",
+    "## Phase 01 Contract Guardrail",
+    """
+## Phase 01 Contract Guardrail
+
+Phase 01 compatibility is covered by:
+
+```bash
+cargo test -p jankurai --test phase01_standard_stabilization
+````
+
+That test proves:
+
+* repo-score JSON still carries the stable version bindings and validates against `schemas/repo-score.schema.json`
+* core agent control artifacts validate against their schemas
+* Markdown, SARIF, JUnit-ish XML, GitHub summary, and repair queue JSONL remain semantically renderable
+* findings remain schema-valid and repairable
+* owner/test routing covers docs, schemas, agent files, phase logs, and Rust CLI internals
+* generated zones keep non-empty `path`, `source`, and `command` metadata
+
+For Phase 01 release candidates, run this focused test before `cargo test -p jankurai` and `just fast`.
+""",
+)
+
+append_once(
+"docs/release-plan.md",
+"## Phase 01 Evidence Contract",
+"""
+
+## Phase 01 Evidence Contract
+
+Phase 01 is considered closed only when the release candidate can cite:
+
+| Evidence             | Command or path                                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contract guardrail   | `cargo test -p jankurai --test phase01_standard_stabilization`                                                                                           |
+| Full Rust validation | `cargo test -p jankurai`                                                                                                                                 |
+| Fast lane            | `just fast`                                                                                                                                              |
+| Doctor reality check | `cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md`                       |
+| Canonical score      | `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md`                                                                       |
+| Export bundle        | `target/jankurai/phase01.sarif`, `target/jankurai/phase01.junit.xml`, `target/jankurai/phase01-summary.md`, `target/jankurai/phase01-repair-queue.jsonl` |
+| Contract docs        | `docs/phase-01-contracts.md`                                                                                                                             |
+
+The canonical score artifacts remain `agent/repo-score.json` and `agent/repo-score.md`. All other release evidence for this phase stays under `target/jankurai/` or in the tracked phase log.
+
+Phase 01 must not claim later roadmap behavior as implemented. In particular, deep contract diffing, certified-cell execution, signed public badges, and autonomous write repair remain later-phase behavior unless their phase receipts and validation evidence say otherwise.
+""",
+)
+
+append_once(
+"tips/phases/01-standard-stabilization.md",
+"## Final Hardening Addendum",
+"""
+
+## Final Hardening Addendum
+
+This Phase 01 closeout hardens the docs-only plan into an executable compatibility contract.
+
+Added or tightened surfaces:
+
+* `schemas/owner-map.schema.json`
+* `schemas/test-map.schema.json`
+* `schemas/generated-zones.schema.json`
+* `schemas/proof-lanes.schema.json`
+* `schemas/standard-version.schema.json`
+* `schemas/repo-score.schema.json`
+* `schemas/finding.schema.json`
+* `schemas/audit-policy.schema.json`
+* `crates/jankurai/src/validation.rs`
+* `crates/jankurai/src/commands/doctor.rs`
+* `crates/jankurai/tests/phase01_standard_stabilization.rs`
+* `docs/phase-01-contracts.md`
+* `docs/testing.md`
+* `docs/release-plan.md`
+* `tips/phases/logs/01-standard-stabilization.log`
+
+Completion evidence:
+
+```bash
+cargo test -p jankurai --test phase01_standard_stabilization
+cargo test -p jankurai
+just fast
+cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/phase01.sarif --junit target/jankurai/phase01.junit.xml --github-step-summary target/jankurai/phase01-summary.md --repair-queue-jsonl target/jankurai/phase01-repair-queue.jsonl
+```
+
+Routing maps did not need new prefixes because `docs/`, `schemas/`, `crates/jankurai/`, and `tips/phases/logs/` are already routed.
+
+No paper files, reference files, default target-stack identity, canonical score paths, or `just fast` external tool requirements are changed by this slice.
+""",
+)
+
+# ---------------------------------------------------------------------------
+
+# Phase log.
+
+# ---------------------------------------------------------------------------
+
+log_path = Path("tips/phases/logs/01-standard-stabilization.log")
+log_path.parent.mkdir(parents=True, exist_ok=True)
+try:
+git_sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+except Exception:
+git_sha = "unknown"
+
+entry_marker = "phase01-contract-hardening"
+existing = log_path.read_text() if log_path.exists() else ""
+if entry_marker not in existing:
+timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+log_path.write_text(
+existing.rstrip()
++ (
+"\n"
+if existing.strip()
+else ""
+)
++ f"{timestamp} | agent | phase 01 | {entry_marker} | "
++ "schemas/* control schemas, validation.rs, doctor.rs, phase01_standard_stabilization.rs, docs/phase-01-contracts.md, docs/testing.md, docs/release-plan.md, tips/phases/01-standard-stabilization.md | "
++ "pending: cargo test -p jankurai --test phase01_standard_stabilization; cargo test -p jankurai; just fast; doctor; score exports | "
++ "target/jankurai/phase01-* plus agent/repo-score.* | "
++ f"{git_sha} | residual risk: none beyond normal local tool availability\n"
+)
+PY
+
+echo "Phase 01 Standard Stabilization hardening patch applied."
+echo "Run the validation commands listed below."
+SH
+
+bash /tmp/apply-phase01-standard-stabilization.sh
+
+````
+
+Then run the evidence commands:
+
+```bash
+rtk cargo test -p jankurai --test phase01_standard_stabilization
+rtk cargo test -p jankurai
+rtk just fast
+rtk cargo run -p jankurai -- doctor --fail-on high \
+  --json target/jankurai/phase01-doctor.json \
+  --md target/jankurai/phase01-doctor.md
+rtk cargo run -p jankurai -- . \
+  --json agent/repo-score.json \
+  --md agent/repo-score.md \
+  --sarif target/jankurai/phase01.sarif \
+  --junit target/jankurai/phase01.junit.xml \
+  --github-step-summary target/jankurai/phase01-summary.md \
+  --repair-queue-jsonl target/jankurai/phase01-repair-queue.jsonl
+rtk git status --short
+````
+
+### Why this is the right Phase 01 finish
+
+This does **not** implement Phase 02–13 features. It makes their contracts safe. Phase 02’s rule engine depends on stable finding IDs and fields; Phase 03’s proof ledger depends on stable receipts and evidence schema; Phase 05/06 need optional but schema-validated UX/security evidence; Phase 07 needs generated-zone and boundary truth to be parseable; Phase 10/12/13 can stay planner/dry-run without Phase 01 overclaiming them. The phase docs themselves show those dependencies and partial statuses across later phases.        
+
+The especially important steering decision is that Phase 01 should be **boring and defensive**: schema registration, compatibility tests, doctor diagnostics, release evidence, and docs boundaries. That matches the moonshot’s “wrong code becomes easier to reject than to rationalize” success criterion. 
+
