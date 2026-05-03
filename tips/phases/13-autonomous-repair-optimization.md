@@ -2,7 +2,7 @@
 
 Status: partial
 Owner: agent
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
 
 ## Objective
@@ -22,7 +22,7 @@ Existing and planned prerequisites:
 - Phase 11 adds migration slices.
 - Phase 12 adds benchmark and certification evidence.
 
-The implemented repair surface is dry-run by default with an explicit fixture-only apply mode. Repair packets and repair plans now carry explicit eligibility, risk, planned edits, planned proof commands, rollback guidance, human approval requirements, and structured patch fields for fixture plans. Repair runs can evaluate whether an auto-PR request would be blocked or eligible, and fixture-marked repositories can execute bounded `append-text`, `replace-exact`, and `create-file` edits. The command still does not write real projects, create branches, commit, open PRs, or auto-merge.
+The implemented repair surface is dry-run by default with an explicit fixture-only apply mode. Repair packets and repair plans now carry explicit eligibility, risk, planned edits, planned proof commands, rollback guidance, human approval requirements, and structured patch fields for fixture plans. Repair runs can evaluate whether an auto-PR request would be blocked or eligible, emit a draft-only PR evidence package, and fixture-marked repositories can execute bounded `append-text`, `replace-exact`, and `create-file` edits. The command still does not write real projects, create branches, commit, open PRs, or auto-merge.
 
 ## Dependencies
 
@@ -42,13 +42,14 @@ Implemented command surface:
 jankurai repair-plan . --from target/jankurai/repo-score.json --out target/jankurai/repair-plan.json --md target/jankurai/repair-plan.md
 jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --out target/jankurai/repair-run.json --md target/jankurai/repair-run.md
 jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --auto-pr --max-risk low
+jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --auto-pr --max-risk medium --pr-draft-out target/jankurai/repair-pr-draft.json --pr-draft-md target/jankurai/repair-pr-draft.md
 jankurai repair target/jankurai/p13-fixture-repo --plan target/jankurai/p13-fixture-repo/target/jankurai/repair-plan.json --fixture-apply --max-risk medium --out target/jankurai/p13-fixture-repair-run.json --md target/jankurai/p13-fixture-repair-run.md
 ```
 
 Deferred command surface:
 
 - No real repository patch execution yet; bounded patch execution is fixture-only and requires `agent/repair-fixture.toml` with `fixture = true`.
-- No real auto-PR creation yet.
+- No real auto-PR creation yet; draft-package evidence is emitted behind `--auto-pr`.
 - No `optimize`, `reduce`, or `refactor` commands yet.
 - No `exceptions expire` loop yet.
 
@@ -66,7 +67,9 @@ Deferred command surface:
 - `human_approval_requirements`
 - `packets[]`
 
-`repair-run.schema.json` records execution mode, repair execution status, auto-PR dry-run eligibility, max risk, blocked packets, risk summary, proof lanes, applied edits, skipped edits, files written, optional proof evidence index, and notes.
+`repair-run.schema.json` records execution mode, repair execution status, auto-PR dry-run eligibility, optional auto-PR draft summary, max risk, blocked packets, risk summary, proof lanes, applied edits, skipped edits, files written, optional proof evidence index, and notes.
+
+`repair-pr-draft.schema.json` records the draft-only PR evidence package with branch name, titles, planned paths, eligible and blocked packets, proof lanes, artifact links, residual risk, and mutation flags.
 
 The current implementation supports dry-run planning, dry-run auto-PR eligibility reporting, and fixture-only patch execution. It does not support real repository patch execution, branch creation, PR creation, or auto-merge.
 
@@ -160,10 +163,10 @@ Implementation tasks:
 
 Acceptance:
 
-- Auto-PRs are transparent and auditable.
-- PR body includes exact proof commands and artifacts.
+- Auto-PR draft packages are transparent and auditable.
+- Draft body includes exact proof lanes, artifact links, and residual risk.
 
-Status: deferred. Current `--auto-pr` is dry-run eligibility reporting only.
+Status: partial. Current `--auto-pr` emits a draft-only evidence package, while real branch, commit, and GitHub PR creation remain deferred.
 
 ### 5. Optimization Commands
 

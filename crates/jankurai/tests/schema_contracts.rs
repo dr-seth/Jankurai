@@ -221,6 +221,10 @@ fn cell_registry_and_manifest_schemas_parse() {
         &fs::read_to_string(repo.join("schemas/repair-plan.schema.json")).unwrap(),
     )
     .unwrap();
+    let repair_pr_draft: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/repair-pr-draft.schema.json")).unwrap(),
+    )
+    .unwrap();
     let repair_packet: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/repair-packet.schema.json")).unwrap(),
     )
@@ -318,9 +322,62 @@ fn cell_registry_and_manifest_schemas_parse() {
         repair_run["properties"]["auto_pr_status"]["enum"],
         serde_json::json!(["not-requested", "eligible-dry-run-only", "blocked"])
     );
+    assert!(repair_run["properties"].get("auto_pr_draft").is_some());
+    let auto_pr_draft_props = repair_run["properties"]["auto_pr_draft"]["properties"]
+        .as_object()
+        .unwrap();
+    for key in [
+        "status",
+        "branch_name",
+        "commit_title",
+        "pr_title",
+        "planned_changed_paths",
+        "proof_lanes",
+        "artifact_links",
+        "git_mutation_allowed",
+        "github_mutation_allowed",
+    ] {
+        assert!(auto_pr_draft_props.contains_key(key));
+    }
     assert!(repair_run["properties"]
         .get("proof_evidence_index")
         .is_some());
+
+    assert_eq!(
+        repair_pr_draft["$id"],
+        "https://jankurai.dev/schemas/repair-pr-draft.schema.json"
+    );
+    let draft_required = repair_pr_draft["required"].as_array().unwrap();
+    for key in [
+        "source_plan",
+        "status",
+        "execution_mode",
+        "branch_name",
+        "commit_title",
+        "pr_title",
+        "pr_body",
+        "planned_changed_paths",
+        "eligible_packets",
+        "blocked_packets",
+        "proof_lanes",
+        "artifact_links",
+        "residual_risk",
+        "safety_notes",
+        "git_mutation_allowed",
+        "github_mutation_allowed",
+    ] {
+        assert!(draft_required.iter().any(|value| value == key));
+    }
+    assert_eq!(
+        repair_pr_draft["properties"]["status"]["enum"],
+        serde_json::json!(["draft-only", "blocked", "failed"])
+    );
+    assert_eq!(
+        repair_pr_draft["properties"]["execution_mode"]["enum"],
+        serde_json::json!(["dry-run"])
+    );
+    assert!(repair_pr_draft["properties"].get("eligible_packets").is_some());
+    assert!(repair_pr_draft["properties"].get("blocked_packets").is_some());
 
     let boundaries: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/boundaries.schema.json")).unwrap(),

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://jankurai.dev/schemas/repair-run.schema.json",
   "title": "jankurai repair run",
-  "description": "Dry-run repair execution receipt emitted by jankurai repair.",
+  "description": "Dry-run or fixture-apply repair execution receipt emitted by jankurai repair.",
   "type": "object",
   "required": [
     "schema_version",
@@ -110,6 +110,32 @@
     },
     "files_written": { "type": "array", "items": { "type": "string" } },
     "proof_evidence_index": { "type": "string" },
+    "auto_pr_draft": {
+      "type": "object",
+      "required": [
+        "status",
+        "branch_name",
+        "commit_title",
+        "pr_title",
+        "planned_changed_paths",
+        "proof_lanes",
+        "artifact_links",
+        "git_mutation_allowed",
+        "github_mutation_allowed"
+      ],
+      "properties": {
+        "status": { "enum": ["draft-only", "blocked", "failed"] },
+        "branch_name": { "type": "string" },
+        "commit_title": { "type": "string" },
+        "pr_title": { "type": "string" },
+        "planned_changed_paths": { "type": "array", "items": { "type": "string" } },
+        "proof_lanes": { "type": "array", "items": { "type": "string" } },
+        "artifact_links": { "type": "array", "items": { "type": "string" } },
+        "git_mutation_allowed": { "type": "boolean" },
+        "github_mutation_allowed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
     "proof_lanes": { "type": "array", "items": { "type": "string" } },
     "notes": { "type": "array", "items": { "type": "string" } }
   },

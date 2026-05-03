@@ -191,6 +191,7 @@ fn repair_run_output_validates_against_schema() {
     assert_eq!(run["auto_pr_status"], "not-requested");
     assert_eq!(run["planned_packets"], 1);
     assert_eq!(run["execution_mode"], "dry-run");
+    assert!(run.get("auto_pr_draft").is_none());
     assert!(run["applied_edits"].as_array().unwrap().is_empty());
     assert!(run["skipped_edits"].as_array().unwrap().is_empty());
     assert!(run["files_written"].as_array().unwrap().is_empty());

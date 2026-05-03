@@ -14,6 +14,8 @@ pub struct RepairArgs {
     pub dry_run: bool,
     pub fixture_apply: bool,
     pub auto_pr: bool,
+    pub pr_draft_out: Option<String>,
+    pub pr_draft_md: Option<String>,
     pub max_risk: String,
     pub out: Option<String>,
     pub md: Option<String>,
@@ -39,8 +41,23 @@ pub struct RepairRun {
     pub files_written: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub proof_evidence_index: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_pr_draft: Option<AutoPrDraftSummary>,
     pub proof_lanes: Vec<String>,
     pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AutoPrDraftSummary {
+    pub status: String,
+    pub branch_name: String,
+    pub commit_title: String,
+    pub pr_title: String,
+    pub planned_changed_paths: Vec<String>,
+    pub proof_lanes: Vec<String>,
+    pub artifact_links: Vec<String>,
+    pub git_mutation_allowed: bool,
+    pub github_mutation_allowed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Default)]
@@ -90,6 +107,9 @@ pub fn run(args: RepairArgs) -> Result<()> {
     if args.auto_pr && args.fixture_apply {
         bail!("`--auto-pr` cannot be combined with `--fixture-apply`");
     }
+    if !args.auto_pr && (args.pr_draft_out.is_some() || args.pr_draft_md.is_some()) {
+        bail!("`--pr-draft-out` and `--pr-draft-md` require `--auto-pr`");
+    }
     if !args.dry_run && !args.fixture_apply {
         bail!(
             "repair execution is dry-run only unless `--fixture-apply` is used with a fixture repo"
@@ -137,6 +157,28 @@ pub fn run(args: RepairArgs) -> Result<()> {
         "blocked"
     };
     let proof_lanes = proof_lanes(&plan);
+    let auto_pr_draft = if args.auto_pr {
+        let draft = crate::commands::repair_pr::build_auto_pr_draft(
+            &args,
+            &plan,
+            max_risk,
+            args.out.as_deref(),
+            args.md.as_deref(),
+            args.pr_draft_out.as_deref(),
+            args.pr_draft_md.as_deref(),
+        )?;
+        if let Some(path) = args.pr_draft_out.as_deref() {
+            validation::write_json(&args.repo, ArtifactSchema::RepairPrDraft, path, &draft.draft)?;
+        } else {
+            validation::validate_serializable(&args.repo, ArtifactSchema::RepairPrDraft, &draft.draft)?;
+        }
+        if let Some(path) = args.pr_draft_md.as_deref() {
+            crate::render::write_markdown(path, &draft.markdown)?;
+        }
+        Some(draft.summary)
+    } else {
+        None
+    };
     let run = RepairRun {
         schema_version: "1.0.0".to_string(),
         repo: args.repo.display().to_string(),
@@ -155,6 +197,7 @@ pub fn run(args: RepairArgs) -> Result<()> {
         skipped_edits: Vec::new(),
         files_written: Vec::new(),
         proof_evidence_index: None,
+        auto_pr_draft,
         proof_lanes,
         notes: vec![
             "repair execution is intentionally dry-run only in this workspace".to_string(),
@@ -203,6 +246,11 @@ fn render_markdown(run: &RepairRun) -> String {
     let _ = writeln!(out, "- files written: `{}`", run.files_written.join(", "));
     if let Some(path) = &run.proof_evidence_index {
         let _ = writeln!(out, "- proof evidence index: `{}`", path);
+    }
+    if let Some(draft) = &run.auto_pr_draft {
+        let _ = writeln!(out, "- auto-pr draft status: `{}`", draft.status);
+        let _ = writeln!(out, "- auto-pr draft branch: `{}`", draft.branch_name);
+        let _ = writeln!(out, "- auto-pr draft title: `{}`", draft.pr_title);
     }
     let _ = writeln!(out, "- proof lanes: `{}`", run.proof_lanes.join(", "));
     let _ = writeln!(out, "- notes: `{}`", run.notes.join(", "));

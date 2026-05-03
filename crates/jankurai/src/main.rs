@@ -317,6 +317,10 @@ struct RepairArgs {
     fixture_apply: bool,
     #[arg(long)]
     auto_pr: bool,
+    #[arg(long, value_name = "PATH")]
+    pr_draft_out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    pr_draft_md: Option<String>,
     #[arg(long, default_value = "low")]
     max_risk: String,
     #[arg(long, value_name = "PATH")]
@@ -542,6 +546,8 @@ fn main() -> anyhow::Result<()> {
                 dry_run: args.dry_run,
                 fixture_apply: args.fixture_apply,
                 auto_pr: args.auto_pr,
+                pr_draft_out: args.pr_draft_out,
+                pr_draft_md: args.pr_draft_md,
                 max_risk: args.max_risk,
                 out: args.out,
                 md: args.md,

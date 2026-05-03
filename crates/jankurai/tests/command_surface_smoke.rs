@@ -37,6 +37,40 @@ fn run_command(repo: &PathBuf, args: &[&str]) -> (serde_json::Value, String) {
     (json, md_text)
 }
 
+fn run_repair_with_draft(
+    repo: &PathBuf,
+    plan_path: &PathBuf,
+    draft_path: &PathBuf,
+) -> (serde_json::Value, serde_json::Value) {
+    let run_dir = tempdir().unwrap();
+    let run_json = run_dir.path().join("repair-run.json");
+    let run_md = run_json.with_extension("md");
+    let draft_md = draft_path.with_extension("md");
+    let status = Command::new(binary_path())
+        .arg("repair")
+        .arg(repo)
+        .arg("--plan")
+        .arg(plan_path)
+        .arg("--dry-run")
+        .arg("--auto-pr")
+        .arg("--max-risk")
+        .arg("medium")
+        .arg("--out")
+        .arg(&run_json)
+        .arg("--md")
+        .arg(&run_md)
+        .arg("--pr-draft-out")
+        .arg(draft_path)
+        .arg("--pr-draft-md")
+        .arg(&draft_md)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let run: serde_json::Value = serde_json::from_str(&fs::read_to_string(&run_json).unwrap()).unwrap();
+    let draft: serde_json::Value = serde_json::from_str(&fs::read_to_string(draft_path).unwrap()).unwrap();
+    (run, draft)
+}
+
 #[test]
 fn new_planner_commands_emit_stable_json_and_markdown() {
     let repo = tempdir().unwrap();
@@ -155,6 +189,105 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     fs::remove_file(&plan_path).unwrap();
 
     assert_eq!(fs::read_dir(repo.path()).unwrap().count(), 0);
+}
+
+#[test]
+fn repair_command_emits_auto_pr_draft_artifact() {
+    let repo = tempdir().unwrap();
+    assert_eq!(fs::read_dir(repo.path()).unwrap().count(), 0);
+    fs::create_dir_all(repo.path().join("agent")).unwrap();
+    fs::write(
+        repo.path().join("agent/owner-map.json"),
+        r#"{"owners":{"agent/":"agent","docs/":"standard","paper/":"paper","reference/":"read-only","target/":"workspace","crates/":"tools"}}"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("agent/test-map.json"),
+        r#"{"tests":{"docs/":{"command":"true","purpose":"fixture docs proof"},"agent/":{"command":"true","purpose":"fixture agent proof"}}}"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("agent/proof-lanes.toml"),
+        r#"[[lane]]
+name = "audit"
+command = "true"
+purpose = "fixture proof"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "agent/repo-score.json"
+source = "crates/jankurai"
+command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
+read_only = false
+"#,
+    )
+    .unwrap();
+
+    let plan_path = repo.path().join("repair-plan.json");
+    fs::write(
+        &plan_path,
+        serde_json::json!({
+            "schema_version": "1.0.0",
+            "source_report": "agent/repo-score.json",
+            "generated_at": "0",
+            "target_stack_id": "jankurai:v0.4",
+            "plan_mode": "dry-run",
+            "planned_edits": [{
+                "path": "docs/testing.md",
+                "operation": "modify",
+                "reason": "add docs",
+                "finding_fingerprint": "sha256:test",
+                "rule_id": "HLT-017-OPAQUE-OBSERVABILITY",
+                "apply_strategy": "append-text",
+                "risk_level": "medium",
+                "repair_eligibility": "agent-assisted"
+            }],
+            "planned_commands": ["false"],
+            "proof_lanes": ["audit"],
+            "rollback_guidance": ["restore docs"],
+            "human_approval_requirements": [],
+            "packets": [{
+                "finding_fingerprint": "sha256:test",
+                "finding_path": "docs/testing.md",
+                "rule_id": "HLT-017-OPAQUE-OBSERVABILITY",
+                "check_id": "HLT-017-OPAQUE-OBSERVABILITY",
+                "severity": "medium",
+                "owner": "standard",
+                "lane": "audit",
+                "problem": "opaque observability",
+                "why": "opaque observability",
+                "permission_profile": "docs-only",
+                "allowed_paths": ["docs/"],
+                "forbidden_paths": ["reference/"],
+                "expected_patch_shape": "add docs",
+                "required_proof": ["true"],
+                "stop_conditions": ["stop"],
+                "repair_eligibility": "agent-assisted",
+                "risk_level": "medium",
+                "eligibility_reason": "observability repairs are typically scoped to telemetry and error receipts",
+                "human_review_required": false,
+                "rollback_guidance": "restore docs"
+            }]
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let draft_path = repo.path().join("repair-pr-draft.json");
+    let (repair, draft) = run_repair_with_draft(&repo.path().to_path_buf(), &plan_path, &draft_path);
+
+    assert_eq!(repair["auto_pr_status"], "eligible-dry-run-only");
+    assert_eq!(draft["status"], "draft-only");
+    assert!(draft["artifact_links"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|link| link == "agent/repo-score.json"));
+    assert!(draft["pr_body"].as_str().unwrap().contains("Eligible Packets"));
+    validation::validate_value(repo.path(), ArtifactSchema::RepairRun, &repair).unwrap();
+    validation::validate_value(repo.path(), ArtifactSchema::RepairPrDraft, &draft).unwrap();
 }
 
 #[test]

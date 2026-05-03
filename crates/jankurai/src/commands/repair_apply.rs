@@ -134,6 +134,7 @@ pub fn run_fixture_apply(args: RepairArgs, plan: RepairPlan, max_risk: RepairRis
         skipped_edits,
         files_written,
         proof_evidence_index,
+        auto_pr_draft: None,
         proof_lanes: proof_lanes(&plan),
         notes,
     };
