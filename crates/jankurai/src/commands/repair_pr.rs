@@ -113,7 +113,10 @@ pub fn build_auto_pr_draft(
             ));
         }
         if !packet_eligibility.allows_auto_pr() {
-            reasons.push(format!("repair eligibility is {}", packet_eligibility.as_str()));
+            reasons.push(format!(
+                "repair eligibility is {}",
+                packet_eligibility.as_str()
+            ));
         }
         if path_is_forbidden(&path) {
             reasons.push("path is in a forbidden repository zone".to_string());
@@ -336,7 +339,10 @@ fn normalize_title(value: &str) -> String {
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
         .join(" ");
-    let mut title = collapsed.replace('\t', " ").replace('\r', " ").replace('\n', " ");
+    let mut title = collapsed
+        .replace('\t', " ")
+        .replace('\r', " ")
+        .replace('\n', " ");
     while title.contains("  ") {
         title = title.replace("  ", " ");
     }
@@ -369,7 +375,9 @@ fn normalize_path(path: &str) -> Result<String> {
 }
 
 fn path_allowed(path: &str, allowed_paths: &[String]) -> bool {
-    allowed_paths.iter().any(|allowed| path_matches(path, allowed))
+    allowed_paths
+        .iter()
+        .any(|allowed| path_matches(path, allowed))
 }
 
 fn path_forbidden(path: &str, forbidden_paths: &[String]) -> bool {
@@ -439,10 +447,18 @@ fn render_markdown(draft: &RepairPrDraft) -> String {
         "- planned changed paths: `{}`",
         draft.planned_changed_paths.join(", ")
     );
-    let _ = writeln!(out, "- eligible packets: `{}`", draft.eligible_packets.len());
+    let _ = writeln!(
+        out,
+        "- eligible packets: `{}`",
+        draft.eligible_packets.len()
+    );
     let _ = writeln!(out, "- blocked packets: `{}`", draft.blocked_packets.len());
     let _ = writeln!(out, "- proof lanes: `{}`", draft.proof_lanes.join(", "));
-    let _ = writeln!(out, "- artifact links: `{}`", draft.artifact_links.join(", "));
+    let _ = writeln!(
+        out,
+        "- artifact links: `{}`",
+        draft.artifact_links.join(", ")
+    );
     let _ = writeln!(out, "- residual risk: `{}`", draft.residual_risk.join(", "));
     let _ = writeln!(out, "- safety notes: `{}`", draft.safety_notes.join(", "));
     let _ = writeln!(
@@ -460,7 +476,11 @@ fn render_markdown(draft: &RepairPrDraft) -> String {
         let _ = writeln!(out);
         let _ = writeln!(out, "## Eligible Packets");
         for packet in &draft.eligible_packets {
-            let _ = writeln!(out, "- `{}` `{}` -> `{}`", packet.rule_id, packet.path, packet.apply_strategy);
+            let _ = writeln!(
+                out,
+                "- `{}` `{}` -> `{}`",
+                packet.rule_id, packet.path, packet.apply_strategy
+            );
         }
     }
 

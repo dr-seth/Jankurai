@@ -225,6 +225,14 @@ fn cell_registry_and_manifest_schemas_parse() {
         &fs::read_to_string(repo.join("schemas/repair-pr-draft.schema.json")).unwrap(),
     )
     .unwrap();
+    let optimization_report: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/optimization-report.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let exception_expiry_report: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/exception-expiry-report.schema.json")).unwrap(),
+    )
+    .unwrap();
     let repair_packet: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/repair-packet.schema.json")).unwrap(),
     )
@@ -344,6 +352,76 @@ fn cell_registry_and_manifest_schemas_parse() {
         .is_some());
 
     assert_eq!(
+        optimization_report["$id"],
+        "https://jankurai.dev/schemas/optimization-report.schema.json"
+    );
+    let opt_required = optimization_report["required"].as_array().unwrap();
+    for key in [
+        "mode",
+        "context_size_before_bytes",
+        "context_size_after_bytes",
+        "estimated_tokens_before",
+        "estimated_tokens_after",
+        "context_files",
+        "benchmark_summary",
+        "findings",
+        "proof_requirements",
+    ] {
+        assert!(opt_required.iter().any(|value| value == key));
+    }
+    assert_eq!(
+        optimization_report["properties"]["mode"]["enum"],
+        serde_json::json!(["all", "token", "performance", "dependency", "dead-code"])
+    );
+    assert!(optimization_report["properties"]
+        .get("context_files")
+        .is_some());
+    assert!(optimization_report["properties"]
+        .get("benchmark_summary")
+        .is_some());
+    assert!(optimization_report["properties"].get("findings").is_some());
+
+    assert_eq!(
+        exception_expiry_report["$id"],
+        "https://jankurai.dev/schemas/exception-expiry-report.schema.json"
+    );
+    let expiry_required = exception_expiry_report["required"].as_array().unwrap();
+    for key in [
+        "exception_root",
+        "warning_days",
+        "total_exceptions",
+        "expired_count",
+        "expiring_soon_count",
+        "invalid_count",
+        "exceptions",
+        "proof_requirements",
+    ] {
+        assert!(expiry_required.iter().any(|value| value == key));
+    }
+    assert_eq!(
+        exception_expiry_report["properties"]["status"]["enum"],
+        serde_json::json!(["complete", "blocked", "failed"])
+    );
+    let expiry_item_props = exception_expiry_report["properties"]["exceptions"]["items"]
+        ["properties"]
+        .as_object()
+        .unwrap();
+    for key in [
+        "path",
+        "code",
+        "owner",
+        "reason",
+        "expires",
+        "migration_plan",
+        "proof_lane",
+        "status",
+        "repair_options",
+        "notes",
+    ] {
+        assert!(expiry_item_props.contains_key(key));
+    }
+
+    assert_eq!(
         repair_pr_draft["$id"],
         "https://jankurai.dev/schemas/repair-pr-draft.schema.json"
     );
@@ -376,8 +454,12 @@ fn cell_registry_and_manifest_schemas_parse() {
         repair_pr_draft["properties"]["execution_mode"]["enum"],
         serde_json::json!(["dry-run"])
     );
-    assert!(repair_pr_draft["properties"].get("eligible_packets").is_some());
-    assert!(repair_pr_draft["properties"].get("blocked_packets").is_some());
+    assert!(repair_pr_draft["properties"]
+        .get("eligible_packets")
+        .is_some());
+    assert!(repair_pr_draft["properties"]
+        .get("blocked_packets")
+        .is_some());
 
     let boundaries: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/boundaries.schema.json")).unwrap(),

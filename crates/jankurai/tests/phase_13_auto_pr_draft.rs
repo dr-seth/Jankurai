@@ -42,7 +42,11 @@ read_only = false
     .unwrap();
 }
 
-fn write_plan(repo: &Path, packets: Vec<serde_json::Value>, edits: Vec<serde_json::Value>) -> PathBuf {
+fn write_plan(
+    repo: &Path,
+    packets: Vec<serde_json::Value>,
+    edits: Vec<serde_json::Value>,
+) -> PathBuf {
     fs::create_dir_all(repo.join("target/jankurai")).unwrap();
     let path = repo.join("target/jankurai/repair-plan.json");
     let plan = json!({
@@ -223,7 +227,11 @@ fn auto_pr_draft_emits_schema_valid_artifact_for_eligible_dry_run() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     let run = read_json(&run_path);
     let draft = read_json(draft_path.as_ref().unwrap());
@@ -241,8 +249,14 @@ fn auto_pr_draft_emits_schema_valid_artifact_for_eligible_dry_run() {
     assert_eq!(draft["planned_changed_paths"][0], "docs/notes.md");
     assert!(draft["eligible_packets"].as_array().unwrap().len() == 1);
     assert!(draft["blocked_packets"].as_array().unwrap().is_empty());
-    assert!(draft["branch_name"].as_str().unwrap().starts_with("jankurai/repair/"));
-    assert!(draft["pr_body"].as_str().unwrap().contains("Eligible Packets"));
+    assert!(draft["branch_name"]
+        .as_str()
+        .unwrap()
+        .starts_with("jankurai/repair/"));
+    assert!(draft["pr_body"]
+        .as_str()
+        .unwrap()
+        .contains("Eligible Packets"));
 }
 
 #[test]
@@ -275,7 +289,11 @@ fn auto_pr_draft_blocks_high_risk_packet() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "low"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     let run = read_json(&run_path);
     let draft = read_json(draft_path.as_ref().unwrap());
@@ -324,12 +342,7 @@ fn auto_pr_draft_blocks_secret_and_prompt_injection_packets() {
                 "replace-exact",
                 json!({"match_text": "secret", "replacement_text": "redacted"}),
             ),
-            edit(
-                "docs/prompt.md",
-                "sha256:prompt",
-                "review-only",
-                json!({}),
-            ),
+            edit("docs/prompt.md", "sha256:prompt", "review-only", json!({})),
         ],
     );
 
@@ -340,7 +353,11 @@ fn auto_pr_draft_blocks_secret_and_prompt_injection_packets() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "critical"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     let run = read_json(&run_path);
     let draft = read_json(draft_path.as_ref().unwrap());
@@ -388,7 +405,11 @@ fn auto_pr_draft_includes_proof_lanes_and_artifact_links() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     let run = read_json(&run_path);
     let draft = read_json(draft_path.as_ref().unwrap());
@@ -456,7 +477,11 @@ fn auto_pr_draft_branch_name_is_deterministic_and_sanitized() {
         Some("target/jankurai/repair-pr-draft-1.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(first_output.status.success(), "{}", String::from_utf8_lossy(&first_output.stderr));
+    assert!(
+        first_output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first_output.stderr)
+    );
     let (second_output, second_run_path, second_draft_path) = run_repair(
         repo.path(),
         &plan_path,
@@ -464,7 +489,11 @@ fn auto_pr_draft_branch_name_is_deterministic_and_sanitized() {
         Some("target/jankurai/repair-pr-draft-2.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(second_output.status.success(), "{}", String::from_utf8_lossy(&second_output.stderr));
+    assert!(
+        second_output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&second_output.stderr)
+    );
 
     let first_draft = read_json(first_draft_path.as_ref().unwrap());
     let second_draft = read_json(second_draft_path.as_ref().unwrap());
@@ -513,7 +542,11 @@ fn auto_pr_draft_does_not_create_git_directory() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(!repo.path().join(".git").exists());
 }
 
@@ -538,7 +571,9 @@ fn auto_pr_draft_does_not_change_existing_git_branch() {
         .output()
         .unwrap();
     assert!(branch_before.status.success());
-    let branch_before = String::from_utf8_lossy(&branch_before.stdout).trim().to_string();
+    let branch_before = String::from_utf8_lossy(&branch_before.stdout)
+        .trim()
+        .to_string();
     let plan_path = write_plan(
         repo.path(),
         vec![packet(
@@ -565,7 +600,11 @@ fn auto_pr_draft_does_not_change_existing_git_branch() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let branch_after = Command::new("git")
         .arg("-C")
         .arg(repo.path())
@@ -575,7 +614,9 @@ fn auto_pr_draft_does_not_change_existing_git_branch() {
         .output()
         .unwrap();
     assert!(branch_after.status.success());
-    let branch_after = String::from_utf8_lossy(&branch_after.stdout).trim().to_string();
+    let branch_after = String::from_utf8_lossy(&branch_after.stdout)
+        .trim()
+        .to_string();
     assert_eq!(branch_before, branch_after);
 }
 
@@ -614,7 +655,11 @@ fn auto_pr_draft_does_not_execute_plan_commands() {
         Some("target/jankurai/repair-pr-draft.json"),
         &["--dry-run", "--auto-pr", "--max-risk", "medium"],
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     let run = read_json(&run_path);
     let draft = read_json(draft_path.as_ref().unwrap());

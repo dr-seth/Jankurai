@@ -2,8 +2,8 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
-    agent, bench, cell, certify, context_pack, doctor, govern, init, migrate, proof, registry,
-    repair, repair_plan, security,
+    agent, bench, cell, certify, context_pack, doctor, exceptions, govern, init, migrate, optimize,
+    proof, registry, repair, repair_plan, security,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -39,6 +39,11 @@ enum Commands {
     Certify(CertifyArgs),
     Govern(GovernArgs),
     Repair(RepairArgs),
+    Optimize(OptimizeArgs),
+    Exceptions {
+        #[command(subcommand)]
+        command: ExceptionCommand,
+    },
     Adapters {
         #[command(subcommand)]
         command: AdapterCommand,
@@ -83,6 +88,11 @@ enum IssuesCommand {
 #[derive(Subcommand, Debug)]
 enum SecurityCommand {
     Run(SecurityRunArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum ExceptionCommand {
+    Expire(ExceptionExpireArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -330,6 +340,30 @@ struct RepairArgs {
 }
 
 #[derive(Args, Debug)]
+struct OptimizeArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, default_value = "all", value_parser = ["all", "token", "performance", "dependency", "dead-code"])]
+    mode: String,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct ExceptionExpireArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, default_value_t = 7)]
+    warning_days: i64,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
 struct VersionsArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -553,6 +587,24 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::Optimize(args)) => {
+            optimize::run(optimize::OptimizeArgs {
+                repo: args.repo,
+                mode: args.mode,
+                out: args.out,
+                md: args.md,
+            })?;
+        }
+        Some(Commands::Exceptions { command }) => match command {
+            ExceptionCommand::Expire(args) => {
+                exceptions::run_expire(exceptions::ExceptionExpireArgs {
+                    repo: args.repo,
+                    warning_days: args.warning_days,
+                    out: args.out,
+                    md: args.md,
+                })?;
+            }
+        },
         Some(Commands::Adapters { command }) => match command {
             AdapterCommand::Verify(args) => run_adapters_verify(args)?,
             AdapterCommand::Sync(args) => run_adapters_sync(args)?,

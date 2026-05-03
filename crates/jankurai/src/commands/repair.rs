@@ -168,9 +168,18 @@ pub fn run(args: RepairArgs) -> Result<()> {
             args.pr_draft_md.as_deref(),
         )?;
         if let Some(path) = args.pr_draft_out.as_deref() {
-            validation::write_json(&args.repo, ArtifactSchema::RepairPrDraft, path, &draft.draft)?;
+            validation::write_json(
+                &args.repo,
+                ArtifactSchema::RepairPrDraft,
+                path,
+                &draft.draft,
+            )?;
         } else {
-            validation::validate_serializable(&args.repo, ArtifactSchema::RepairPrDraft, &draft.draft)?;
+            validation::validate_serializable(
+                &args.repo,
+                ArtifactSchema::RepairPrDraft,
+                &draft.draft,
+            )?;
         }
         if let Some(path) = args.pr_draft_md.as_deref() {
             crate::render::write_markdown(path, &draft.markdown)?;

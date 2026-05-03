@@ -66,8 +66,10 @@ fn run_repair_with_draft(
         .status()
         .unwrap();
     assert!(status.success());
-    let run: serde_json::Value = serde_json::from_str(&fs::read_to_string(&run_json).unwrap()).unwrap();
-    let draft: serde_json::Value = serde_json::from_str(&fs::read_to_string(draft_path).unwrap()).unwrap();
+    let run: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&run_json).unwrap()).unwrap();
+    let draft: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(draft_path).unwrap()).unwrap();
     (run, draft)
 }
 
@@ -276,7 +278,8 @@ read_only = false
     )
     .unwrap();
     let draft_path = repo.path().join("repair-pr-draft.json");
-    let (repair, draft) = run_repair_with_draft(&repo.path().to_path_buf(), &plan_path, &draft_path);
+    let (repair, draft) =
+        run_repair_with_draft(&repo.path().to_path_buf(), &plan_path, &draft_path);
 
     assert_eq!(repair["auto_pr_status"], "eligible-dry-run-only");
     assert_eq!(draft["status"], "draft-only");
@@ -285,7 +288,10 @@ read_only = false
         .unwrap()
         .iter()
         .any(|link| link == "agent/repo-score.json"));
-    assert!(draft["pr_body"].as_str().unwrap().contains("Eligible Packets"));
+    assert!(draft["pr_body"]
+        .as_str()
+        .unwrap()
+        .contains("Eligible Packets"));
     validation::validate_value(repo.path(), ArtifactSchema::RepairRun, &repair).unwrap();
     validation::validate_value(repo.path(), ArtifactSchema::RepairPrDraft, &draft).unwrap();
 }
