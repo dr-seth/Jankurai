@@ -1,6 +1,10 @@
 pub const DESTRUCTIVE_MARKERS: &[&str] = &[
     "drop table",
     "drop column",
+    "drop database",
+    "drop schema",
+    "drop index",
+    "drop constraint",
     "truncate table",
     "delete from",
     "alter table",

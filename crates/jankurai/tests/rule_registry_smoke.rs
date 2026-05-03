@@ -21,3 +21,12 @@ fn hlt014_a11y_gap_is_registered() {
     assert_eq!(rule.category, "ux-qa");
     assert_eq!(rule.lane, "web");
 }
+
+#[test]
+fn hlt021_destructive_migration_is_registered() {
+    let rule = rules::lookup("HLT-021-DESTRUCTIVE-MIGRATION")
+        .expect("HLT-021-DESTRUCTIVE-MIGRATION must exist in registry");
+    assert_eq!(rule.id, "HLT-021-DESTRUCTIVE-MIGRATION");
+    assert_eq!(rule.category, "data");
+    assert_eq!(rule.lane, "db-migration-analyze");
+}

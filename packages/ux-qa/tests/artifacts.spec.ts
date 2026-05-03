@@ -66,11 +66,12 @@ accessibilityScanRequired = true
   const report = payload.reports[0];
   const kinds = report.artifacts.map((item: { kind: string }) => item.kind);
   expect(code).toBe(1);
-  expect(report.schemaVersion).toBe("1.3.0");
+  expect(report.schemaVersion).toBe("1.4.0");
   expect(kinds).toEqual(expect.arrayContaining(["screenshot", "aria-snapshot", "accessibility"]));
   expect(report.artifactCoverage.required).toEqual(["screenshot", "aria-snapshot", "accessibility"]);
   expect(report.artifactCoverage.missing).toEqual([]);
   expect(report.accessibility.artifactPath).toMatch(/\.a11y\.json$/);
   expect(report.stateCoverage.missing).toEqual(["loading", "success"]);
   expect(report.decision).toBe("block");
+  expect(report.artifacts.every((item: { sha256?: string }) => /^sha256:[0-9a-f]{64}$/.test(item.sha256 ?? ""))).toBe(true);
 });

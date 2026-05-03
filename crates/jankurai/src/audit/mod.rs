@@ -67,7 +67,8 @@ pub fn run_audit_with_options(
         .map(|d| d.weighted_points)
         .sum::<f64>()
         .round() as i32;
-    let caps_applied = caps_applied(&ctx);
+    let destructive_sql_hits = scan::destructive_sql_hits(&ctx);
+    let caps_applied = caps_applied(&ctx, !destructive_sql_hits.is_empty());
     let final_score = caps_applied
         .iter()
         .filter_map(|c| CAPS.iter().find(|(id, _)| id == c).map(|(_, m)| *m))
@@ -81,6 +82,7 @@ pub fn run_audit_with_options(
         final_score,
         policy.minimum_score,
         ux_qa.artifact.as_ref(),
+        &destructive_sql_hits,
     );
     let agent_fix_queue = fix_queue::build_agent_fix_queue(&findings);
     let decision = report_decision(final_score, &findings, policy.minimum_score);
@@ -310,6 +312,7 @@ fn build_findings(
     final_score: i32,
     minimum_score: i32,
     ux_artifact: Option<&UxQaReportArtifactSummary>,
+    destructive_sql_hits: &[scan::FindingHit],
 ) -> Vec<Finding> {
     let dim_by_name: HashMap<_, _> = dimensions.iter().map(|d| (d.name.as_str(), d)).collect();
     let mut b = FindingBuilder::new(ctx);
@@ -541,6 +544,31 @@ fn build_findings(
                 None,
             );
         }
+        if art.visual_baseline_review > 0 || art.visual_baseline_block > 0 {
+            b.add(
+                "high",
+                "ux-qa",
+                &art.path,
+                "validated UX QA evidence has visual baseline gaps",
+                "review or block the changed visual baseline evidence and regenerate the baseline artifacts before treating the surface as proven",
+                vec![
+                    format!(
+                        "visual baseline missing/changed: {}/{}",
+                        art.visual_baseline_missing, art.visual_baseline_changed
+                    ),
+                    format!(
+                        "visual baseline review/block: {}/{}",
+                        art.visual_baseline_review, art.visual_baseline_block
+                    ),
+                    format!(
+                        "artifact fingerprints: {}",
+                        art.artifact_fingerprint_count
+                    ),
+                ],
+                Some("HLT-013-RENDERED-UX-GAP"),
+                None,
+            );
+        }
         if art.accessibility_violation_total > 0
             || art.reports_missing_required_accessibility_artifact > 0
         {
@@ -592,9 +620,19 @@ fn build_findings(
             hit.line,
         );
     }
-    if !scan::destructive_sql_hits(ctx).is_empty() {
-        let hit = scan::destructive_sql_hits(ctx)[0].clone();
-        b.add("high","data",&hit.path,"destructive migration lacks rollback, backfill, lock, or safety evidence","add migration safety evidence: rollback/down plan, backfill strategy, lock timeout, staged deploy note, and DB proof lane", vec![hit.problem], Some("HLT-006-DIRECT-DB-WRONG-LAYER"), hit.line);
+    if !destructive_sql_hits.is_empty() {
+        let hit = destructive_sql_hits[0].clone();
+        let fix = hit.agent_fix.as_str();
+        b.add(
+            "high",
+            "data",
+            &hit.path,
+            "destructive migration lacks documented safety evidence",
+            fix,
+            vec![hit.problem],
+            Some("HLT-021-DESTRUCTIVE-MIGRATION"),
+            hit.line,
+        );
     }
     if caps_applied.contains(&"missing-rust-property-or-integration-tests".into()) {
         b.add("high","test","crates/","Rust surface lacks required property and/or integration tests","add `proptest` or equivalent invariant tests plus `tests/` integration coverage routed through `cargo nextest` or `cargo test`", vec!["Rust surface detected".into()], Some("HLT-008-FALSE-GREEN-RISK"), None);

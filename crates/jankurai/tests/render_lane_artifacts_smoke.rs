@@ -11,7 +11,7 @@ fn thin_repo(dir: &std::path::Path) {
 fn minimal_ux_envelope() -> serde_json::Value {
     serde_json::json!({
         "reports": [{
-            "schemaVersion": "1.3.0",
+            "schemaVersion": "1.4.0",
             "toolVersion": "0.4.0",
             "url": "about:blank",
             "checkedAt": "2026-05-02T12:00:00.000Z",
@@ -25,14 +25,33 @@ fn minimal_ux_envelope() -> serde_json::Value {
             "elements": [],
             "violations": [],
             "artifacts": [{
+                "kind": "screenshot",
+                "path": "target/jankurai/ux-qa/local.png",
+                "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "viewport": { "width": 1280, "height": 720 }
+            },{
                 "kind": "accessibility",
                 "path": "target/jankurai/ux-qa/local.a11y.json",
                 "viewport": { "width": 1280, "height": 720 }
             }],
+            "visualBaseline": {
+                "mode": "review",
+                "status": "changed",
+                "decision": "review",
+                "actualPath": "target/jankurai/ux-qa/local.png",
+                "baselinePath": "target/jankurai/ux-qa/baseline.png",
+                "diffPath": "target/jankurai/ux-qa/diff.png",
+                "actualSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "baselineSha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "owner": "design",
+                "approvedBy": "ux",
+                "approvedAt": "2026-05-02T12:00:00.000Z",
+                "approvalNote": "fixture"
+            },
             "artifactCoverage": {
                 "required": ["screenshot", "aria-snapshot", "accessibility"],
-                "present": ["accessibility"],
-                "missing": ["screenshot", "aria-snapshot"]
+                "present": ["screenshot", "accessibility"],
+                "missing": ["aria-snapshot"]
             },
             "accessibility": {
                 "violations": 1,
@@ -112,8 +131,20 @@ fn markdown_and_github_summary_include_lane_artifacts() {
     let md = render_markdown(&report);
     assert!(md.contains("### Ingested UX QA report (`target/jankurai/ux-qa.json`)"));
     assert!(md.contains("- Worst decision: `warn`"));
-    assert!(md.contains("- Artifact counts: `accessibility=1`"));
-    assert!(md.contains("- Missing required artifacts: `1` report(s) `aria-snapshot, screenshot`"));
+    let counts_line = md
+        .lines()
+        .find(|l| l.contains("Artifact counts"))
+        .unwrap_or("");
+    assert!(
+        counts_line.contains("accessibility=1"),
+        "expected accessibility artifact count in markdown; counts line was {:?}; md:\n{md}",
+        counts_line
+    );
+    assert!(md.contains("- Artifact fingerprints: `1`"));
+    assert!(md.contains(
+        "- Visual baseline counts: missing=`0` changed=`1` review=`1` block=`0`"
+    ));
+    assert!(md.contains("- Missing required artifacts: `1` report(s) `aria-snapshot`"));
     assert!(md.contains("- Accessibility violations / incomplete / passes: `1` / `2` / `9`"));
     assert!(md.contains("## Security evidence (ingested)"));
     assert!(md.contains("- Source: `target/jankurai/security/evidence.json`"));
@@ -131,6 +162,8 @@ fn markdown_and_github_summary_include_lane_artifacts() {
     assert!(gh.contains("ux-qa `target/jankurai/ux-qa.json`"));
     assert!(gh.contains("worst=warn"));
     assert!(gh.contains("missing_artifacts=1"));
+    assert!(gh.contains("fingerprints=1"));
+    assert!(gh.contains("visual_baseline=missing:0/changed:1/review:1/block:0"));
     assert!(gh.contains("a11y_violations=1"));
     assert!(gh.contains("security `target/jankurai/security/evidence.json`"));
     assert!(gh.contains("- boundaries `agent/boundaries.toml`:"));

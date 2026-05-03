@@ -246,6 +246,9 @@ fn expected_patch_shape(rule_id: &str, severity: &str, path: &str) -> String {
         "HLT-006-DIRECT-DB-WRONG-LAYER" => {
             "move SQL into the adapter or migration layer and keep domain code pure".to_string()
         }
+        "HLT-021-DESTRUCTIVE-MIGRATION" => {
+            "add rollback/backfill/lock or staged-deploy notes (or an approved `jankurai:migration-safe` marker) and rerun db-migration-analyze".to_string()
+        }
         "HLT-007-HANDWRITTEN-CONTRACT" => {
             "replace handwritten mirrors with source contract or generated client output"
                 .to_string()
@@ -283,6 +286,7 @@ fn human_review_required(
                 | "HLT-012-OVERBROAD-AGENCY"
                 | "HLT-002-GENERATED-MUTATION"
                 | "HLT-006-DIRECT-DB-WRONG-LAYER"
+                | "HLT-021-DESTRUCTIVE-MIGRATION"
                 | "HLT-007-HANDWRITTEN-CONTRACT"
                 | "HLT-013-RENDERED-UX-GAP"
                 | "HLT-019-STREAMING-RUNTIME-DRIFT"

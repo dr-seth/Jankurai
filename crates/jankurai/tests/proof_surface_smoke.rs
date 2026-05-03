@@ -3,6 +3,7 @@ use std::process::Command;
 use tempfile::tempdir;
 
 use jankurai::validation::{self, ArtifactSchema};
+use sha2::{Digest, Sha256};
 
 fn binary_path() -> &'static str {
     env!("CARGO_BIN_EXE_jankurai")
@@ -212,7 +213,8 @@ fn prove_writes_receipts_and_logs() {
     fs::write(&plan_path, serde_json::to_string_pretty(&plan).unwrap()).unwrap();
 
     fs::create_dir_all(work.join("security")).unwrap();
-    fs::write(work.join("ux-qa.json"), "{\"reports\":[]}\n").unwrap();
+    let ux_report = r#"{"reports":[{"schemaVersion":"1.4.0","toolVersion":"0.4.0","url":"about:blank","checkedAt":"2026-05-02T12:00:00.000Z","viewport":{"width":1280,"height":720},"metrics":{"scrollWidth":1280,"clientWidth":1280,"scrollHeight":720,"clientHeight":720},"elements":[],"violations":[],"artifacts":[],"summary":{"errors":0,"warnings":0,"byRule":{}},"decision":"pass"}]}"#;
+    fs::write(work.join("ux-qa.json"), ux_report).unwrap();
     fs::write(work.join("security/evidence.json"), "{}\n").unwrap();
     fs::write(repo.path().join("agent/repo-score.json"), "{\"score\":0}\n").unwrap();
     fs::write(work.join("jankurai.sarif"), "{}\n").unwrap();
@@ -267,6 +269,8 @@ generated_type_paths = []
         evidence_value["ux_qa_report_path"],
         "target/jankurai/ux-qa.json"
     );
+    let expected_digest = format!("sha256:{:x}", Sha256::digest(ux_report.as_bytes()));
+    assert_eq!(evidence_value["ux_qa_report_digest"], expected_digest);
     assert_eq!(
         evidence_value["security_evidence_path"],
         "target/jankurai/security/evidence.json"

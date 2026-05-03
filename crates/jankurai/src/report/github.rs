@@ -41,13 +41,18 @@ pub fn render_step_summary(report: &Report) -> String {
         if let Some(art) = &report.ux_qa.artifact {
             let _ = writeln!(
                 out,
-                "- ux-qa `{}`: reports={} worst={} violations={} missing_states={} missing_artifacts={} a11y_violations={}",
+                "- ux-qa `{}`: reports={} worst={} violations={} missing_states={} missing_artifacts={} fingerprints={} visual_baseline=missing:{}/changed:{}/review:{}/block:{} a11y_violations={}",
                 art.path,
                 art.report_count,
                 art.worst_decision,
                 art.total_violations,
                 art.reports_missing_required_states,
                 art.reports_missing_required_artifacts,
+                art.artifact_fingerprint_count,
+                art.visual_baseline_missing,
+                art.visual_baseline_changed,
+                art.visual_baseline_review,
+                art.visual_baseline_block,
                 art.accessibility_violation_total
             );
         }

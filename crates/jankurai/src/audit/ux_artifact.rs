@@ -42,16 +42,28 @@ fn summarize(value: &Value) -> Option<UxQaReportArtifactSummary> {
     let mut accessibility_violation_total = 0u64;
     let mut accessibility_incomplete_total = 0u64;
     let mut accessibility_pass_total = 0u64;
+    let mut artifact_fingerprint_count = 0usize;
+    let mut visual_baseline_missing = 0usize;
+    let mut visual_baseline_changed = 0usize;
+    let mut visual_baseline_review = 0usize;
+    let mut visual_baseline_block = 0usize;
 
     for report in reports {
         if let Some(arr) = report.get("violations").and_then(Value::as_array) {
             total_violations += arr.len();
         }
         if let Some(arr) = report.get("artifacts").and_then(Value::as_array) {
-            for kind in arr
-                .iter()
-                .filter_map(|artifact| artifact.get("kind").and_then(Value::as_str))
-            {
+            for artifact in arr {
+                if artifact
+                    .get("sha256")
+                    .and_then(Value::as_str)
+                    .map(|sha| !sha.trim().is_empty())
+                    .unwrap_or(false)
+                {
+                    artifact_fingerprint_count += 1;
+                }
+            }
+            for kind in arr.iter().filter_map(|artifact| artifact.get("kind").and_then(Value::as_str)) {
                 *artifact_counts_by_kind.entry(kind.to_string()).or_insert(0) += 1;
             }
         }
@@ -86,6 +98,26 @@ fn summarize(value: &Value) -> Option<UxQaReportArtifactSummary> {
                 .and_then(Value::as_u64)
                 .unwrap_or(0);
         }
+        if let Some(visual_baseline) = report.get("visualBaseline") {
+            match visual_baseline
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+            {
+                "not-configured" | "missing-baseline" => visual_baseline_missing += 1,
+                "changed" => visual_baseline_changed += 1,
+                _ => {}
+            }
+            match visual_baseline
+                .get("decision")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+            {
+                "review" => visual_baseline_review += 1,
+                "block" => visual_baseline_block += 1,
+                _ => {}
+            }
+        }
         let d = report
             .get("decision")
             .and_then(Value::as_str)
@@ -113,6 +145,11 @@ fn summarize(value: &Value) -> Option<UxQaReportArtifactSummary> {
         accessibility_violation_total,
         accessibility_incomplete_total,
         accessibility_pass_total,
+        artifact_fingerprint_count,
+        visual_baseline_missing,
+        visual_baseline_changed,
+        visual_baseline_review,
+        visual_baseline_block,
     })
 }
 

@@ -61,6 +61,11 @@ command = "cargo run -p jankurai -- migrate examples/legacy-node-api --json targ
 purpose = "verify migration fixture"
 
 [[lane]]
+name = "db-migration-analyze"
+command = "cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json"
+purpose = "write migration liability report for DB and modernization evidence"
+
+[[lane]]
 name = "build-schemas"
 command = "cargo test -p jankurai && npm --workspace @jankurai/ux-qa run build"
 purpose = "build schema-carrying Rust and UX QA"

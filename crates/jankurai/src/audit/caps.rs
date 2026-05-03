@@ -31,7 +31,7 @@ pub const CAPS: &[(&str, i32)] = &[
     ("streaming-runtime-drift", 78),
 ];
 
-pub fn caps_applied(ctx: &AuditContext) -> Vec<String> {
+pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> Vec<String> {
     let mut caps = Vec::new();
     if !has_root_agents(ctx) {
         caps.push("no-root-agent-instructions".into());
@@ -103,7 +103,7 @@ pub fn caps_applied(ctx: &AuditContext) -> Vec<String> {
     if !scan::false_green_hits(ctx).is_empty() {
         caps.push("false-green-test-risk".into());
     }
-    if !scan::destructive_sql_hits(ctx).is_empty() {
+    if has_destructive_migration_sql {
         caps.push("destructive-migration-risk".into());
     }
     if has_rust_surface(ctx) && (!has_rust_property_tests(ctx) || !has_rust_integration_tests(ctx))

@@ -96,6 +96,8 @@ pub struct ProofEvidenceIndex {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ux_qa_report_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ux_qa_report_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub security_evidence_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repo_score_json_path: Option<String>,
@@ -216,6 +218,7 @@ pub fn run_prove(args: ProveArgs) -> Result<()> {
             &args.repo,
             "target/jankurai/ux-qa.json",
         ),
+        ux_qa_report_digest: sha256_file_if_exists(&args.repo, "target/jankurai/ux-qa.json"),
         security_evidence_path: optional_repo_relative_existing(
             &args.repo,
             "target/jankurai/security/evidence.json",
@@ -738,6 +741,12 @@ fn optional_repo_relative_existing(repo: &Path, rel_posix: &str) -> Option<Strin
     } else {
         None
     }
+}
+
+fn sha256_file_if_exists(repo: &Path, rel_posix: &str) -> Option<String> {
+    let path = repo.join(rel_posix);
+    let bytes = fs::read(&path).ok()?;
+    Some(format!("sha256:{:x}", Sha256::digest(bytes)))
 }
 
 fn route_risk_note(path: &str) -> String {

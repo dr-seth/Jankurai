@@ -2,7 +2,7 @@
 
 Status: partial
 Owner: standard
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
 
 ## Objective
@@ -23,12 +23,17 @@ Existing policy:
 - **`jankurai audit`** ingests the same manifest when present and schema-valid: **`boundaries.artifact`** holds a compact summary (path, content fingerprint, stack id/version, queue path counts, streaming-exception count). Invalid or missing files leave **`artifact`** omitted. Implementation in `crates/jankurai/src/audit/boundaries_artifact.rs`; tests in `crates/jankurai/tests/boundaries_audit_ingest_smoke.rs`; **`schemas/repo-score.schema.json`** documents **`boundaries`**. Score caps unchanged. **Rendered output:** `crates/jankurai/src/render.rs` and `crates/jankurai/src/report/github.rs` surface the same digest in **`repo-score.md`** and CI step summaries (see workstream 5 / slice 3).
 - **`jankurai prove`** may record optional **`boundaries_manifest_path`** (`agent/boundaries.toml`) on **`evidence-index.json`** when that file exists (`schemas/evidence-index.schema.json`, `crates/jankurai/src/commands/proof.rs`).
 - **`jankurai audit`** (Phase 07 slice 4) requires every **`[[zone]]`** in **`agent/generated-zones.toml`** to declare non-empty **`path`**, **`source`**, and **`command`** (trimmed). Incomplete rows yield one aggregated **HLT-002-GENERATED-MUTATION** finding on the manifest path and count toward the **`generated-zone-mutation-risk`** cap. Implementation in **`crates/jankurai/src/audit/scan.rs`** (`generated_zone_manifest_metadata_issues`); tests in **`crates/jankurai/tests/generated_zones_manifest_smoke.rs`**.
+- **`jankurai audit`** (Phase 07 slice 5) scans SQL under migration roots (including **`db/`**, paths containing **`/db/migrations/`** or **`/db/constraints/`**, manifest **`[db]`** `migration_paths` / `root_paths` / `constraint_paths`, and legacy **`migrations/`** / **`apps/api/migrations/`** / **`crates/adapters/`** trees) for destructive statements unless the file documents safety (rollback, down migration, backfill, lock timeout / advisory lock, staged deploy, expand-contract markers, or **`jankurai:migration-safe`**). Hits emit **`HLT-021-DESTRUCTIVE-MIGRATION`** (cap bucket **`destructive-migration-risk`**). Routing: **`agent/test-map.json`** prefix **`db/migrations/`** and proof lane **`db-migration-analyze`** in **`agent/proof-lanes.toml`**.
+- **`jankurai audit`** (Phase 07 slice 5b) computes **`destructive_sql_hits` once** per run, passes the presence bit into **`caps_applied`**, and threads hits into **`build_findings`** so caps and findings stay consistent without redundant scans. Extended tests in **`crates/jankurai/tests/migration_safety_audit_smoke.rs`** (cap, **`RepoCatalog`** lane resolution, TRUNCATE, marker suppression, golden example).
+- **`jankurai audit`** (Phase 07 slice 5c) refines **`delete without where`**: if **`WHERE`** begins a later executable line within a short lookahead, the migration is not treated as unbounded delete noise for **HLT-021**. Implementation in **`crates/jankurai/src/audit/scan.rs`** (`delete_has_where_on_following_lines`); regression in **`migration_safety_audit_smoke.rs`**; **`docs/testing.md`** limitations updated.
+- **`jankurai audit`** (Phase 07 slice 6 / B1) enriches SARIF: repo-relative **`helpUri`** values are expanded to **`https://github.com/jeppsontaylor/jankurai/blob/main/...`**; each result **`region`** has **`startLine`**, **`endLine`**, and a **`snippet`** (first evidence line, truncated, or a short **`problem`** excerpt). Implementation in **`crates/jankurai/src/report/sarif.rs`**; regressions in **`crates/jankurai/tests/audit_smoke.rs`** and **`migration_safety_audit_smoke.rs`** (HLT-021).
+- **`jankurai audit`** (Phase 07 slice 7) keeps the contract-drift cap honest with a regression that proves a contract surface without generated contracts or drift checks yields **`generated-contracts-or-public-api-drift-untested`** / **`HLT-007-HANDWRITTEN-CONTRACT`**. Test in **`crates/jankurai/tests/audit_smoke.rs`**.
 
 Gaps:
 
 - Contract parsing and diffing are limited beyond boundary manifest shape (audit digest does not replace deep contract validation).
 - Generated-zone reproducibility is not fully enforced.
-- DB migration safety is mostly pattern-based.
+- DB migration safety: **Phase 07 slices 5–5c** add **`HLT-021-DESTRUCTIVE-MIGRATION`**, file-level safety markers, **`db-migration-analyze`** routing, **`destructive-migration-risk`** cap tied to a **single** `destructive_sql_hits` pass per audit, multi-line **`DELETE`/`WHERE`** lookahead (5c), and tests for cap, lane resolution, TRUNCATE, `jankurai:migration-safe`, and the **`examples/perfect-web-api-db`** fixture. **Slice 6 / B1** adds SARIF **`helpUri`** expansion and **`snippet`**/**`endLine`** parity. Canonical rule text: **`agent/JANKURAI_STANDARD.md`** and **`docs/testing.md`**. Remaining: exception TOML, SQLx-aware checks, other multi-line / procedural-SQL edge cases, optional SARIF **`rules`** deduplication.
 - Event contract boundaries are policy-level, not deeply validated.
 
 ## Dependencies
@@ -120,6 +125,10 @@ Acceptance:
 - `DROP`, `TRUNCATE`, unbounded `DELETE`, and dangerous `ALTER` produce high-confidence findings unless exception evidence exists.
 - Wrong-layer DB access points to adapters/db repair.
 - DB proof lane appears in proof routing.
+- **Phase 07 slice 5:** destructive SQL in migration trees yields **HLT-021-DESTRUCTIVE-MIGRATION** unless the migration file documents safety (rollback / down / backfill / lock / staged / expand-contract / `jankurai:migration-safe`); **`db/migrations/`** is routed to **`db-migration-analyze`** (`jankurai migrate . --analyze --json target/jankurai/migration-report.json`).
+- **Phase 07 slice 5b:** **`destructive-migration-risk`** cap is covered by tests together with HLT-021; **`RepoCatalog`** proves **`db/migrations/`** resolves to **`db-migration-analyze`**; golden **`examples/perfect-web-api-db`** stays free of HLT-021; audit uses one **`destructive_sql_hits`** scan per run.
+- **Phase 07 slice 5c:** multi-line **`DELETE`/`WHERE`** lookahead so bounded deletes split across lines do not false-positive **HLT-021**; regression in **`migration_safety_audit_smoke`**; **`docs/testing.md`** limitations updated.
+- **Phase 07 slice 6 / B1:** SARIF **`helpUri`** uses absolute **`blob/main/...`** URLs for repo-relative rule docs; results carry **`snippet`** (evidence or **`problem`** excerpt) and **`endLine`**; tests in **`audit_smoke`** and **`migration_safety_audit_smoke`** (HLT-021).
 
 ### 4. Event And Streaming Contracts
 
@@ -208,12 +217,15 @@ Leave:
 - Files changed (slice 2): `crates/jankurai/src/model.rs`, `crates/jankurai/src/audit/boundaries_artifact.rs`, `crates/jankurai/src/audit/mod.rs`, `schemas/repo-score.schema.json`, `schemas/evidence-index.schema.json`, `crates/jankurai/src/commands/proof.rs`, `crates/jankurai/tests/boundaries_audit_ingest_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `crates/jankurai/tests/proof_surface_smoke.rs`, phase doc + log
 - Files changed (slice 3): `crates/jankurai/src/render.rs`, `crates/jankurai/src/report/github.rs`, `crates/jankurai/tests/render_lane_artifacts_smoke.rs`, phase doc + log
 - Files changed (slice 4): `crates/jankurai/src/audit/scan.rs`, `crates/jankurai/src/audit/mod.rs`, `crates/jankurai/src/audit/caps.rs`, `crates/jankurai/tests/generated_zones_manifest_smoke.rs`, `crates/jankurai/src/commands/migrate.rs`, `schemas/migration-report.schema.json`, `schemas/migration-plan.schema.json`, phase doc + log
+- Files changed (slice 5): `crates/jankurai/src/audit/scan.rs`, `crates/jankurai/src/audit/mod.rs`, `crates/jankurai/src/audit/rules.rs`, `crates/jankurai/src/audit/finding_builder.rs`, `crates/jankurai/src/boundaries/sql.rs`, `crates/jankurai/src/commands/repair_plan.rs`, `crates/jankurai/src/commands/context_pack.rs`, `agent/proof-lanes.toml`, `agent/test-map.json`, `crates/jankurai/tests/migration_safety_audit_smoke.rs`, `crates/jankurai/tests/rule_registry_smoke.rs`, `crates/jankurai/tests/render_lane_artifacts_smoke.rs` (visual-baseline count expectations), phase doc + log
+- Files changed (slice 5c): `crates/jankurai/src/audit/scan.rs`, `crates/jankurai/tests/migration_safety_audit_smoke.rs`, `docs/testing.md`, phase doc + log
+- Files changed (slice 6): `crates/jankurai/src/report/sarif.rs`, `crates/jankurai/tests/audit_smoke.rs`, `crates/jankurai/tests/migration_safety_audit_smoke.rs`, `docs/testing.md`, phase doc + log
 - Schemas changed: `boundaries.schema.json` (slice 1); `repo-score.schema.json`, `evidence-index.schema.json` (slice 2); `migration-report.schema.json`, `migration-plan.schema.json` (slice 4: command/status envelope)
-- Public interfaces changed: `ArtifactSchema::Boundaries`, `validation::validate_boundaries_toml_text`, doctor **`boundaries-manifest-schema`**; repo-score **`boundaries.artifact`**; evidence index **`boundaries_manifest_path`**
+- Public interfaces changed: `ArtifactSchema::Boundaries`, `validation::validate_boundaries_toml_text`, doctor **`boundaries-manifest-schema`**; repo-score **`boundaries.artifact`**; evidence index **`boundaries_manifest_path`**; audit rule **`HLT-021-DESTRUCTIVE-MIGRATION`**
 - Generated artifacts: none
-- Routing maps changed: none
-- Validation commands: `cargo test -p jankurai`, `just fast`
-- Results: validation passed; DB enforcement remains partial
+- Routing maps changed: **`agent/test-map.json`** (`db/migrations/`); **`agent/proof-lanes.toml`** (`db-migration-analyze`)
+- Validation commands: `cargo test -p jankurai`, `cargo run -p jankurai -- lane . --changed crates/jankurai/src/report/sarif.rs --out target/jankurai/p07-sarif-lane.json --md target/jankurai/p07-sarif-lane.md`, `just fast`
+- Results: validation passed; DB enforcement remains partial; SARIF uses absolute **helpUri** for rule docs, **endLine**, and **snippet** (evidence or **problem** excerpt)
 - Skipped validation: none
 - Exceptions created: none
 - Follow-up phases: 09 reference product platform, 10 reuse registry certified cells, 11 migration engine

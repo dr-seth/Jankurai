@@ -40,6 +40,7 @@
     },
     "changed_paths": { "type": "array", "items": { "type": "string" } },
     "ux_qa_report_path": { "type": "string" },
+    "ux_qa_report_digest": { "type": "string" },
     "security_evidence_path": { "type": "string" },
     "repo_score_json_path": { "type": "string" },
     "sarif_path": { "type": "string" },

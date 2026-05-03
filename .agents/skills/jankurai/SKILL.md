@@ -1,3 +1,8 @@
+---
+name: jankurai
+description: Jankurai workspace guidance for Codex. Read repo instructions, standard, and phase files before planning or editing.
+---
+
 # jankurai
 
 <!-- jankurai generated adapter -->

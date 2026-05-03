@@ -2,7 +2,7 @@ export type UxQaSeverity = "error" | "warning";
 export type UxQaDecision = "pass" | "warn" | "review" | "block";
 export type UxQaState = "loading" | "empty" | "error" | "success" | "permission-denied";
 export type UxQaBaselineMode = "pass" | "review" | "block";
-export type UxQaReportSchemaVersion = "1.2.0" | "1.3.0";
+export type UxQaReportSchemaVersion = "1.2.0" | "1.3.0" | "1.4.0";
 
 export type UxQaRuleId =
   | "edge-clearance"
@@ -31,6 +31,8 @@ export interface UxQaBox {
 
 export interface UxQaConfig {
   artifactRoot?: string;
+  visualBaselineRoot?: string;
+  visualDiffRoot?: string;
   edgeClearancePx?: number;
   minimumTargetPx?: number;
   allowButtonWrap?: boolean;
@@ -41,8 +43,13 @@ export interface UxQaConfig {
   timeoutMs?: number;
   outputRoot?: string;
   storybookUrl?: string;
+  baselineOwner?: string;
+  baselineApprovedBy?: string;
+  baselineApprovedAt?: string;
+  baselineApprovalNote?: string;
   requiredStates?: UxQaState[];
   visualBaselineMode?: UxQaBaselineMode;
+  stateQueryParam?: string;
   screenshotRequired?: boolean;
   ariaSnapshotRequired?: boolean;
   accessibilityScanRequired?: boolean;
@@ -56,6 +63,14 @@ export interface UxQaRoute {
   storyId?: string;
   states?: UxQaState[];
   viewports?: UxQaViewport[];
+  state?: UxQaState;
+  stateQueryParam?: string;
+  visualBaselineMode?: UxQaBaselineMode;
+  baselinePath?: string;
+  baselineOwner?: string;
+  baselineApprovedBy?: string;
+  baselineApprovedAt?: string;
+  baselineApprovalNote?: string;
 }
 
 export interface UxQaElement {
@@ -102,7 +117,13 @@ export interface UxQaViolation {
   artifactPath?: string;
 }
 
-export type UxQaArtifactKind = "screenshot" | "crop" | "aria-snapshot" | "accessibility";
+export type UxQaArtifactKind =
+  | "screenshot"
+  | "crop"
+  | "aria-snapshot"
+  | "accessibility"
+  | "visual-baseline"
+  | "visual-diff";
 
 export interface UxQaArtifact {
   kind: UxQaArtifactKind;
@@ -110,6 +131,7 @@ export interface UxQaArtifact {
   viewport: UxQaViewport;
   selector?: string;
   ruleId?: UxQaRuleId;
+  sha256?: string;
 }
 
 export interface UxQaArtifactCoverage {
@@ -125,6 +147,21 @@ export interface UxQaAccessibilitySummary {
   artifactPath?: string;
 }
 
+export interface UxQaVisualBaselineSummary {
+  mode: UxQaBaselineMode;
+  status: "not-configured" | "missing-baseline" | "matched" | "changed";
+  decision: UxQaDecision;
+  actualPath?: string;
+  baselinePath?: string;
+  diffPath?: string;
+  actualSha256?: string;
+  baselineSha256?: string;
+  owner?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  approvalNote?: string;
+}
+
 export interface UxQaSummary {
   errors: number;
   warnings: number;
@@ -134,6 +171,7 @@ export interface UxQaSummary {
 export interface UxQaRunContext {
   routeId?: string | undefined;
   storyId?: string | undefined;
+  state?: UxQaState | undefined;
   browserName?: string | undefined;
   artifactsDir?: string | undefined;
   screenshot?: boolean | undefined;
@@ -155,6 +193,7 @@ export interface UxQaReport {
   url: string;
   routeId?: string;
   storyId?: string;
+  state?: UxQaState;
   browserName?: string;
   checkedAt: string;
   viewport: UxQaViewport;
@@ -164,6 +203,7 @@ export interface UxQaReport {
   artifacts: UxQaArtifact[];
   artifactCoverage?: UxQaArtifactCoverage;
   accessibility?: UxQaAccessibilitySummary;
+  visualBaseline?: UxQaVisualBaselineSummary;
   summary: UxQaSummary;
   stateCoverage?: UxQaStateCoverage;
   decision: UxQaDecision;

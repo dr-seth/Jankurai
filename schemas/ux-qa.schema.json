@@ -35,6 +35,10 @@
       "type": "string",
       "enum": ["pass", "warn", "review", "block"]
     },
+    "uxQaBaselineMode": {
+      "type": "string",
+      "enum": ["pass", "review", "block"]
+    },
     "uxQaState": {
       "type": "string",
       "enum": ["loading", "empty", "error", "success", "permission-denied"]
@@ -143,7 +147,14 @@
     },
     "uxQaArtifactKind": {
       "type": "string",
-      "enum": ["screenshot", "crop", "aria-snapshot", "accessibility"]
+      "enum": [
+        "screenshot",
+        "crop",
+        "aria-snapshot",
+        "accessibility",
+        "visual-baseline",
+        "visual-diff"
+      ]
     },
     "uxQaArtifact": {
       "type": "object",
@@ -151,9 +162,32 @@
       "properties": {
         "kind": { "$ref": "#/$defs/uxQaArtifactKind" },
         "path": { "type": "string" },
+        "sha256": { "type": "string" },
         "viewport": { "$ref": "#/$defs/uxQaViewport" },
         "selector": { "type": "string" },
         "ruleId": { "$ref": "#/$defs/uxQaRuleId" }
+      }
+    },
+    "uxQaVisualBaselineStatus": {
+      "type": "string",
+      "enum": ["not-configured", "missing-baseline", "matched", "changed"]
+    },
+    "uxQaVisualBaselineSummary": {
+      "type": "object",
+      "required": ["mode", "status", "decision"],
+      "properties": {
+        "mode": { "$ref": "#/$defs/uxQaBaselineMode" },
+        "status": { "$ref": "#/$defs/uxQaVisualBaselineStatus" },
+        "decision": { "$ref": "#/$defs/uxQaDecision" },
+        "actualPath": { "type": "string" },
+        "baselinePath": { "type": "string" },
+        "diffPath": { "type": "string" },
+        "actualSha256": { "type": "string" },
+        "baselineSha256": { "type": "string" },
+        "owner": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "approvedAt": { "type": "string" },
+        "approvalNote": { "type": "string" }
       }
     },
     "uxQaArtifactCoverage": {
@@ -232,12 +266,13 @@
       "properties": {
         "schemaVersion": {
           "type": "string",
-          "enum": ["1.2.0", "1.3.0"]
+          "enum": ["1.2.0", "1.3.0", "1.4.0"]
         },
         "toolVersion": { "type": "string" },
         "url": { "type": "string" },
         "routeId": { "type": "string" },
         "storyId": { "type": "string" },
+        "state": { "$ref": "#/$defs/uxQaState" },
         "browserName": { "type": "string" },
         "checkedAt": { "type": "string" },
         "viewport": { "$ref": "#/$defs/uxQaViewport" },
@@ -258,6 +293,7 @@
         "accessibility": { "$ref": "#/$defs/uxQaAccessibilitySummary" },
         "summary": { "$ref": "#/$defs/uxQaSummary" },
         "stateCoverage": { "$ref": "#/$defs/uxQaStateCoverage" },
+        "visualBaseline": { "$ref": "#/$defs/uxQaVisualBaselineSummary" },
         "decision": { "$ref": "#/$defs/uxQaDecision" }
       }
     }

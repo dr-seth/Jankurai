@@ -101,6 +101,10 @@
       "command": "just fast",
       "purpose": "verify database policy and migration root remains routed"
     },
+    "db/migrations/": {
+      "command": "cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json",
+      "purpose": "verify migration inventory and liability evidence when SQL migrations change"
+    },
     "crates/jankurai/": {
       "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify the audit package compiles and still emits JSON/Markdown"

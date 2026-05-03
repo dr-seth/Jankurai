@@ -4,7 +4,7 @@ import { UxQaAssertionError } from "./errors.js";
 import { runUxRules } from "./rules.js";
 import type { UxQaConfig, UxQaDecision, UxQaReport, UxQaRuleId, UxQaRunContext, UxQaSummary } from "./types.js";
 
-export const UX_QA_SCHEMA_VERSION = "1.3.0";
+export const UX_QA_SCHEMA_VERSION = "1.4.0";
 export const UX_QA_TOOL_VERSION = "0.4.0";
 
 export async function analyzePage(page: Page, config: UxQaConfig = {}, context: UxQaRunContext = {}): Promise<UxQaReport> {
@@ -37,6 +37,7 @@ export async function analyzePage(page: Page, config: UxQaConfig = {}, context: 
   };
   if (context.routeId) report.routeId = context.routeId;
   if (context.storyId) report.storyId = context.storyId;
+  if (context.state) report.state = context.state;
   if (context.browserName) report.browserName = context.browserName;
   return report;
 }

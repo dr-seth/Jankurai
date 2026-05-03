@@ -253,6 +253,18 @@ pub const RULES: &[RuleSpec] = &[
         severity: "high",
         repairable: true,
     },
+    RuleSpec {
+        id: "HLT-021-DESTRUCTIVE-MIGRATION",
+        name: "Destructive SQL migration without safety evidence",
+        category: "data",
+        tlr: "Contracts/data",
+        lane: "db-migration-analyze",
+        docs_url: "docs/testing.md",
+        owner_hint: "tools",
+        evidence_kind: "sql",
+        severity: "high",
+        repairable: true,
+    },
 ];
 
 pub fn all() -> &'static [RuleSpec] {

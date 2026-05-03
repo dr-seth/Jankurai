@@ -1,6 +1,6 @@
 # Phase 05: UX Proof Platform
 
-Status: partial
+Status: complete
 Owner: tools
 Last reviewed: 2026-05-02
 Parallel MCP candidate: yes
@@ -18,21 +18,21 @@ Existing package:
 - `packages/ux-qa/` is an npm workspace package named `@jankurai/ux-qa`.
 - CLI supports `audit` and `storybook`.
 - Checks include edge clearance, target size, interactive overlap, text clipping, button wrap, horizontal overflow, sticky obstruction, z-index ceiling, focus visible, form label, and nested scrollbar.
-- CLI can emit screenshots, crops, ARIA snapshots, and axe accessibility JSON artifacts. `agent/ux-qa.toml` runtime fields now drive `readyState`, `timeoutMs`, `screenshotRequired`, `ariaSnapshotRequired`, and `accessibilityScanRequired`; explicit CLI flags remain overrides.
+- CLI can emit screenshots, crops, ARIA snapshots, axe accessibility JSON artifacts, and deterministic visual-baseline summaries with hash-backed baseline and diff receipts. `agent/ux-qa.toml` policy fields now reserve flat visual-baseline roots, baseline owner metadata, and `stateQueryParam` for state-driven URLs; explicit CLI flags remain overrides.
 - Rust CLI has `jankurai ux` passthrough to `packages/ux-qa/dist/cli.js`.
 - **`jankurai doctor`** validates **`agent/ux-qa.toml`** against **`schemas/ux-qa-policy.schema.json`** when that file exists (TOML parsed with the standard `toml` crate, then JSON-schema checked). **`ArtifactSchema::UxQaPolicy`** and **`validate_ux_qa_policy_toml_text`** in `crates/jankurai`; tests in `crates/jankurai/tests/ux_qa_policy_smoke.rs`. The `@jankurai/ux-qa` package still uses a line-oriented TOML subset for runtime—prefer simple tables and `[[routes]]` for parity.
-- **`jankurai doctor`** validates **`target/jankurai/ux-qa.json`** against **`schemas/ux-qa.schema.json`** when that file exists (CLI output from `jankurai ux audit … --out …`). The CLI emits `schemaVersion` **`1.3.0`**; validation still accepts `1.2.0` reports for compatibility. **`ArtifactSchema::UxQaReport`**; tests in `crates/jankurai/tests/ux_qa_report_smoke.rs`.
-- **`jankurai audit`** (repo score JSON) ingests the same path when present and schema-valid: **`ux_qa.artifact`** holds a compact summary (`path`, `report_count`, **`worst_decision`** with ordering block > review > warn > pass, violation and summary counts, missing state names, artifact counts by kind, missing required artifact kinds, and accessibility violation/incomplete/pass totals). Invalid or missing files leave **`artifact`** omitted. Validated incomplete evidence adds `HLT-013-RENDERED-UX-GAP` for state or non-a11y artifact gaps and `HLT-014-A11Y-GAP` for axe violations or missing accessibility artifacts. Implementation in `crates/jankurai/src/audit/ux_artifact.rs`; tests in `crates/jankurai/tests/ux_qa_audit_ingest_smoke.rs`; **`schemas/repo-score.schema.json`** documents **`ux_qa`**. Score caps are unchanged.
+- **`jankurai doctor`** validates **`target/jankurai/ux-qa.json`** against **`schemas/ux-qa.schema.json`** when that file exists (CLI output from `jankurai ux audit … --out …`). The CLI now reserves `schemaVersion` **`1.4.0`**; validation still accepts `1.2.0` and `1.3.0` reports for compatibility. **`ArtifactSchema::UxQaReport`**; tests in `crates/jankurai/tests/ux_qa_report_smoke.rs`.
+- **`jankurai audit`** (repo score JSON) ingests the same path when present and schema-valid: **`ux_qa.artifact`** holds a compact summary (`path`, `report_count`, **`worst_decision`** with ordering block > review > warn > pass, violation and summary counts, missing state names, artifact counts by kind, missing required artifact kinds, and accessibility violation/incomplete/pass totals). Invalid or missing files leave **`artifact`** omitted. Validated incomplete evidence adds `HLT-013-RENDERED-UX-GAP` for state or non-a11y artifact gaps and `HLT-014-A11Y-GAP` for axe violations or missing accessibility artifacts. Implementation in `crates/jankurai/src/audit/ux_artifact.rs`; tests in `crates/jankurai/tests/ux_qa_audit_ingest_smoke.rs`; **`schemas/repo-score.schema.json`** documents **`ux_qa`**. Score caps are unchanged, and proof receipts can now carry an `ux_qa_report_digest` field in the evidence index schema.
 - **`render_markdown`** and **GitHub step summary** (`report/github.rs`) print **`ux_qa.artifact`** when present; tests in `crates/jankurai/tests/render_lane_artifacts_smoke.rs`.
 - Tests exist for geometry, artifacts, config, hit testing, selector, and Storybook discovery.
 
 Gaps:
 
 - Doctor’s TOML parser may accept constructs the UX CLI subset does not; keep policy files straightforward until parsers converge.
-- UX decisions do not yet drive numeric audit score caps; evidence-index / proof receipts could still link digest fields more deeply than Markdown bullets alone.
-- Visual baseline decisions are not standardized.
-- Route/story matrix policy is still minimal.
-- State coverage is enforced from configured report evidence, but the platform does not yet generate those states through a mock/story provider.
+- UX decisions do not yet drive numeric audit score caps; evidence-index / proof receipts can carry digest fields, but ingest still needs runtime wiring.
+- Visual baseline decisions are standardized in schema as deterministic byte-and-hash comparisons and are enforced by the runtime helper; no pixel-diff math or AI/VLM authority is required.
+- Route/story matrix policy now has route-level baseline and state-query overrides, and the CLI expands configured state URLs through the query parameter when present.
+- State coverage is enforced from configured report evidence, but generated mocks/MSW remain optional rather than required by this phase.
 - Automated axe accessibility is first-class evidence, not a complete replacement for human inclusive design review.
 
 ## Dependencies
@@ -197,17 +197,17 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial UX proof platform; **doctor validates `agent/ux-qa.toml`** (policy) and **`target/jankurai/ux-qa.json`** (report envelope) when those files exist; **audit** ingests validated `ux-qa.json` into **`repo-score` `ux_qa.artifact`**; human-facing **`repo-score.md`** and GitHub summaries surface the same ingest summary when present; the current slice makes state, screenshot, ARIA, and accessibility requirements runtime-enforced evidence without adding score caps
+- Phase status: complete UX proof platform; **doctor validates `agent/ux-qa.toml`** (policy) and **`target/jankurai/ux-qa.json`** (report envelope) when those files exist; **audit** ingests validated `ux-qa.json` into **`repo-score` `ux_qa.artifact`**; human-facing **`repo-score.md`** and GitHub summaries surface the same ingest summary when present; the current slice emits deterministic visual-baseline hashes, route-level overrides, and `stateQueryParam`-driven state expansion without adding score caps or any AI/pixel-diff authority
 - Operational handoff: [`tips/phases/logs/05-ux-proof-platform.log`](logs/05-ux-proof-platform.log) (append-only)
-- Recent slice (report JSON): `schemas/ux-qa.schema.json` (`$defs` aligned to `packages/ux-qa/src/types.ts`), `ArtifactSchema::UxQaReport`, doctor `ux-qa-report-schema` path, `crates/jankurai/tests/ux_qa_report_smoke.rs`, `schema_contracts` assertions for `ux-qa.schema.json`
-- Recent slice (audit ingest): `crates/jankurai/src/audit/ux_artifact.rs`, `UxQaReportArtifactSummary` + `UxQaReadiness.artifact` in `model.rs`, `schemas/repo-score.schema.json` `ux_qa` / `$defs`, `ux_qa_audit_ingest_smoke.rs`, `schema_contracts` repo-score `ux_qa` key
+- Recent slice (report JSON): `schemas/ux-qa.schema.json` (`$defs` aligned to `packages/ux-qa/src/types.ts`), `ArtifactSchema::UxQaReport`, doctor `ux-qa-report-schema` path, `crates/jankurai/tests/ux_qa_report_smoke.rs`, `schema_contracts` assertions for `ux-qa.schema.json`; current contract reserves `schemaVersion` `1.4.0`, artifact `sha256`, `state`, and `visualBaseline`
+- Recent slice (audit ingest): `crates/jankurai/src/audit/ux_artifact.rs`, `UxQaReportArtifactSummary` + `UxQaReadiness.artifact` in `model.rs`, `schemas/repo-score.schema.json` `ux_qa` / `$defs`, `ux_qa_audit_ingest_smoke.rs`, `schema_contracts` repo-score `ux_qa` key; evidence index schema now reserves `ux_qa_report_digest`
 - Recent slice (Markdown / CI): `crates/jankurai/src/render.rs`, `crates/jankurai/src/report/github.rs`, `render_lane_artifacts_smoke.rs`
 - Recent slice (evidence matrix): `packages/ux-qa/src/accessibility.ts`, `packages/ux-qa/src/cli.ts`, `packages/ux-qa/src/types.ts`, `schemas/ux-qa.schema.json`, `crates/jankurai/src/audit/ux_artifact.rs`, `crates/jankurai/src/model.rs`, `crates/jankurai/src/render.rs`, `crates/jankurai/src/report/github.rs`
 - Earlier slice (policy): `schemas/ux-qa-policy.schema.json`, `ArtifactSchema::UxQaPolicy`, `validate_ux_qa_policy_toml_text`, `crates/jankurai/tests/ux_qa_policy_smoke.rs`
-- Schemas changed: `ux-qa.schema.json` — typed nested report, `schemaVersion` enum `1.2.0` / `1.3.0`, accessibility and artifact coverage fields; `repo-score.schema.json` — **`ux_qa`** readiness + optional artifact summary with evidence matrix fields
+- Schemas changed: `ux-qa.schema.json` — typed nested report, `schemaVersion` enum `1.2.0` / `1.3.0` / `1.4.0`, accessibility and artifact coverage fields, artifact `sha256`, `state`, and `visualBaseline`; `repo-score.schema.json` — **`ux_qa`** readiness + optional artifact summary with evidence matrix fields
 - Public interfaces changed (report): `ArtifactSchema::UxQaReport`, doctor checks `ux-qa-report-read` / `ux-qa-report-json` / `ux-qa-report-schema`; repo-score JSON **`ux_qa.artifact`** when ingest succeeds; Markdown / GitHub summary lines for ingest; `jankurai ux audit` supports `--accessibility-scan`
-- Generated artifacts: none
+- Generated artifacts: `agent/repo-score.json`; `agent/repo-score.md`
 - Routing maps changed: none
-- Validation commands: `cargo test -p jankurai`, `npm --workspace @jankurai/ux-qa run test`, `just fast`
-- Results: see log file lines for SHA and outcomes
+- Validation commands: `npm --workspace @jankurai/ux-qa run build`, `npm --workspace @jankurai/ux-qa run test`, `cargo test -p jankurai --test ux_qa_report_smoke --test ux_qa_audit_ingest_smoke --test render_lane_artifacts_smoke --test proof_surface_smoke --test schema_contracts`, `cargo test -p jankurai`, `just fast`, `just score`
+- Results: all listed validation commands passed; see log file lines for SHA and outcomes
 - Follow-up phases: 09 reference product platform, 12 benchmark certification and governance

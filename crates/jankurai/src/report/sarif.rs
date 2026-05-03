@@ -1,23 +1,60 @@
-use crate::model::Report;
+use crate::model::{Finding, Report};
 use serde_json::json;
 
+/// Stable public URL for repo-relative doc paths (SARIF `helpUri` for Git viewers and CI).
+const DOCS_URI_BASE: &str = "https://github.com/jeppsontaylor/jankurai/blob/main/";
+
+fn sarif_help_uri(docs: &Option<String>) -> Option<String> {
+    let s = docs.as_ref()?.trim();
+    if s.is_empty() {
+        return None;
+    }
+    if s.starts_with("http://") || s.starts_with("https://") {
+        return Some(s.to_string());
+    }
+    let path = s.trim_start_matches('/');
+    Some(format!("{DOCS_URI_BASE}{path}"))
+}
+
+fn physical_region(finding: &Finding) -> serde_json::Value {
+    let line = finding.line.unwrap_or(1) as i64;
+    let mut region = json!({
+        "startLine": line,
+        "endLine": line,
+    });
+    let snippet_text = finding
+        .evidence
+        .first()
+        .map(|s| s.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.chars().take(2000).collect::<String>())
+        .unwrap_or_else(|| finding.problem.chars().take(400).collect());
+    if !snippet_text.is_empty() {
+        region["snippet"] = json!({ "text": snippet_text });
+    }
+    region
+}
+
+fn rule_descriptor(finding: &Finding) -> serde_json::Value {
+    let id = finding
+        .rule_id
+        .as_deref()
+        .unwrap_or("HLT-000-SCORE-DIMENSION");
+    let mut desc = serde_json::Map::new();
+    desc.insert("id".into(), json!(id));
+    desc.insert("name".into(), json!(&finding.check_id));
+    desc.insert(
+        "shortDescription".into(),
+        json!({ "text": &finding.problem }),
+    );
+    if let Some(uri) = sarif_help_uri(&finding.docs_url) {
+        desc.insert("helpUri".into(), json!(uri));
+    }
+    serde_json::Value::Object(desc)
+}
+
 pub fn render_sarif(report: &Report) -> String {
-    let rules = report
-        .findings
-        .iter()
-        .map(|finding| {
-            let id = finding
-                .rule_id
-                .as_deref()
-                .unwrap_or("HLT-000-SCORE-DIMENSION");
-            json!({
-                "id": id,
-                "name": finding.check_id,
-                "shortDescription": { "text": finding.problem },
-                "helpUri": finding.docs_url,
-            })
-        })
-        .collect::<Vec<_>>();
+    let rules = report.findings.iter().map(rule_descriptor).collect::<Vec<_>>();
     let results = report
         .findings
         .iter()
@@ -30,7 +67,7 @@ pub fn render_sarif(report: &Report) -> String {
                 "locations": [{
                     "physicalLocation": {
                         "artifactLocation": { "uri": finding.path },
-                        "region": { "startLine": finding.line.unwrap_or(1) }
+                        "region": physical_region(finding)
                     }
                 }],
                 "properties": {

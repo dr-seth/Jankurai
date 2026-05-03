@@ -102,6 +102,41 @@ fn audit_low_dimensions_create_soft_findings() {
 }
 
 #[test]
+fn audit_contract_surface_without_generated_contracts_or_drift_checks_triggers_cap() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("Justfile"),
+        "check:\n    cargo check\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("contracts")).unwrap();
+    fs::write(
+        dir.path().join("contracts/openapi.json"),
+        r#"{"openapi":"3.1.0","info":{"title":"X","version":"1.0.0"},"paths":{}}"#,
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+
+    assert!(report
+        .caps_applied
+        .iter()
+        .any(|cap| cap == "generated-contracts-or-public-api-drift-untested"));
+    assert!(report.findings.iter().any(|finding| {
+        finding.rule_id.as_deref() == Some("HLT-007-HANDWRITTEN-CONTRACT")
+            && finding
+                .problem
+                .contains("generated contracts or public API drift are not being checked")
+    }));
+}
+
+#[test]
 fn audit_sarif_junit_and_issue_exports_render() {
     let dir = tempdir().unwrap();
     fs::write(dir.path().join("README.md"), "# thin repo\n").unwrap();
@@ -110,6 +145,24 @@ fn audit_sarif_junit_and_issue_exports_render() {
     let sarif_text = sarif::render_sarif(&report);
     let sarif_json: serde_json::Value = serde_json::from_str(&sarif_text).unwrap();
     assert_eq!(sarif_json["version"], "2.1.0");
+    let finding = report
+        .findings
+        .iter()
+        .find(|finding| !finding.evidence.is_empty())
+        .expect("expected at least one finding with evidence");
+    let result = sarif_json["runs"][0]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|result| result["fingerprints"]["jankurai"] == finding.fingerprint)
+        .expect("expected matching SARIF result for finding");
+    let region = &result["locations"][0]["physicalLocation"]["region"];
+    assert_eq!(region["startLine"].as_u64(), Some(finding.line.unwrap_or(1) as u64));
+    assert_eq!(region["endLine"].as_u64(), Some(finding.line.unwrap_or(1) as u64));
+    assert_eq!(
+        region["snippet"]["text"].as_str(),
+        Some(finding.evidence[0].as_str())
+    );
 
     let junit_text = junit::render_junit(&report);
     assert!(junit_text.contains("<testsuite"));

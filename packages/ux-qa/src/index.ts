@@ -4,7 +4,8 @@ export { UxQaAssertionError } from "./errors.js";
 export { readUxQaConfig } from "./config.js";
 export { hitTestObstructed } from "./hit-test.js";
 export { SELECTOR_PRIORITY, isBroadNthSelector } from "./selector.js";
-export { discoverStorybookStories, storybookIframeUrl } from "./storybook.js";
+export { discoverStorybookStories, resolveStorybookRoutes, storybookIframeUrl } from "./storybook.js";
+export { evaluateVisualBaseline } from "./visual-baseline.js";
 export type {
   UxQaArtifact,
   UxQaArtifactCoverage,
@@ -25,6 +26,7 @@ export type {
   UxQaStateCoverage,
   UxQaSeverity,
   UxQaSummary,
+  UxQaVisualBaselineSummary,
   UxQaViolation,
   UxQaViewport
 } from "./types.js";

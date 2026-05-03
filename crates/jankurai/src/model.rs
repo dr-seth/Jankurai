@@ -175,6 +175,11 @@ pub struct UxQaReportArtifactSummary {
     pub accessibility_violation_total: u64,
     pub accessibility_incomplete_total: u64,
     pub accessibility_pass_total: u64,
+    pub artifact_fingerprint_count: usize,
+    pub visual_baseline_missing: usize,
+    pub visual_baseline_changed: usize,
+    pub visual_baseline_review: usize,
+    pub visual_baseline_block: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]

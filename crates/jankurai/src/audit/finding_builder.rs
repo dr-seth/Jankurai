@@ -124,6 +124,9 @@ pub fn rerun_command_for_lane(lane: Option<&str>) -> &'static str {
         "security" => "just security",
         "contract" => "just fast",
         "db" => "just fast",
+        "db-migration-analyze" => {
+            "cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json"
+        }
         "web" | "e2e" => "just ux-qa",
         "fast" => "just fast",
         "release" => "just check",

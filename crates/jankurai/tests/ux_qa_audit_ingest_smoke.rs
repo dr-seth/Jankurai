@@ -30,11 +30,12 @@ fn one_report(decision: &str, summary: (u64, u64)) -> serde_json::Value {
 
 fn evidence_report() -> serde_json::Value {
     let mut report = one_report("block", (1, 0));
-    report["schemaVersion"] = serde_json::json!("1.3.0");
+    report["schemaVersion"] = serde_json::json!("1.4.0");
     report["artifacts"] = serde_json::json!([
         {
             "kind": "screenshot",
             "path": "target/jankurai/ux-qa/local.png",
+            "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
             "viewport": { "width": 1280, "height": 720 }
         },
         {
@@ -43,6 +44,20 @@ fn evidence_report() -> serde_json::Value {
             "viewport": { "width": 1280, "height": 720 }
         }
     ]);
+    report["visualBaseline"] = serde_json::json!({
+        "mode": "block",
+        "status": "changed",
+        "decision": "block",
+        "actualPath": "target/jankurai/ux-qa/local.png",
+        "baselinePath": "target/jankurai/ux-qa/baseline.png",
+        "diffPath": "target/jankurai/ux-qa/diff.png",
+        "actualSha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "baselineSha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "owner": "design",
+        "approvedBy": "ux",
+        "approvedAt": "2026-05-02T12:00:00.000Z",
+        "approvalNote": "fixture"
+    });
     report["stateCoverage"] = serde_json::json!({
         "required": ["loading", "success"],
         "declared": ["success"],
@@ -161,6 +176,11 @@ fn audit_ux_qa_aggregates_state_artifact_and_accessibility_evidence() {
     assert_eq!(art.accessibility_violation_total, 2);
     assert_eq!(art.accessibility_incomplete_total, 1);
     assert_eq!(art.accessibility_pass_total, 7);
+    assert_eq!(art.artifact_fingerprint_count, 1);
+    assert_eq!(art.visual_baseline_missing, 0);
+    assert_eq!(art.visual_baseline_changed, 1);
+    assert_eq!(art.visual_baseline_review, 0);
+    assert_eq!(art.visual_baseline_block, 1);
 }
 
 #[test]
@@ -186,7 +206,38 @@ fn audit_adds_findings_for_incomplete_validated_ux_evidence() {
     assert!(report
         .findings
         .iter()
+        .any(|finding| finding.problem.contains("visual baseline gaps")));
+    assert!(report
+        .findings
+        .iter()
         .any(|finding| finding.rule_id.as_deref() == Some("HLT-014-A11Y-GAP")));
+}
+
+#[test]
+fn audit_ux_qa_aggregates_visual_baseline_review_and_missing_counts() {
+    let dir = tempdir().unwrap();
+    thin_repo(dir.path());
+    fs::create_dir_all(dir.path().join("target/jankurai")).unwrap();
+    let mut review_report = evidence_report();
+    review_report["visualBaseline"]["status"] = serde_json::json!("missing-baseline");
+    review_report["visualBaseline"]["decision"] = serde_json::json!("review");
+    review_report["visualBaseline"]["mode"] = serde_json::json!("review");
+    review_report["artifacts"][0]["sha256"] = serde_json::json!("sha256:3333333333333333333333333333333333333333333333333333333333333333");
+    let env = ux_qa_envelope(vec![evidence_report(), review_report]);
+    fs::write(
+        dir.path().join("target/jankurai/ux-qa.json"),
+        serde_json::to_string(&env).unwrap(),
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let art = report.ux_qa.artifact.as_ref().unwrap();
+    assert_eq!(art.report_count, 2);
+    assert_eq!(art.artifact_fingerprint_count, 2);
+    assert_eq!(art.visual_baseline_missing, 1);
+    assert_eq!(art.visual_baseline_changed, 1);
+    assert_eq!(art.visual_baseline_review, 1);
+    assert_eq!(art.visual_baseline_block, 1);
 }
 
 #[test]

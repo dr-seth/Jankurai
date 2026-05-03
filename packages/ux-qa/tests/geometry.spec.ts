@@ -91,7 +91,7 @@ test("CLI emits artifact-backed UX proof receipts", async ({}, testInfo) => {
   const payload = JSON.parse(await readFile(reportPath, "utf8"));
   const report = payload.reports[0];
   expect(exitCode).toBe(1);
-  expect(report.schemaVersion).toBe("1.3.0");
+  expect(report.schemaVersion).toBe("1.4.0");
   expect(report.toolVersion).toBe("0.4.0");
   expect(report.decision).toBe("block");
   expect(report.routeId).toBe("fixture/tiny-controls");

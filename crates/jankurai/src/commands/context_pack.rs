@@ -359,6 +359,7 @@ fn build_likely_rules(
         out.extend([
             "HLT-006-DIRECT-DB-WRONG-LAYER".to_string(),
             "HLT-007-HANDWRITTEN-CONTRACT".to_string(),
+            "HLT-021-DESTRUCTIVE-MIGRATION".to_string(),
         ]);
     }
     if task_lc.contains("generated") {

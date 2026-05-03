@@ -145,6 +145,19 @@ pub fn render_markdown(report: &Report) -> String {
         let _ = writeln!(out, "- Artifact counts: `{}`", artifact_counts);
         let _ = writeln!(
             out,
+            "- Artifact fingerprints: `{}`",
+            art.artifact_fingerprint_count
+        );
+        let _ = writeln!(
+            out,
+            "- Visual baseline counts: missing=`{}` changed=`{}` review=`{}` block=`{}`",
+            art.visual_baseline_missing,
+            art.visual_baseline_changed,
+            art.visual_baseline_review,
+            art.visual_baseline_block
+        );
+        let _ = writeln!(
+            out,
             "- Missing required states: `{}` report(s) `{}`",
             art.reports_missing_required_states,
             if art.missing_state_names.is_empty() {

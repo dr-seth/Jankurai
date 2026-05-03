@@ -65,7 +65,7 @@ Stop or fix first when any condition is true:
 - generated code changes auth/input/crypto/filesystem behavior without security proof
 - secret-like values, prompt transcripts, MCP config, fixtures, or logs expose credentials or customer data
 - trusted agent/tool policy contains prompt-injection, bypass, or overbroad permission language
-- destructive migration lacks rollback, backfill, lock, and DB proof evidence
+- destructive migration lacks rollback, backfill, lock, and DB proof evidence (`HLT-021-DESTRUCTIVE-MIGRATION` when destructive SQL is present without documented safety markers documented in `docs/testing.md`)
 - tests are skipped/focused/tautological/snapshot-only for changed behavior
 - agent tool permissions are broader than the requested lane
 - user-facing UI changes lack artifact-backed rendered UX proof on critical surfaces
@@ -93,6 +93,8 @@ Stop or fix first when any condition is true:
 | `HLT-017-OPAQUE-OBSERVABILITY` | boundary failure lacks repairable telemetry |
 | `HLT-018-PERF-CONCURRENCY-DRIFT` | performance/concurrency risk lacks proof |
 | `HLT-019-STREAMING-RUNTIME-DRIFT` | broker client or Kafka stack identity escapes adapter boundaries |
+| `HLT-020-CI-HARDENING-GAP` | CI workflow permissions, unpinned actions, or proof posture gaps |
+| `HLT-021-DESTRUCTIVE-MIGRATION` | destructive SQL under migration paths without documented safety evidence |
 
 ## Ownership Boundaries
 
@@ -131,6 +133,7 @@ Required lane names:
 - `fast`: deterministic local proof under 2 minutes
 - `contract`: public API/schema compatibility
 - `db`: migrations, constraints, tenant/data rules
+- `db-migration-analyze`: migration liability report (`jankurai migrate . --analyze --json target/jankurai/migration-report.json`); used when `agent/test-map.json` routes `db/migrations/` changes
 - `web`: component/type/rendered UX behavior
 - `e2e`: critical browser journeys
 - `security`: secrets, dependencies, unsafe, SBOM/SCA

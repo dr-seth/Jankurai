@@ -38,15 +38,30 @@ fn ux_qa_report_envelope_validates() {
 }
 
 #[test]
-fn ux_qa_report_v13_accessibility_fields_validate() {
+fn ux_qa_report_v14_visual_baseline_fields_validate() {
     let repo = repo_root();
     let mut value = minimal_valid_envelope();
-    value["reports"][0]["schemaVersion"] = serde_json::json!("1.3.0");
+    value["reports"][0]["schemaVersion"] = serde_json::json!("1.4.0");
     value["reports"][0]["artifacts"] = serde_json::json!([{
         "kind": "accessibility",
         "path": "target/jankurai/ux-qa/local.a11y.json",
+        "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "viewport": { "width": 1280, "height": 720 }
     }]);
+    value["reports"][0]["visualBaseline"] = serde_json::json!({
+        "mode": "review",
+        "status": "changed",
+        "decision": "review",
+        "actualPath": "target/jankurai/ux-qa/local.png",
+        "baselinePath": "target/jankurai/ux-qa/baseline.png",
+        "diffPath": "target/jankurai/ux-qa/diff.json",
+        "actualSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "baselineSha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "owner": "design",
+        "approvedBy": "ux",
+        "approvedAt": "2026-05-02T12:00:00.000Z",
+        "approvalNote": "fixture"
+    });
     value["reports"][0]["artifactCoverage"] = serde_json::json!({
         "required": ["screenshot", "aria-snapshot", "accessibility"],
         "present": ["accessibility"],
@@ -87,6 +102,7 @@ fn ux_qa_report_wrong_schema_version_fails() {
     assert!(
         s.contains("1.2.0")
             || s.contains("1.3.0")
+            || s.contains("1.4.0")
             || s.contains("constant")
             || s.contains("const")
             || s.contains("enum"),

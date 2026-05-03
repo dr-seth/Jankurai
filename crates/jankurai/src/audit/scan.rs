@@ -67,16 +67,6 @@ pub const FALSE_GREEN_PATTERNS: &[&str] = &[
     "toMatchInlineSnapshot(",
 ];
 
-pub const DESTRUCTIVE_SQL_PATTERNS: &[&str] = &[
-    "drop table",
-    "drop column",
-    "drop database",
-    "drop schema",
-    "truncate table",
-    "alter table",
-    "delete from",
-];
-
 pub const STREAMING_CLIENT_PATTERNS: &[&str] = &[
     "rdkafka",
     "kafka",
@@ -300,22 +290,152 @@ pub fn false_green_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     )
 }
 
+/// Executable SQL fragment on a line (strips trailing `-- ...` inline comments).
+fn sql_executable_line(line: &str) -> &str {
+    line.split_once("--").map(|(a, _)| a).unwrap_or(line).trim()
+}
+
+/// True when `delete without where` matched on `delete_line_idx` but a `WHERE` clause starts on a
+/// later line (common style: `DELETE FROM t` then `WHERE …`).
+fn delete_has_where_on_following_lines(text: &str, delete_line_idx: usize) -> bool {
+    const MAX_LOOKAHEAD: usize = 24;
+    let lines: Vec<&str> = text.lines().collect();
+    let start = delete_line_idx.saturating_add(1);
+    let end = (start + MAX_LOOKAHEAD).min(lines.len());
+    for j in start..end {
+        let exec = sql_executable_line(lines[j]);
+        if exec.is_empty() {
+            continue;
+        }
+        let lower = exec.trim().to_ascii_lowercase();
+        if lower == "where"
+            || lower.starts_with("where ")
+            || lower.starts_with("where\t")
+            || lower.starts_with("where(")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+fn migration_safety_evidence_present(sql: &str) -> bool {
+    let lower = sql.to_ascii_lowercase();
+    if lower.contains("jankurai:migration-safe") {
+        return true;
+    }
+    const MARKERS: &[&str] = &[
+        "rollback",
+        "down migration",
+        "down_migration",
+        "backfill",
+        "lock timeout",
+        "lock_timeout",
+        "advisory lock",
+        "staged deploy",
+        "staged-deploy",
+        "expand and contract",
+        "expand-contract",
+    ];
+    MARKERS.iter().any(|m| lower.contains(m))
+}
+
+fn destructive_migration_class(fragment: &str) -> Option<&'static str> {
+    let lower = fragment.to_ascii_lowercase();
+    if lower.contains("drop table")
+        || lower.contains("drop database")
+        || lower.contains("drop schema")
+    {
+        return Some("drop ddl");
+    }
+    if lower.contains("truncate table") {
+        return Some("truncate");
+    }
+    if lower.contains("drop column")
+        || lower.contains("drop index")
+        || lower.contains("drop constraint")
+    {
+        return Some("drop object");
+    }
+    if lower.contains("delete from") && !lower.contains(" where ") {
+        return Some("delete without where");
+    }
+    if lower.contains("alter table") && lower.contains(" drop ") {
+        return Some("alter table drop");
+    }
+    None
+}
+
+fn is_migration_sql_file(file: &FileInfo, ctx: &AuditContext) -> bool {
+    if file.suffix != ".sql" || file.is_generated {
+        return false;
+    }
+    let p = file.rel_path.as_str();
+    if p.starts_with("db/")
+        || p.contains("/db/migrations/")
+        || p.contains("/db/constraints/")
+        || p.starts_with("migrations/")
+        || p.starts_with("crates/adapters/")
+        || p.starts_with("apps/api/migrations/")
+    {
+        return true;
+    }
+    if let Some(m) = boundary_manifest(ctx) {
+        if let Some(db) = m.db {
+            for prefix in db
+                .migration_paths
+                .iter()
+                .chain(db.root_paths.iter())
+                .chain(db.constraint_paths.iter())
+            {
+                let pre = prefix.trim_end_matches('/');
+                if p == pre || p.starts_with(&format!("{pre}/")) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 pub fn destructive_sql_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(
-        &ctx.all_files
-            .iter()
-            .filter(|f| {
-                f.suffix == ".sql"
-                    && !f.is_generated
-                    && (f.rel_path.starts_with("db/")
-                        || f.rel_path.starts_with("migrations/")
-                        || f.rel_path.starts_with("crates/adapters/")
-                        || f.rel_path.starts_with("apps/api/migrations/"))
-            })
-            .cloned()
-            .collect::<Vec<_>>(),
-        DESTRUCTIVE_SQL_PATTERNS,
-    )
+    const FIX: &str = "document rollback, backfill, lock-timeout, or staged-deploy strategy in the migration (or add `jankurai:migration-safe` with explicit human approval), then run `cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json`";
+    let mut out = vec![];
+    for file in &ctx.all_files {
+        if !is_migration_sql_file(file, ctx) {
+            continue;
+        }
+        if migration_safety_evidence_present(&file.text) {
+            continue;
+        }
+        for (idx, line) in file.text.lines().enumerate() {
+            let frag = sql_executable_line(line);
+            if frag.is_empty() {
+                continue;
+            }
+            let Some(class) = destructive_migration_class(frag) else {
+                continue;
+            };
+            if class == "delete without where" && delete_has_where_on_following_lines(&file.text, idx) {
+                continue;
+            }
+            let line_no = idx + 1;
+            let t = line.trim();
+            let text = t.chars().take(160).collect::<String>();
+            out.push(FindingHit {
+                path: file.rel_path.clone(),
+                line: Some(line_no),
+                text: text.clone(),
+                matched_term: Some(class.to_string()),
+                agent_fix: FIX.into(),
+                problem: format!("{class}: {text}"),
+            });
+            if out.len() >= 20 {
+                return out;
+            }
+        }
+    }
+    out
 }
 
 pub fn streaming_runtime_hits(ctx: &AuditContext) -> Vec<FindingHit> {

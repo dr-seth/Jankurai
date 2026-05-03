@@ -78,9 +78,11 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert!(ei_props.contains_key("github_step_summary_path"));
     assert!(ei_props.contains_key("repair_queue_jsonl_path"));
     assert!(ei_props.contains_key("boundaries_manifest_path"));
+    assert!(ei_props.contains_key("ux_qa_report_digest"));
     let ei_required = evidence_index["required"].as_array().unwrap();
     for key in [
         "ux_qa_report_path",
+        "ux_qa_report_digest",
         "security_evidence_path",
         "repo_score_json_path",
         "sarif_path",
@@ -179,8 +181,17 @@ fn cell_registry_and_manifest_schemas_parse() {
             .iter()
             .any(|value| value == "1.3.0")
     );
+    assert!(
+        ux_report["$defs"]["uxQaReport"]["properties"]["schemaVersion"]["enum"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value == "1.4.0")
+    );
     assert!(ux_report["$defs"].get("uxQaAccessibilitySummary").is_some());
     assert!(ux_report["$defs"].get("uxQaArtifactCoverage").is_some());
+    assert!(ux_report["$defs"].get("uxQaVisualBaselineSummary").is_some());
+    assert!(ux_report["$defs"]["uxQaArtifact"]["properties"].get("sha256").is_some());
 
     let repo_score: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/repo-score.schema.json")).unwrap(),
@@ -203,6 +214,21 @@ fn cell_registry_and_manifest_schemas_parse() {
         .is_some());
     assert!(ux_art["properties"]
         .get("accessibility_violation_total")
+        .is_some());
+    assert!(ux_art["properties"]
+        .get("artifact_fingerprint_count")
+        .is_some());
+    assert!(ux_art["properties"]
+        .get("visual_baseline_missing")
+        .is_some());
+    assert!(ux_art["properties"]
+        .get("visual_baseline_changed")
+        .is_some());
+    assert!(ux_art["properties"]
+        .get("visual_baseline_review")
+        .is_some());
+    assert!(ux_art["properties"]
+        .get("visual_baseline_block")
         .is_some());
     assert!(repo_score["properties"].get("security_evidence").is_some());
     assert_eq!(

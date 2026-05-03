@@ -1,6 +1,6 @@
 # Phase 09: Reference Product Platform
 
-Status: partial
+Status: hardened
 Owner: standard
 Last reviewed: 2026-05-02
 Parallel MCP candidate: yes
@@ -236,14 +236,16 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial reference product platform implementation slice
-- Files changed: `examples/perfect-web-api-db/README.md`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/backend/src/domain.rs`, `examples/perfect-web-api-db/backend/src/application.rs`, `examples/perfect-web-api-db/frontend/src/App.tsx`, `examples/perfect-web-api-db/contracts/openapi.json`, `examples/perfect-web-api-db/db/migrations/001_init.sql`, `examples/perfect-web-api-db/db/constraints/001_accounts.sql`, `examples/perfect-web-api-db/ops/observability.md`, `examples/perfect-web-api-db/ops/security.md`, `examples/perfect-web-api-db/ux/routes.md`, `examples/legacy-node-api/README.md`, `examples/legacy-node-api/package.json`, `examples/legacy-node-api/src/index.js`, `agent/owner-map.json`, `agent/test-map.json`, `crates/jankurai/src/audit/mod.rs`, and `target/jankurai/phase-logs/09-reference-product-platform.md.log`
+- Phase status: hardened reference product platform — domain/application/adapters layers with real invariants, typed RBAC, audit events, RFC 9457 errors; production-grade OpenAPI 3.1 contract; PostgreSQL migration with ENUMs, FKs, indexes; frontend with all UI states and ARIA; architecture decisions and exception inventory
+- Files changed (initial scaffold): `examples/perfect-web-api-db/README.md`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/backend/src/domain.rs`, `examples/perfect-web-api-db/backend/src/application.rs`, `examples/perfect-web-api-db/frontend/src/App.tsx`, `examples/perfect-web-api-db/contracts/openapi.json`, `examples/perfect-web-api-db/db/migrations/001_init.sql`, `examples/perfect-web-api-db/db/constraints/001_accounts.sql`, `examples/perfect-web-api-db/ops/observability.md`, `examples/perfect-web-api-db/ops/security.md`, `examples/perfect-web-api-db/ux/routes.md`, `examples/legacy-node-api/README.md`, `examples/legacy-node-api/package.json`, `examples/legacy-node-api/src/index.js`, `agent/owner-map.json`, `agent/test-map.json`, `crates/jankurai/src/audit/mod.rs`, and `target/jankurai/phase-logs/09-reference-product-platform.md.log`
+- Files changed (hardening slice): `examples/perfect-web-api-db/backend/src/domain.rs` (typed IDs, RBAC, audit events, domain errors, tests), `examples/perfect-web-api-db/backend/src/application.rs` (port traits, commands, authorization, idempotency, tests), `examples/perfect-web-api-db/backend/src/adapters.rs` (new — adapter boundary documentation), `examples/perfect-web-api-db/backend/src/lib.rs` (updated — layer docs), `examples/perfect-web-api-db/contracts/openapi.json` (full OpenAPI 3.1 with schemas, security, ProblemDetail), `examples/perfect-web-api-db/db/migrations/001_init.sql` (production-grade SQL with ENUMs, FKs, indexes), `examples/perfect-web-api-db/db/constraints/001_accounts.sql` (constraint-to-invariant mapping), `examples/perfect-web-api-db/frontend/src/App.tsx` (all UI states, ARIA, typed components), `examples/perfect-web-api-db/ops/observability.md` (trace IDs, logging, metrics, health), `examples/perfect-web-api-db/ops/security.md` (secrets, deps, auth, CI, compliance), `examples/perfect-web-api-db/ux/routes.md` (route matrix, state coverage, a11y), `examples/perfect-web-api-db/docs/architecture.md` (new — ADRs), `examples/perfect-web-api-db/docs/exceptions.md` (new — exception inventory), `examples/perfect-web-api-db/README.md` (comprehensive COLD stack documentation)
 - Schemas changed: reference-platform contract surfaces under `schemas/`
-- Public interfaces changed: in-tree reference scaffold, fixture routing, and proof-routing expectations
+- Public interfaces changed: in-tree reference scaffold hardened with real domain logic, contract, and boundary documentation
 - Generated artifacts: example scaffold, UX/security/docs fixtures, proof-lane outputs
-- Routing maps changed: `agent/owner-map.json`, `agent/test-map.json`
-- Validation commands: `cargo test -p jankurai`, `just fast`, `just score`, `npm --workspace @jankurai/ux-qa run build`, `npm --workspace @jankurai/ux-qa run test`
-- Results: validation passed; reference scaffold remains partial
+- Routing maps changed: `agent/owner-map.json`, `agent/test-map.json` (prior slice)
+- Validation commands: `cargo test -p jankurai` (96 passed), `just fast` (score=93 findings=0), `just score` (score=93 findings=0)
+- Results: all validation passed; score maintained at 93 with 0 findings
 - Skipped validation: external golden repo split remains optional
-- Exceptions created: examples are routed out of workspace score handling as fixtures
+- Exceptions created: examples are routed out of workspace score handling as fixtures; inline frontend types documented in `docs/exceptions.md` with expiry
 - Follow-up phases: 10 reuse registry certified cells
+

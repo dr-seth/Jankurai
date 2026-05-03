@@ -7,12 +7,25 @@ Testing is routed proof. Agents should not guess which tests matter.
 | `fast` | deterministic local proof for most edits |
 | `contract` | API/schema generation and drift checks |
 | `db` | migrations, constraints, schema drift |
+| `db-migration-analyze` | migration liability report from `jankurai migrate --analyze` (routed for `db/migrations/` in `agent/test-map.json`) |
 | `web` | TypeScript typecheck, component tests, rendered UX QA |
 | `e2e` | Playwright critical product flows |
 | `security` | secrets, dependencies, SBOM/SCA, workflow lint |
 | `observability` | traces, request IDs, structured error payloads |
 | `audit` | jankurai repo score and hard-rule findings |
 | `full` | release/merge gate |
+
+## SQL migration safety (audit)
+
+Jankurai flags destructive statements in SQL files under migration roots (for example `db/`, `**/db/migrations/`, paths from `agent/boundaries.toml` `[db]`, and common `migrations/` layouts). Findings use stable rule ID **`HLT-021-DESTRUCTIVE-MIGRATION`** and cap bucket **`destructive-migration-risk`**.
+
+**Documented safety (file-level):** the audit skips the finding when the migration file mentions rollback, down migration, backfill, lock timeout or advisory lock, staged deploy, expand/contract, or contains the marker **`jankurai:migration-safe`**. That marker is a **policy escape hatch**: it suppresses the finding only when a human has explicitly approved the exception; it does not prove the SQL is safe.
+
+**Proof lane:** changes under `db/migrations/` route in `agent/test-map.json` to `cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json`, named lane **`db-migration-analyze`** in `agent/proof-lanes.toml`.
+
+**Limitations:** most destructive checks are line-oriented; unbounded `DELETE FROM` is refined with a short lookahead (following lines) for a leading `WHERE`, but pathological SQL (strings, procedural bodies) can still confuse the scanner. Prefer keeping destructive statements and safety notes clearly commented in the same file.
+
+**SARIF:** audit exports map repo-relative rule `docs_url` paths (for example `docs/testing.md`) to an absolute GitHub `blob/main/...` URL in each rule's `helpUri`. Finding regions include matching `startLine`/`endLine` and a `snippet` from evidence or a short `problem` excerpt.
 
 For this workspace:
 
@@ -32,15 +45,15 @@ For this workspace:
 - Phase closeouts should cite the exact receipt path instead of relying on chat history.
 - Prefer structured errors, telemetry, and repair receipts that tell the next agent where to rerun proof.
 
-Rendered UX QA combines Storybook states, Playwright screenshots, ARIA snapshots, visual review, axe/WCAG checks, CLS checks, MSW/generated mocks, design tokens, and deterministic DOM geometry rules such as edge clearance, target size, overlap, clipping, wrapping, horizontal overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars.
+Rendered UX QA combines Storybook states, Playwright screenshots, ARIA snapshots, deterministic visual-baseline hashes, axe/WCAG checks, CLS checks, MSW/generated mocks, design tokens, and deterministic DOM geometry rules such as edge clearance, target size, overlap, clipping, wrapping, horizontal overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars.
 
-Critical UI proof must be artifact-backed. A useful receipt names the route or story, browser, viewport, action sequence, screenshot or crop path, ARIA snapshot path when available, rule IDs, selectors, owner, and merge decision. Deterministic rule violations block; visual diffs require baseline approval; AI/VLM opinions route to review unless backed by a deterministic rule.
+Critical UI proof must be artifact-backed. A useful receipt names the route or story, browser, viewport, action sequence, screenshot or crop path, ARIA snapshot path when available, sha256 artifact digests, rule IDs, selectors, owner, and merge decision. Deterministic rule violations block; visual baselines compare file bytes and hashes, not pixels or AI/VLM judgment; review only applies to owner-approved baseline changes or ambiguous product calls.
 
-`@jankurai/ux-qa` now emits UX report schema `1.3.0`; validation still accepts existing `1.2.0` reports for compatibility. The `1.3.0` contract adds `artifactCoverage` and `accessibility` summaries per report. `agent/ux-qa.toml` policy fields for `readyState`, `timeoutMs`, `screenshotRequired`, `ariaSnapshotRequired`, and `accessibilityScanRequired` drive CLI behavior unless an explicit CLI flag overrides them.
+`@jankurai/ux-qa` now emits UX report schema `1.4.0`; validation still accepts existing `1.2.0` and `1.3.0` reports for compatibility. The `1.4.0` contract keeps `artifactCoverage` and `accessibility` summaries, adds artifact `sha256` digests, `state`, and `visualBaseline` summary fields, and keeps older envelopes valid. `agent/ux-qa.toml` policy fields for `readyState`, `timeoutMs`, `screenshotRequired`, `ariaSnapshotRequired`, `accessibilityScanRequired`, `visualBaselineRoot`, `visualDiffRoot`, and `stateQueryParam` drive CLI behavior unless an explicit CLI flag overrides them; route-level overrides can refine baseline paths, owners, and baseline mode.
 
-When required states or required screenshot/ARIA/accessibility artifacts are missing, the UX CLI marks the report `block`. Validated `target/jankurai/ux-qa.json` evidence is ingested into repo-score as `ux_qa.artifact`, including artifact counts by kind, missing state names, missing required artifact kinds, and accessibility violation/incomplete/pass totals. The audit adds `HLT-013-RENDERED-UX-GAP` for incomplete state or non-a11y artifact coverage and `HLT-014-A11Y-GAP` for axe violations or missing required accessibility artifacts. This slice does not add numeric score caps.
+When required states or required screenshot/ARIA/accessibility artifacts are missing, the UX CLI marks the report `block`. State generation can be driven by `stateQueryParam` so each configured state becomes a concrete URL variant without changing the underlying route contract. Validated `target/jankurai/ux-qa.json` evidence is ingested into repo-score as `ux_qa.artifact`, including artifact counts by kind, missing state names, missing required artifact kinds, and accessibility violation/incomplete/pass totals. The audit adds `HLT-013-RENDERED-UX-GAP` for incomplete state or non-a11y artifact coverage and `HLT-014-A11Y-GAP` for axe violations or missing accessibility artifacts. This slice does not add numeric score caps.
 
-Automated accessibility is evidence, not a complete inclusive testing replacement. Axe catches common machine-detectable WCAG issues; keyboard, screen-reader, cognitive load, localization, motion, and product-context review still need human or domain-specific proof.
+Automated accessibility is evidence, not a complete inclusive testing replacement. Axe catches common machine-detectable WCAG issues; keyboard, screen-reader, cognitive load, localization, motion, and product-context review still need human or domain-specific proof. No AI/VLM or pixel-diff authority replaces deterministic baselines here.
 
 Schema-first work should get a parse smoke test before command wiring lands. For new contract files under `schemas/`, add a Rust test that loads the JSON and checks the required fields or references the contract chain. Keep that proof under `cargo test -p jankurai` so the schema stays machine-readable while the CLI surface is still being planned.
 
