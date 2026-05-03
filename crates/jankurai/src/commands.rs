@@ -1,6 +1,7 @@
 pub mod agent;
 pub mod bench;
 pub mod cell;
+pub mod cell_catalog;
 pub mod certify;
 pub mod ci;
 pub mod context_data;

@@ -1,4 +1,6 @@
+use crate::commands::cell_catalog::{built_in_manifests, evidence_counts, CellManifest};
 use crate::commands::context_data::RepoCatalog;
+use crate::validation::{self, ArtifactSchema};
 use anyhow::Result;
 use serde::Serialize;
 use std::collections::BTreeSet;
@@ -17,9 +19,13 @@ pub struct RegistryPlan {
     pub schema_version: String,
     pub command: String,
     pub repo: String,
+    pub registry_version: String,
     pub generated_at: String,
     pub status: String,
     pub summary: String,
+    pub cells: Vec<CellManifest>,
+    pub certified_cell_count: usize,
+    pub candidate_cell_count: usize,
     pub candidate_cells: Vec<RegistryCell>,
     pub required_sources: Vec<String>,
     pub proof_lanes: Vec<String>,
@@ -41,8 +47,9 @@ pub struct RegistryCell {
 pub fn run(args: RegistryArgs) -> Result<()> {
     let plan = build_registry_plan(&args.repo)?;
     if let Some(path) = args.out.as_deref() {
-        crate::render::write_json(path, &serde_json::to_string_pretty(&plan)?)?;
+        validation::write_json(&args.repo, ArtifactSchema::CellRegistry, path, &plan)?;
     } else {
+        validation::validate_serializable(&args.repo, ArtifactSchema::CellRegistry, &plan)?;
         println!("{}", serde_json::to_string_pretty(&plan)?);
     }
     if let Some(path) = args.md.as_deref() {
@@ -66,6 +73,12 @@ pub fn build_registry_plan(repo: &Path) -> Result<RegistryPlan> {
     } else {
         catalog.proof_lane_names()
     };
+    let cells = built_in_manifests(repo, &catalog);
+    let certified_cell_count = cells
+        .iter()
+        .filter(|cell| cell.certification_status == "certified")
+        .count();
+    let candidate_cell_count = cells.len().saturating_sub(certified_cell_count);
     let candidate_cells = build_candidate_cells(&catalog, &proof_lanes);
     let mut notes = vec![
         "registry output is derived from the machine-readable owner/test maps".to_string(),
@@ -81,9 +94,13 @@ pub fn build_registry_plan(repo: &Path) -> Result<RegistryPlan> {
         schema_version: "1.0.0".to_string(),
         command: "jankurai registry".to_string(),
         repo: repo.display().to_string(),
+        registry_version: "1.0.0".to_string(),
         generated_at: now_string(),
         status: "complete".to_string(),
-        summary: "candidate reuse registry for certified cells".to_string(),
+        summary: "evidence-bound reuse registry for certified cells".to_string(),
+        cells,
+        certified_cell_count,
+        candidate_cell_count,
         candidate_cells,
         required_sources,
         proof_lanes,
@@ -164,9 +181,12 @@ fn render_markdown(plan: &RegistryPlan) -> String {
     let _ = writeln!(out);
     let _ = writeln!(out, "- command: `{}`", plan.command);
     let _ = writeln!(out, "- repo: `{}`", plan.repo);
+    let _ = writeln!(out, "- registry version: `{}`", plan.registry_version);
     let _ = writeln!(out, "- generated at: `{}`", plan.generated_at);
     let _ = writeln!(out, "- status: `{}`", plan.status);
     let _ = writeln!(out, "- summary: {}", plan.summary);
+    let _ = writeln!(out, "- certified cells: `{}`", plan.certified_cell_count);
+    let _ = writeln!(out, "- candidate cells: `{}`", plan.candidate_cell_count);
     let _ = writeln!(
         out,
         "- required sources: `{}`",
@@ -174,6 +194,21 @@ fn render_markdown(plan: &RegistryPlan) -> String {
     );
     let _ = writeln!(out, "- proof lanes: `{}`", join_or_none(&plan.proof_lanes));
     let _ = writeln!(out, "- notes: `{}`", join_or_none(&plan.notes));
+    let _ = writeln!(out);
+    let _ = writeln!(out, "## Certified Cell Catalog");
+    for cell in &plan.cells {
+        let counts = evidence_counts(cell);
+        let _ = writeln!(
+            out,
+            "- `{}`: `{}`; lanes `{}`; evidence present `{}`, missing `{}`, review `{}`",
+            cell.cell_id,
+            cell.certification_status,
+            join_or_none(&cell.proof_lanes),
+            counts.present,
+            counts.missing,
+            counts.review_required
+        );
+    }
     for cell in &plan.candidate_cells {
         let _ = writeln!(out);
         let _ = writeln!(out, "## {}", cell.cell_id);

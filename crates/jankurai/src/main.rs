@@ -254,6 +254,8 @@ struct CellArgs {
     repo: PathBuf,
     #[arg(long, default_value = "workspace-cell")]
     cell_id: String,
+    #[arg(long, default_value = "install-ready", value_parser = ["install-ready", "prove"])]
+    mode: String,
     #[arg(long, value_name = "PATH")]
     out: Option<String>,
     #[arg(long, value_name = "PATH")]
@@ -492,6 +494,7 @@ fn main() -> anyhow::Result<()> {
             cell::run(cell::CellArgs {
                 repo: args.repo,
                 cell_id: args.cell_id,
+                mode: args.mode,
                 out: args.out,
                 md: args.md,
             })?;
