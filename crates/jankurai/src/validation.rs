@@ -24,6 +24,8 @@ pub enum ArtifactSchema {
     UxQaReport,
     MigrationReport,
     MigrationPlan,
+    CellManifest,
+    CellRegistry,
 }
 
 impl ArtifactSchema {
@@ -45,6 +47,8 @@ impl ArtifactSchema {
             Self::UxQaReport => "ux-qa.schema.json",
             Self::MigrationReport => "migration-report.schema.json",
             Self::MigrationPlan => "migration-plan.schema.json",
+            Self::CellManifest => "cell-manifest.schema.json",
+            Self::CellRegistry => "cell-registry.schema.json",
         }
     }
 }

@@ -16,10 +16,15 @@
     "migration_paths",
     "ui_routes",
     "proof_lanes",
+    "proof_commands",
     "security_assumptions",
     "observability_events",
     "docs",
     "upgrade_notes",
+    "rollback_notes",
+    "certification_evidence",
+    "install_strategy",
+    "conflict_policy",
     "certification_status"
   ],
   "properties": {
@@ -62,6 +67,10 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "proof_commands": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "security_assumptions": {
       "type": "array",
       "items": { "type": "string" }
@@ -77,6 +86,35 @@
     "upgrade_notes": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "rollback_notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "certification_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "path", "required", "status"],
+        "properties": {
+          "kind": { "type": "string" },
+          "path": { "type": "string" },
+          "required": { "type": "boolean" },
+          "status": {
+            "type": "string",
+            "enum": ["present", "missing", "review-required"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "install_strategy": {
+      "type": "string",
+      "enum": ["dry-run-plan", "template-copy", "manual"]
+    },
+    "conflict_policy": {
+      "type": "string",
+      "enum": ["never-overwrite", "review-required"]
     },
     "certification_status": {
       "type": "string",
