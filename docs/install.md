@@ -26,9 +26,15 @@ jankurai ci install --github --mode ratchet --min-score 85
 jankurai agent verify
 ```
 
-`init --yes` creates missing files and leaves existing user content intact. When an
-existing canonical file is not already jankurai-controlled, it appends a merge
-marker instead of overwriting.
+`init --yes` creates missing paths from the profile and **merges** into some existing files instead of overwriting:
+
+- **`.json`**: additive object/array merge (`merge-json`).
+- **`.toml`**: additive table/array merge (`merge-toml`).
+- **`Justfile`** or **`.gitignore`**: append lines from the template that are not already present (`merge-lines`).
+- **`AGENTS.md`** and **`agent/JANKURAI_STANDARD.md`**: append an HTML merge marker for manual review (`merge-marker`).
+- **Other paths** that already exist: left unchanged (`keep-existing`).
+
+Run **`jankurai init ... --dry-run`** (or **`--plan-json`**) first; the printed plan lists the action for each `generatedPaths` entry.
 
 For agent repair work, use the narrow packet commands:
 

@@ -672,6 +672,45 @@ fn build_findings(
             hit.line,
         );
     }
+    // Phase 07 H1: contract source detection
+    for hit in scan::contract_source_hits(ctx) {
+        b.add(
+            "high",
+            "boundary",
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            vec![hit.text],
+            Some("HLT-007-HANDWRITTEN-CONTRACT"),
+            hit.line,
+        );
+    }
+    // Phase 07 H2: generated zone existence + header
+    for hit in scan::generated_zone_existence_hits(ctx) {
+        b.add(
+            "high",
+            "generated",
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            vec![hit.text],
+            Some("HLT-002-GENERATED-MUTATION"),
+            hit.line,
+        );
+    }
+    // Phase 07 H4: event contract path validation
+    for hit in scan::event_contract_path_hits(ctx) {
+        b.add(
+            "high",
+            "boundary",
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            vec![hit.text],
+            Some("HLT-007-HANDWRITTEN-CONTRACT"),
+            hit.line,
+        );
+    }
 
     for dimension in dimensions.iter().filter(|dimension| dimension.score < 85) {
         let (category, path, rule_id, fix) = dimension_soft_route(&dimension.name);

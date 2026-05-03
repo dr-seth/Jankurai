@@ -35,36 +35,63 @@ fn physical_region(finding: &Finding) -> serde_json::Value {
     region
 }
 
-fn rule_descriptor(finding: &Finding) -> serde_json::Value {
-    let id = finding
-        .rule_id
-        .as_deref()
-        .unwrap_or("HLT-000-SCORE-DIMENSION");
-    let mut desc = serde_json::Map::new();
-    desc.insert("id".into(), json!(id));
-    desc.insert("name".into(), json!(&finding.check_id));
-    desc.insert(
-        "shortDescription".into(),
-        json!({ "text": &finding.problem }),
-    );
-    if let Some(uri) = sarif_help_uri(&finding.docs_url) {
-        desc.insert("helpUri".into(), json!(uri));
-    }
-    serde_json::Value::Object(desc)
-}
-
 pub fn render_sarif(report: &Report) -> String {
-    let rules = report
-        .findings
+    // Build deduplicated rules[] array keyed by rule_id
+    let mut rule_ids: Vec<String> = Vec::new();
+    let mut rule_index_map: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+
+    for finding in &report.findings {
+        let rid = finding
+            .rule_id
+            .as_deref()
+            .unwrap_or("HLT-000-SCORE-DIMENSION")
+            .to_string();
+        if !rule_index_map.contains_key(&rid) {
+            let idx = rule_ids.len();
+            rule_ids.push(rid.clone());
+            rule_index_map.insert(rid, idx);
+        }
+    }
+
+    let rules: Vec<serde_json::Value> = rule_ids
         .iter()
-        .map(rule_descriptor)
-        .collect::<Vec<_>>();
+        .map(|rid| {
+            // Use the first finding with this rule_id for metadata
+            let representative = report
+                .findings
+                .iter()
+                .find(|f| f.rule_id.as_deref().unwrap_or("HLT-000-SCORE-DIMENSION") == rid)
+                .unwrap();
+            let mut desc = serde_json::Map::new();
+            desc.insert("id".into(), json!(rid));
+            desc.insert("name".into(), json!(&representative.check_id));
+            desc.insert(
+                "shortDescription".into(),
+                json!({ "text": &representative.problem }),
+            );
+            desc.insert(
+                "defaultConfiguration".into(),
+                json!({ "level": sarif_level(&representative.severity) }),
+            );
+            if let Some(uri) = sarif_help_uri(&representative.docs_url) {
+                desc.insert("helpUri".into(), json!(uri));
+            }
+            serde_json::Value::Object(desc)
+        })
+        .collect();
+
     let results = report
         .findings
         .iter()
         .map(|finding| {
+            let rid = finding
+                .rule_id
+                .as_deref()
+                .unwrap_or("HLT-000-SCORE-DIMENSION");
+            let rule_index = rule_index_map.get(rid).copied().unwrap_or(0);
             json!({
-                "ruleId": finding.rule_id.as_deref().unwrap_or("HLT-000-SCORE-DIMENSION"),
+                "ruleId": rid,
+                "ruleIndex": rule_index,
                 "level": sarif_level(&finding.severity),
                 "message": { "text": finding.problem },
                 "fingerprints": { "jankurai": finding.fingerprint },

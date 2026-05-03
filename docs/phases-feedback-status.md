@@ -2,7 +2,7 @@
 
 This document records how `tips/phases_feedback/*` notes were considered relative to `docs/moonshot.md`, `agent/MASTER_PLAN.md`, and the live codebase. It is not a second roadmap; it is a reconciliation ledger.
 
-Last reviewed: 2026-05-03
+Last reviewed: 2026-05-04
 
 Full artifact/schema index: `docs/artifact-contracts.md`.
 
@@ -14,7 +14,7 @@ Full artifact/schema index: `docs/artifact-contracts.md`.
 | Phase 01 | `01-standard/tip1`–`tip4` | **Schemas + doctor + exports + Finding contract.** `ArtifactSchema::Finding` → `finding.schema.json`; `report_compatibility_guard` validates **`findings[]`** and **`issues export --format jsonl`** lines. (Plus prior: Markdown headings, repair-queue JSONL, `just security` → `security run`, `docs/artifact-contracts.md`.) **Per-tool security steps:** bundled `tools/security-lane.sh` emits **`jankurai-security-step=`** JSON lines (needs **`python3`** on PATH for those lines); `jankurai security run` parses them into **`commands[]`**, else falls back to a single wrapper step (thin fixtures). |
 | Phase 02 | `02-rule/tip1`–`tip4` | **Satisfied by current architecture / out of scope for one-shot apply.** Feedback scripts propose replacing `boundaries/` and audit wiring wholesale; the repo already has `audit/rules.rs`, finding builders, boundary checks, and registry tests per `tips/phases/02-rule-engine-semantic-oracle.md`. Large speculative rewrites were not merged; incremental rule/oracle work continues through normal audit PRs. |
 | Phase 03 | `03-proof/tip1`–`tip4` | **Implemented in code.** `prove` exposes `--plan-out` / `--plan-md`, persists changed-mode plans, rejects ambiguous inputs and root-only changed paths, and populates `rules_covered` where deterministic; see `crates/jankurai/tests/proof_surface_smoke.rs` and `tips/phases/03-proof-router-evidence-ledger.md`. |
-| Phase 04 | `04-init/tip1`–`tip4` | **Bundled profiles + `--profile-file`.** Seven bundled manifests; `crates/jankurai/src/init/profiles.rs` unit tests **`bundled_profile_contract`** require `templates/profiles/*.json` stems ↔ `BUNDLED_PROFILE_IDS` and manifest `id` ↔ bundle key. `docs/install.md` documents profiles. **Deferred:** deeper merge policy beyond markers. |
+| Phase 04 | `04-init/tip1`–`tip4` | **Bundled profiles + `--profile-file` + brownfield merge.** Same profile guardrails: seven bundled manifests; `crates/jankurai/src/init/profiles.rs` **`bundled_profile_contract`**; `docs/install.md`. **`jankurai init`** chooses per existing path in `plan.rs`: **`merge-json`** / **`merge-toml`** (additive merge in `merge.rs`), **`merge-lines`** for `.gitignore` and `Justfile`, **`merge-marker`** for `AGENTS.md` and `agent/JANKURAI_STANDARD.md`, **`keep-existing`** otherwise, else **`create`**. Use **`--dry-run`** / plan JSON to see per-path actions. **Follow-on:** manifest-driven merge rules, more extensions, or three-way merge only if needed. |
 
 ## Validation expectations
 

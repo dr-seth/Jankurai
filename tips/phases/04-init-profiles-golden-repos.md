@@ -2,7 +2,7 @@
 
 Status: complete
 Owner: tools
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-04
 Parallel MCP candidate: yes after generator contract is locked
 
 ## Objective
@@ -21,12 +21,13 @@ Existing implementation:
 - **Plan and apply** iterate **`generatedPaths`** from that manifest only (sorted); missing templates are a hard error at plan time.
 - Unknown profile IDs are rejected with a message listing bundled profile IDs (see `BUNDLED_PROFILE_IDS` in `crates/jankurai/src/init/profiles.rs`).
 - Templates live in `crates/jankurai/src/init/templates.rs` (plus `include_str!` agent files under `crates/jankurai/templates/agent/`).
-- Golden tests in `crates/jankurai/tests/init_golden.rs` cover unknown profile, plan/action consistency, greenfield `audit` + `doctor --fail-on high`, and preserving an existing `contracts/README.md`.
+- **Brownfield behavior** is suffix-heuristic in `crates/jankurai/src/init/plan.rs`: existing **`.json`** → additive **`merge-json`**; **`.toml`** → **`merge-toml`**; **`.gitignore`** / **`Justfile`** → **`merge-lines`** (deduped line append); **`AGENTS.md`** and **`agent/JANKURAI_STANDARD.md`** → **`merge-marker`**; other existing paths → **`keep-existing`**. Implementation lives in `crates/jankurai/src/init/merge.rs`; apply path in `crates/jankurai/src/commands/init.rs`.
+- Golden tests in `crates/jankurai/tests/init_golden.rs` cover unknown profile, plan/action consistency, greenfield `audit` + `doctor --fail-on high`, preserving an existing `contracts/README.md`, JSON/TOML merge, and `Justfile` line merge where the profile lists `Justfile`.
 - Operational handoff log: [`tips/phases/logs/04-init-profiles-golden-repos.log`](../logs/04-init-profiles-golden-repos.log).
 
 Gaps (follow-on):
 
-- Deeper merge policy beyond adapter markers and AGENTS / JANKURAI_STANDARD.
+- Optional: manifest-driven merge policy (instead of hardcoded suffix rules), additional formats, or richer merges when product demand is clear.
 
 Bundled profiles (2026-05-02): `rust-ts-postgres`, `rust-api`, `react-web`, `b2b-saas`, `ai-product`, `regulated-saas`, `migration-target`, plus aliases (`ai`, `regulated`, `migration`, and existing stack-name aliases for `rust-ts-postgres`).
 

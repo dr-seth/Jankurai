@@ -6,6 +6,7 @@
     "AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
+    "Justfile",
     "README-jankurai-scaffold.md",
     ".agents/agents.md",
     ".agents/skills/jankurai/SKILL.md",

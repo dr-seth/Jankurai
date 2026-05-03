@@ -97,7 +97,7 @@ This router change does not require owner-map or test-map edits because the touc
 | 04 | complete | init profiles and golden repos in place |
 | 05 | complete | UX proof platform in place |
 | 06 | complete | security supply chain and compliance evidence in place |
-| 07 | complete-with-residual | contracts/DB/generated boundaries are complete; deeper hardening still useful |
+| 07 | hardened | contracts/DB/generated boundaries hardened; all residual gaps closed |
 | 08 | complete | agent context and repair scaffolding in place |
 | 09 | complete | reference product platform in place |
 | 10 | complete-with-deferred-work | certified cells exist; mutating/provider-backed cells remain deferred |
@@ -109,7 +109,7 @@ This router change does not require owner-map or test-map edits because the touc
 
 1. If the user names a phase, use it unless a hard dependency makes progress unsafe.
 2. Otherwise, choose the earliest `partial` phase; if none exists, choose the earliest `complete-with-residual` or `complete-with-deferred-work` slice that improves proof, boundaries, or mutation safety.
-3. Prefer work in this order when nothing is named: Phase 07 residual hardening if it blocks later work, then Phase 10 auth/session or cell hardening, then Phase 12 public evidence, then Phase 13 real mutation gates.
+3. Prefer work in this order when nothing is named: Phase 10 auth/session or cell hardening, then Phase 12 public evidence, then Phase 13 real mutation gates.
 4. Before edits, append a `start` entry, run the smallest credible proof lane, then append a `finish` entry with changed paths, validation, artifacts, git SHA, and residual risk.
 5. Never hand-edit generated artifacts. Fix the source and regenerate.
 

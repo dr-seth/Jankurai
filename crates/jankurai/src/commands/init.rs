@@ -94,15 +94,46 @@ fn apply_templates(
                 });
                 continue;
             }
-            if should_mark_for_merge(&rel) {
-                let text = fs::read_to_string(&path).unwrap_or_default();
-                if is_jankurai_controlled(&text) {
+            let existing_text = fs::read_to_string(&path).unwrap_or_default();
+            
+            if rel.ends_with(".json") {
+                let merged = crate::init::merge::merge_json(&existing_text, template.body)
+                    .with_context(|| format!("failed to merge JSON {}", rel))?;
+                if merged != existing_text {
+                    fs::write(&path, merged)?;
+                }
+                actions.push(InitAction {
+                    path: rel,
+                    action: "merge-json".into(),
+                });
+            } else if rel.ends_with(".toml") {
+                let merged = crate::init::merge::merge_toml(&existing_text, template.body)
+                    .with_context(|| format!("failed to merge TOML {}", rel))?;
+                if merged != existing_text {
+                    fs::write(&path, merged)?;
+                }
+                actions.push(InitAction {
+                    path: rel,
+                    action: "merge-toml".into(),
+                });
+            } else if rel.ends_with(".gitignore") || rel.ends_with("Justfile") {
+                let merged = crate::init::merge::merge_lines(&existing_text, template.body)
+                    .with_context(|| format!("failed to merge lines {}", rel))?;
+                if merged != existing_text {
+                    fs::write(&path, merged)?;
+                }
+                actions.push(InitAction {
+                    path: rel,
+                    action: "merge-lines".into(),
+                });
+            } else if should_mark_for_merge(&rel) {
+                if is_jankurai_controlled(&existing_text) {
                     actions.push(InitAction {
                         path: rel,
                         action: "kept-existing".into(),
                     });
                 } else {
-                    append_merge_marker(&path, &rel, &text)?;
+                    append_merge_marker(&path, &rel, &existing_text)?;
                     actions.push(InitAction {
                         path: rel,
                         action: "merge-marker".into(),
@@ -133,8 +164,34 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
             println!("--- {} missing template", rel);
             continue;
         };
-        if repo.join(&rel).exists() {
-            println!("--- {} exists; no overwrite", rel);
+        let path_obj = repo.join(&rel);
+        if path_obj.exists() {
+            let existing = fs::read_to_string(&path_obj).unwrap_or_default();
+            let mut merged = None;
+            if rel.ends_with(".json") {
+                merged = crate::init::merge::merge_json(&existing, template.body).ok();
+            } else if rel.ends_with(".toml") {
+                merged = crate::init::merge::merge_toml(&existing, template.body).ok();
+            } else if rel.ends_with(".gitignore") || rel.ends_with("Justfile") {
+                merged = crate::init::merge::merge_lines(&existing, template.body).ok();
+            } else if should_mark_for_merge(&rel) && !is_jankurai_controlled(&existing) {
+                let marker = crate::init::merge::merge_marker(&rel);
+                if !existing.contains("jankurai merge marker") {
+                    merged = Some(format!("{existing}{marker}"));
+                }
+            }
+            
+            if let Some(m) = merged {
+                if m != existing {
+                    println!("--- {}", rel);
+                    println!("+++ {} (merged view)", rel);
+                    println!("(Run without --diff to see actual merged results; diff output omitted)");
+                } else {
+                    println!("--- {} exists; no merge needed", rel);
+                }
+            } else {
+                println!("--- {} exists; no overwrite", rel);
+            }
         } else {
             println!("--- /dev/null");
             println!("+++ {}", rel);

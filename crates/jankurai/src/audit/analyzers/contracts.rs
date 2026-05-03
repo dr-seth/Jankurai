@@ -58,12 +58,13 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score -= 15;
         evidence.push("handwritten web DTO/API marker found".into());
     }
-    if product_files(ctx).iter().any(|f| {
-        f.text.contains("fetch(") || f.text.contains("axios") || f.text.contains("graphql")
-    }) && !has_generated_contracts(ctx)
-    {
-        score -= 15;
-        evidence.push("frontend appears to hand-write API access".into());
+    let orphaned = scan::contract_source_hits(ctx);
+    if !orphaned.is_empty() {
+        score -= 10;
+        evidence.push(format!("contract sources without generated zones: {}", orphaned.len()));
+    } else if has_contract_surface(ctx) {
+        score += 5;
+        evidence.push("all contract sources have generated zone entries".into());
     }
     if scan::wrong_layer_db_hits(ctx).is_empty() == false {
         score -= 10;

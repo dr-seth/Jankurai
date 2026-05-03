@@ -28,6 +28,10 @@ pub const TEMPLATES: &[Template] = &[
         body: ADAPTER_POINTER,
     },
     Template {
+        path: "Justfile",
+        body: "# jankurai scaffold Justfile\n\nfast:\n\tcargo test -p jankurai\n",
+    },
+    Template {
         path: ".github/copilot-instructions.md",
         body: ADAPTER_POINTER,
     },

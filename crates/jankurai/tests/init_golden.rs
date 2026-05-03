@@ -482,3 +482,102 @@ fn init_profile_file_rejects_invalid_manifest() {
         "{msg}"
     );
 }
+
+#[test]
+fn init_merges_existing_json() {
+    let dir = tempdir().unwrap();
+    let agent_dir = dir.path().join("agent");
+    fs::create_dir_all(&agent_dir).unwrap();
+    
+    // Seed an existing owner-map.json
+    fs::write(
+        agent_dir.join("owner-map.json"),
+        r#"{
+  "schema": "https://jankurai.io/schemas/owner-map.schema.json",
+  "version": 1,
+  "owners": {
+    "custom/": "my-custom-agent"
+  }
+}"#,
+    )
+    .unwrap();
+
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    let json_text = fs::read_to_string(agent_dir.join("owner-map.json")).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&json_text).unwrap();
+    let owners = value["owners"].as_object().unwrap();
+    
+    let has_custom = owners.get("custom/").map_or(false, |v| v == "my-custom-agent");
+    let has_standard = owners.get("crates/").map_or(false, |v| v == "tools");
+    
+    assert!(has_custom, "must retain existing custom owner");
+    assert!(has_standard, "must merge in standard crates owner from template");
+}
+
+#[test]
+fn init_merges_existing_lines_justfile() {
+    let dir = tempdir().unwrap();
+    fs::write(
+        dir.path().join("Justfile"),
+        "# existing custom recipe\n\ncustom:\n\t@echo preserved\n",
+    )
+    .unwrap();
+
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    let text = fs::read_to_string(dir.path().join("Justfile")).unwrap();
+    assert!(
+        text.contains("preserved"),
+        "must retain existing Justfile content: {text}"
+    );
+    assert!(
+        text.contains("fast:") && text.contains("cargo test -p jankurai"),
+        "must merge in scaffold recipes from template: {text}"
+    );
+}
+
+#[test]
+fn init_merges_existing_toml() {
+    let dir = tempdir().unwrap();
+    let agent_dir = dir.path().join("agent");
+    fs::create_dir_all(&agent_dir).unwrap();
+    
+    // Seed an existing proof-lanes.toml
+    fs::write(
+        agent_dir.join("proof-lanes.toml"),
+        r#"
+schema = "https://jankurai.io/schemas/proof-lanes.schema.json"
+version = 1
+
+[[lane]]
+name = "custom-lane"
+command = "echo custom"
+"#,
+    )
+    .unwrap();
+
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    let toml_text = fs::read_to_string(agent_dir.join("proof-lanes.toml")).unwrap();
+    let value: toml::Value = toml::from_str(&toml_text).unwrap();
+    let lanes = value["lane"].as_array().unwrap();
+    
+    let has_custom = lanes.iter().any(|l| l["name"].as_str() == Some("custom-lane"));
+    let has_standard = lanes.iter().any(|l| l["name"].as_str() == Some("fast"));
+    
+    assert!(has_custom, "must retain existing custom lane");
+    assert!(has_standard, "must merge in standard fast lane from template");
+}
