@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::tempdir;
 
+use jankurai::commands::bench;
 use jankurai::validation::{self, ArtifactSchema};
 
 fn binary_path() -> PathBuf {
@@ -66,19 +67,26 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     assert!(migrate_md.starts_with("# jankurai Migration Plan"));
 
     let (bench, bench_md) = run_command(&repo.path().to_path_buf(), &["bench"]);
-    assert_eq!(bench["command"], "jankurai bench");
-    assert_eq!(bench["status"], "complete");
-    assert!(bench_md.starts_with("# jankurai Bench Plan"));
+    let suite = bench::build_benchmark_suite(repo.path()).unwrap();
+    validation::validate_serializable(repo.path(), ArtifactSchema::BenchmarkSuite, &suite).unwrap();
+    assert_eq!(bench["suite_id"], "smoke");
+    assert!(bench["results"].as_array().unwrap().len() >= 2);
+    assert!(bench["summary"]["passed"].as_i64().unwrap() >= 1);
+    assert!(bench_md.starts_with("# jankurai Benchmark Report"));
+    validation::validate_value(repo.path(), ArtifactSchema::BenchmarkReport, &bench).unwrap();
 
     let (certify, certify_md) = run_command(&repo.path().to_path_buf(), &["certify"]);
-    assert_eq!(certify["command"], "jankurai certify");
-    assert_eq!(certify["status"], "complete");
-    assert!(certify_md.starts_with("# jankurai Certification Plan"));
+    assert_eq!(certify["standard_version"], "0.4.0");
+    assert_eq!(certify["score"], 0);
+    assert_eq!(certify["conformance_level"], "HL0");
+    assert!(certify_md.starts_with("# jankurai Certification"));
+    validation::validate_value(repo.path(), ArtifactSchema::Certification, &certify).unwrap();
 
     let (govern, govern_md) = run_command(&repo.path().to_path_buf(), &["govern"]);
-    assert_eq!(govern["command"], "jankurai govern");
-    assert_eq!(govern["status"], "complete");
-    assert!(govern_md.starts_with("# jankurai Govern"));
+    assert_eq!(govern["minimum_score"], 85);
+    assert_eq!(govern["update_channel"], "stable");
+    assert!(govern_md.starts_with("# jankurai Governance Policy"));
+    validation::validate_value(repo.path(), ArtifactSchema::GovernancePolicy, &govern).unwrap();
 
     let plan_path = repo.path().join("repair-plan.json");
     fs::write(

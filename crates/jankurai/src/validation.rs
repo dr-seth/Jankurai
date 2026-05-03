@@ -24,6 +24,10 @@ pub enum ArtifactSchema {
     UxQaReport,
     MigrationReport,
     MigrationPlan,
+    BenchmarkSuite,
+    BenchmarkReport,
+    Certification,
+    GovernancePolicy,
     CellManifest,
     CellRegistry,
 }
@@ -47,6 +51,10 @@ impl ArtifactSchema {
             Self::UxQaReport => "ux-qa.schema.json",
             Self::MigrationReport => "migration-report.schema.json",
             Self::MigrationPlan => "migration-plan.schema.json",
+            Self::BenchmarkSuite => "benchmark-suite.schema.json",
+            Self::BenchmarkReport => "benchmark-report.schema.json",
+            Self::Certification => "certification.schema.json",
+            Self::GovernancePolicy => "governance-policy.schema.json",
             Self::CellManifest => "cell-manifest.schema.json",
             Self::CellRegistry => "cell-registry.schema.json",
         }

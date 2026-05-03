@@ -71,6 +71,87 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert_eq!(proof_receipt["properties"]["lane"]["type"], "string");
     assert_eq!(proof_plan["properties"]["changed_paths"]["type"], "array");
 
+    let benchmark_suite: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/benchmark-suite.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let benchmark_report: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/benchmark-report.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let certification: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/certification.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let governance_policy: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/governance-policy.schema.json")).unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        benchmark_suite["$id"],
+        "https://jankurai.dev/schemas/benchmark-suite.schema.json"
+    );
+    let bs_required = benchmark_suite["required"].as_array().unwrap();
+    for key in ["fixtures", "tasks"] {
+        assert!(bs_required.iter().any(|value| value == key));
+    }
+    assert!(benchmark_suite["properties"].get("fixtures").is_some());
+    assert!(benchmark_suite["properties"].get("tasks").is_some());
+
+    assert_eq!(
+        benchmark_report["$id"],
+        "https://jankurai.dev/schemas/benchmark-report.schema.json"
+    );
+    let br_required = benchmark_report["required"].as_array().unwrap();
+    for key in ["results", "summary", "target_stack_id"] {
+        assert!(br_required.iter().any(|value| value == key));
+    }
+    assert!(benchmark_report["properties"].get("results").is_some());
+    assert!(benchmark_report["properties"].get("summary").is_some());
+
+    assert_eq!(
+        certification["$id"],
+        "https://jankurai.dev/schemas/certification.schema.json"
+    );
+    let cert_required = certification["required"].as_array().unwrap();
+    for key in [
+        "standard_version",
+        "score",
+        "conformance_level",
+        "proof_receipt_index",
+        "security_receipt_index",
+        "ux_receipt_index",
+        "contract_db_receipt_index",
+    ] {
+        assert!(cert_required.iter().any(|value| value == key));
+    }
+    assert!(certification["properties"]
+        .get("findings_summary")
+        .is_some());
+    assert!(certification["properties"].get("provenance").is_some());
+
+    assert_eq!(
+        governance_policy["$id"],
+        "https://jankurai.dev/schemas/governance-policy.schema.json"
+    );
+    let gp_required = governance_policy["required"].as_array().unwrap();
+    for key in [
+        "minimum_score",
+        "fail_on",
+        "rule_change_policy",
+        "exception_policy",
+    ] {
+        assert!(gp_required.iter().any(|value| value == key));
+    }
+    assert!(governance_policy["properties"]
+        .get("update_channel")
+        .is_some());
+    assert_eq!(
+        governance_policy["properties"]["update_channel"]["enum"],
+        serde_json::json!(["draft", "beta", "stable", "lts"])
+    );
+
     let evidence_index: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/evidence-index.schema.json")).unwrap(),
     )
@@ -200,8 +281,12 @@ fn cell_registry_and_manifest_schemas_parse() {
     );
     assert!(ux_report["$defs"].get("uxQaAccessibilitySummary").is_some());
     assert!(ux_report["$defs"].get("uxQaArtifactCoverage").is_some());
-    assert!(ux_report["$defs"].get("uxQaVisualBaselineSummary").is_some());
-    assert!(ux_report["$defs"]["uxQaArtifact"]["properties"].get("sha256").is_some());
+    assert!(ux_report["$defs"]
+        .get("uxQaVisualBaselineSummary")
+        .is_some());
+    assert!(ux_report["$defs"]["uxQaArtifact"]["properties"]
+        .get("sha256")
+        .is_some());
 
     let repo_score: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/repo-score.schema.json")).unwrap(),
@@ -234,12 +319,8 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert!(ux_art["properties"]
         .get("visual_baseline_changed")
         .is_some());
-    assert!(ux_art["properties"]
-        .get("visual_baseline_review")
-        .is_some());
-    assert!(ux_art["properties"]
-        .get("visual_baseline_block")
-        .is_some());
+    assert!(ux_art["properties"].get("visual_baseline_review").is_some());
+    assert!(ux_art["properties"].get("visual_baseline_block").is_some());
     assert!(repo_score["properties"].get("security_evidence").is_some());
     assert_eq!(
         repo_score["properties"]["security_evidence"]["$ref"],
