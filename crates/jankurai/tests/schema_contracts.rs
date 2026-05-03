@@ -33,7 +33,17 @@ fn cell_registry_and_manifest_schemas_parse() {
     );
 
     let required = manifest["required"].as_array().unwrap();
-    for key in ["cell_id", "version", "lifecycle", "certification_status"] {
+    for key in [
+        "cell_id",
+        "version",
+        "lifecycle",
+        "install_strategy",
+        "conflict_policy",
+        "certification_evidence",
+        "proof_commands",
+        "rollback_notes",
+        "certification_status",
+    ] {
         assert!(required.iter().any(|value| value == key));
     }
     assert_eq!(

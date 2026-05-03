@@ -3,8 +3,16 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::tempdir;
 
+use jankurai::validation::{self, ArtifactSchema};
+
 fn binary_path() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_jankurai"))
+}
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
 }
 
 fn run_command(repo: &PathBuf, args: &[&str]) -> (serde_json::Value, String) {
@@ -37,6 +45,7 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     assert_eq!(registry["command"], "jankurai registry");
     assert_eq!(registry["status"], "complete");
     assert!(registry_md.starts_with("# jankurai Registry"));
+    validation::validate_value(repo.path(), ArtifactSchema::CellRegistry, &registry).unwrap();
 
     let (cell, cell_md) = run_command(
         &repo.path().to_path_buf(),
@@ -48,6 +57,8 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     assert_eq!(cell["cell_id"], "demo-cell");
     assert_eq!(cell["owner"], "workspace");
     assert!(cell_md.starts_with("# jankurai Cell Plan"));
+    validation::validate_value(repo.path(), ArtifactSchema::CellManifest, &cell["manifest"])
+        .unwrap();
 
     let (migrate, migrate_md) = run_command(&repo.path().to_path_buf(), &["migrate"]);
     assert_eq!(migrate["command"], "jankurai migrate");
@@ -111,4 +122,45 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     fs::remove_file(&plan_path).unwrap();
 
     assert_eq!(fs::read_dir(repo.path()).unwrap().count(), 0);
+}
+
+#[test]
+fn certified_cells_are_schema_valid_and_evidence_bound() {
+    let repo = repo_root();
+
+    let (registry, _registry_md) = run_command(&repo, &["registry"]);
+    validation::validate_value(&repo, ArtifactSchema::CellRegistry, &registry).unwrap();
+    let cells = registry["cells"].as_array().unwrap();
+    let audit_log = cells
+        .iter()
+        .find(|cell| cell["cell_id"] == "audit-log")
+        .expect("audit-log cell");
+    let crud = cells
+        .iter()
+        .find(|cell| cell["cell_id"] == "crud-resource")
+        .expect("crud-resource cell");
+    assert_eq!(audit_log["certification_status"], "certified");
+    assert!(audit_log["proof_lanes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|lane| lane == "audit"));
+    assert_eq!(crud["dependencies"].as_array().unwrap()[0], "audit-log");
+
+    let (cell, _cell_md) = run_command(&repo, &["cell", "--cell-id", "audit-log"]);
+    validation::validate_value(&repo, ArtifactSchema::CellManifest, &cell["manifest"]).unwrap();
+    assert!(cell["manifest"].is_object());
+    assert_eq!(cell["install_plan"]["dry_run"], true);
+    assert_eq!(cell["install_plan"]["conflict_policy"], "never-overwrite");
+
+    let (prove, _prove_md) = run_command(
+        &repo,
+        &["cell", "--cell-id", "audit-log", "--mode", "prove"],
+    );
+    validation::validate_value(&repo, ArtifactSchema::CellManifest, &prove["manifest"]).unwrap();
+    assert!(!prove["certification_evidence"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert!(!prove["proof_commands"].as_array().unwrap().is_empty());
 }

@@ -1,8 +1,8 @@
 # Phase 10: Reuse Registry Certified Cells
 
-Status: partial
+Status: complete
 Owner: standard
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
 
 ## Objective
@@ -13,7 +13,17 @@ The exit state is a registry format and the first small set of certified cells.
 
 ## Current State
 
-The repo now emits a registry plan and a cell plan from live ownership and proof data, which is enough to define the first certified-cell surfaces.
+The repo now emits schema-valid certified cell manifests from live ownership,
+proof lane, and Phase 09 reference platform evidence.
+
+Current certified cells:
+
+- `audit-log`
+- `crud-resource`
+
+The installer remains dry-run only and never overwrites user files. `cell
+--mode prove` emits certification evidence and proof commands, but does not
+execute proof commands.
 
 Foundation from earlier phases:
 
@@ -33,13 +43,15 @@ Strongly benefits from Phase 09 as the place to prove cells.
 Implemented command surface:
 
 ```bash
-jankurai registry list
-jankurai registry show auth
-jankurai cell add auth
-jankurai cell prove auth
+jankurai registry .
+jankurai cell . --cell-id audit-log
+jankurai cell . --cell-id audit-log --mode prove
 ```
 
-The implementation currently stays at plan output and candidate-cell discovery, with install/prove/certify execution left for later bounded expansion.
+The implementation emits a registry with certified manifests first, then
+owner-derived candidate-cell discovery hints. Cell install output is an explicit
+dry-run plan with `never-overwrite`; prove mode emits evidence and proof
+commands only.
 
 Registry manifest fields:
 
@@ -54,10 +66,14 @@ Registry manifest fields:
 - migration paths
 - UI routes/stories
 - proof lanes
+- proof commands
 - security assumptions
 - observability events
 - docs
-- upgrade/migration notes
+- upgrade/migration/rollback notes
+- install strategy
+- conflict policy
+- certification evidence
 - certification status
 
 ## Initial Cell Order
@@ -189,6 +205,15 @@ jankurai cell prove audit-log
 
 Use equivalent commands if exact names differ.
 
+Phase 10 closeout validation:
+
+```bash
+rtk cargo test -p jankurai
+rtk cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/cell.rs --changed crates/jankurai/src/commands/registry.rs --changed schemas/cell-manifest.schema.json --out target/jankurai/p10-cell-registry-lane.json --md target/jankurai/p10-cell-registry-lane.md
+rtk just fast
+rtk just score
+```
+
 ## Risks
 
 - Cells can become product frameworks if scope is not constrained.
@@ -208,14 +233,14 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: partial reuse registry certified cells implementation slice
-- Files changed: `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, and `target/jankurai/phase-logs/10-reuse-registry-certified-cells.md.log`
+- Phase status: complete reuse registry certified cells implementation slice
+- Files changed: `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, and `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Schemas changed: cell manifest and cell registry
-- Public interfaces changed: `jankurai registry` and `jankurai cell`
-- Generated artifacts: registry and cell plan JSON/Markdown outputs
+- Public interfaces changed: `jankurai cell --mode <install-ready|prove>`
+- Generated artifacts: registry, cell dry-run, prove evidence, lane, fast score, and repo score JSON/Markdown outputs
 - Routing maps changed: none beyond existing owner/test inputs
-- Validation commands: `cargo test -p jankurai`, `just fast`
-- Results: validation passed; install/prove/certify remain planner-only
-- Skipped validation: install/prove/certify execution remains bounded for later extension
-- Exceptions created: registry install and certification remain evidence-bound planner surfaces
+- Validation commands: `rtk cargo test -p jankurai`; `rtk cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/cell.rs --changed crates/jankurai/src/commands/registry.rs --changed schemas/cell-manifest.schema.json --out target/jankurai/p10-cell-registry-lane.json --md target/jankurai/p10-cell-registry-lane.md`; `rtk just fast`; `rtk just score`
+- Results: validation passed; `just fast` and `just score` both reported score 93, caps 0, findings 0
+- Skipped validation: mutating install execution remains bounded for later extension
+- Exceptions created: provider-backed and mutating cells deferred
 - Follow-up phases: 11 migration engine, 12 benchmark certification and governance, 13 autonomous repair and optimization
