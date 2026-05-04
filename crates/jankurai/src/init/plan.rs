@@ -465,6 +465,7 @@ fn level_allowed_paths(level: InitLevel) -> BTreeSet<&'static str> {
             "Justfile",
             "agent/audit-policy.toml",
             "agent/generated-zones.toml",
+            "agent/jankurai-install.toml",
             "agent/owner-map.json",
             "agent/proof-lanes.toml",
             "agent/standard-version.toml",

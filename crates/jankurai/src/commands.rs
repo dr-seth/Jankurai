@@ -26,3 +26,4 @@ pub mod repair_pr;
 pub mod repair_real;
 pub mod rust;
 pub mod security;
+pub mod update;

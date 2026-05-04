@@ -407,9 +407,13 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
         .unwrap()
         .iter()
         .any(|d| d == "organization-team"));
-    assert!(background_job["certification_evidence"].as_array().unwrap().iter().any(|e| {
-        e["kind"] == "content-marker"
-            && e["path"] == "domain-background-job-retry-policy"
-            && e["status"] == "present"
-    }));
+    assert!(background_job["certification_evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|e| {
+            e["kind"] == "content-marker"
+                && e["path"] == "domain-background-job-retry-policy"
+                && e["status"] == "present"
+        }));
 }

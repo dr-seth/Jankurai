@@ -1,4 +1,7 @@
+use jankurai::audit::helpers::AuditContext;
+use jankurai::audit::scan;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
+use jankurai::model::FileInfo;
 use jankurai::model::ProofReceipt;
 use jankurai::render::render_markdown;
 use jankurai::report::{issues, junit, sarif};
@@ -131,6 +134,29 @@ fn audit_low_dimensions_create_soft_findings() {
         .iter()
         .any(|finding| finding.hardness == "soft"
             && finding.rule_id.as_deref() == Some("HLT-007-HANDWRITTEN-CONTRACT")));
+}
+
+#[test]
+fn future_hostile_scan_does_not_flag_holdout_fold_or_kfold_identifiers() {
+    let dir = tempdir().unwrap();
+    let file = FileInfo {
+        rel_path: "crates/example/src/lib.rs".into(),
+        name: "lib.rs".into(),
+        suffix: ".rs".into(),
+        size: 64,
+        line_count: 3,
+        text: "let holdout = true;\nlet fold = 1;\nlet kfold = 5;\n".into(),
+        is_generated: false,
+        is_code: true,
+    };
+    let ctx = AuditContext {
+        root: dir.path().to_path_buf(),
+        all_files: vec![file.clone()],
+        scope_files: vec![file],
+        scope_paths: vec!["crates/example/src/lib.rs".into()],
+        self_audit: false,
+    };
+    assert!(scan::future_hostile_hits(&ctx).is_empty());
 }
 
 #[test]

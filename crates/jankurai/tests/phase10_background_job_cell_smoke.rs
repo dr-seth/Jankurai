@@ -115,7 +115,10 @@ fn background_job_prove_emits_retry_policy_bound_decision() {
     assert_eq!(prove["lifecycle_action"], "prove-certification");
     assert_eq!(prove["certification_decision"]["status"], "certified");
     assert_eq!(prove["certification_decision"]["merge_ready"], true);
-    assert_eq!(prove["certification_decision"]["dependency_satisfied"], true);
+    assert_eq!(
+        prove["certification_decision"]["dependency_satisfied"],
+        true
+    );
     assert!(!prove["certification_evidence"]
         .as_array()
         .unwrap()
@@ -131,12 +134,20 @@ fn background_job_lifecycle_plans_emit_queue_safety_notes() {
 
     let (upgrade, upgrade_md) = run_command(
         &repo,
-        &["cell", "--cell-id", "background-job", "--mode", "upgrade-plan"],
+        &[
+            "cell",
+            "--cell-id",
+            "background-job",
+            "--mode",
+            "upgrade-plan",
+        ],
     );
     assert_eq!(upgrade["lifecycle_action"], "upgrade-plan");
-    assert!(upgrade["upgrade_plan"].as_array().unwrap().iter().any(|note| {
-        note.as_str().unwrap().contains("idempotency")
-    }));
+    assert!(upgrade["upgrade_plan"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|note| { note.as_str().unwrap().contains("idempotency") }));
     assert!(upgrade_md.contains("Upgrade Plan"));
 
     let (deprecate, deprecate_md) = run_command(
@@ -150,8 +161,10 @@ fn background_job_lifecycle_plans_emit_queue_safety_notes() {
         ],
     );
     assert_eq!(deprecate["lifecycle_action"], "deprecate-plan");
-    assert!(deprecate["deprecation_plan"].as_array().unwrap().iter().any(|note| {
-        note.as_str().unwrap().contains("pause workers")
-    }));
+    assert!(deprecate["deprecation_plan"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|note| { note.as_str().unwrap().contains("pause workers") }));
     assert!(deprecate_md.contains("Deprecation Plan"));
 }

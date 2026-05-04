@@ -4,6 +4,11 @@ use std::fs;
 use std::path::Path;
 
 pub const GENERATED_MARKER: &str = "jankurai generated adapter";
+pub const AGENT_REQUEST_VERSION: &str = "v1";
+pub const AGENT_REQUEST_MARKER: &str =
+    "<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->";
+pub const STARTUP_UPDATE_REQUEST: &str =
+    "If jankurai is installed, run jankurai update --client-start --quiet before work; do not apply updates unless the user asks.";
 
 pub const SUPPORTED_IDES: &[&str] = &[
     "cursor",
@@ -75,6 +80,14 @@ pub fn needs_generated_skill_repair(path: &str, text: &str) -> bool {
     is_skill_path(path) && text.contains(GENERATED_MARKER) && !has_skill_frontmatter(text)
 }
 
+pub fn has_current_startup_request(text: &str) -> bool {
+    text.contains(AGENT_REQUEST_MARKER) && text.contains(STARTUP_UPDATE_REQUEST)
+}
+
+pub fn generated_adapter_needs_refresh(existing_text: &str, template_body: &str) -> bool {
+    existing_text.contains(GENERATED_MARKER) && existing_text != template_body
+}
+
 pub fn adapter_plan(repo: &Path, ide: &str) -> Vec<AdapterAction> {
     selected_adapter_paths(ide)
         .into_iter()
@@ -102,7 +115,9 @@ pub fn write_adapters(repo: &Path, ide: &str, force_generated: bool) -> Result<V
         if path.exists() {
             let text = fs::read_to_string(&path).unwrap_or_default();
             if text.contains(GENERATED_MARKER)
-                && (force_generated || needs_generated_skill_repair(template.path, &text))
+                && (force_generated
+                    || generated_adapter_needs_refresh(&text, template.body)
+                    || needs_generated_skill_repair(template.path, &text))
             {
                 fs::write(&path, template.body)
                     .with_context(|| format!("write {}", path.display()))?;
@@ -147,6 +162,13 @@ pub fn verify_adapters(repo: &Path) -> Result<Vec<AdapterFailure>> {
                 problem:
                     "adapter lacks canonical AGENTS.md, standard, MASTER_PLAN, planner protocol, phase index, and phase log pointers"
                         .into(),
+            });
+        }
+        if text.contains(GENERATED_MARKER) && !has_current_startup_request(&text) {
+            failures.push(AdapterFailure {
+                path: (*path).into(),
+                problem: "generated adapter is missing the current startup update request marker"
+                    .into(),
             });
         }
         let lower = text.to_ascii_lowercase();

@@ -3,7 +3,7 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
-    migrate, optimize, proof, publish, registry, repair, repair_plan, rust, security,
+    migrate, optimize, proof, publish, registry, repair, repair_plan, rust, security, update,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -27,6 +27,7 @@ enum Commands {
     Audit(AuditArgs),
     Adopt(AdoptArgs),
     Init(InitArgs),
+    Update(UpdateArgs),
     Doctor(DoctorArgs),
     ContextPack(ContextPackArgs),
     RepairPlan(RepairPlanArgs),
@@ -218,6 +219,60 @@ struct InitArgs {
     yolo: bool,
     #[arg(long, default_value = "Adopt Jankurai control plane")]
     yolo_message: String,
+}
+
+#[derive(Args, Debug)]
+struct UpdateArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long)]
+    check: bool,
+    #[arg(long)]
+    apply: bool,
+    #[arg(long)]
+    yes: bool,
+    #[arg(long)]
+    self_update: bool,
+    #[arg(long, hide = true)]
+    skip_self: bool,
+    #[arg(long)]
+    client_start: bool,
+    #[arg(long)]
+    quiet: bool,
+    #[arg(long, default_value = "stable", value_parser = ["stable", "beta", "draft", "lts"])]
+    channel: String,
+    #[arg(long, default_value = "auto", value_parser = ["auto", "crates-io", "git", "local"])]
+    source: String,
+    #[arg(long)]
+    offline: bool,
+    #[arg(long)]
+    fail_if_outdated: bool,
+    #[arg(long)]
+    install_missing: bool,
+    #[arg(long, default_value = "rust-ts-postgres")]
+    profile: String,
+    #[arg(long, default_value = "full", value_parser = ["agents", "score", "ci", "full"])]
+    level: String,
+    #[arg(long, default_value = "all")]
+    ide: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/update/update-plan.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/update/update-plan.md"
+    )]
+    md: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/update/state.json"
+    )]
+    state: String,
 }
 
 #[derive(Args, Debug)]
@@ -654,7 +709,7 @@ struct RustDiagnoseArgs {
 }
 
 fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
+    let cli = Cli::parse_from(normalize_cli_args(std::env::args_os()));
     match cli.command {
         Some(Commands::Versions(args)) => {
             check_versions(&args.repo)?;
@@ -692,6 +747,29 @@ fn main() -> anyhow::Result<()> {
                 ux_qa: args.ux_qa,
                 plan_json: args.plan_json,
                 force_generated_adapters: args.force_generated_adapters,
+            })?;
+        }
+        Some(Commands::Update(args)) => {
+            update::run(update::UpdateArgs {
+                repo: args.repo,
+                check: args.check,
+                apply: args.apply,
+                yes: args.yes,
+                self_update: args.self_update,
+                skip_self: args.skip_self,
+                client_start: args.client_start,
+                quiet: args.quiet,
+                channel: args.channel,
+                source: args.source,
+                offline: args.offline,
+                fail_if_outdated: args.fail_if_outdated,
+                install_missing: args.install_missing,
+                profile: args.profile,
+                level: args.level,
+                ide: args.ide,
+                out: args.out,
+                md: args.md,
+                state: args.state,
             })?;
         }
         Some(Commands::Doctor(args)) => {
@@ -959,6 +1037,23 @@ fn parse_repo_arg(value: &str) -> Result<PathBuf, String> {
             "`{value}` is not a known command or an existing/path-like repository path"
         ))
     }
+}
+
+fn normalize_cli_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    let mut args: Vec<OsString> = args.into_iter().collect();
+    if args.len() < 2 {
+        return args;
+    }
+    let alias = args[1].to_string_lossy();
+    if alias != "--update" && alias != "-update" {
+        return args;
+    }
+    let mut normalized = vec![args.remove(0), OsString::from("update")];
+    if args.len() == 1 || args[1].to_string_lossy().starts_with('-') {
+        normalized.push(OsString::from("."));
+    }
+    normalized.extend(args.into_iter().skip(1));
+    normalized
 }
 
 fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {

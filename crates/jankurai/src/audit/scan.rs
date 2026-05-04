@@ -709,16 +709,37 @@ pub fn future_hostile_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             continue;
         }
         for (idx, line) in file.text.lines().enumerate() {
-            let lower = line.to_ascii_lowercase();
-            if let Some(term) = FUTURE_HOSTILE_TERMS
+            if let Some((term, _regex)) = future_hostile_term_regexes()
                 .iter()
-                .find(|term| lower.contains(*term))
+                .find(|(_, regex)| regex.is_match(line))
             {
-                out.push(FindingHit { path: file.rel_path.clone(), line: Some(idx + 1), text: line.to_string(), matched_term: Some((*term).into()), agent_fix: "remove or rename the marker, implement the intended behavior, model a typed unsupported state, or move docs/generated/vendor/product-copy text into an allowlisted context".into(), problem: format!("future-hostile/dead-language term `{}` appears", term) });
+                out.push(FindingHit {
+                    path: file.rel_path.clone(),
+                    line: Some(idx + 1),
+                    text: line.to_string(),
+                    matched_term: Some(term.clone()),
+                    agent_fix: "remove or rename the marker, implement the intended behavior, model a typed unsupported state, or move docs/generated/vendor/product-copy text into an allowlisted context".into(),
+                    problem: format!("future-hostile/dead-language term `{}` appears", term),
+                });
             }
         }
     }
     out
+}
+
+fn future_hostile_term_regexes() -> &'static [(String, Regex)] {
+    static REGEXES: Lazy<Vec<(String, Regex)>> = Lazy::new(|| {
+        FUTURE_HOSTILE_TERMS
+            .iter()
+            .filter_map(|term| {
+                let pattern = format!(r"(?i)\b{}\b", regex::escape(term).replace("\\ ", r"\s+"));
+                Regex::new(&pattern)
+                    .ok()
+                    .map(|regex| ((*term).to_string(), regex))
+            })
+            .collect()
+    });
+    REGEXES.as_slice()
 }
 
 fn is_future_hostile_allowlisted(file: &FileInfo) -> bool {

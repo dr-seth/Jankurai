@@ -27,6 +27,7 @@
     "agent/proof-lanes.toml",
     "agent/standard-version.toml",
     "agent/test-map.json",
+    "agent/jankurai-install.toml",
     "agent/ux-qa.toml",
     "contracts/README.md",
     "db/constraints/README.md",
@@ -61,6 +62,7 @@
     "agent/proof-lanes.toml": "merge-toml",
     "agent/standard-version.toml": "merge-toml",
     "agent/test-map.json": "merge-json",
+    "agent/jankurai-install.toml": "merge-toml",
     "agent/ux-qa.toml": "merge-toml"
   },
   "requiredLanes": ["audit", "doctor", "ux", "security"],

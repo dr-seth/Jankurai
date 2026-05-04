@@ -44,6 +44,8 @@ pub enum ArtifactSchema {
     GeneratedZones,
     ProofLanes,
     StandardVersion,
+    UpdatePlan,
+    UpdateReceipt,
     Finding,
     RepairQueueItem,
 }
@@ -87,6 +89,8 @@ impl ArtifactSchema {
             Self::GeneratedZones => "generated-zones.schema.json",
             Self::ProofLanes => "proof-lanes.schema.json",
             Self::StandardVersion => "standard-version.schema.json",
+            Self::UpdatePlan => "update-plan.schema.json",
+            Self::UpdateReceipt => "update-receipt.schema.json",
             Self::Finding => "finding.schema.json",
             Self::RepairQueueItem => "repair-queue.schema.json",
         }
