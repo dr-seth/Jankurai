@@ -828,12 +828,16 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     if args.json == "-" && args.md == "-" {
         anyhow::bail!("use at most one stdout target; JSON and Markdown may not share stdout");
     }
+    let progress = jankurai::ui::CliProgress::new("scoring repository", 8);
+    progress.tick("resolve changed paths");
     let changed = if let Some(base) = args.changed_from.as_deref() {
         jankurai::audit::changed_paths_from_git(&args.repo, base)?
     } else {
         args.changed
     };
+    progress.tick("load audit mode");
     let mode = AuditMode::parse(&args.mode)?;
+    progress.tick("scan repository");
     let mut report = run_audit_with_options(
         &args.repo,
         &changed,
@@ -842,6 +846,7 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             proof_receipts: args.proof_receipts.clone(),
         },
     )?;
+    progress.tick("apply score policy");
     if let Some(minimum_score) = args.fail_under {
         if let Some(policy) = report.policy.as_mut() {
             policy.minimum_score = minimum_score;
@@ -857,6 +862,7 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             policy.fail_on = args.fail_on.clone();
         }
     }
+    progress.tick("apply mode and baseline");
     apply_mode_and_baseline(&mut report, mode, args.baseline.as_deref())?;
     if matches!(mode, AuditMode::Release) {
         let proof_findings = jankurai::audit::release_proof_findings(
@@ -880,8 +886,10 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             }
         }
     }
+    progress.tick("render artifacts");
     report.report_fingerprint = jankurai::audit::report_fingerprint(&report);
     let md_text = render_markdown(&report);
+    progress.tick("write JSON and Markdown");
     validation::write_json(&args.repo, ArtifactSchema::RepoScore, &args.json, &report)?;
     write_markdown(&args.md, &md_text)?;
     if let Some(path) = args.sarif.as_deref() {
@@ -899,12 +907,24 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     if let Some(path) = args.repair_queue_jsonl.as_deref() {
         write_json(path, &jankurai::report::issues::repair_queue_jsonl(&report))?;
     }
-    eprintln!(
-        "score={} raw={} caps={} findings={}",
+    progress.finish(format!(
+        "score {} raw {} findings {}",
         report.score,
         report.raw_score,
-        report.caps_applied.len(),
         report.findings.len()
+    ));
+    eprintln!(
+        "{}",
+        jankurai::ui::epaint(
+            jankurai::ui::Style::Good,
+            format!(
+                "score={} raw={} caps={} findings={}",
+                report.score,
+                report.raw_score,
+                report.caps_applied.len(),
+                report.findings.len()
+            )
+        )
     );
     Ok(())
 }
@@ -912,7 +932,14 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
 fn run_adapters_verify(args: AdapterVerifyArgs) -> anyhow::Result<()> {
     let failures = jankurai::init::adapters::verify_adapters(&args.repo)?;
     if failures.is_empty() {
-        println!("adapters verified");
+        println!(
+            "{}",
+            jankurai::ui::paint(
+                jankurai::ui::Style::Good,
+                "adapters verified",
+                jankurai::ui::stdout_color_enabled()
+            )
+        );
         return Ok(());
     }
     for failure in failures {

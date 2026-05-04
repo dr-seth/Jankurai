@@ -53,6 +53,10 @@ pub fn run(args: InitArgs) -> Result<()> {
         if args.diff {
             print_diff(&args.repo, &plan.profile_manifest, &plan.level);
         }
+        println!(
+            "{}",
+            crate::init::plan::render_next_steps(&plan, false, None, &args.repo)
+        );
         return Ok(());
     }
     if !(args.apply || args.yes) {
@@ -64,7 +68,11 @@ pub fn run(args: InitArgs) -> Result<()> {
         &plan.level,
         args.force_generated_adapters,
     )?;
-    write_receipt(&args.repo, "init", &actions)?;
+    let receipt = write_receipt(&args.repo, "init", &actions)?;
+    println!(
+        "{}",
+        crate::init::plan::render_next_steps(&plan, true, Some(&receipt), &args.repo)
+    );
     Ok(())
 }
 
@@ -77,7 +85,9 @@ fn apply_templates(
     let mut paths = manifest.generated_paths.clone();
     paths.sort();
     let mut actions = vec![];
+    let progress = crate::ui::CliProgress::new("installing scaffold", paths.len() as u64);
     for rel in paths {
+        progress.tick(format!("apply {rel}"));
         let template = crate::init::templates::template_for_path(&rel)
             .with_context(|| format!("no template registered for profile path `{rel}`"))?;
         let body = crate::init::templates::body_for_path(&rel, level).unwrap_or(template.body);
@@ -164,6 +174,7 @@ fn apply_templates(
             action: "created".into(),
         });
     }
+    progress.finish("init complete");
     Ok(actions)
 }
 
@@ -244,7 +255,7 @@ struct InitAction {
     action: String,
 }
 
-fn write_receipt(repo: &Path, action: &str, actions: &[InitAction]) -> Result<()> {
+fn write_receipt(repo: &Path, action: &str, actions: &[InitAction]) -> Result<PathBuf> {
     let dir = repo.join("target/jankurai/receipts");
     fs::create_dir_all(&dir)?;
     let now = SystemTime::now()
@@ -258,6 +269,6 @@ fn write_receipt(repo: &Path, action: &str, actions: &[InitAction]) -> Result<()
         "actions": actions,
     });
     validation::validate_value(repo, ArtifactSchema::InitReceipt, &payload)?;
-    fs::write(path, serde_json::to_string_pretty(&payload)?)?;
-    Ok(())
+    fs::write(&path, serde_json::to_string_pretty(&payload)?)?;
+    Ok(path)
 }

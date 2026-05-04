@@ -16,6 +16,8 @@ pub struct DoctorArgs {
 pub fn run(args: DoctorArgs) -> Result<()> {
     let repo = args.repo;
     let mut diagnostics = Vec::new();
+    let progress = crate::ui::CliProgress::new("checking repository health", 10);
+    progress.tick("required files");
     for rel in [
         "AGENTS.md",
         "agent/JANKURAI_STANDARD.md",
@@ -37,6 +39,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         push_file_check(&repo, &mut diagnostics, "db/README.md");
     }
 
+    progress.tick("manifest schemas");
     check_boundaries_manifest_schema(&repo, &mut diagnostics);
     check_ux_qa_policy_schema(&repo, &mut diagnostics);
     check_security_policy_schema(&repo, &mut diagnostics);
@@ -46,17 +49,22 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     check_generated_zones_schema(&repo, &mut diagnostics);
     check_proof_lanes_schema(&repo, &mut diagnostics);
     check_standard_version_schema(&repo, &mut diagnostics);
+    progress.tick("lockfiles and score freshness");
     check_lockfiles(&repo, &mut diagnostics);
     check_root_score_artifacts(&repo, &mut diagnostics);
     check_stale_score(&repo, &mut diagnostics);
+    progress.tick("local path and false-green checks");
     check_local_path_leaks(&repo, &mut diagnostics);
     check_echo_only_proof(&repo, &mut diagnostics);
+    progress.tick("security and UX tools");
     check_security_tools(&repo, &mut diagnostics);
     check_committed_ux_artifacts(&repo, &mut diagnostics);
+    progress.tick("paper and receipt checks");
     check_legacy_paper_sources(&repo, &mut diagnostics);
     check_receipt_exports(&repo, &mut diagnostics);
     check_proof_ledger(&repo, &mut diagnostics);
     check_security_evidence(&repo, &mut diagnostics);
+    progress.tick("target artifacts");
     check_json_artifact(
         &repo,
         &mut diagnostics,
@@ -103,14 +111,25 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         "migration-plan-schema",
     );
 
+    progress.tick("rank diagnostics");
     let diagnostics = enrich_diagnostics(diagnostics);
 
+    let color = crate::ui::stdout_color_enabled();
     for diagnostic in &diagnostics {
+        let style = match diagnostic.severity.as_str() {
+            "ok" => crate::ui::Style::Good,
+            "low" | "medium" => crate::ui::Style::Warn,
+            "high" | "critical" => crate::ui::Style::Error,
+            _ => crate::ui::Style::Muted,
+        };
         println!(
             "{}: {} - {}",
-            diagnostic.severity, diagnostic.check_id, diagnostic.message
+            crate::ui::paint(style, &diagnostic.severity, color),
+            diagnostic.check_id,
+            diagnostic.message
         );
     }
+    progress.tick("write receipts");
     if let Some(path) = args.json.as_deref() {
         if let Some(parent) = Path::new(path).parent() {
             fs::create_dir_all(parent)?;
@@ -124,6 +143,10 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         fs::write(path, render_markdown(&diagnostics))?;
     }
     write_receipt(&repo, "doctor", &diagnostics)?;
+    progress.finish(format!(
+        "doctor complete: {} diagnostics",
+        diagnostics.len()
+    ));
     if diagnostics
         .iter()
         .any(|diagnostic| severity_rank(&diagnostic.severity) <= severity_rank(&args.fail_on))

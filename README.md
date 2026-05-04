@@ -35,6 +35,13 @@ jankurai adapters verify .
 
 For an existing project, run the same `jankurai init ...` commands from that project's root.
 
+Terminal output is rich when attached to a terminal. For recordings, demos, or CI logs where you still want color/progress, force it:
+
+```bash
+JANKURAI_COLOR=always JANKURAI_PROGRESS=always \
+  jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+```
+
 ## Minimal Agent Install
 
 Preview the smallest install. It writes nothing during dry run and emits a machine-readable plan:
@@ -51,6 +58,29 @@ jankurai adapters verify .
 ```
 
 This level installs `AGENTS.md`, `agent/JANKURAI_STANDARD.md`, `agent/MASTER_PLAN.md`, and thin provider adapters for Codex-style, Cursor, Copilot, Claude, Gemini, and other agent surfaces present in the selected profile.
+
+## After Init: 1 -> 2 -> 3
+
+If you ran:
+
+```bash
+jankurai init . --profile rust-ts-postgres --yes
+```
+
+the repo now has instructions that agents can read. Do this next:
+
+```bash
+jankurai doctor . --fail-on high
+jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+```
+
+Then open Codex, Cursor, Claude, Copilot, or your preferred agent from the same repository root and say:
+
+```text
+Read AGENTS.md, follow the jankurai standard, then run the proof lane for my change.
+```
+
+That is the value path: install agent-readable guidance, check the repo health, get a score and repair queue, then let the agent use `AGENTS.md`, `agent/owner-map.json`, and `agent/test-map.json` to make bounded changes with proof.
 
 ## Add Scoring
 

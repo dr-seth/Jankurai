@@ -12,6 +12,8 @@ pub struct CiInstallArgs {
 }
 
 pub fn install(args: CiInstallArgs) -> Result<()> {
+    let progress = crate::ui::CliProgress::new("installing CI workflow", 4);
+    progress.tick("validate options");
     if !args.github {
         bail!("only `jankurai ci install --github` is currently supported");
     }
@@ -21,22 +23,49 @@ pub fn install(args: CiInstallArgs) -> Result<()> {
             args.mode
         );
     }
+    progress.tick("render workflow");
     let path = args.repo.join(".github/workflows/jankurai.yml");
     let rendered = workflow(&args.mode, args.min_score, args.baseline.as_deref());
     if args.dry_run {
-        println!("# would write {}", path.display());
+        progress.finish("dry-run workflow rendered");
+        println!(
+            "{}",
+            crate::ui::paint(
+                crate::ui::Style::Accent,
+                format!("# would write {}", path.display()),
+                crate::ui::stdout_color_enabled()
+            )
+        );
         print!("{rendered}");
         return Ok(());
     }
+    progress.tick("prepare workflow directory");
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
     }
     if path.exists() {
-        println!("{}: exists; leaving user content unchanged", path.display());
+        progress.finish("existing workflow preserved");
+        println!(
+            "{}",
+            crate::ui::paint(
+                crate::ui::Style::Warn,
+                format!("{}: exists; leaving user content unchanged", path.display()),
+                crate::ui::stdout_color_enabled()
+            )
+        );
         return Ok(());
     }
+    progress.tick("write workflow");
     fs::write(&path, rendered).with_context(|| format!("write {}", path.display()))?;
-    println!("wrote {}", path.display());
+    progress.finish("CI workflow installed");
+    println!(
+        "{}",
+        crate::ui::paint(
+            crate::ui::Style::Good,
+            format!("wrote {}", path.display()),
+            crate::ui::stdout_color_enabled()
+        )
+    );
     Ok(())
 }
 

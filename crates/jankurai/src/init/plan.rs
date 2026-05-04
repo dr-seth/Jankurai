@@ -91,7 +91,12 @@ pub fn build_plan(
 pub fn render_plan(plan: &InitPlan) -> String {
     let mut out = String::new();
     use std::fmt::Write;
-    let _ = writeln!(out, "Jankurai Init Plan");
+    let color = crate::ui::stdout_color_enabled();
+    let _ = writeln!(
+        out,
+        "{}",
+        crate::ui::paint(crate::ui::Style::Heading, "Jankurai Init Plan", color)
+    );
     let _ = writeln!(out);
     let _ = writeln!(out, "- profile: `{}`", plan.profile);
     let _ = writeln!(out, "- level: `{}`", plan.level);
@@ -140,11 +145,169 @@ pub fn render_plan(plan: &InitPlan) -> String {
         let _ = writeln!(out, "- warning: `{warning}`");
     }
     let _ = writeln!(out);
-    let _ = writeln!(out, "Planned file actions:");
+    let _ = writeln!(
+        out,
+        "{}",
+        crate::ui::paint(crate::ui::Style::Heading, "Planned file actions:", color)
+    );
+    let created = plan
+        .actions
+        .iter()
+        .filter(|action| action.action == "create")
+        .count();
+    let merged = plan
+        .actions
+        .iter()
+        .filter(|action| action.action.starts_with("merge"))
+        .count();
+    let kept = plan
+        .actions
+        .iter()
+        .filter(|action| action.action == "keep-existing")
+        .count();
+    let _ = writeln!(
+        out,
+        "  {} create  {} merge  {} keep-existing",
+        crate::ui::paint(crate::ui::Style::Create, created.to_string(), color),
+        crate::ui::paint(crate::ui::Style::Merge, merged.to_string(), color),
+        crate::ui::paint(crate::ui::Style::Keep, kept.to_string(), color)
+    );
+    let _ = writeln!(
+        out,
+        "  {}",
+        crate::ui::paint(
+            crate::ui::Style::Muted,
+            "merge-* preserves existing content; keep-existing never overwrites user files",
+            color
+        )
+    );
     for action in &plan.actions {
-        let _ = writeln!(out, "  {} {}", action.action, action.path);
+        let style = match action.action.as_str() {
+            "create" => crate::ui::Style::Create,
+            "keep-existing" => crate::ui::Style::Keep,
+            _ => crate::ui::Style::Merge,
+        };
+        let _ = writeln!(
+            out,
+            "  {} {}",
+            crate::ui::paint(style, &action.action, color),
+            action.path
+        );
     }
     out
+}
+
+pub fn render_next_steps(
+    plan: &InitPlan,
+    applied: bool,
+    receipt: Option<&Path>,
+    repo: &Path,
+) -> String {
+    let mut out = String::new();
+    use std::fmt::Write;
+    let color = crate::ui::stdout_color_enabled();
+    let title = if applied {
+        "Installed. Next 3 steps:"
+    } else {
+        "Preview complete. Next 3 steps:"
+    };
+    let _ = writeln!(
+        out,
+        "{}",
+        crate::ui::paint(crate::ui::Style::Heading, title, color)
+    );
+
+    let repo_arg = shell_arg(repo);
+    let repo_label = if repo_arg == "." {
+        "this repo root".to_string()
+    } else {
+        format!("`{repo_arg}`")
+    };
+    let doctor = crate::ui::paint(
+        crate::ui::Style::Accent,
+        format!("jankurai doctor {repo_arg} --fail-on high"),
+        color,
+    );
+    let json_out = if repo_arg == "." {
+        "target/jankurai/repo-score.json".to_string()
+    } else {
+        shell_arg(&repo.join("target/jankurai/repo-score.json"))
+    };
+    let md_out = if repo_arg == "." {
+        "target/jankurai/repo-score.md".to_string()
+    } else {
+        shell_arg(&repo.join("target/jankurai/repo-score.md"))
+    };
+    let audit = crate::ui::paint(
+        crate::ui::Style::Accent,
+        format!("jankurai audit {repo_arg} --mode advisory --json {json_out} --md {md_out}"),
+        color,
+    );
+    let agent_prompt = crate::ui::paint(
+        crate::ui::Style::Accent,
+        "Read AGENTS.md, follow the jankurai standard, then run the proof lane for my change.",
+        color,
+    );
+
+    if !applied {
+        let _ = writeln!(
+            out,
+            "  1. Review the planned actions above, then apply with `{}`.",
+            crate::ui::paint(
+                crate::ui::Style::Accent,
+                format!(
+                    "jankurai init {repo_arg} --profile {} --level {} --yes",
+                    plan.profile, plan.level
+                ),
+                color
+            )
+        );
+        let _ = writeln!(
+            out,
+            "  2. After applying, run `{doctor}` for local health, then `{audit}` for a score."
+        );
+        let _ = writeln!(
+            out,
+            "  3. Start Codex, Cursor, Claude, or another agent from {repo_label} and say: `{agent_prompt}`"
+        );
+    } else {
+        let _ = writeln!(out, "  1. Run `{doctor}` for local health.");
+        let _ = writeln!(
+            out,
+            "  2. Run `{audit}` for the repo score and repair queue."
+        );
+        let _ = writeln!(
+            out,
+            "  3. Start Codex, Cursor, Claude, or another agent from {repo_label} and say: `{agent_prompt}`"
+        );
+    }
+
+    if let Some(path) = receipt {
+        let _ = writeln!(
+            out,
+            "- receipt: `{}`",
+            crate::ui::paint(crate::ui::Style::Muted, path.display().to_string(), color)
+        );
+    }
+    let _ = writeln!(
+        out,
+        "- agent entrypoint: `{}`",
+        crate::ui::paint(crate::ui::Style::Good, "AGENTS.md", color)
+    );
+    out
+}
+
+fn shell_arg(path: &Path) -> String {
+    let text = path.as_os_str().to_string_lossy();
+    if text.is_empty() {
+        return ".".to_string();
+    }
+    if text.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, '.' | '/' | '_' | '-' | ':' | '@' | '+')
+    }) {
+        return text.into_owned();
+    }
+    format!("'{}'", text.replace('\'', "'\\''"))
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

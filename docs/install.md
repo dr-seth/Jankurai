@@ -1,13 +1,19 @@
 # Installing jankurai
 
 Jankurai adoption is no-write first, advisory by default, and ratcheted only
-after a baseline exists. Until public packaging lands, install from this source
-checkout:
+after a baseline exists. Until public packaging lands, clone and install from
+source:
 
 ```bash
+git clone https://github.com/jeppsontaylor/Jankurai.git
+cd Jankurai
 cargo install --path crates/jankurai --locked
-jankurai versions
+jankurai --version
 ```
+
+Human terminal output uses color and progress bars when attached to a terminal.
+For demos or logs, force rich output with `JANKURAI_COLOR=always` and
+`JANKURAI_PROGRESS=always`.
 
 For any external repo, start with artifacts under `target/jankurai/`:
 
@@ -45,10 +51,17 @@ Apply when the plan looks right:
 jankurai init /path/to/repo --profile rust-ts-vite-react-postgres \
   --ide all --mode advisory --yes
 jankurai doctor /path/to/repo --fail-on high
+jankurai audit /path/to/repo --mode advisory \
+  --json /path/to/repo/target/jankurai/repo-score.json \
+  --md /path/to/repo/target/jankurai/repo-score.md
 jankurai ci install /path/to/repo --github --mode observe --dry-run
 jankurai ci install /path/to/repo --github --mode observe
 jankurai agent verify /path/to/repo
 ```
+
+After `init --yes`, start Codex, Cursor, Claude, Copilot, or another agent in
+the same repository root and say: `Read AGENTS.md, follow the jankurai standard,
+then run the proof lane for my change.`
 
 `init --yes` creates missing paths from the profile and uses the profile manifest's optional `mergePolicy` for existing `generatedPaths`. Bundled profiles explicitly declare their mergeable paths. A custom `--profile-file` without `mergePolicy` keeps the legacy suffix-based behavior for compatibility.
 
