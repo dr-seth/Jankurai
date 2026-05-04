@@ -19,6 +19,8 @@ jobs:
         run: cat target/jankurai/summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Security lane
         run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
+      - name: Vibe coverage
+        run: cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md --tex paper/tex/generated/vibe_coverage_table.tex
       - name: Phase 12 public evidence
         run: |
           mkdir -p target/jankurai/public
@@ -47,6 +49,8 @@ jobs:
             target/jankurai/jankurai.sarif
             target/jankurai/repair-queue.jsonl
             target/jankurai/security/evidence.json
+            target/jankurai/vibe-coverage.json
+            target/jankurai/vibe-coverage.md
             target/jankurai/p12-benchmark-report.json
             target/jankurai/p12-benchmark-report.md
             target/jankurai/p12-certification.json

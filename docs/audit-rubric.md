@@ -1,6 +1,6 @@
 # jankurai Audit Rubric
 
-Version: `0.5.0`
+Version: `0.6.0`
 
 Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + bounded Python AI/data service.
 
@@ -63,6 +63,12 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | secret-like content detected | 60 | remove and rotate credential material, then add scanners and transcript/artifact review |
 | false-green test risk | 76 | replace skipped/focused/tautological/snapshot-only proof with behavior assertions and red/green evidence |
 | destructive migration risk | 70 | add rollback/backfill/lock-timeout/staged-deploy evidence and DB proof lane |
+| authz or data-isolation gap | 78 | add owner/non-owner authorization tests, RLS evidence, or role-matrix proof |
+| input-boundary gap | 78 | replace unsafe sinks with schemas, parameterization, allowlists, sandboxing, and negative tests |
+| agent tool supply-chain gap | 78 | pin and review MCP/tool/hook/rule files and keep untrusted output out of trusted policy |
+| release-readiness gap | 80 | attach security, backup, monitoring, rollback, and abuse-control launch evidence |
+| cost-budget gap | 82 | add budgets, quotas, spend alerts, max tool-call limits, stop conditions, and kill switches |
+| human-review evidence gap | 84 | attach raw CI logs, review receipts, and replayable commands for review/proof claims |
 | missing Rust property/integration tests | 82 | add invariant/property tests plus integration tests through cargo test/nextest |
 | no agent-friendly exception pattern | 76 | add typed errors with code, purpose, reason, common fixes, docs URL |
 | missing agent-readable docs | 80 | add concise architecture, boundary, testing, and audit docs |
@@ -83,6 +89,15 @@ These are hard repair signals, not style nits.
 | Verification and rendered UX | missing proof lane; disabled/no-assertion/snapshot-only test; no rendered UX proof for critical UI | weak visual baseline governance, missing edge fixtures, missing accessibility expert review |
 | Context and setup | missing one-command setup; owner/test map gap; contradictory agent instructions | root docs too long, noisy command output, stale local guidance |
 | Maintainability entropy | dead markers, fallback soup, mega functions/files, uncontrolled retries | weak names, performance/cost risk without budget |
+
+Vibe coverage adds detector-backed stable rule IDs
+`HLT-022-AUTHZ-ISOLATION-GAP`, `HLT-023-INPUT-BOUNDARY-GAP`,
+`HLT-024-AGENT-TOOL-SUPPLY-GAP`, `HLT-025-RELEASE-READINESS-GAP`,
+`HLT-026-COST-BUDGET-GAP`, and
+`HLT-027-HUMAN-REVIEW-EVIDENCE-GAP`. These rules are coverage labels for
+source-row reporting; rows are marked `absolute`, `partial`, or `none` based on
+whether Jankurai has deterministic detector evidence, proof-lane evidence, and
+CI/report artifacts.
 
 | Insult | Why It Fails Agent-Native Engineering | Required Repair |
 | --- | --- | --- |

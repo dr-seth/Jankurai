@@ -20,20 +20,20 @@ Use separate versions because the paper, rules, and tooling will move at differe
 
 | Version | Format | Example | Rule |
 | --- | --- | --- | --- |
-| Paper edition | date plus edition | `2026.05-ed4` | changes when the argument or evidence changes |
-| Standard version | SemVer | `0.5.0` | breaking compliance rule means major bump |
-| Audit version | SemVer | `0.5.0` | implementation release of the scanner |
-| Output schema | SemVer | `1.3.0` | breaking JSON/Markdown contract means major bump |
-| Rule pack version | SemVer plus tool | `codex-0.5.0` | tracks standard version with tool-specific packaging |
+| Paper edition | date plus edition | `2026.05-ed5` | changes when the argument or evidence changes |
+| Standard version | SemVer | `0.6.0` | breaking compliance rule means major bump |
+| Audit version | SemVer | `0.6.0` | implementation release of the scanner |
+| Output schema | SemVer | `1.4.0` | breaking JSON/Markdown contract means major bump |
+| Rule pack version | SemVer plus tool | `codex-0.6.0` | tracks standard version with tool-specific packaging |
 
 Every audit output should include:
 
 ```json
 {
-  "standard_version": "0.5.0",
-  "auditor_version": "0.5.0",
-  "schema_version": "1.3.0",
-  "paper_edition": "2026.05-ed4",
+  "standard_version": "0.6.0",
+  "auditor_version": "0.6.0",
+  "schema_version": "1.4.0",
+  "paper_edition": "2026.05-ed5",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
 }
@@ -43,8 +43,8 @@ Every adopted repo should pin:
 
 ```json
 {
-  "jankurai_standard": "0.5.0",
-  "audit_min_version": "0.5.0",
+  "jankurai_standard": "0.6.0",
+  "audit_min_version": "0.6.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
   "advisory_on": ["medium", "low"]
@@ -175,7 +175,7 @@ Exit criteria:
 - generated exception catalog can route repairs to owners
 - examples exist for Rust, TypeScript, SQL, and Python service boundary
 
-### v0.5.0: Trustworthy Merge Release
+### v0.6.0: Trustworthy Merge Release
 
 Ship the release surface as one product:
 
@@ -194,9 +194,9 @@ Exit criteria:
 - every below-floor audit output includes routed repair work
 - canonical score artifacts remain under `agent/`
 - `paper/tex/` is the canonical paper source and Markdown sections are marked legacy-only
-- version bindings align at standard/auditor `0.5.0`, schema `1.3.0`, and paper `2026.05-ed4`
+- version bindings align at standard/auditor `0.6.0`, schema `1.4.0`, and paper `2026.05-ed5`
 
-### v0.5.0: GitHub Action And Badges
+### v0.6.0: GitHub Action And Badges
 
 Ship:
 

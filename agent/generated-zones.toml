@@ -17,6 +17,12 @@ command = "just paper"
 read_only = true
 
 [[zone]]
+path = "paper/tex/generated/vibe_coverage_table.tex"
+source = "agent/vibe-coverage.toml"
+command = "cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --tex paper/tex/generated/vibe_coverage_table.tex"
+read_only = false
+
+[[zone]]
 path = "agent/repo-score.json"
 source = "crates/jankurai"
 command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"

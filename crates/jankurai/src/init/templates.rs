@@ -19,8 +19,8 @@ pub fn body_for_path(path: &str, level: &str, cargo_repo: bool) -> Option<&'stat
     template_for_path(path).map(|template| template.body)
 }
 
-const ADAPTER_POINTER: &str = "<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nIf jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.\n";
-const PROOF_ADAPTER_POINTER: &str = "---\nname: jankurai\ndescription: Jankurai workspace guidance for Codex. Read repo instructions, standard, and phase files before planning or editing.\n---\n\n# jankurai\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\nIf jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.\n";
+const ADAPTER_POINTER: &str = "<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nIf jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.\n";
+const PROOF_ADAPTER_POINTER: &str = "---\nname: jankurai\ndescription: Jankurai workspace guidance for Codex. Read repo instructions and standard first; phase files are only for explicit phase work.\n---\n\n# jankurai\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\nIf jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.\n";
 const MINIMAL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\ncheck: fast score\n";
 const RUST_FULL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\nsecurity:\n\tjankurai security run . --out target/jankurai/security/evidence.json\n\nrust-map:\n\tjankurai rust map .\n\nrust-witness:\n\tjankurai rust witness build .\n\nrust-diagnose:\n\tjankurai rust diagnose .\n\ncheck: fast score security rust-map rust-witness rust-diagnose\n";
 pub const PRE_COMMIT_HOOK: &str = r#"#!/usr/bin/env bash
@@ -150,11 +150,11 @@ fi
 pub const TEMPLATES: &[Template] = &[
     Template {
         path: "AGENTS.md",
-        body: "# Agent Instructions\n\nRead `agent/JANKURAI_STANDARD.md` first. For phase or MASTER_PLAN work, read `agent/MASTER_PLAN.md` before `tips/phases/00-phase-index.md`. Keep generated artifacts under their declared source commands.\n",
+        body: "# Agent Instructions\n\nRead `agent/JANKURAI_STANDARD.md` first. For explicit phase or MASTER_PLAN work only, read `agent/MASTER_PLAN.md` before `tips/phases/00-phase-index.md`. Keep generated artifacts under their declared source commands.\n",
     },
     Template {
         path: ".cursor/rules/jankurai.mdc",
-        body: "---\nalwaysApply: true\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
+        body: "---\nalwaysApply: true\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
     },
     Template {
         path: "CLAUDE.md",
@@ -178,15 +178,15 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".github/instructions/jankurai-rust.instructions.md",
-        body: "---\napplyTo: \"**/*.rs\"\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
+        body: "---\napplyTo: \"**/*.rs\"\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
     },
     Template {
         path: ".github/instructions/jankurai-web.instructions.md",
-        body: "---\napplyTo: \"**/*.{ts,tsx,js,jsx,css}\"\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
+        body: "---\napplyTo: \"**/*.{ts,tsx,js,jsx,css}\"\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
     },
     Template {
         path: ".github/instructions/jankurai-python-ai.instructions.md",
-        body: "---\napplyTo: \"python/ai-service/**/*.py\"\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
+        body: "---\napplyTo: \"python/ai-service/**/*.py\"\n---\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n",
     },
     Template {
         path: ".agents/agents.md",
@@ -198,7 +198,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".agents/workflows/jankurai-audit.md",
-        body: "# jankurai audit\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun `jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md` for audit.\n",
+        body: "# jankurai audit\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun `jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md` for audit.\n",
     },
     Template {
         path: ".claude/skills/jankurai/SKILL.md",

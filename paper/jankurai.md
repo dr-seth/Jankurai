@@ -4,9 +4,9 @@ Public banner: **Humans Were the Bug**
 
 Subtitle: **From Vibe Coding to Agent-Native Engineering**
 
-Paper edition: `2026.05-ed4`
+Paper edition: `2026.05-ed5`
 
-Standard version: `0.5.0`
+Standard version: `0.6.0`
 
 Canonical source: `paper/jankurai.tex` plus `paper/tex/`
 
@@ -87,6 +87,12 @@ Appendices:
 - `HLT-019-STREAMING-RUNTIME-DRIFT`: broker clients and Kafka stack identity must stay behind adapter boundaries or dated exceptions.
 - `HLT-020-CI-HARDENING-GAP`: CI workflow permissions, action pinning, and proof posture gaps need repair.
 - `HLT-021-DESTRUCTIVE-MIGRATION`: destructive SQL under migration paths needs documented rollback, backfill, staged deploy, lock, or explicit safety evidence.
+- `HLT-022-AUTHZ-ISOLATION-GAP`: authorization and tenant/data isolation need negative proof.
+- `HLT-023-INPUT-BOUNDARY-GAP`: unsafe input boundaries and dynamic sinks need exploit-focused proof.
+- `HLT-024-AGENT-TOOL-SUPPLY-GAP`: agent tools, MCP servers, hooks, and rule files need trust evidence.
+- `HLT-025-RELEASE-READINESS-GAP`: release claims need backup, monitoring, rollback, security, and abuse-control evidence.
+- `HLT-026-COST-BUDGET-GAP`: paid or unbounded operations need budgets, quotas, and stop conditions.
+- `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP`: review and proof claims need receipts and replayable commands.
 
 ## Artifact Map
 
@@ -102,6 +108,9 @@ Appendices:
 | `agent/standard-version.toml` | Canonical version manifest | all versions |
 | `agent/repo-score.json` | Canonical audit report JSON | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
 | `agent/repo-score.md` | Human-readable audit and repair brief | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
+| `agent/vibe-coverage.toml` | Canonical mapping from 260 vibe-coding source rows to coverage controls | coverage schema `1.4.0` |
+| `target/jankurai/vibe-coverage.json` | Emitted vibe coverage report | coverage report schema |
+| `paper/tex/generated/vibe_coverage_table.tex` | Generated paper appendix coverage table | `paper_edition` |
 | `target/jankurai/evidence-index.json` | Proof evidence index from `jankurai prove` | proof schema |
 | `target/jankurai/security/evidence.json` | Normalized security lane evidence from `jankurai security run` | security evidence schema |
 
@@ -148,6 +157,8 @@ jankurai exceptions expire . --strict --out target/jankurai/exceptions.json --md
 jankurai migrate . --analyze --out target/jankurai/migration-report.json --md target/jankurai/migration-report.md
 jankurai cell . --cell-id background-job --mode prove --out target/jankurai/background-job.json --md target/jankurai/background-job.md
 jankurai security run . --out target/jankurai/security/evidence.json
+jankurai vibe validate --source agent/vibe-coverage.toml --tips tips/vibe_coding
+jankurai vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md --tex paper/tex/generated/vibe_coverage_table.tex
 jankurai rust map . --out-dir target/jankurai/rust
 jankurai rust witness build . --out target/jankurai/rust/witness-graph.json
 jankurai rust diagnose . --out target/jankurai/rust/compile-packets.json

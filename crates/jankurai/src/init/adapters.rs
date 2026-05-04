@@ -156,11 +156,12 @@ pub fn verify_adapters(repo: &Path) -> Result<Vec<AdapterFailure>> {
             || !text.contains(planner_protocol_pointer())
             || !text.contains("tips/phases/00-phase-index.md")
             || !text.contains("tips/phases/logs/")
+            || !text.contains("explicit MASTER_PLAN/phase")
         {
             failures.push(AdapterFailure {
                 path: (*path).into(),
                 problem:
-                    "adapter lacks canonical AGENTS.md, standard, MASTER_PLAN, planner protocol, phase index, and phase log pointers"
+                    "adapter lacks canonical AGENTS.md, standard, conditional MASTER_PLAN routing, planner protocol, phase index, and phase log pointers"
                         .into(),
             });
         }

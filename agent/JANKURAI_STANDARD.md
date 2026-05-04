@@ -1,6 +1,6 @@
 # jankurai Standard Agent Bootstrap
 
-Standard version: `0.5.0`
+Standard version: `0.6.0`
 Published: `2026-05-02`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
@@ -96,6 +96,12 @@ Stop or fix first when any condition is true:
 | `HLT-019-STREAMING-RUNTIME-DRIFT` | broker client or Kafka stack identity escapes adapter boundaries |
 | `HLT-020-CI-HARDENING-GAP` | CI workflow permissions, unpinned actions, or proof posture gaps |
 | `HLT-021-DESTRUCTIVE-MIGRATION` | destructive SQL under migration paths without documented safety evidence |
+| `HLT-022-AUTHZ-ISOLATION-GAP` | authorization or tenant/data isolation lacks negative proof |
+| `HLT-023-INPUT-BOUNDARY-GAP` | unsafe input boundary or sink lacks deterministic negative proof |
+| `HLT-024-AGENT-TOOL-SUPPLY-GAP` | agent tool, MCP, hook, or rule supply chain lacks trust evidence |
+| `HLT-025-RELEASE-READINESS-GAP` | release or launch gate lacks artifact-backed readiness evidence |
+| `HLT-026-COST-BUDGET-GAP` | unbounded paid work lacks budget, quota, or stop-condition evidence |
+| `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP` | review or proof claim lacks reproducible receipts |
 
 ## Ownership Boundaries
 

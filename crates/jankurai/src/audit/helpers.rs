@@ -207,6 +207,60 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         artifact_paths: &["target/jankurai/rust/witness-graph.json"],
         applicability: tool_rust_witness_applicable,
     },
+    ToolAdoptionCatalogEntry {
+        id: "vibe-coverage",
+        category: "audit",
+        replaced_tools: &["manual vibe-coding coverage spreadsheet"],
+        local_command: "jankurai vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md",
+        ci_command: "cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md",
+        artifact_paths: &["target/jankurai/vibe-coverage.json", "target/jankurai/vibe-coverage.md"],
+        applicability: tool_vibe_coverage_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "authz-matrix",
+        category: "security",
+        replaced_tools: &["manual authz matrix review"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_authz_matrix_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "input-boundary",
+        category: "security",
+        replaced_tools: &["manual unsafe sink review"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_input_boundary_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "agent-tool-supply",
+        category: "security",
+        replaced_tools: &["manual MCP/tool trust review"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_agent_tool_supply_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "release-readiness",
+        category: "release",
+        replaced_tools: &["manual launch checklist"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_release_readiness_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "cost-budget",
+        category: "release",
+        replaced_tools: &["manual spend review"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_cost_budget_applicable,
+    },
 ];
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -345,6 +399,55 @@ fn tool_contract_drift_applicable(ctx: &AuditContext) -> bool {
 
 fn tool_rust_witness_applicable(ctx: &AuditContext) -> bool {
     has_rust_surface(ctx)
+}
+
+fn tool_vibe_coverage_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files
+        .iter()
+        .any(|f| f.rel_path == "agent/vibe-coverage.toml")
+}
+
+fn tool_authz_matrix_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|f| {
+        let lower = f.text.to_ascii_lowercase();
+        lower.contains("auth")
+            || lower.contains("owner_id")
+            || lower.contains("tenant_id")
+            || lower.contains("rls")
+    })
+}
+
+fn tool_input_boundary_applicable(ctx: &AuditContext) -> bool {
+    product_code_files(ctx).iter().any(|f| {
+        let lower = f.text.to_ascii_lowercase();
+        lower.contains("eval(")
+            || lower.contains("exec(")
+            || lower.contains("fetch(")
+            || lower.contains("innerhtml")
+            || lower.contains("select * from")
+    })
+}
+
+fn tool_agent_tool_supply_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|f| {
+        f.rel_path.starts_with("agent/")
+            || f.rel_path.starts_with(".agents/")
+            || f.rel_path.starts_with(".cursor/")
+    })
+}
+
+fn tool_release_readiness_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|f| {
+        let lower = f.text.to_ascii_lowercase();
+        lower.contains("release") || lower.contains("launch") || lower.contains("rollback")
+    })
+}
+
+fn tool_cost_budget_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|f| {
+        let lower = f.text.to_ascii_lowercase();
+        lower.contains("budget") || lower.contains("quota") || lower.contains("spend")
+    })
 }
 
 pub fn is_high_risk_repo(ctx: &AuditContext) -> bool {

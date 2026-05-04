@@ -35,6 +35,25 @@ fn hlt021_destructive_migration_is_registered() {
 }
 
 #[test]
+fn vibe_coverage_rules_are_registered() {
+    for (rule_id, lane) in [
+        ("HLT-022-AUTHZ-ISOLATION-GAP", "db"),
+        ("HLT-023-INPUT-BOUNDARY-GAP", "security"),
+        ("HLT-024-AGENT-TOOL-SUPPLY-GAP", "security"),
+        ("HLT-025-RELEASE-READINESS-GAP", "release"),
+        ("HLT-026-COST-BUDGET-GAP", "release"),
+        ("HLT-027-HUMAN-REVIEW-EVIDENCE-GAP", "audit"),
+    ] {
+        let rule = rules::lookup(rule_id).unwrap_or_else(|| panic!("{rule_id} must exist"));
+        assert_eq!(rule.id, rule_id);
+        assert_eq!(rule.lane, lane);
+        assert_eq!(rule.status, rules::RuleStatus::Stable);
+        assert!(!rule.tlr.trim().is_empty());
+        assert!(!rule.docs_url.trim().is_empty());
+    }
+}
+
+#[test]
 fn every_rule_has_repair_policy_metadata() {
     for rule in rules::all() {
         assert!(

@@ -32,11 +32,35 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-019-STREAMING-RUNTIME-DRIFT} & Queue or streaming client appears outside adapter ownership, or Kafka becomes stack identity without brownfield exception and migration path. & Move broker clients behind queue adapters and event contracts, or document owner, expiry, and migration proof. \\
 \texttt{HLT-020-CI-HARDENING-GAP} & CI workflow permissions, unpinned actions, or missing Jankurai proof posture. & Harden permissions, pin trusted actions, and upload audit/witness evidence. \\
 \texttt{HLT-021-DESTRUCTIVE-MIGRATION} & Destructive SQL under migration paths without rollback, backfill, lock, or DB proof evidence. & Add migration safety evidence or replace with a non-destructive transition. \\
+\texttt{HLT-022-AUTHZ-ISOLATION-GAP} & Authorization, RLS, tenant, or role surfaces lack owner/non-owner negative proof. & Add role matrix, RLS, and cross-user denial tests. \\
+\texttt{HLT-023-INPUT-BOUNDARY-GAP} & Unsafe input boundary, dynamic execution, string SQL, shell, fetch, or rendering sink lacks negative proof. & Add schemas, parameterization, allowlists, sandboxing, and exploit fixtures. \\
+\texttt{HLT-024-AGENT-TOOL-SUPPLY-GAP} & MCP, hook, IDE, extension, or agent rule trust surface lacks supply-chain evidence. & Pin and review tool sources, restrict execution, and separate data from trusted policy. \\
+\texttt{HLT-025-RELEASE-READINESS-GAP} & Launch or production-readiness claim lacks backup, monitoring, rollback, security, and abuse-control artifacts. & Add an artifact-backed release gate. \\
+\texttt{HLT-026-COST-BUDGET-GAP} & Paid or unbounded operations lack budgets, quotas, spend alerts, stop conditions, or kill switches. & Add budget policy and evidence. \\
+\texttt{HLT-027-HUMAN-REVIEW-EVIDENCE-GAP} & Review or proof claim lacks raw logs, receipts, or replayable commands. & Attach reproducible evidence before merge. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
 The audit JSON should include the rule ID whenever a finding maps cleanly to one of these rules. Rules outside the initial set may use category IDs until they stabilize.
+
+\subsection{Vibe-Coding Source Coverage}
+
+Jankurai 0.6.0 maps every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
+through \texttt{tip5.txt} into \texttt{agent/vibe-coverage.toml}. Coverage is
+green when a row has deterministic detector, proof-lane, and report evidence;
+yellow when Jankurai has a named control but still needs fixture-backed
+evidence; red when the issue is tracked but not yet controlled.
+
+\IfFileExists{paper/tex/generated/vibe_coverage_table.tex}{%
+  \input{paper/tex/generated/vibe_coverage_table.tex}%
+}{%
+  \IfFileExists{tex/generated/vibe_coverage_table.tex}{%
+    \input{tex/generated/vibe_coverage_table.tex}%
+  }{%
+    \textit{Run \texttt{cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe\_coding --tex paper/tex/generated/vibe\_coverage\_table.tex} to generate the coverage table.}%
+  }%
+}
 
 \begin{table*}[h]
 \caption{Taxonomy-to-audit detector status.}
@@ -45,14 +69,14 @@ The audit JSON should include the rule ID whenever a finding maps cleanly to one
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.18\textwidth} L{0.16\textwidth} L{0.16\textwidth} Y}
 \toprule
-\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.5.0} \\
+\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.6.0} \\
 \midrule
-Security & HLT-009/010/011/012/016/020 & security & Partial: CI scan presence, secret-like content, prompt-injection markers, overbroad agency markers, generated-security gaps, CI hardening gaps. \\
-Business truth & HLT-005/008 & db, fast, release & Partial: Python truth and false-green markers; domain invariant quality remains evidence-driven. \\
+Security & HLT-009/010/011/012/016/020/023/024 & security & Partial: CI scan presence, secret-like content, prompt-injection markers, overbroad agency markers, input-boundary markers, agent-tool supply surfaces, generated-security gaps, CI hardening gaps. \\
+Business truth & HLT-005/008/022 & db, fast, release & Partial: Python truth, false-green markers, and authz/data-isolation evidence gaps; domain invariant quality remains evidence-driven. \\
 Contracts/data & HLT-002/006/007/021 & contract, db & Implemented for generated-zone risk, handwritten DTO/fetch markers, wrong-layer DB markers, and destructive SQL heuristics. \\
-Verification and UX & HLT-008/013/014 & fast, web & Partial: rendered-UX readiness and \texttt{@jankurai/ux-qa}; ARIA/axe/baseline governance are evidence requirements. \\
+Verification and UX & HLT-008/013/014/025/026 & fast, web, release & Partial: rendered-UX readiness, release gates, cost budgets, and \texttt{@jankurai/ux-qa}; ARIA/axe/baseline governance are evidence requirements. \\
 Context/setup & HLT-003/004/015 & fast, audit & Partial: root instructions, owner/test maps, setup/fast lane presence; changed-path coverage is planned. \\
-Repair & HLT-017 & observability & Partial: structured exception markers and repair hints; production trace quality is evidence-driven. \\
+Repair & HLT-017/027 & observability, audit & Partial: structured exception markers, review evidence, and repair hints; production trace quality is evidence-driven. \\
 Entropy & HLT-001/008/018 & fast, release & Implemented for dead markers, fallback soup, duplication, file/function size; performance evidence remains soft. \\
 Streaming & HLT-019 & contract, observability & Implemented for direct broker clients outside queue adapters and Kafka brownfield exception shape. \\
 \bottomrule
@@ -61,10 +85,10 @@ Streaming & HLT-019 & contract, observability & Implemented for direct broker cl
 
 \begin{lstlisting}[style=codebox]
 {
-  "standard_version": "0.5.0",
-  "auditor_version": "0.5.0",
-  "schema_version": "1.3.0",
-  "paper_edition": "2026.05-ed4",
+  "standard_version": "0.6.0",
+  "auditor_version": "0.6.0",
+  "schema_version": "1.4.0",
+  "paper_edition": "2026.05-ed5",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "agent_fix_queue": [
     {

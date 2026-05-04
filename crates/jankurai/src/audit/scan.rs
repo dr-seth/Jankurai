@@ -82,6 +82,66 @@ pub const STREAMING_CLIENT_PATTERNS: &[&str] = &[
     "xreadgroup",
 ];
 
+pub const AUTHZ_ISOLATION_PATTERNS: &[&str] = &[
+    "owner_id",
+    "tenant_id",
+    "organization_id",
+    "org_id",
+    "rls",
+    "row level security",
+    "admin",
+];
+
+pub const INPUT_BOUNDARY_PATTERNS: &[&str] = &[
+    "eval(",
+    "exec(",
+    "child_process",
+    "Command::new",
+    "shell=True",
+    "innerHTML",
+    "dangerouslySetInnerHTML",
+    "SELECT * FROM",
+    "fetch(",
+];
+
+pub const AGENT_TOOL_SUPPLY_PATTERNS: &[&str] = &[
+    "mcp",
+    "modelcontextprotocol",
+    "tool server",
+    "extension",
+    "hooks",
+    "auto-run",
+    "agent rules",
+];
+
+pub const RELEASE_READINESS_PATTERNS: &[&str] = &[
+    "launch",
+    "production",
+    "rollback",
+    "backup",
+    "restore",
+    "rate limit",
+    "monitoring",
+];
+
+pub const COST_BUDGET_PATTERNS: &[&str] = &[
+    "budget",
+    "spend cap",
+    "cost",
+    "quota",
+    "token limit",
+    "kill switch",
+];
+
+pub const HUMAN_REVIEW_EVIDENCE_PATTERNS: &[&str] = &[
+    "accept all",
+    "lgtm",
+    "looks good",
+    "fabricated",
+    "raw ci logs",
+    "review evidence",
+];
+
 pub const FUTURE_HOSTILE_TERMS: &[&str] = &[
     "cleanup later",
     "remove later",
@@ -288,6 +348,137 @@ pub fn false_green_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             .collect::<Vec<_>>(),
         FALSE_GREEN_PATTERNS,
     )
+}
+
+pub fn authz_isolation_hits(ctx: &AuditContext) -> Vec<FindingHit> {
+    let product = product_code_files(ctx);
+    let has_authz_surface = product.iter().any(|file| {
+        let lower = file.text.to_ascii_lowercase();
+        AUTHZ_ISOLATION_PATTERNS
+            .iter()
+            .any(|pattern| lower.contains(pattern))
+    });
+    if !has_authz_surface {
+        return vec![];
+    }
+    let has_negative_tests = ctx.all_files.iter().any(|file| {
+        let lower = file.text.to_ascii_lowercase();
+        is_test_file(file)
+            && (lower.contains("wrong user")
+                || lower.contains("other user")
+                || lower.contains("non-owner")
+                || lower.contains("forbidden")
+                || lower.contains("tenant isolation")
+                || lower.contains("rls"))
+    });
+    if has_negative_tests {
+        vec![]
+    } else {
+        vec![FindingHit {
+            path: "agent/vibe-coverage.toml".into(),
+            line: None,
+            text: "authz or tenant markers found without matching negative isolation tests".into(),
+            matched_term: Some("authz isolation".into()),
+            agent_fix: "add owner/non-owner authorization tests or RLS evidence for the touched data boundary".into(),
+            problem: "authorization or data-isolation surface lacks direct negative proof".into(),
+        }]
+    }
+}
+
+pub fn input_boundary_hits(ctx: &AuditContext) -> Vec<FindingHit> {
+    pattern_hits(&product_code_files(ctx), INPUT_BOUNDARY_PATTERNS)
+}
+
+pub fn agent_tool_supply_hits(ctx: &AuditContext) -> Vec<FindingHit> {
+    pattern_hits(
+        &ctx.all_files
+            .iter()
+            .filter(|file| {
+                !file.is_generated
+                    && (file.rel_path.starts_with("agent/")
+                        || file.rel_path.starts_with(".agents/")
+                        || file.rel_path.starts_with(".github/")
+                        || file.rel_path.starts_with(".cursor/")
+                        || file.rel_path == "AGENTS.md")
+            })
+            .cloned()
+            .collect::<Vec<_>>(),
+        AGENT_TOOL_SUPPLY_PATTERNS,
+    )
+}
+
+pub fn release_readiness_hits(ctx: &AuditContext) -> Vec<FindingHit> {
+    let has_release_claim = ctx.all_files.iter().any(|file| {
+        !file.is_generated
+            && !file.rel_path.starts_with("reference/")
+            && RELEASE_READINESS_PATTERNS
+                .iter()
+                .any(|pattern| file.text.to_ascii_lowercase().contains(pattern))
+    });
+    let has_release_lane = ctx.all_files.iter().any(|file| {
+        let lower = file.text.to_ascii_lowercase();
+        lower.contains("just check")
+            && lower.contains("just score")
+            && lower.contains("just paper")
+            && lower.contains("rollback")
+    });
+    if has_release_claim && !has_release_lane {
+        vec![FindingHit {
+            path: "docs/testing.md".into(),
+            line: None,
+            text: "release language found without full launch-gate evidence".into(),
+            matched_term: Some("release readiness".into()),
+            agent_fix: "add launch-gate evidence for security, backups, monitoring, rollback, and abuse controls".into(),
+            problem: "release readiness is claimed without complete proof artifacts".into(),
+        }]
+    } else {
+        vec![]
+    }
+}
+
+pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
+    let has_cost_surface = ctx.all_files.iter().any(|file| {
+        !file.is_generated
+            && COST_BUDGET_PATTERNS
+                .iter()
+                .any(|pattern| file.text.to_ascii_lowercase().contains(pattern))
+    });
+    let has_budget_policy = ctx.all_files.iter().any(|file| {
+        let lower = file.text.to_ascii_lowercase();
+        lower.contains("budget") && lower.contains("stop condition")
+    });
+    if has_cost_surface && !has_budget_policy {
+        vec![FindingHit {
+            path: "docs/testing.md".into(),
+            line: None,
+            text: "cost surface found without budget/stop-condition policy".into(),
+            matched_term: Some("budget".into()),
+            agent_fix: "add explicit budgets, quotas, stop conditions, and kill-switch evidence for paid or unbounded operations".into(),
+            problem: "cost or spend-risk surface lacks budget proof".into(),
+        }]
+    } else {
+        vec![]
+    }
+}
+
+pub fn human_review_evidence_hits(ctx: &AuditContext) -> Vec<FindingHit> {
+    pattern_hits(
+        &ctx.all_files
+            .iter()
+            .filter(|file| !file.is_generated && !file.rel_path.starts_with("reference/"))
+            .cloned()
+            .collect::<Vec<_>>(),
+        HUMAN_REVIEW_EVIDENCE_PATTERNS,
+    )
+}
+
+fn is_test_file(file: &FileInfo) -> bool {
+    file.rel_path.contains("/test")
+        || file.rel_path.contains("/spec")
+        || file.name.ends_with(".test.ts")
+        || file.name.ends_with(".spec.ts")
+        || file.name.ends_with("_test.rs")
+        || file.rel_path.starts_with("tests/")
 }
 
 /// Executable SQL fragment on a line (strips trailing `-- ...` inline comments).

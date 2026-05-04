@@ -142,6 +142,7 @@ pub fn run_audit_with_options(
         boundaries: BoundariesReadiness {
             artifact: boundaries_artifact::load_manifest_summary(root),
         },
+        vibe_coverage: crate::commands::vibe::audit_summary(root),
         findings,
         agent_fix_queue,
     };
@@ -632,6 +633,84 @@ fn build_findings(
             hit.line,
             None,
             None,
+        );
+    }
+    if !scan::authz_isolation_hits(ctx).is_empty() {
+        let hit = scan::authz_isolation_hits(ctx)[0].clone();
+        b.add_with_rule(
+            "HLT-022-AUTHZ-ISOLATION-GAP",
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            vec![hit.text],
+            hit.line,
+            hit.matched_term,
+            Some("authz/data isolation requires negative proof evidence".into()),
+        );
+    }
+    if !scan::input_boundary_hits(ctx).is_empty() {
+        let hit = scan::input_boundary_hits(ctx)[0].clone();
+        b.add_with_rule(
+            "HLT-023-INPUT-BOUNDARY-GAP",
+            &hit.path,
+            "unsafe or unvalidated input boundary marker appears in product code",
+            "replace unsafe sinks with typed schemas, parameterized APIs, allowlists, or sandboxed execution plus negative tests",
+            vec![hit.problem],
+            hit.line,
+            hit.matched_term,
+            Some("input handling risk needs deterministic negative tests".into()),
+        );
+    }
+    if !scan::agent_tool_supply_hits(ctx).is_empty() {
+        let hit = scan::agent_tool_supply_hits(ctx)[0].clone();
+        b.add_with_rule(
+            "HLT-024-AGENT-TOOL-SUPPLY-GAP",
+            &hit.path,
+            "agent tool or configuration trust surface requires supply-chain evidence",
+            "pin and review agent tools, MCP servers, hooks, and rule files; keep untrusted tool output separate from trusted policy",
+            vec![hit.problem],
+            hit.line,
+            hit.matched_term,
+            Some("agent tool supply-chain changes alter execution authority".into()),
+        );
+    }
+    if !scan::release_readiness_hits(ctx).is_empty() {
+        let hit = scan::release_readiness_hits(ctx)[0].clone();
+        b.add_with_rule(
+            "HLT-025-RELEASE-READINESS-GAP",
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            vec![hit.text],
+            hit.line,
+            hit.matched_term,
+            Some("launch gates need artifact-backed release evidence".into()),
+        );
+    }
+    if !scan::cost_budget_hits(ctx).is_empty() {
+        let hit = scan::cost_budget_hits(ctx)[0].clone();
+        b.add_with_rule(
+            "HLT-026-COST-BUDGET-GAP",
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            vec![hit.text],
+            hit.line,
+            hit.matched_term,
+            Some("unbounded paid work needs budgets and stop conditions".into()),
+        );
+    }
+    if !scan::human_review_evidence_hits(ctx).is_empty() {
+        let hit = scan::human_review_evidence_hits(ctx)[0].clone();
+        b.add_with_rule(
+            "HLT-027-HUMAN-REVIEW-EVIDENCE-GAP",
+            &hit.path,
+            "human review or proof claim lacks reproducible evidence",
+            "attach raw CI logs, review receipts, and replayable commands instead of accepting claims or summaries",
+            vec![hit.problem],
+            hit.line,
+            hit.matched_term,
+            Some("proof and review claims need receipts".into()),
         );
     }
     if !destructive_sql_hits.is_empty() {

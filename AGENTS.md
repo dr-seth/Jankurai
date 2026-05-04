@@ -1,9 +1,10 @@
 # Jankurai Agent Instructions
 
-Read `agent/JANKURAI_STANDARD.md` first. For phase or MASTER_PLAN work,
-read `agent/MASTER_PLAN.md` before `tips/phases/00-phase-index.md`. The full
-standard is in `docs/agent-native-standard.md`; the paper mission is in
-`docs/mission.md`.
+Read `agent/JANKURAI_STANDARD.md` first. `agent/MASTER_PLAN.md` and
+`tips/phases/*` apply only when the user explicitly asks for MASTER_PLAN or
+phase work. For explicit phase or MASTER_PLAN work, read `agent/MASTER_PLAN.md`
+before `tips/phases/00-phase-index.md`. The full standard is in
+`docs/agent-native-standard.md`; the paper mission is in `docs/mission.md`.
 
 This workspace is writing and validating the paper:
 `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`.

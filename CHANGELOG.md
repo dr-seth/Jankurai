@@ -8,7 +8,17 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ### Added
 
-- v0.5.0 trustworthy-merge surface: `jankurai witness`, `jankurai score diff`, `jankurai score trend`, `jankurai rules export`, and `jankurai rules verify`.
+## 0.6.0 - 2026-05-04
+
+### Added
+
+- Vibe coverage registry in `agent/vibe-coverage.toml` mapping all 260 `tips/vibe_coding` source rows.
+- `jankurai vibe validate` and `jankurai vibe coverage` for JSON, Markdown, and generated TeX coverage reports.
+- Optional repo-score `vibe_coverage` summary and stable `## Vibe Coding Coverage` Markdown section.
+- Generated paper appendix table with green/yellow/red coverage status.
+- Conditional MASTER_PLAN/phase adapter routing for explicit phase work only.
+
+- v0.6.0 trustworthy-merge surface: `jankurai witness`, `jankurai score diff`, `jankurai score trend`, `jankurai rules export`, and `jankurai rules verify`.
 - Merge witness, score diff/trend, rule registry, and rule-verify schemas.
 - Token-budgeted context packs with source-trust labels and included/excluded file receipts.
 - Baseline-required ratchet CI and audit behavior.
