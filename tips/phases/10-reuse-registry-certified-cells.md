@@ -246,6 +246,7 @@ Leave:
 - Routing maps changed: none beyond existing owner/test inputs
 - Validation commands: `cargo test -p jankurai`; `just fast`; `just score`
 - Results: auth/session hardening validation passed; `just fast` score 93, caps 0
+- Feedback closeout (2026-05-04): `tips/phases_feedback/10-phase/tip1`-`tip4` reconciled in `docs/phases-feedback-status.md`; accepted `auth-session`, dependency-bound evidence, and lifecycle proof modes; rejected mutating/provider-backed install and secret-dependent runtime expansion.
 - Skipped validation: mutating install execution remains bounded for later extension; auth/session provider-backed runtime mutation remains deferred
 - Exceptions created: provider-backed and mutating cells deferred; auth/session is certified as a shell, not a provider-backed login implementation
 - Follow-up phases: next registry cell **organization/team shell** (Initial Cell Order item 5); phases 11–13 as before
