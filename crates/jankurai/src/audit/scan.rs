@@ -857,7 +857,9 @@ pub fn contract_source_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         .iter()
         .filter(|f| {
             f.rel_path.starts_with("contracts/")
-                && CONTRACT_EXTENSIONS.iter().any(|ext| f.rel_path.ends_with(ext))
+                && CONTRACT_EXTENSIONS
+                    .iter()
+                    .any(|ext| f.rel_path.ends_with(ext))
         })
         .collect();
 
@@ -870,7 +872,9 @@ pub fn contract_source_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let zone_sources: Vec<String> = if zones_path.exists() {
         std::fs::read_to_string(&zones_path)
             .ok()
-            .and_then(|text| toml::from_str::<crate::commands::context_data::GeneratedZonesFile>(&text).ok())
+            .and_then(|text| {
+                toml::from_str::<crate::commands::context_data::GeneratedZonesFile>(&text).ok()
+            })
             .map(|file| {
                 file.zone
                     .iter()
@@ -1001,4 +1005,3 @@ pub fn event_contract_path_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     }
     hits
 }
-

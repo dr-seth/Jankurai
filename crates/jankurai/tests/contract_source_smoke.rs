@@ -183,9 +183,7 @@ expires = "2027-12-31"
         .filter(|f| {
             f.path == "agent/boundaries.toml"
                 && f.rule_id.as_deref() == Some("HLT-007-HANDWRITTEN-CONTRACT")
-                && f.evidence
-                    .iter()
-                    .any(|e| e.contains("event contract path"))
+                && f.evidence.iter().any(|e| e.contains("event contract path"))
         })
         .collect();
     assert!(

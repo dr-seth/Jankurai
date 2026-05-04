@@ -95,7 +95,7 @@ fn apply_templates(
                 continue;
             }
             let existing_text = fs::read_to_string(&path).unwrap_or_default();
-            
+
             if rel.ends_with(".json") {
                 let merged = crate::init::merge::merge_json(&existing_text, template.body)
                     .with_context(|| format!("failed to merge JSON {}", rel))?;
@@ -180,12 +180,14 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
                     merged = Some(format!("{existing}{marker}"));
                 }
             }
-            
+
             if let Some(m) = merged {
                 if m != existing {
                     println!("--- {}", rel);
                     println!("+++ {} (merged view)", rel);
-                    println!("(Run without --diff to see actual merged results; diff output omitted)");
+                    println!(
+                        "(Run without --diff to see actual merged results; diff output omitted)"
+                    );
                 } else {
                     println!("--- {} exists; no merge needed", rel);
                 }

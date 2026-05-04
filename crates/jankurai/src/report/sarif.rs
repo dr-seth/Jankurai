@@ -38,7 +38,8 @@ fn physical_region(finding: &Finding) -> serde_json::Value {
 pub fn render_sarif(report: &Report) -> String {
     // Build deduplicated rules[] array keyed by rule_id
     let mut rule_ids: Vec<String> = Vec::new();
-    let mut rule_index_map: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut rule_index_map: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
 
     for finding in &report.findings {
         let rid = finding

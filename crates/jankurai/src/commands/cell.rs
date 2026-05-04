@@ -25,6 +25,7 @@ pub struct CellPlan {
     pub generated_at: String,
     pub status: String,
     pub mode: String,
+    pub lifecycle_action: String,
     pub cell_id: String,
     pub owner: String,
     pub category: String,
@@ -33,8 +34,26 @@ pub struct CellPlan {
     pub manifest: CellManifest,
     pub install_plan: InstallPlan,
     pub certification_evidence: Vec<CellEvidence>,
+    pub certification_decision: Option<CertificationDecision>,
+    pub dependency_closure: Vec<DependencyStatus>,
     pub proof_commands: Vec<String>,
+    pub upgrade_plan: Vec<String>,
+    pub deprecation_plan: Vec<String>,
     pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CertificationDecision {
+    pub status: String,
+    pub merge_ready: bool,
+    pub missing_evidence: Vec<String>,
+    pub dependency_satisfied: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DependencyStatus {
+    pub cell_id: String,
+    pub certified: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,16 +88,80 @@ pub fn build_cell_plan(repo: &Path, cell_id: &str, mode: &str) -> Result<CellPla
         .map(|owner| owner.to_string())
         .unwrap_or_else(|| owner_for_cell(&catalog, cell_id));
     let install_plan = build_install_plan(&manifest);
-    let certification_evidence = if mode == "prove" {
-        manifest.certification_evidence.clone()
-    } else {
-        Vec::new()
-    };
-    let proof_commands = if mode == "prove" {
+    let certification_evidence =
+        if mode == "prove" || mode == "upgrade-plan" || mode == "deprecate-plan" {
+            manifest.certification_evidence.clone()
+        } else {
+            Vec::new()
+        };
+    let proof_commands = if mode == "prove" || mode == "upgrade-plan" || mode == "deprecate-plan" {
         manifest.proof_commands.clone()
     } else {
         Vec::new()
     };
+
+    // Dependency closure
+    let dependency_closure: Vec<DependencyStatus> =
+        if mode == "prove" || mode == "upgrade-plan" || mode == "deprecate-plan" {
+            manifest
+                .dependencies
+                .iter()
+                .map(|dep_id| {
+                    let dep_manifest = manifest_for_cell(repo, &catalog, dep_id);
+                    DependencyStatus {
+                        cell_id: dep_id.clone(),
+                        certified: dep_manifest.certification_status == "certified",
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+    // Certification decision
+    let certification_decision = if mode == "prove" {
+        let missing: Vec<String> = manifest
+            .certification_evidence
+            .iter()
+            .filter(|e| e.required && e.status != "present")
+            .map(|e| format!("{}:{}", e.kind, e.path))
+            .collect();
+        let deps_ok = dependency_closure.iter().all(|d| d.certified);
+        let is_certified = missing.is_empty() && deps_ok;
+        Some(CertificationDecision {
+            status: if is_certified {
+                "certified".to_string()
+            } else {
+                "candidate".to_string()
+            },
+            merge_ready: is_certified,
+            missing_evidence: missing,
+            dependency_satisfied: deps_ok,
+        })
+    } else {
+        None
+    };
+
+    let lifecycle_action = match mode {
+        "prove" => "prove-certification",
+        "upgrade-plan" => "upgrade-plan",
+        "deprecate-plan" => "deprecate-plan",
+        _ => "install-ready",
+    }
+    .to_string();
+
+    let upgrade_plan = if mode == "upgrade-plan" {
+        manifest.upgrade_notes.clone()
+    } else {
+        Vec::new()
+    };
+
+    let deprecation_plan = if mode == "deprecate-plan" {
+        manifest.rollback_notes.clone()
+    } else {
+        Vec::new()
+    };
+
     Ok(CellPlan {
         schema_version: "1.0.0".to_string(),
         command: "jankurai cell".to_string(),
@@ -86,6 +169,7 @@ pub fn build_cell_plan(repo: &Path, cell_id: &str, mode: &str) -> Result<CellPla
         generated_at: now_string(),
         status: "complete".to_string(),
         mode: mode.to_string(),
+        lifecycle_action,
         cell_id: cell_id.to_string(),
         owner: owner.clone(),
         category: manifest.category.clone(),
@@ -93,7 +177,11 @@ pub fn build_cell_plan(repo: &Path, cell_id: &str, mode: &str) -> Result<CellPla
         proof_lanes: manifest.proof_lanes.clone(),
         install_plan,
         certification_evidence,
+        certification_decision,
+        dependency_closure,
         proof_commands,
+        upgrade_plan,
+        deprecation_plan,
         manifest,
         notes: vec![
             "cell output is generated from current ownership and proof routing".to_string(),
@@ -128,6 +216,7 @@ fn render_markdown(plan: &CellPlan) -> String {
     let _ = writeln!(out);
     let _ = writeln!(out, "- command: `{}`", plan.command);
     let _ = writeln!(out, "- mode: `{}`", plan.mode);
+    let _ = writeln!(out, "- lifecycle action: `{}`", plan.lifecycle_action);
     let _ = writeln!(out, "- cell: `{}`", plan.cell_id);
     let _ = writeln!(out, "- owner: `{}`", plan.owner);
     let _ = writeln!(out, "- category: `{}`", plan.category);
@@ -154,6 +243,60 @@ fn render_markdown(plan: &CellPlan) -> String {
         "- proof commands: `{}`",
         plan.proof_commands.join(", ")
     );
+
+    if !plan.dependency_closure.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Dependency Closure");
+        let _ = writeln!(out);
+        for dep in &plan.dependency_closure {
+            let status = if dep.certified {
+                "certified"
+            } else {
+                "not certified"
+            };
+            let _ = writeln!(out, "- `{}`: {}", dep.cell_id, status);
+        }
+    }
+
+    if let Some(decision) = &plan.certification_decision {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Certification Decision");
+        let _ = writeln!(out);
+        let _ = writeln!(out, "- status: `{}`", decision.status);
+        let _ = writeln!(out, "- merge ready: `{}`", decision.merge_ready);
+        let _ = writeln!(
+            out,
+            "- dependencies satisfied: `{}`",
+            decision.dependency_satisfied
+        );
+        if !decision.missing_evidence.is_empty() {
+            let _ = writeln!(
+                out,
+                "- missing evidence: `{}`",
+                decision.missing_evidence.join(", ")
+            );
+        }
+    }
+
+    if !plan.upgrade_plan.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Upgrade Plan");
+        let _ = writeln!(out);
+        for note in &plan.upgrade_plan {
+            let _ = writeln!(out, "- {}", note);
+        }
+    }
+
+    if !plan.deprecation_plan.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Deprecation Plan");
+        let _ = writeln!(out);
+        for note in &plan.deprecation_plan {
+            let _ = writeln!(out, "- {}", note);
+        }
+    }
+
+    let _ = writeln!(out);
     let _ = writeln!(out, "- notes: `{}`", plan.notes.join(", "));
     out
 }

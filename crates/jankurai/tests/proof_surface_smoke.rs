@@ -461,7 +461,10 @@ fn prove_changed_builds_plan_runs_and_indexes_evidence() {
     let plan: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
     validation::validate_value(repo.path(), ArtifactSchema::ProofPlan, &plan).unwrap();
-    assert_eq!(plan["changed_paths"], serde_json::json!(["fixtures/demo.txt"]));
+    assert_eq!(
+        plan["changed_paths"],
+        serde_json::json!(["fixtures/demo.txt"])
+    );
     assert_eq!(plan["commands"], serde_json::json!(["true"]));
     assert_eq!(plan["planned_runs"][0]["lane"], "fixture");
 
@@ -507,7 +510,10 @@ fn prove_changed_from_builds_plan_runs_and_records_base_ref() {
     let repo = tempdir().unwrap();
     seed_catalog(repo.path());
     git(repo.path(), &["init"]);
-    git(repo.path(), &["config", "user.email", "jankurai@example.test"]);
+    git(
+        repo.path(),
+        &["config", "user.email", "jankurai@example.test"],
+    );
     git(repo.path(), &["config", "user.name", "Jankurai Test"]);
 
     fs::create_dir_all(repo.path().join("fixtures")).unwrap();
@@ -662,9 +668,15 @@ fn prove_changed_without_runnable_route_fails_after_writing_repairable_evidence(
 
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("proof plan contains no runnable proof commands"), "{stderr}");
+    assert!(
+        stderr.contains("proof plan contains no runnable proof commands"),
+        "{stderr}"
+    );
     assert!(plan_path.exists(), "repairable plan artifact should exist");
-    assert!(evidence_index.exists(), "repairable evidence index should exist");
+    assert!(
+        evidence_index.exists(),
+        "repairable evidence index should exist"
+    );
 }
 
 #[test]

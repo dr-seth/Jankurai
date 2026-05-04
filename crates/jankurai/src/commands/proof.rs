@@ -130,7 +130,10 @@ pub fn run_prove(args: ProveArgs) -> Result<()> {
     }
 
     let (plan, plan_path_str) = if let Some(plan_path) = args.plan.as_deref() {
-        (load_proof_plan(&args.repo, plan_path)?, plan_path.to_string())
+        (
+            load_proof_plan(&args.repo, plan_path)?,
+            plan_path.to_string(),
+        )
     } else if has_changed_input {
         if args.plan_out == "-" {
             anyhow::bail!("--plan-out must be a file path when prove builds a plan");
@@ -720,11 +723,7 @@ fn normalize_changed_path(root: &Path, path: &Path) -> Option<String> {
         .map(|rel| rel.to_string_lossy().replace('\\', "/"))
 }
 
-fn insert_changed_path(
-    paths: &mut BTreeSet<String>,
-    rel: String,
-    original: &Path,
-) -> Result<()> {
+fn insert_changed_path(paths: &mut BTreeSet<String>, rel: String, original: &Path) -> Result<()> {
     let normalized = rel
         .trim_start_matches("./")
         .trim_end_matches('/')
@@ -782,7 +781,10 @@ fn push_rule(rules: &mut Vec<RuleCoverage>, rule_id: &str) {
     if crate::audit::rules::lookup(rule_id).is_none() {
         return;
     }
-    if rules.iter().any(|coverage| rule_coverage_id(coverage) == rule_id) {
+    if rules
+        .iter()
+        .any(|coverage| rule_coverage_id(coverage) == rule_id)
+    {
         return;
     }
     rules.push(RuleCoverage::Rich {

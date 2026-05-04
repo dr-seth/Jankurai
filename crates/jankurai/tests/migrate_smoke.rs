@@ -5,7 +5,8 @@ fn analyze_produces_valid_migration_report() {
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..");
-    let report = migrate::build_migration_report(&repo).expect("build_migration_report");
+    let report =
+        migrate::build_migration_report(&repo, "rust-ts-postgres").expect("build_migration_report");
     assert_eq!(report.schema_version, "1.0.0");
     assert!(!report.source_stack.is_empty());
     assert!(
@@ -25,7 +26,8 @@ fn plan_produces_valid_migration_plan() {
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..");
-    let plan = migrate::build_migration_plan(&repo).expect("build_migration_plan");
+    let plan =
+        migrate::build_migration_plan(&repo, "rust-ts-postgres").expect("build_migration_plan");
     assert_eq!(plan.schema_version, "1.0.0");
     assert_eq!(plan.plan_mode, "dry-run");
     assert!(!plan.slices.is_empty(), "expected at least one slice");
@@ -51,7 +53,8 @@ fn liability_score_is_bounded() {
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..");
-    let report = migrate::build_migration_report(&repo).expect("build_migration_report");
+    let report =
+        migrate::build_migration_report(&repo, "rust-ts-postgres").expect("build_migration_report");
     assert!(
         report.liability_score <= 100,
         "score should be <= 100, got {}",
@@ -64,7 +67,8 @@ fn analyze_schema_validates() {
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..");
-    let report = migrate::build_migration_report(&repo).expect("build_migration_report");
+    let report =
+        migrate::build_migration_report(&repo, "rust-ts-postgres").expect("build_migration_report");
     let value = serde_json::to_value(&report).expect("serialize report");
     jankurai::validation::validate_value(
         &repo,
@@ -79,7 +83,8 @@ fn plan_schema_validates() {
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..");
-    let plan = migrate::build_migration_plan(&repo).expect("build_migration_plan");
+    let plan =
+        migrate::build_migration_plan(&repo, "rust-ts-postgres").expect("build_migration_plan");
     let value = serde_json::to_value(&plan).expect("serialize plan");
     jankurai::validation::validate_value(
         &repo,

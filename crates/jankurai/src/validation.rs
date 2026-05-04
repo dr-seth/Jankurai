@@ -31,7 +31,9 @@ pub enum ArtifactSchema {
     BenchmarkSuite,
     BenchmarkReport,
     Certification,
+    CertificationBadge,
     GovernancePolicy,
+    PublicEvidenceBundle,
     CellManifest,
     CellRegistry,
     AuditPolicy,
@@ -70,7 +72,9 @@ impl ArtifactSchema {
             Self::BenchmarkSuite => "benchmark-suite.schema.json",
             Self::BenchmarkReport => "benchmark-report.schema.json",
             Self::Certification => "certification.schema.json",
+            Self::CertificationBadge => "certification-badge.schema.json",
             Self::GovernancePolicy => "governance-policy.schema.json",
+            Self::PublicEvidenceBundle => "public-evidence-bundle.schema.json",
             Self::CellManifest => "cell-manifest.schema.json",
             Self::CellRegistry => "cell-registry.schema.json",
             Self::AuditPolicy => "audit-policy.schema.json",
@@ -123,8 +127,7 @@ pub fn validate_security_policy_toml_text(repo: &Path, text: &str) -> Result<Val
 
 /// Parse `agent/audit-policy.toml` and validate against `audit-policy.schema.json`.
 pub fn validate_audit_policy_toml_text(repo: &Path, text: &str) -> Result<Value> {
-    let toml_value: toml::Value =
-        toml::from_str(text).context("parse agent/audit-policy.toml")?;
+    let toml_value: toml::Value = toml::from_str(text).context("parse agent/audit-policy.toml")?;
     let json_value = serde_json::to_value(&toml_value)
         .context("convert audit policy TOML to JSON for schema validation")?;
     validate_value(repo, ArtifactSchema::AuditPolicy, &json_value)?;
@@ -153,8 +156,7 @@ pub fn validate_generated_zones_toml_text(repo: &Path, text: &str) -> Result<Val
 }
 
 pub fn validate_proof_lanes_toml_text(repo: &Path, text: &str) -> Result<Value> {
-    let toml_value: toml::Value =
-        toml::from_str(text).context("parse agent/proof-lanes.toml")?;
+    let toml_value: toml::Value = toml::from_str(text).context("parse agent/proof-lanes.toml")?;
     let json_value = serde_json::to_value(&toml_value)
         .context("convert proof-lanes TOML to JSON for schema validation")?;
     validate_value(repo, ArtifactSchema::ProofLanes, &json_value)?;

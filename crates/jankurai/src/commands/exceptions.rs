@@ -1,6 +1,6 @@
 use crate::commands::release_data::load_release_data;
 use crate::validation::{self, ArtifactSchema};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{NaiveDate, Utc};
 use ignore::WalkBuilder;
 use serde::Deserialize;
@@ -14,6 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub struct ExceptionExpireArgs {
     pub repo: PathBuf,
     pub warning_days: i64,
+    pub strict: bool,
     pub out: Option<String>,
     pub md: Option<String>,
 }
@@ -82,6 +83,13 @@ pub fn run_expire(args: ExceptionExpireArgs) -> Result<()> {
     if let Some(path) = args.md.as_deref() {
         crate::render::write_markdown(path, &render_markdown(&report))?;
     }
+    if args.strict && report.status == "blocked" {
+        return Err(anyhow!(
+            "exception expiry is blocked (expired_count={} invalid_count={}); fix or renew exceptions or omit --strict for advisory-only runs",
+            report.expired_count,
+            report.invalid_count
+        ));
+    }
     Ok(())
 }
 
@@ -137,7 +145,7 @@ pub fn build_report(repo: &Path, warning_days: i64) -> Result<ExceptionExpiryRep
             .to_string(),
     );
     let mut notes = vec![
-        "exception expiry is advisory and does not mutate files".to_string(),
+        "exception expiry is advisory and does not mutate files; use `--strict` to exit non-zero when status is blocked (expired or invalid)".to_string(),
         format!("governance timebox: {} days", warning_days),
     ];
     if files.is_empty() {

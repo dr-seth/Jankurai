@@ -1,93 +1,87 @@
 # Phase 12: Benchmark Certification And Governance
 
-Status: complete
+Status: hardened
 Owner: standard
 Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
 
 ## Objective
 
-Prove the Jankurai thesis publicly and make conformance meaningful. This phase builds benchmark corpora, certification artifacts, badges, release attestations, rule governance, and organization-level reporting.
+Prove the Jankurai thesis publicly and make conformance meaningful. This phase builds benchmark corpora, certification artifacts, badges, rule governance, and **machine-readable public evidence**.
 
-The exit state is that "Built with Jankurai" has evidence behind it.
+The exit state is that “Built with Jankurai” has **schema-valid, CI-publishable** evidence (bundle + badge surfaces) behind it. Hosted dashboards remain optional consumption; they are **not** a completion dependency.
 
 ## Current State
 
-Completed pieces:
+Hardened pieces:
 
 - `jankurai bench` emits a schema-valid `BenchmarkReport` with a bundled smoke suite built from `examples/legacy-node-api/` and `examples/perfect-web-api-db/`.
 - `jankurai certify` emits a schema-valid `Certification` artifact tied to the live repo score when present and otherwise falls back to an explicit missing-score state.
 - `jankurai govern` emits a schema-valid `GovernancePolicy` from the standard manifest.
-- The outputs validate through `ArtifactSchema` before write or stdout emission.
-- No external signing service, hosted dashboard, or public badge publishing was added.
+- **`jankurai publish`** validates the three artifacts above (`--certification`, `--benchmark`, `--governance`), checks `standard_version` against `agent/standard-version.toml`, computes a deterministic **triple-file subject digest**, and emits optional:
+  - `PublicEvidenceBundle` JSON (`schemas/public-evidence-bundle.schema.json`)
+  - Badge JSON (`schemas/certification-badge.schema.json`)
+  - Badge SVG (static shields-style markup)
+  - Public Markdown summary
+- **Publishability**: the bundle is always schema-valid; `publishable` is `false` when score/governance gates, benchmark failures, inconclusive benchmark tasks, hard caps, or critical/high findings block a “clean” badge (see bundle `blocking_reasons` and `public_status`: `publishable` | `advisory` | `blocked`).
+- CI (`.github/workflows/jankurai.yml`) runs Phase 12 after the security lane and uploads evidence under `target/jankurai/` plus `target/jankurai/public/`.
+- `just phase12` reproduces the same pipeline locally.
+
+**Deferred (not MVP for Phase 12):** GitHub Artifact Attestations (`actions/attest`), Sigstore/KMS identity signing, keyed attestation `--verify-attestation`, and hosted org dashboards—the bundle is structured so those can wrap the same files later.
 
 ## Dependencies
 
 Requires phases 01 through 11 to produce enough real surfaces to benchmark.
 
-## Public Interface Changes
-
-Implemented command surface:
+## Public interface
 
 ```bash
 jankurai bench . --out target/jankurai/p12-benchmark-report.json --md target/jankurai/p12-benchmark-report.md
 jankurai certify . --out target/jankurai/p12-certification.json --md target/jankurai/p12-certification.md
 jankurai govern . --out target/jankurai/p12-governance-policy.json --md target/jankurai/p12-governance-policy.md
+
+jankurai publish . \
+  --certification target/jankurai/p12-certification.json \
+  --benchmark target/jankurai/p12-benchmark-report.json \
+  --governance target/jankurai/p12-governance-policy.json \
+  --out target/jankurai/public/p12-public-evidence.json \
+  --md target/jankurai/public/p12-public-evidence.md \
+  --badge-json target/jankurai/public/jankurai-badge.json \
+  --badge-svg target/jankurai/public/jankurai-badge.svg
 ```
 
-## Contract Slice
+Shortcut:
 
-`benchmark-suite.schema.json` defines the bundled benchmark corpus. Minimum fields:
+```bash
+just phase12
+```
 
-- `schema_version`, `suite_id`, `purpose`
-- `fixtures[]` with `fixture_id`, `path`, `kind`, `expected_findings`, `expected_score_range`
-- `tasks[]` with `task_id`, `description`, `fixture_ids`, `commands`, `expected_metrics`
+Defaults for `--certification`, `--benchmark`, and `--governance` match `target/jankurai/p12-*.json` when emitted by the canonical paths above.
 
-`benchmark-report.schema.json` defines run output. Minimum fields:
+## Contract slice
 
-- `schema_version`, `generated_at`, `suite_id`, `repo`, `target_stack_id`
-- `results[]` with `task_id`, `fixture_id`, `status`, `metrics`, `evidence`
-- `summary`
+Existing:
 
-`certification.schema.json` defines release evidence. Minimum fields:
+- `benchmark-suite.schema.json`, `benchmark-report.schema.json`
+- `certification.schema.json`
+- `governance-policy.schema.json`
 
-- `schema_version`, `generated_at`, `repo`
-- `standard_version`, `auditor_version`, `paper_edition`, `target_stack_id`
-- `score`, `conformance_level`, `caps`
-- `findings_summary`
-- `proof_receipt_index`, `security_receipt_index`, `ux_receipt_index`, `contract_db_receipt_index`
-- `exceptions`
-- `provenance`
+New:
 
-`governance-policy.schema.json` defines ratchet policy. Minimum fields:
+- **`public-evidence-bundle.schema.json`**: aggregates identity, summaries, badge, artifact index, validation commands, attestation envelope, blocking reasons.
+- **`certification-badge.schema.json`**: shields-style badge JSON (label/message/color enums).
 
-- `schema_version`, `standard_version`, `effective_at`
-- `minimum_score`, `fail_on`, `advisory_on`, `update_channel`
-- `rule_change_policy`, `deprecation_policy`, `exception_policy`, `security_advisory_policy`
-- `rfc_path`
-
-Certification artifact fields:
-
-- repo
-- standard version
-- auditor version
-- schema version
-- paper edition
-- target stack ID
-- score
-- conformance level
-- caps
-- findings summary
-- proof receipt index
-- security receipt index
-- UX receipt index
-- contract/DB receipt index
-- exceptions
-- provenance attestation only; no external signature
+Attestation semantics: `attestation.signature` prefixes `local-sha256-attestation:` over the deterministic subject digest; `signing_key_hint` explains this is triple-file hashing, not asymmetric crypto.
 
 ## Validation
 
-Validated:
+Focused:
+
+```bash
+cargo test -p jankurai --test phase_12_public_evidence
+```
+
+Broad:
 
 ```bash
 cargo test -p jankurai
@@ -95,38 +89,33 @@ just fast
 just score
 ```
 
-Phase proof:
+After schema or CLI changes:
 
 ```bash
+just compat
 cargo run -p jankurai -- lane . \
-  --changed crates/jankurai/src/commands/bench.rs \
-  --changed crates/jankurai/src/commands/certify.rs \
-  --changed crates/jankurai/src/commands/govern.rs \
-  --changed schemas/certification.schema.json \
-  --out target/jankurai/p12-benchmark-certification-lane.json \
-  --md target/jankurai/p12-benchmark-certification-lane.md
+  --changed crates/jankurai/src/commands/publish.rs \
+  --changed crates/jankurai/src/main.rs \
+  --changed crates/jankurai/src/validation.rs \
+  --changed schemas/public-evidence-bundle.schema.json \
+  --changed schemas/certification-badge.schema.json \
+  --out target/jankurai/p12-public-evidence-lane.json \
+  --md target/jankurai/p12-public-evidence-lane.md
 ```
 
-## Closeout
+## Closeout artifacts
 
-Artifacts:
+Expect under `target/jankurai/`:
 
-- `target/jankurai/p12-benchmark-report.json`
-- `target/jankurai/p12-benchmark-report.md`
-- `target/jankurai/p12-certification.json`
-- `target/jankurai/p12-certification.md`
-- `target/jankurai/p12-governance-policy.json`
-- `target/jankurai/p12-governance-policy.md`
-- `target/jankurai/p12-benchmark-certification-lane.json`
-- `target/jankurai/p12-benchmark-certification-lane.md`
-- `target/jankurai/fast-score.json`
-- `target/jankurai/fast-score.md`
-- `agent/repo-score.json`
-- `agent/repo-score.md`
+- `p12-benchmark-report.{json,md}`
+- `p12-certification.{json,md}`
+- `p12-governance-policy.{json,md}`
+- `public/p12-public-evidence.{json,md}`
+- `public/jankurai-badge.{json,svg}`
 
-Validated:
+Plus receipts from lanes and audits as documented in MASTER_PLAN.
 
-- `cargo test -p jankurai`
-- `cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/bench.rs --changed crates/jankurai/src/commands/certify.rs --changed crates/jankurai/src/commands/govern.rs --changed schemas/certification.schema.json --out target/jankurai/p12-benchmark-certification-lane.json --md target/jankurai/p12-benchmark-certification-lane.md`
-- `just fast`
-- `just score`
+## Residual risk
+
+- Forks or minimal fixtures may classify as `advisory` or `blocked` while remaining useful for CI (**by design**).
+- External signing and hosted dashboards are optional follow-ons, not prerequisites for conformance of the emitted JSON.

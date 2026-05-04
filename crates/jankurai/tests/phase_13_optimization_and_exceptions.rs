@@ -82,6 +82,26 @@ serde = "1"
     .unwrap();
 }
 
+fn seed_clean_exception_repo(repo: &Path) {
+    seed_release_data(repo);
+    let exceptions = repo.join("docs/exceptions");
+    fs::create_dir_all(&exceptions).unwrap();
+    fs::write(
+        exceptions.join("0001-current-only.md"),
+        r#"---
+code: HB_SQL_SHIM
+owner: data-platform
+reason: Brownfield SQL shim is still in migration.
+expires: 2026-12-31
+migration_plan: Move the SQL into the adapter and retire the shim.
+proof_lane: just score
+---
+# current only
+"#,
+    )
+    .unwrap();
+}
+
 fn seed_exception_repo(repo: &Path) {
     seed_release_data(repo);
     let exceptions = repo.join("docs/exceptions");
@@ -203,7 +223,9 @@ fn exception_expiry_command_reports_expired_and_invalid_docs() {
     let repo = tempdir().unwrap();
     seed_exception_repo(repo.path());
 
-    let out_path = repo.path().join("target/jankurai/exception-expiry-report.json");
+    let out_path = repo
+        .path()
+        .join("target/jankurai/exception-expiry-report.json");
     let md_path = out_path.with_extension("md");
     let output = Command::new(binary_path())
         .arg("exceptions")
@@ -217,7 +239,11 @@ fn exception_expiry_command_reports_expired_and_invalid_docs() {
         .arg(&md_path)
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let report: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&out_path).unwrap()).unwrap();
     let md = fs::read_to_string(md_path).unwrap();
@@ -240,4 +266,65 @@ fn exception_expiry_command_reports_expired_and_invalid_docs() {
         .iter()
         .any(|entry| entry["status"] == "current" && entry["code"] == "HB_SQL_SHIM"));
     assert!(md.starts_with("# jankurai Exception Expiry"));
+}
+
+#[test]
+fn exception_expire_strict_fails_when_blocked() {
+    let repo = tempdir().unwrap();
+    seed_exception_repo(repo.path());
+
+    let out_path = repo
+        .path()
+        .join("target/jankurai/exception-expiry-strict.json");
+    let md_path = out_path.with_extension("md");
+    let status = Command::new(binary_path())
+        .arg("exceptions")
+        .arg("expire")
+        .arg(repo.path())
+        .arg("--warning-days")
+        .arg("7")
+        .arg("--strict")
+        .arg("--out")
+        .arg(&out_path)
+        .arg("--md")
+        .arg(&md_path)
+        .status()
+        .unwrap();
+    assert!(
+        !status.success(),
+        "strict mode should exit non-zero when status is blocked"
+    );
+    let report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out_path).unwrap()).unwrap();
+    assert_eq!(report["status"], "blocked");
+}
+
+#[test]
+fn exception_expire_strict_passes_when_only_current_exceptions() {
+    let repo = tempdir().unwrap();
+    seed_clean_exception_repo(repo.path());
+
+    let out_path = repo.path().join("target/jankurai/exception-clean.json");
+    let md_path = out_path.with_extension("md");
+    let output = Command::new(binary_path())
+        .arg("exceptions")
+        .arg("expire")
+        .arg(repo.path())
+        .arg("--warning-days")
+        .arg("7")
+        .arg("--strict")
+        .arg("--out")
+        .arg(&out_path)
+        .arg("--md")
+        .arg(&md_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out_path).unwrap()).unwrap();
+    assert_eq!(report["status"], "complete");
 }

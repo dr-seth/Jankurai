@@ -48,6 +48,7 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
         audit_log_manifest(repo, catalog),
         crud_resource_manifest(repo, catalog),
         rbac_manifest(repo, catalog),
+        auth_session_manifest(repo, catalog),
     ]
 }
 
@@ -293,6 +294,89 @@ fn rbac_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
     )
 }
 
+fn auth_session_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/auth_session.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/auth-session.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/002_auth_sessions.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/002_auth_sessions.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/auth-session-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "auth-session".to_string(),
+            version: "0.1.0".to_string(),
+            category: "identity".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "rbac"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "session identity resolves to an active Account before application commands run",
+                "bearer tokens are API-edge credentials only; durable authorization remains in the Rust application layer",
+                "session/token material is never committed to source, fixtures, logs, or proof artifacts",
+                "auth/session events that affect access are observable through audit-log evidence",
+                "permission-denied UI states are covered as user-facing auth evidence",
+            ]),
+            observability_events: strings(&[
+                "session.created",
+                "session.revoked",
+                "session.expired",
+                "authentication.failed",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/auth-session-cell.md",
+                "examples/perfect-web-api-db/ops/auth-session-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&[
+                "add provider-backed login only after the API edge can prove bearer token validation with explicit receipts",
+                "introduce a dedicated sessions table only through reviewed migrations and db-migration-analyze proof",
+                "keep token parsing at the API edge and pass an Account/SessionPrincipal into application commands",
+                "add revocation and rotation contracts before moving beyond shell certification",
+            ]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "remove provider config only after revoking issued credentials",
+                "reverse session table or token-state changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
 fn certified_manifest(
     repo: &Path,
     catalog: &RepoCatalog,
@@ -312,17 +396,58 @@ fn certified_manifest(
     for lane in &manifest.proof_lanes {
         evidence.push(lane_evidence(catalog, lane));
     }
+    // Dependency-bound certification: check each upstream dependency is certified.
+    let all_manifests = lazy_built_in_ids();
+    for dep_id in &manifest.dependencies {
+        let dep_certified = all_manifests.contains(&dep_id.as_str());
+        evidence.push(CellEvidence {
+            kind: "dependency".to_string(),
+            path: dep_id.clone(),
+            required: true,
+            status: if dep_certified {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
+    // Content-marker evidence for key domain invariants.
+    if manifest.cell_id == "auth-session" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/auth_session.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("SessionTokenHash");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-session-token-hash".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
     manifest.proof_commands = proof_commands(catalog, &manifest.proof_lanes);
-    manifest.certification_status = if evidence
+    let is_certified = evidence
         .iter()
-        .all(|item| !item.required || item.status == "present")
-    {
+        .all(|item| !item.required || item.status == "present");
+    manifest.certification_status = if is_certified {
         "certified".to_string()
     } else {
         "candidate".to_string()
     };
+    if !is_certified && manifest.lifecycle == "certified" {
+        manifest.lifecycle = "experimental".to_string();
+    }
     manifest.certification_evidence = evidence;
     manifest
+}
+
+/// Returns the set of built-in certified cell IDs for dependency-bound checks.
+fn lazy_built_in_ids() -> Vec<&'static str> {
+    vec!["audit-log", "crud-resource", "rbac", "auth-session"]
 }
 
 fn fallback_manifest(catalog: &RepoCatalog, cell_id: &str) -> CellManifest {

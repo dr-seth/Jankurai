@@ -3,7 +3,7 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
     agent, bench, cell, certify, context_pack, doctor, exceptions, govern, init, migrate, optimize,
-    proof, registry, repair, repair_plan, security,
+    proof, publish, registry, repair, repair_plan, security,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -38,6 +38,7 @@ enum Commands {
     Bench(BenchArgs),
     Certify(CertifyArgs),
     Govern(GovernArgs),
+    Publish(PublishArgs),
     Repair(RepairArgs),
     Optimize(OptimizeArgs),
     Exceptions {
@@ -279,7 +280,7 @@ struct CellArgs {
     repo: PathBuf,
     #[arg(long, default_value = "workspace-cell")]
     cell_id: String,
-    #[arg(long, default_value = "install-ready", value_parser = ["install-ready", "prove"])]
+    #[arg(long, default_value = "install-ready", value_parser = ["install-ready", "prove", "upgrade-plan", "deprecate-plan"])]
     mode: String,
     #[arg(long, value_name = "PATH")]
     out: Option<String>,
@@ -298,6 +299,9 @@ struct MigrateArgs {
     /// Run analyze mode (report only). Default is plan mode.
     #[arg(long)]
     analyze: bool,
+    /// Target stack for migration (default: rust-ts-postgres)
+    #[arg(long, default_value = "rust-ts-postgres")]
+    target: String,
 }
 
 #[derive(Args, Debug)]
@@ -331,6 +335,38 @@ struct GovernArgs {
 }
 
 #[derive(Args, Debug)]
+struct PublishArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/p12-certification.json"
+    )]
+    certification: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/p12-benchmark-report.json"
+    )]
+    benchmark: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/p12-governance-policy.json"
+    )]
+    governance: String,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    badge_json: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    badge_svg: Option<String>,
+}
+
+#[derive(Args, Debug)]
 struct RepairArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -340,8 +376,24 @@ struct RepairArgs {
     dry_run: bool,
     #[arg(long)]
     fixture_apply: bool,
+    /// Apply a bounded repair to a real git repository. Requires
+    /// JANKURAI_ALLOW_REPAIR_APPLY=1 in the environment.
+    #[arg(long)]
+    apply: bool,
     #[arg(long)]
     auto_pr: bool,
+    /// With --apply, commit repair changes and optionally push. Requires
+    /// JANKURAI_ALLOW_GIT_MUTATION=1 in the environment.
+    #[arg(long)]
+    git_commit: bool,
+    /// With --apply --git-commit --auto-pr, push and create a draft GitHub PR
+    /// via gh. Requires JANKURAI_ALLOW_GITHUB_PR=1 in the environment.
+    #[arg(long)]
+    github_pr: bool,
+    #[arg(long, default_value = "origin")]
+    remote: String,
+    #[arg(long, default_value = "main")]
+    base: String,
     #[arg(long, value_name = "PATH")]
     pr_draft_out: Option<String>,
     #[arg(long, value_name = "PATH")]
@@ -372,6 +424,9 @@ struct ExceptionExpireArgs {
     repo: PathBuf,
     #[arg(long, default_value_t = 7)]
     warning_days: i64,
+    /// Exit with failure when the report status is blocked (expired or invalid exceptions). Expiring-soon remains status complete.
+    #[arg(long)]
+    strict: bool,
     #[arg(long, value_name = "PATH")]
     out: Option<String>,
     #[arg(long, value_name = "PATH")]
@@ -568,6 +623,7 @@ fn main() -> anyhow::Result<()> {
                 out: args.out,
                 md: args.md,
                 mode,
+                target: args.target,
             })?;
         }
         Some(Commands::Bench(args)) => {
@@ -591,13 +647,30 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::Publish(args)) => {
+            publish::run(publish::PublishArgs {
+                repo: args.repo,
+                certification: args.certification,
+                benchmark: args.benchmark,
+                governance: args.governance,
+                out: args.out,
+                md: args.md,
+                badge_json: args.badge_json,
+                badge_svg: args.badge_svg,
+            })?;
+        }
         Some(Commands::Repair(args)) => {
             repair::run(repair::RepairArgs {
                 repo: args.repo,
                 plan: args.plan,
                 dry_run: args.dry_run,
                 fixture_apply: args.fixture_apply,
+                apply: args.apply,
                 auto_pr: args.auto_pr,
+                git_commit: args.git_commit,
+                github_pr: args.github_pr,
+                remote: args.remote,
+                base: args.base,
                 pr_draft_out: args.pr_draft_out,
                 pr_draft_md: args.pr_draft_md,
                 max_risk: args.max_risk,
@@ -618,6 +691,7 @@ fn main() -> anyhow::Result<()> {
                 exceptions::run_expire(exceptions::ExceptionExpireArgs {
                     repo: args.repo,
                     warning_days: args.warning_days,
+                    strict: args.strict,
                     out: args.out,
                     md: args.md,
                 })?;

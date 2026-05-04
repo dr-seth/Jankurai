@@ -1,4 +1,5 @@
 use crate::audit::rules::{self, RepairEligibility, RepairRisk};
+use crate::commands::repair_git::{GitMutationReceipt, GithubPrReceipt};
 use crate::commands::repair_plan::RepairPlan;
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{bail, Context, Result};
@@ -13,7 +14,12 @@ pub struct RepairArgs {
     pub plan: String,
     pub dry_run: bool,
     pub fixture_apply: bool,
+    pub apply: bool,
     pub auto_pr: bool,
+    pub git_commit: bool,
+    pub github_pr: bool,
+    pub remote: String,
+    pub base: String,
     pub pr_draft_out: Option<String>,
     pub pr_draft_md: Option<String>,
     pub max_risk: String,
@@ -43,6 +49,10 @@ pub struct RepairRun {
     pub proof_evidence_index: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_pr_draft: Option<AutoPrDraftSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_mutation: Option<GitMutationReceipt>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub github_pr: Option<GithubPrReceipt>,
     pub proof_lanes: Vec<String>,
     pub notes: Vec<String>,
 }
@@ -101,24 +111,56 @@ pub fn run(args: RepairArgs) -> Result<()> {
         .with_context(|| format!("read repair plan {}", args.plan))?;
     let plan: RepairPlan = serde_json::from_str(&plan_text)
         .with_context(|| format!("parse repair plan {}", args.plan))?;
-    if args.dry_run && args.fixture_apply {
-        bail!("`--dry-run` cannot be combined with `--fixture-apply`");
+
+    // Validate mode exclusivity.
+    let selected_modes = [args.dry_run, args.fixture_apply, args.apply]
+        .iter()
+        .filter(|enabled| **enabled)
+        .count();
+    if selected_modes > 1 {
+        bail!("choose exactly one repair execution mode: `--dry-run`, `--fixture-apply`, or `--apply`");
     }
     if args.auto_pr && args.fixture_apply {
         bail!("`--auto-pr` cannot be combined with `--fixture-apply`");
     }
+    if args.git_commit && !args.apply {
+        bail!("`--git-commit` requires `--apply`");
+    }
+    if args.github_pr && !args.git_commit {
+        bail!("`--github-pr` requires `--git-commit`");
+    }
+    if args.github_pr && !args.auto_pr {
+        bail!("`--github-pr` requires `--auto-pr`");
+    }
     if !args.auto_pr && (args.pr_draft_out.is_some() || args.pr_draft_md.is_some()) {
         bail!("`--pr-draft-out` and `--pr-draft-md` require `--auto-pr`");
     }
-    if !args.dry_run && !args.fixture_apply {
+    if !args.dry_run && !args.fixture_apply && !args.apply {
         bail!(
-            "repair execution is dry-run only unless `--fixture-apply` is used with a fixture repo"
+            "repair execution is dry-run only unless `--fixture-apply` or gated `--apply` is used"
         );
     }
+
+    // Environment gates for real mutation.
+    if args.apply && !env_flag("JANKURAI_ALLOW_REPAIR_APPLY") {
+        bail!("real repair apply requires environment gate `JANKURAI_ALLOW_REPAIR_APPLY=1`");
+    }
+    if args.git_commit && !env_flag("JANKURAI_ALLOW_GIT_MUTATION") {
+        bail!("git mutation requires environment gate `JANKURAI_ALLOW_GIT_MUTATION=1`");
+    }
+    if args.github_pr && !env_flag("JANKURAI_ALLOW_GITHUB_PR") {
+        bail!("GitHub draft PR creation requires environment gate `JANKURAI_ALLOW_GITHUB_PR=1`");
+    }
+
+    // Dispatch to the appropriate execution mode.
     if args.fixture_apply {
         return crate::commands::repair_apply::run_fixture_apply(args, plan, max_risk);
     }
+    if args.apply {
+        return crate::commands::repair_real::run_real_apply(args, plan, max_risk);
+    }
 
+    // Dry-run path (unchanged logic).
     let mut risk_summary = RiskSummary::default();
     let mut blocked_packets = Vec::new();
     for packet in &plan.packets {
@@ -207,6 +249,8 @@ pub fn run(args: RepairArgs) -> Result<()> {
         files_written: Vec::new(),
         proof_evidence_index: None,
         auto_pr_draft,
+        git_mutation: None,
+        github_pr: None,
         proof_lanes,
         notes: vec![
             "repair execution is intentionally dry-run only in this workspace".to_string(),
@@ -215,14 +259,19 @@ pub fn run(args: RepairArgs) -> Result<()> {
                 .to_string(),
         ],
     };
+    write_repair_run(&args, &run)?;
+    Ok(())
+}
+
+pub(crate) fn write_repair_run(args: &RepairArgs, run: &RepairRun) -> Result<()> {
     if let Some(path) = args.out.as_deref() {
-        validation::write_json(&args.repo, ArtifactSchema::RepairRun, path, &run)?;
+        validation::write_json(&args.repo, ArtifactSchema::RepairRun, path, run)?;
     } else {
-        validation::validate_serializable(&args.repo, ArtifactSchema::RepairRun, &run)?;
-        println!("{}", serde_json::to_string_pretty(&run)?);
+        validation::validate_serializable(&args.repo, ArtifactSchema::RepairRun, run)?;
+        println!("{}", serde_json::to_string_pretty(run)?);
     }
     if let Some(path) = args.md.as_deref() {
-        crate::render::write_markdown(path, &render_markdown(&run))?;
+        crate::render::write_markdown(path, &render_markdown(run))?;
     }
     Ok(())
 }
@@ -260,6 +309,22 @@ fn render_markdown(run: &RepairRun) -> String {
         let _ = writeln!(out, "- auto-pr draft status: `{}`", draft.status);
         let _ = writeln!(out, "- auto-pr draft branch: `{}`", draft.branch_name);
         let _ = writeln!(out, "- auto-pr draft title: `{}`", draft.pr_title);
+    }
+    if let Some(git) = &run.git_mutation {
+        let _ = writeln!(out, "- git mutation status: `{}`", git.status);
+        let _ = writeln!(out, "- git base branch: `{}`", git.base_branch);
+        let _ = writeln!(out, "- git head branch: `{}`", git.head_branch);
+        if let Some(commit_sha) = &git.commit_sha {
+            let _ = writeln!(out, "- git commit sha: `{}`", commit_sha);
+        }
+        let _ = writeln!(out, "- git pushed: `{}`", git.pushed);
+        let _ = writeln!(out, "- rollback command: `{}`", git.rollback_command);
+    }
+    if let Some(pr) = &run.github_pr {
+        let _ = writeln!(out, "- github pr status: `{}`", pr.status);
+        if let Some(url) = &pr.url {
+            let _ = writeln!(out, "- github pr url: `{}`", url);
+        }
     }
     let _ = writeln!(out, "- proof lanes: `{}`", run.proof_lanes.join(", "));
     let _ = writeln!(out, "- notes: `{}`", run.notes.join(", "));
@@ -330,4 +395,12 @@ pub(crate) fn now_string() -> String {
         .unwrap_or_default()
         .as_secs()
         .to_string()
+}
+
+fn env_flag(name: &str) -> bool {
+    std::env::var(name)
+        .map(|value| {
+            value == "1" || value.eq_ignore_ascii_case("true") || value.eq_ignore_ascii_case("yes")
+        })
+        .unwrap_or(false)
 }

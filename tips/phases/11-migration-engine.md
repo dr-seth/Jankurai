@@ -1,8 +1,8 @@
 # Phase 11: Migration Engine
 
-Status: complete
+Status: hardened
 Owner: tools
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-04
 Parallel MCP candidate: yes
 
 ## Objective
@@ -233,15 +233,14 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: complete — real stack detection, liability scoring, schema-validated MigrationReport and MigrationPlan outputs, doctor integration, focused tests
+- Phase status: hardened — structured StackInventory with DetectedItem/ApiSurface/ContractEvidence types, 8-dimension LiabilityBreakdown scoring, fixture-backed multi-stack detection (Node, Python, Java, Ruby, Go, unknown), slice risk levels with dependency ordering, `--target` CLI flag, schema-validated MigrationReport and MigrationPlan outputs, doctor integration, 27 focused tests
 - Operational handoff log: [`tips/phases/logs/11-migration-engine.log`](logs/11-migration-engine.log)
-- Files changed (this slice): `crates/jankurai/src/commands/migrate.rs` (rewritten), `crates/jankurai/src/validation.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/commands/doctor.rs`, `docs/migration-engine.md`, `crates/jankurai/tests/migrate_smoke.rs`
-- Schemas changed: `MigrationReport` and `MigrationPlan` registered in `ArtifactSchema` enum
-- Public interfaces changed: `jankurai migrate --analyze` emits MigrationReport; `jankurai migrate` (default plan mode) emits MigrationPlan; `jankurai doctor` validates migration artifacts when present
+- Files changed (hardening slice): `crates/jankurai/src/commands/migrate.rs`, `crates/jankurai/src/main.rs`, `schemas/migration-report.schema.json`, `schemas/migration-plan.schema.json`, `crates/jankurai/tests/phase_11_migration_hardening.rs`, `crates/jankurai/tests/migrate_smoke.rs`, `tips/phases/00-phase-index.md`, `tips/phases/11-migration-engine.md`
+- Test fixtures added: `crates/jankurai/tests/fixtures/migration/{node-express,python-fastapi,java-spring,ruby-rails,go-api,unknown-stack}`
+- Schemas changed: `migration-report.schema.json` expanded with `inventory`, `liability_breakdown`, `contract_evidence`, `$defs/detectedItem`, `$defs/contractEvidence`; `migration-plan.schema.json` expanded with `risk_level`, `dependency_order`, `human_approval_required` on slices
+- Public interfaces changed: `jankurai migrate --target <stack>` flag added; `build_migration_report` and `build_migration_plan` now accept target parameter; `detect_stack` and `compute_liability` are now public
 - Generated artifacts: `target/jankurai/migration-report.json`, `target/jankurai/migration-plan.json`
-- Routing maps changed: none in this slice
 - Validation commands: `cargo test -p jankurai`, `just fast`
-- Results: all tests passed (5 new migrate_smoke tests); score=93 findings=0
-- Skipped validation: cutover execution remains bounded planner-only
-- Exceptions created: stack detection is heuristic file-existence only
+- Results: all tests passed (22 new hardening + 5 existing migrate_smoke); score=93
+- Exceptions created: stack detection remains heuristic file-existence only; contract extraction is detection-level not AST-level
 - Follow-up phases: 12 benchmark certification and governance, 13 autonomous repair and optimization

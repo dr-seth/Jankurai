@@ -20,7 +20,7 @@ struct FixtureMarker {
 }
 
 #[derive(Debug)]
-enum EditOutcome {
+pub(crate) enum EditOutcome {
     Applied(AppliedEdit),
     Skipped(SkippedEdit),
 }
@@ -145,6 +145,8 @@ pub fn run_fixture_apply(args: RepairArgs, plan: RepairPlan, max_risk: RepairRis
         files_written,
         proof_evidence_index,
         auto_pr_draft: None,
+        git_mutation: None,
+        github_pr: None,
         proof_lanes: proof_lanes(&plan),
         notes,
     };
@@ -166,7 +168,7 @@ pub fn run_fixture_apply(args: RepairArgs, plan: RepairPlan, max_risk: RepairRis
     Ok(())
 }
 
-fn apply_planned_edit(
+pub(crate) fn apply_planned_edit(
     repo: &Path,
     catalog: &RepoCatalog,
     packets: &HashMap<String, RepairPacket>,
@@ -421,7 +423,7 @@ fn read_fixture_marker(repo: &Path) -> Result<FixtureMarker> {
     Ok(marker)
 }
 
-fn packet_map(plan: &RepairPlan) -> HashMap<String, RepairPacket> {
+pub(crate) fn packet_map(plan: &RepairPlan) -> HashMap<String, RepairPacket> {
     let mut map = HashMap::new();
     for packet in &plan.packets {
         map.insert(packet.finding_fingerprint.clone(), packet.clone());

@@ -8,7 +8,11 @@ fn binary_path() -> &'static str {
     env!("CARGO_BIN_EXE_jankurai")
 }
 
-fn dry_run_plan_args(repo: std::path::PathBuf, profile: &str, plan_json: Option<String>) -> init::InitArgs {
+fn dry_run_plan_args(
+    repo: std::path::PathBuf,
+    profile: &str,
+    plan_json: Option<String>,
+) -> init::InitArgs {
     init::InitArgs {
         repo,
         apply: false,
@@ -317,7 +321,11 @@ fn init_greenfield_apply_b2b_saas_then_audit_and_doctor() {
 #[test]
 fn init_greenfield_apply_ai_product_then_audit_and_doctor() {
     let dir = tempdir().unwrap();
-    init::run(greenfield_apply_args(dir.path().to_path_buf(), "ai-product")).unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "ai-product",
+    ))
+    .unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("python/ai-service/README.md").exists());
@@ -427,8 +435,8 @@ fn init_greenfield_apply_migration_target_then_audit_and_doctor() {
 #[test]
 fn init_profile_file_loads_manifest_from_disk() {
     let dir = tempdir().unwrap();
-    let profile_path =
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates/profiles/rust-api.json");
+    let profile_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("templates/profiles/rust-api.json");
     let plan_path = dir.path().join("plan.json");
     init::run(init::InitArgs {
         repo: dir.path().to_path_buf(),
@@ -488,7 +496,7 @@ fn init_merges_existing_json() {
     let dir = tempdir().unwrap();
     let agent_dir = dir.path().join("agent");
     fs::create_dir_all(&agent_dir).unwrap();
-    
+
     // Seed an existing owner-map.json
     fs::write(
         agent_dir.join("owner-map.json"),
@@ -511,12 +519,17 @@ fn init_merges_existing_json() {
     let json_text = fs::read_to_string(agent_dir.join("owner-map.json")).unwrap();
     let value: serde_json::Value = serde_json::from_str(&json_text).unwrap();
     let owners = value["owners"].as_object().unwrap();
-    
-    let has_custom = owners.get("custom/").map_or(false, |v| v == "my-custom-agent");
+
+    let has_custom = owners
+        .get("custom/")
+        .map_or(false, |v| v == "my-custom-agent");
     let has_standard = owners.get("crates/").map_or(false, |v| v == "tools");
-    
+
     assert!(has_custom, "must retain existing custom owner");
-    assert!(has_standard, "must merge in standard crates owner from template");
+    assert!(
+        has_standard,
+        "must merge in standard crates owner from template"
+    );
 }
 
 #[test]
@@ -550,7 +563,7 @@ fn init_merges_existing_toml() {
     let dir = tempdir().unwrap();
     let agent_dir = dir.path().join("agent");
     fs::create_dir_all(&agent_dir).unwrap();
-    
+
     // Seed an existing proof-lanes.toml
     fs::write(
         agent_dir.join("proof-lanes.toml"),
@@ -574,10 +587,15 @@ command = "echo custom"
     let toml_text = fs::read_to_string(agent_dir.join("proof-lanes.toml")).unwrap();
     let value: toml::Value = toml::from_str(&toml_text).unwrap();
     let lanes = value["lane"].as_array().unwrap();
-    
-    let has_custom = lanes.iter().any(|l| l["name"].as_str() == Some("custom-lane"));
+
+    let has_custom = lanes
+        .iter()
+        .any(|l| l["name"].as_str() == Some("custom-lane"));
     let has_standard = lanes.iter().any(|l| l["name"].as_str() == Some("fast"));
-    
+
     assert!(has_custom, "must retain existing custom lane");
-    assert!(has_standard, "must merge in standard fast lane from template");
+    assert!(
+        has_standard,
+        "must merge in standard fast lane from template"
+    );
 }

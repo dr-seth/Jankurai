@@ -42,7 +42,10 @@
           "tests",
           "proof_lanes",
           "rollback_notes",
-          "status"
+          "status",
+          "risk_level",
+          "dependency_order",
+          "human_approval_required"
         ],
         "properties": {
           "slice_id": { "type": "string" },
@@ -51,6 +54,12 @@
             "type": "string",
             "enum": ["candidate", "ready", "blocked", "do-not-migrate-yet"]
           },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "dependency_order": { "type": "integer", "minimum": 0 },
+          "human_approval_required": { "type": "boolean" },
           "allowed_paths": {
             "type": "array",
             "items": { "type": "string" }

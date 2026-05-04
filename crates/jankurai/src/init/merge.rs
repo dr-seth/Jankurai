@@ -11,7 +11,7 @@ pub fn merge_json(existing: &str, template: &str) -> Result<String> {
         serde_json::from_str(existing).unwrap_or_else(|_| serde_json::json!({}))
     };
     let new: serde_json::Value = serde_json::from_str(template)?;
-    
+
     merge_json_values(&mut base, &new);
     Ok(serde_json::to_string_pretty(&base)?)
 }
@@ -46,7 +46,7 @@ pub fn merge_toml(existing: &str, template: &str) -> Result<String> {
         toml::from_str(existing).unwrap_or_else(|_| toml::Value::Table(toml::map::Map::new()))
     };
     let new: toml::Value = toml::from_str(template)?;
-    
+
     merge_toml_values(&mut base, &new);
     // toml::to_string_pretty handles serialization cleanly
     Ok(toml::to_string_pretty(&base)?)
@@ -80,7 +80,8 @@ pub fn merge_lines(existing: &str, template: &str) -> Result<String> {
     if !out.is_empty() && !out.ends_with('\n') {
         out.push('\n');
     }
-    let existing_lines: std::collections::HashSet<&str> = existing.lines().map(|s| s.trim()).collect();
+    let existing_lines: std::collections::HashSet<&str> =
+        existing.lines().map(|s| s.trim()).collect();
     for line in template.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() || existing_lines.contains(trimmed) {

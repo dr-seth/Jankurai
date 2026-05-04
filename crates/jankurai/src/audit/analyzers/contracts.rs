@@ -61,7 +61,10 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
     let orphaned = scan::contract_source_hits(ctx);
     if !orphaned.is_empty() {
         score -= 10;
-        evidence.push(format!("contract sources without generated zones: {}", orphaned.len()));
+        evidence.push(format!(
+            "contract sources without generated zones: {}",
+            orphaned.len()
+        ));
     } else if has_contract_surface(ctx) {
         score += 5;
         evidence.push("all contract sources have generated zone entries".into());

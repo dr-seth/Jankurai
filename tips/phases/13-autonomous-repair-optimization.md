@@ -1,13 +1,13 @@
 # Phase 13: Autonomous Repair And Optimization
 
-Status: complete
+Status: hardened
 Owner: agent
-Last reviewed: 2026-05-03
+Last reviewed: 2026-05-04
 Parallel MCP candidate: yes
 
 ## Objective
 
-Add constrained autonomous repair and optimization after the proof, context, registry, migration, and certification systems are mature. The current slice is deliberately narrower: risk-gated dry-run repair planning plus fixture-only bounded patch execution receipts.
+Add constrained autonomous repair and optimization after the proof, context, registry, migration, and certification systems are mature. The current slice hardens risk-gated dry-run repair planning, gated real-apply mutation, and draft PR receipts on top of fixture-only bounded patch execution.
 
 This is intentionally the last phase. Autonomous repair without strong proof and permission boundaries would recreate vibe coding under a new name.
 
@@ -22,7 +22,7 @@ Existing and planned prerequisites:
 - Phase 11 adds migration slices.
 - Phase 12 adds benchmark and certification evidence.
 
-The implemented repair surface is dry-run by default with an explicit fixture-only apply mode. Repair packets and repair plans now carry explicit eligibility, risk, planned edits, planned proof commands, rollback guidance, human approval requirements, and structured patch fields for fixture plans. Repair runs can evaluate whether an auto-PR request would be blocked or eligible, emit a draft-only PR evidence package, and fixture-marked repositories can execute bounded `append-text`, `replace-exact`, and `create-file` edits. The optimizer reports token, performance, dependency, and dead-code candidates without mutating the tree. The exception-expiry loop scans dated exception docs and reports expired, expiring-soon, current, and invalid entries. The command surface still does not write real projects, create branches, commit, open PRs, or auto-merge.
+The implemented repair surface is dry-run by default with explicit fixture-only and gated real-apply modes. Repair packets and repair plans carry explicit eligibility, risk, planned edits, planned proof commands, rollback guidance, human approval requirements, and structured patch fields. Repair runs evaluate whether an auto-PR request would be blocked or eligible, emit a draft-only PR evidence package, and can execute bounded `append-text`, `replace-exact`, and `create-file` edits. Real repository patch execution requires `--apply` plus `JANKURAI_ALLOW_REPAIR_APPLY=1`, and clean git worktree plus proof-after-mutation plus automatic rollback on failure. Git commit requires `--git-commit` plus `JANKURAI_ALLOW_GIT_MUTATION=1`. GitHub draft PR creation requires `--github-pr` plus `JANKURAI_ALLOW_GITHUB_PR=1`. The optimizer reports token, performance, dependency, and dead-code candidates without mutating the tree. Exception expiry scans dated numbered docs under `docs/exceptions/`, emits a machine-valid report (`complete` versus `blocked` for expired or invalid entries), and supports `--strict` so CI can exit non-zero when expired or invalid exceptions persist. Expiring-soon entries keep status `complete` (warning counts only). `just phase13` and the shipped GitHub audit workflow run `optimize` plus `exceptions expire --strict`. Auto-merge is intentionally never introduced.
 
 ## Dependencies
 
@@ -44,14 +44,24 @@ jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --out target
 jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --auto-pr --max-risk low
 jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --auto-pr --max-risk medium --pr-draft-out target/jankurai/repair-pr-draft.json --pr-draft-md target/jankurai/repair-pr-draft.md
 jankurai repair target/jankurai/p13-fixture-repo --plan target/jankurai/p13-fixture-repo/target/jankurai/repair-plan.json --fixture-apply --max-risk medium --out target/jankurai/p13-fixture-repair-run.json --md target/jankurai/p13-fixture-repair-run.md
+jankurai repair . --plan target/jankurai/repair-plan.json --apply --max-risk medium --out target/jankurai/repair-run.json --md target/jankurai/repair-run.md
+jankurai repair . --plan target/jankurai/repair-plan.json --apply --git-commit --auto-pr --github-pr --max-risk medium --out target/jankurai/repair-run.json --md target/jankurai/repair-run.md
 jankurai optimize . --mode all --out target/jankurai/optimization-report.json --md target/jankurai/optimization-report.md
 jankurai exceptions expire . --warning-days 7 --out target/jankurai/exception-expiry-report.json --md target/jankurai/exception-expiry-report.md
+jankurai exceptions expire . --warning-days 7 --strict --out target/jankurai/exception-expiry-report.json --md target/jankurai/exception-expiry-report.md
 ```
 
-Still deferred beyond this slice:
+Gated real-apply flow:
 
-- No real repository patch execution yet; bounded patch execution is fixture-only and requires `agent/repair-fixture.toml` with `fixture = true`.
-- No real auto-PR creation yet; draft-package evidence is emitted behind `--auto-pr`.
+- Real repository patch execution requires `--apply` plus `JANKURAI_ALLOW_REPAIR_APPLY=1`.
+- Git commit requires `--git-commit` plus `JANKURAI_ALLOW_GIT_MUTATION=1`.
+- GitHub draft PR creation requires `--github-pr` plus `JANKURAI_ALLOW_GITHUB_PR=1`.
+- Auto-PR remains draft-only; auto-merge is intentionally never introduced.
+
+Exception expiry:
+
+- Advisory by default (`status` reflects `blocked` when any exception is expired or invalid, but exit code stays zero unless `--strict`).
+- `--strict` exits non-zero when `status` is `blocked` (does not affect `complete` repos with only current or expiring-soon dated exceptions).
 
 ## Contract Slice
 
@@ -71,7 +81,7 @@ Still deferred beyond this slice:
 
 `repair-pr-draft.schema.json` records the draft-only PR evidence package with branch name, titles, planned paths, eligible and blocked packets, proof lanes, artifact links, residual risk, and mutation flags.
 
-The current implementation supports dry-run planning, dry-run auto-PR eligibility reporting, and fixture-only patch execution. It does not support real repository patch execution, branch creation, PR creation, or auto-merge.
+The current implementation supports dry-run planning, dry-run auto-PR eligibility reporting, fixture-only patch execution, gated real repository apply, gated git commit, gated GitHub draft PR creation, and proof-backed rollback on failure. It does not support auto-merge.
 
 ## Safety Principles
 
@@ -150,7 +160,7 @@ Acceptance:
 - Patch cannot escape allowed paths.
 - Failed proof stops repair and records evidence.
 
-Status: complete for the bounded fixture-only execution slice. Real repository patch execution remains deferred.
+Status: complete. Fixture-only execution is supported for sandboxed testing. Real repository patch execution is supported behind explicit CLI, environment, and proof gates.
 
 ### 4. Auto-PR Workflow
 
@@ -166,7 +176,7 @@ Acceptance:
 - Auto-PR draft packages are transparent and auditable.
 - Draft body includes exact proof lanes, artifact links, and residual risk.
 
-Status: complete for the draft-only evidence package slice. Real branch, commit, and GitHub PR creation remain deferred.
+Status: complete. Draft-only evidence packages are emitted for dry-run mode. Real branch, commit, push, and GitHub draft PR creation are supported behind `--apply --git-commit --github-pr` and corresponding environment gates.
 
 ### 5. Optimization Commands
 
@@ -208,10 +218,10 @@ Implementation tasks:
 
 Acceptance:
 
-- Expired exceptions cannot silently persist.
+- Expired or invalid exceptions cannot silently persist where CI enables `--strict`.
 - Repair options are explicit.
 
-Status: complete. The `exceptions expire` command scans numbered docs under `docs/exceptions/` and reports expired, expiring-soon, current, and invalid records.
+Status: complete. The `exceptions expire` command scans numbered docs under `docs/exceptions/` and reports expired, expiring-soon, current, and invalid records. Passing `--strict` fails the process when the report would be `blocked`.
 
 ## Parallel MCP Breakdown
 
@@ -251,10 +261,17 @@ jankurai repair . --plan target/jankurai/repair-plan.json --dry-run
 
 Patch execution must use fixture repos before touching real projects.
 
-Optimization and exception-expiry smoke:
+Phase 13 public lane (optimization + strict exception expiry, matches CI):
+
+```bash
+just phase13
+```
+
+Optimization, real-mutation, and exception-expiry smoke:
 
 ```bash
 cargo test -p jankurai --test phase_13_optimization_and_exceptions
+cargo test -p jankurai --test phase_13_real_mutation
 cargo test -p jankurai --test schema_contracts
 ```
 
@@ -276,18 +293,14 @@ Leave:
 - proof receipts
 - auto-PR template
 - known never-auto rules
-- residual risk that real repository patch execution and real auto-PR creation remain deferred
+- residual risk that live GitHub draft PR creation still depends on network access and `gh` authentication
 
 ## Phase Status Receipt
 
-- Phase status: complete autonomous repair and optimization slice
-- Files changed in this slice: `crates/jankurai/src/audit/rules.rs`, `crates/jankurai/src/commands/repair_plan.rs`, `crates/jankurai/src/commands/repair.rs`, `crates/jankurai/src/commands/optimize.rs`, `crates/jankurai/src/commands/exceptions.rs`, `crates/jankurai/src/validation.rs`, `docs/exceptions/README.md`, `schemas/repair-plan.schema.json`, `schemas/repair-packet.schema.json`, `schemas/repair-run.schema.json`, `schemas/optimization-report.schema.json`, `schemas/exception-expiry-report.schema.json`, focused repair/optimization/exceptions/schema tests, and this phase receipt.
-- Schemas changed: repair packet metadata, dry-run repair plan fields, repair-run receipts, optimization report, and exception-expiry report.
-- Public interfaces changed: `jankurai repair-plan` emits dry-run plans; `jankurai repair --dry-run` emits schema-valid repair-run JSON/Markdown; `--auto-pr` reports dry-run eligibility only; `jankurai optimize` emits advisory optimization reports; `jankurai exceptions expire` emits dated-exception expiry reports.
-- Generated artifacts: repair plan JSON/Markdown, repair-run JSON/Markdown, optimization report JSON/Markdown, exception-expiry report JSON/Markdown, and proof lane outputs under `target/jankurai/`.
-- Routing maps changed: none in this slice.
-- Deferred: bounded patch execution and real auto-PR creation remain future work.
-- Results: validation passed for the new optimization and exception-expiry surfaces plus the existing repair lanes.
-- Skipped validation: real branch/commit/PR mutation and non-fixture patch execution remain gated for later expansion.
-- Exceptions created: dry-run repair only; write paths remain disabled until proof and permission gates mature.
-- Follow-up phases: none beyond the next implementation wave.
+- Phase status: hardened autonomous repair and optimization.
+- Files changed in this slice: `crates/jankurai/src/commands/repair_apply.rs`, `crates/jankurai/tests/phase_13_real_mutation.rs`, `crates/jankurai/tests/schema_contracts.rs`, `docs/phases-feedback-status.md`, `tips/phases/00-phase-index.md`, `tips/phases/13-autonomous-repair-optimization.md`, `tips/phases/logs/13-autonomous-repair-optimization.log`.
+- Generated artifacts: `target/jankurai/p13-final-hardening-lane.json`, `target/jankurai/p13-final-hardening-lane.md`, `target/jankurai/p13-final-source-score.json`, `target/jankurai/p13-final-source-score.md`, `target/jankurai/p13-final-repair-plan.json`, `target/jankurai/p13-final-repair-plan.md`, `target/jankurai/p13-final-repair-run.json`, `target/jankurai/p13-final-repair-run.md`, `target/jankurai/p13-final-repair-pr-draft.json`, `target/jankurai/p13-final-repair-pr-draft.md`, `target/jankurai/fast-score.json`, `target/jankurai/fast-score.md`, `agent/repo-score.json`, `agent/repo-score.md`.
+- Validation: `cargo test -p jankurai`; `cargo test -p jankurai --test phase_13_real_mutation`; `cargo test -p jankurai --test schema_contracts`; `cargo test -p jankurai --test phase_13_patch_execution --test phase_13_auto_pr_draft --test phase_13_optimization_and_exceptions --test command_surface_smoke`; `just fast`; `just score`; `just security`; `cargo run -p jankurai -- versions`; `npm --workspace @jankurai/ux-qa run build`; `git diff --check`; `cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/repair_apply.rs --changed crates/jankurai/tests/phase_13_real_mutation.rs --changed crates/jankurai/tests/schema_contracts.rs --changed docs/phases-feedback-status.md --changed tips/phases/00-phase-index.md --changed tips/phases/13-autonomous-repair-optimization.md --changed tips/phases/logs/13-autonomous-repair-optimization.log --out target/jankurai/p13-final-hardening-lane.json --md target/jankurai/p13-final-hardening-lane.md`; `cargo run -p jankurai -- . --json target/jankurai/p13-final-source-score.json --md target/jankurai/p13-final-source-score.md`; `cargo run -p jankurai -- repair-plan . --from target/jankurai/p13-final-source-score.json --out target/jankurai/p13-final-repair-plan.json --md target/jankurai/p13-final-repair-plan.md`; `cargo run -p jankurai -- repair . --plan target/jankurai/p13-final-repair-plan.json --dry-run --auto-pr --max-risk medium --out target/jankurai/p13-final-repair-run.json --md target/jankurai/p13-final-repair-run.md --pr-draft-out target/jankurai/p13-final-repair-pr-draft.json --pr-draft-md target/jankurai/p13-final-repair-pr-draft.md`.
+- Residual risk: live GitHub draft PR creation depends on network access and `gh` authentication; auto-merge is intentionally never introduced.
+- Results: real-apply rollback, branch cleanup, GitHub PR failure receipts, and schema example coverage are now exercised by tests; the live gate surface remains explicit.
+- Follow-up phases: none; Phase 13 is hardened.

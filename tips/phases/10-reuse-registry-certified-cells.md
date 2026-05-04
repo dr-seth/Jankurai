@@ -1,6 +1,6 @@
 # Phase 10: Reuse Registry Certified Cells
 
-Status: complete
+Status: hardened
 Owner: standard
 Last reviewed: 2026-05-03
 Parallel MCP candidate: yes
@@ -21,6 +21,7 @@ Current certified cells:
 - `audit-log`
 - `crud-resource`
 - `rbac` (depends on `crud-resource`; sources and proof lanes tied to `examples/perfect-web-api-db/` authorization surface)
+- `auth-session` (depends on `audit-log` and `rbac`; sources and proof lanes tied to `examples/perfect-web-api-db/` identity/session boundary)
 
 The installer remains dry-run only and never overwrites user files. `cell
 --mode prove` emits certification evidence and proof commands, but does not
@@ -84,7 +85,7 @@ Build in this order:
 1. audit-log
 2. CRUD table/form
 3. RBAC — certified as registry cell `rbac` (depends on `crud-resource`)
-4. auth/session shell
+4. auth/session shell — certified as registry cell `auth-session` (depends on `audit-log` and `rbac`)
 5. organization/team shell
 6. background job
 7. webhook receiver
@@ -234,15 +235,17 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: complete; **three** certified cells (`audit-log`, `crud-resource`, `rbac`)
-- Files changed (rbac slice, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
+- Phase status: hardened; **four** certified cells (`audit-log`, `crud-resource`, `rbac`, `auth-session`)
+- Files changed (auth/session hardening, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/phase10_auth_session_cell_smoke.rs`, `examples/perfect-web-api-db/backend/src/auth_session.rs`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/contracts/auth-session.openapi.json`, `examples/perfect-web-api-db/db/migrations/002_auth_sessions.sql`, `examples/perfect-web-api-db/db/constraints/002_auth_sessions.sql`, `examples/perfect-web-api-db/docs/auth-session-cell.md`, `examples/perfect-web-api-db/ops/auth-session-security.md`, `examples/perfect-web-api-db/ux/auth-session-routes.md`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/00-phase-index.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
+  * Files changed (rbac slice, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Files changed (registry foundation): `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Schemas changed: cell manifest and cell registry
-- Public interfaces changed: `jankurai cell --mode <install-ready|prove>`
-- Generated artifacts: registry, cell dry-run, prove evidence, lane, fast score, and repo score JSON/Markdown outputs
+- Public interfaces changed: `jankurai cell --mode <install-ready|prove|upgrade-plan|deprecate-plan>`
+- Hardened additions: dependency-bound certification evidence, content-marker evidence for SessionTokenHash, lifecycle downgrade guard (certified → experimental when evidence missing), upgrade-plan and deprecate-plan metadata modes, Dependency Closure and Certification Decision sections in prove markdown
+- Generated artifacts: registry, cell dry-run, prove evidence, upgrade plan, deprecation plan, lane, fast score, and repo score JSON/Markdown outputs
 - Routing maps changed: none beyond existing owner/test inputs
-- Validation commands: `cargo test -p jankurai`; `cargo run -p jankurai -- lane . --changed crates/jankurai/src/commands/cell_catalog.rs --changed crates/jankurai/tests/command_surface_smoke.rs --out target/jankurai/p10-rbac-cell-lane.json --md target/jankurai/p10-rbac-cell-lane.md`; `just fast`
-- Results: rbac slice validation passed (119 tests); `just fast` score 93, caps 0, findings 0
-- Skipped validation: mutating install execution remains bounded for later extension
-- Exceptions created: provider-backed and mutating cells deferred
-- Follow-up phases: next registry cell **auth/session shell** (Initial Cell Order item 4); phases 11–13 as before
+- Validation commands: `cargo test -p jankurai`; `just fast`; `just score`
+- Results: auth/session hardening validation passed; `just fast` score 93, caps 0
+- Skipped validation: mutating install execution remains bounded for later extension; auth/session provider-backed runtime mutation remains deferred
+- Exceptions created: provider-backed and mutating cells deferred; auth/session is certified as a shell, not a provider-backed login implementation
+- Follow-up phases: next registry cell **organization/team shell** (Initial Cell Order item 5); phases 11–13 as before

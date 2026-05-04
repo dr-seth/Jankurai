@@ -174,7 +174,10 @@ mod bundled_profile_contract {
             })
             .collect();
         stems.sort();
-        let mut declared: Vec<String> = BUNDLED_PROFILE_IDS.iter().map(|s| (*s).to_string()).collect();
+        let mut declared: Vec<String> = BUNDLED_PROFILE_IDS
+            .iter()
+            .map(|s| (*s).to_string())
+            .collect();
         declared.sort();
         assert_eq!(
             stems, declared,

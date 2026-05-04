@@ -353,4 +353,44 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
         .unwrap();
     assert_eq!(rbac_prove["manifest"]["cell_id"], "rbac");
     assert_eq!(rbac_prove["manifest"]["certification_status"], "certified");
+
+    // Auth-session cell: fourth certified cell with dependency-bound evidence
+    let auth_session = cells
+        .iter()
+        .find(|cell| cell["cell_id"] == "auth-session")
+        .expect("auth-session cell");
+    assert_eq!(auth_session["certification_status"], "certified");
+    assert_eq!(auth_session["lifecycle"], "certified");
+    assert_eq!(auth_session["category"], "identity");
+    assert!(auth_session["dependencies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d == "audit-log"));
+    assert!(auth_session["dependencies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d == "rbac"));
+    assert!(auth_session["certification_evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|e| e["kind"] == "dependency" && e["path"] == "rbac" && e["status"] == "present"));
+
+    let (auth_session_prove, _auth_session_md) = run_command(
+        &repo,
+        &["cell", "--cell-id", "auth-session", "--mode", "prove"],
+    );
+    validation::validate_value(
+        &repo,
+        ArtifactSchema::CellManifest,
+        &auth_session_prove["manifest"],
+    )
+    .unwrap();
+    assert_eq!(auth_session_prove["manifest"]["cell_id"], "auth-session");
+    assert_eq!(
+        auth_session_prove["manifest"]["certification_status"],
+        "certified"
+    );
 }

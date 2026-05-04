@@ -65,28 +65,23 @@ fn repo_score_json_validates_and_matches_committed_standard_versions() {
 
     assert_eq!(report["standard"], "jankurai");
     assert_eq!(
-        report["standard_version"],
-        std_value["standard_version"],
+        report["standard_version"], std_value["standard_version"],
         "report standard_version should track agent/standard-version.toml"
     );
     assert_eq!(
-        report["paper_edition"],
-        std_value["paper_edition"],
+        report["paper_edition"], std_value["paper_edition"],
         "report paper_edition should track agent/standard-version.toml"
     );
     assert_eq!(
-        report["schema_version"],
-        std_value["schema_version"],
+        report["schema_version"], std_value["schema_version"],
         "report schema_version should track agent/standard-version.toml"
     );
     assert_eq!(
-        report["auditor_version"],
-        std_value["auditor_version"],
+        report["auditor_version"], std_value["auditor_version"],
         "report auditor_version should track agent/standard-version.toml"
     );
     assert_eq!(
-        report["target_stack_id"],
-        std_value["target_stack"],
+        report["target_stack_id"], std_value["target_stack"],
         "report target_stack_id should track agent/standard-version.toml target_stack"
     );
     assert_eq!(report["schema_url"], "schemas/repo-score.schema.json");
@@ -139,9 +134,11 @@ fn sidecar_report_exports_stay_semantically_parseable() {
 
     if let Some(findings) = report["findings"].as_array() {
         for (i, finding) in findings.iter().enumerate() {
-            validation::validate_value(&repo, ArtifactSchema::Finding, finding).unwrap_or_else(|e| {
-                panic!("repo-score finding[{i}] failed finding.schema.json: {e}");
-            });
+            validation::validate_value(&repo, ArtifactSchema::Finding, finding).unwrap_or_else(
+                |e| {
+                    panic!("repo-score finding[{i}] failed finding.schema.json: {e}");
+                },
+            );
         }
     }
 

@@ -11,12 +11,67 @@ pub struct MigrateArgs {
     pub out: Option<String>,
     pub md: Option<String>,
     pub mode: MigrateMode,
+    pub target: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum MigrateMode {
     Analyze,
     Plan,
+}
+
+// ---------------------------------------------------------------------------
+// Structured Inventory (Phase 11 hardening)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DetectedItem {
+    pub name: String,
+    pub evidence: String,
+    pub confidence: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ApiSurface {
+    pub framework: String,
+    pub evidence: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ContractEvidence {
+    pub kind: String,
+    pub path: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StackInventory {
+    pub languages: Vec<DetectedItem>,
+    pub frameworks: Vec<DetectedItem>,
+    pub db_clients: Vec<DetectedItem>,
+    pub test_frameworks: Vec<DetectedItem>,
+    pub package_managers: Vec<DetectedItem>,
+    pub ci_systems: Vec<DetectedItem>,
+    pub api_surfaces: Vec<ApiSurface>,
+    pub contract_evidence: Vec<ContractEvidence>,
+}
+
+// ---------------------------------------------------------------------------
+// Dimensional Liability (Phase 11 hardening)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiabilityBreakdown {
+    pub total: u32,
+    pub dimensions: Vec<LiabilityDimension>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LiabilityDimension {
+    pub name: String,
+    pub score: u32,
+    pub weight: f64,
+    pub evidence: Vec<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -33,6 +88,8 @@ pub struct MigrationReport {
     pub source_stack: String,
     pub target_stack: String,
     pub liability_score: u32,
+    pub liability_breakdown: LiabilityBreakdown,
+    pub inventory: StackInventory,
     pub module_inventory: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner_guesses: Option<Vec<String>>,
@@ -50,6 +107,7 @@ pub struct MigrationReport {
     pub missing_tests: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub strangler_candidates: Option<Vec<String>>,
+    pub contract_evidence: Vec<ContractEvidence>,
     pub recommended_slice_order: Vec<String>,
     pub required_proof_lanes: Vec<String>,
     pub rollback_cutover_notes: Vec<String>,
@@ -81,6 +139,9 @@ pub struct MigrationSlice {
     pub slice_id: String,
     pub owner: String,
     pub status: String,
+    pub risk_level: String,
+    pub dependency_order: u32,
+    pub human_approval_required: bool,
     pub allowed_paths: Vec<String>,
     pub forbidden_paths: Vec<String>,
     pub contracts: Vec<String>,
@@ -93,114 +154,98 @@ pub struct MigrationSlice {
     pub notes: Option<String>,
 }
 
-// ---------------------------------------------------------------------------
-// Stack Detection
-// ---------------------------------------------------------------------------
+pub fn detect_stack(repo: &Path) -> StackInventory {
+    let mut inv = StackInventory {
+        languages: vec![],
+        frameworks: vec![],
+        db_clients: vec![],
+        test_frameworks: vec![],
+        package_managers: vec![],
+        ci_systems: vec![],
+        api_surfaces: vec![],
+        contract_evidence: vec![],
+    };
 
-#[derive(Debug, Clone, Default)]
-struct StackDetection {
-    languages: Vec<String>,
-    frameworks: Vec<String>,
-    db_clients: Vec<String>,
-    test_frameworks: Vec<String>,
-    package_managers: Vec<String>,
-    ci_systems: Vec<String>,
-}
-
-impl StackDetection {
-    fn primary_language(&self) -> &str {
-        self.languages
-            .first()
-            .map(|s| s.as_str())
-            .unwrap_or("unknown")
-    }
-
-    fn summary(&self) -> String {
-        let mut parts = vec![];
-        if !self.languages.is_empty() {
-            parts.push(self.languages.join("+"));
-        }
-        if !self.frameworks.is_empty() {
-            parts.push(self.frameworks.join("+"));
-        }
-        if parts.is_empty() {
-            "unknown".to_string()
-        } else {
-            parts.join("/")
-        }
-    }
-
-    fn has_tests(&self) -> bool {
-        !self.test_frameworks.is_empty()
-    }
-
-    fn has_ci(&self) -> bool {
-        !self.ci_systems.is_empty()
-    }
-}
-
-fn detect_stack(repo: &Path) -> StackDetection {
-    let mut det = StackDetection::default();
-
-    // Language + package manager detection from manifest files
     if repo.join("Cargo.toml").exists() {
-        push_unique(&mut det.languages, "rust");
-        push_unique(&mut det.package_managers, "cargo");
-        push_unique(&mut det.test_frameworks, "cargo-test");
-
-        // Framework detection from Cargo.toml content
+        inv.languages.push(di("rust", "Cargo.toml", "high"));
+        inv.package_managers.push(di("cargo", "Cargo.toml", "high"));
+        inv.test_frameworks
+            .push(di("cargo-test", "Cargo.toml", "high"));
         if let Ok(text) = fs::read_to_string(repo.join("Cargo.toml")) {
             let lower = text.to_ascii_lowercase();
             for fw in ["actix", "axum", "rocket", "warp"] {
                 if lower.contains(fw) {
-                    push_unique(&mut det.frameworks, fw);
+                    inv.frameworks.push(di(fw, "Cargo.toml", "medium"));
+                    inv.api_surfaces.push(ApiSurface {
+                        framework: fw.to_string(),
+                        evidence: "Cargo.toml dependency".to_string(),
+                    });
+                }
+            }
+            for db in ["sqlx", "diesel", "sea-orm", "tokio-postgres"] {
+                if lower.contains(db) {
+                    inv.db_clients.push(di(db, "Cargo.toml", "medium"));
                 }
             }
         }
     }
 
     if repo.join("package.json").exists() {
-        push_unique(&mut det.languages, "typescript");
-        push_unique(&mut det.package_managers, "npm");
-
+        inv.languages
+            .push(di("typescript", "package.json", "medium"));
+        inv.package_managers.push(di("npm", "package.json", "high"));
         if let Ok(text) = fs::read_to_string(repo.join("package.json")) {
             let lower = text.to_ascii_lowercase();
             for fw in [
                 "express", "fastify", "next", "nuxt", "react", "vue", "angular", "svelte",
             ] {
                 if lower.contains(fw) {
-                    push_unique(&mut det.frameworks, fw);
+                    inv.frameworks.push(di(fw, "package.json", "medium"));
+                    if matches!(fw, "express" | "fastify" | "next" | "nuxt") {
+                        inv.api_surfaces.push(ApiSurface {
+                            framework: fw.to_string(),
+                            evidence: "package.json dependency".to_string(),
+                        });
+                    }
                 }
             }
             for tf in ["jest", "vitest", "mocha", "playwright", "cypress"] {
                 if lower.contains(tf) {
-                    push_unique(&mut det.test_frameworks, tf);
+                    inv.test_frameworks.push(di(tf, "package.json", "medium"));
                 }
             }
             for db in ["prisma", "knex", "typeorm", "sequelize", "drizzle"] {
                 if lower.contains(db) {
-                    push_unique(&mut det.db_clients, db);
+                    inv.db_clients.push(di(db, "package.json", "medium"));
                 }
             }
         }
     }
 
     if repo.join("requirements.txt").exists() || repo.join("pyproject.toml").exists() {
-        push_unique(&mut det.languages, "python");
-        push_unique(&mut det.package_managers, "pip");
-        push_unique(&mut det.test_frameworks, "pytest");
-
+        let evidence = if repo.join("requirements.txt").exists() {
+            "requirements.txt"
+        } else {
+            "pyproject.toml"
+        };
+        inv.languages.push(di("python", evidence, "high"));
+        inv.package_managers.push(di("pip", evidence, "high"));
+        inv.test_frameworks.push(di("pytest", evidence, "medium"));
         for manifest in ["requirements.txt", "pyproject.toml"] {
             if let Ok(text) = fs::read_to_string(repo.join(manifest)) {
                 let lower = text.to_ascii_lowercase();
                 for fw in ["fastapi", "django", "flask"] {
                     if lower.contains(fw) {
-                        push_unique(&mut det.frameworks, fw);
+                        inv.frameworks.push(di(fw, manifest, "medium"));
+                        inv.api_surfaces.push(ApiSurface {
+                            framework: fw.to_string(),
+                            evidence: format!("{manifest} dependency"),
+                        });
                     }
                 }
                 for db in ["psycopg", "sqlalchemy", "asyncpg"] {
                     if lower.contains(db) {
-                        push_unique(&mut det.db_clients, db);
+                        inv.db_clients.push(di(db, manifest, "medium"));
                     }
                 }
             }
@@ -208,82 +253,118 @@ fn detect_stack(repo: &Path) -> StackDetection {
     }
 
     if repo.join("pom.xml").exists() || repo.join("build.gradle").exists() {
-        push_unique(&mut det.languages, "java");
+        let evidence = if repo.join("pom.xml").exists() {
+            "pom.xml"
+        } else {
+            "build.gradle"
+        };
+        inv.languages.push(di("java", evidence, "high"));
         if repo.join("pom.xml").exists() {
-            push_unique(&mut det.package_managers, "maven");
+            inv.package_managers.push(di("maven", "pom.xml", "high"));
         }
         if repo.join("build.gradle").exists() {
-            push_unique(&mut det.package_managers, "gradle");
+            inv.package_managers
+                .push(di("gradle", "build.gradle", "high"));
         }
-        push_unique(&mut det.test_frameworks, "junit");
-
+        inv.test_frameworks.push(di("junit", evidence, "medium"));
         if let Ok(text) = fs::read_to_string(repo.join("pom.xml")) {
             if text.to_ascii_lowercase().contains("spring") {
-                push_unique(&mut det.frameworks, "spring");
+                inv.frameworks.push(di("spring", "pom.xml", "medium"));
+                inv.api_surfaces.push(ApiSurface {
+                    framework: "spring".to_string(),
+                    evidence: "pom.xml dependency".to_string(),
+                });
             }
         }
     }
 
     if repo.join("Gemfile").exists() {
-        push_unique(&mut det.languages, "ruby");
-        push_unique(&mut det.package_managers, "bundler");
-        push_unique(&mut det.test_frameworks, "rspec");
-        push_unique(&mut det.frameworks, "rails");
+        inv.languages.push(di("ruby", "Gemfile", "high"));
+        inv.package_managers.push(di("bundler", "Gemfile", "high"));
+        inv.test_frameworks.push(di("rspec", "Gemfile", "medium"));
+        inv.frameworks.push(di("rails", "Gemfile", "medium"));
+        inv.api_surfaces.push(ApiSurface {
+            framework: "rails".to_string(),
+            evidence: "Gemfile".to_string(),
+        });
     }
 
     if repo.join("composer.json").exists() {
-        push_unique(&mut det.languages, "php");
-        push_unique(&mut det.package_managers, "composer");
-
+        inv.languages.push(di("php", "composer.json", "high"));
+        inv.package_managers
+            .push(di("composer", "composer.json", "high"));
         if let Ok(text) = fs::read_to_string(repo.join("composer.json")) {
             if text.to_ascii_lowercase().contains("laravel") {
-                push_unique(&mut det.frameworks, "laravel");
+                inv.frameworks
+                    .push(di("laravel", "composer.json", "medium"));
+                inv.api_surfaces.push(ApiSurface {
+                    framework: "laravel".to_string(),
+                    evidence: "composer.json dependency".to_string(),
+                });
             }
         }
     }
 
     if repo.join("go.mod").exists() {
-        push_unique(&mut det.languages, "go");
-        push_unique(&mut det.package_managers, "go-modules");
-        push_unique(&mut det.test_frameworks, "go-test");
+        inv.languages.push(di("go", "go.mod", "high"));
+        inv.package_managers
+            .push(di("go-modules", "go.mod", "high"));
+        inv.test_frameworks.push(di("go-test", "go.mod", "high"));
     }
 
     // CI detection
     if repo.join(".github/workflows").exists() {
-        push_unique(&mut det.ci_systems, "github-actions");
+        inv.ci_systems
+            .push(di("github-actions", ".github/workflows/", "high"));
     }
     if repo.join(".gitlab-ci.yml").exists() {
-        push_unique(&mut det.ci_systems, "gitlab-ci");
+        inv.ci_systems
+            .push(di("gitlab-ci", ".gitlab-ci.yml", "high"));
     }
     if repo.join(".circleci").exists() {
-        push_unique(&mut det.ci_systems, "circleci");
+        inv.ci_systems.push(di("circleci", ".circleci/", "high"));
     }
 
-    // DB client detection from Rust source
-    if repo.join("Cargo.toml").exists() {
-        if let Ok(text) = fs::read_to_string(repo.join("Cargo.toml")) {
-            let lower = text.to_ascii_lowercase();
-            for db in ["sqlx", "diesel", "sea-orm", "tokio-postgres"] {
-                if lower.contains(db) {
-                    push_unique(&mut det.db_clients, db);
-                }
-            }
+    // Contract evidence detection
+    for (kind, glob_pattern) in [
+        ("openapi", "openapi.yaml"),
+        ("openapi", "openapi.json"),
+        ("openapi", "swagger.json"),
+        ("proto", "*.proto"),
+        ("graphql", "schema.graphql"),
+    ] {
+        if repo.join(glob_pattern).exists() {
+            inv.contract_evidence.push(ContractEvidence {
+                kind: kind.to_string(),
+                path: glob_pattern.to_string(),
+                status: "detected".to_string(),
+            });
         }
     }
-
-    // Lockfile check — influences liability
-    if !repo.join("Cargo.lock").exists()
-        && !repo.join("package-lock.json").exists()
-        && !repo.join("pnpm-lock.yaml").exists()
-        && !repo.join("yarn.lock").exists()
-        && !repo.join("Gemfile.lock").exists()
-        && !repo.join("composer.lock").exists()
-        && !repo.join("go.sum").exists()
-    {
-        // No lockfile — tracked by liability score, not stored in detection
+    if repo.join("contracts").exists() {
+        inv.contract_evidence.push(ContractEvidence {
+            kind: "directory".to_string(),
+            path: "contracts/".to_string(),
+            status: "detected".to_string(),
+        });
+    }
+    if repo.join("schemas").exists() {
+        inv.contract_evidence.push(ContractEvidence {
+            kind: "directory".to_string(),
+            path: "schemas/".to_string(),
+            status: "detected".to_string(),
+        });
     }
 
-    det
+    inv
+}
+
+fn di(name: &str, evidence: &str, confidence: &str) -> DetectedItem {
+    DetectedItem {
+        name: name.to_string(),
+        evidence: evidence.to_string(),
+        confidence: confidence.to_string(),
+    }
 }
 
 fn has_lockfile(repo: &Path) -> bool {
@@ -296,94 +377,201 @@ fn has_lockfile(repo: &Path) -> bool {
         || repo.join("go.sum").exists()
 }
 
-fn push_unique(vec: &mut Vec<String>, val: &str) {
-    if !vec.iter().any(|v| v == val) {
-        vec.push(val.to_string());
-    }
-}
-
 // ---------------------------------------------------------------------------
-// Liability Score
+// Dimensional Liability Score
 // ---------------------------------------------------------------------------
 
-fn compute_liability(repo: &Path, det: &StackDetection) -> u32 {
-    let mut score: i32 = 50;
+pub fn compute_liability(repo: &Path, inv: &StackInventory) -> LiabilityBreakdown {
+    let mut dims = vec![];
 
-    if !has_lockfile(repo) {
-        score += 10;
-    }
-    if !det.has_tests() {
-        score += 10;
-    }
-    if !det.has_ci() {
-        score += 5;
-    }
-    if det.db_clients.len() > 1 {
-        score += 5;
-    }
-    if det.primary_language() == "rust" {
-        score -= 10;
-    }
-    if det.has_tests() {
-        score -= 5;
-    }
-    if det.languages.len() > 2 {
-        score += 5; // polyglot complexity
-    }
+    // 1. agent-operability
+    let has_agents = repo.join("AGENTS.md").exists() || repo.join("agent").exists();
+    let ao_score = if has_agents { 20 } else { 60 };
+    dims.push(LiabilityDimension {
+        name: "agent-operability".to_string(),
+        score: ao_score,
+        weight: 0.10,
+        evidence: if has_agents {
+            vec!["agent configuration detected".into()]
+        } else {
+            vec!["no agent configuration".into()]
+        },
+    });
 
-    score.clamp(0, 100) as u32
+    // 2. contract-drift
+    let has_contracts = !inv.contract_evidence.is_empty();
+    let cd_score = if has_contracts { 25 } else { 65 };
+    dims.push(LiabilityDimension {
+        name: "contract-drift".to_string(),
+        score: cd_score,
+        weight: 0.12,
+        evidence: if has_contracts {
+            vec![format!(
+                "{} contract artifacts detected",
+                inv.contract_evidence.len()
+            )]
+        } else {
+            vec!["no contract artifacts detected".into()]
+        },
+    });
+
+    // 3. product-truth-sprawl
+    let multi_lang = inv.languages.len() > 2;
+    let pts_score = if multi_lang {
+        70
+    } else if inv.languages.len() > 1 {
+        45
+    } else {
+        25
+    };
+    dims.push(LiabilityDimension {
+        name: "product-truth-sprawl".to_string(),
+        score: pts_score,
+        weight: 0.12,
+        evidence: vec![format!("{} languages detected", inv.languages.len())],
+    });
+
+    // 4. security-risk
+    let no_lock = !has_lockfile(repo);
+    let sr_score = if no_lock { 70 } else { 30 };
+    dims.push(LiabilityDimension {
+        name: "security-risk".to_string(),
+        score: sr_score,
+        weight: 0.15,
+        evidence: if no_lock {
+            vec!["no lockfile detected".into()]
+        } else {
+            vec!["lockfile present".into()]
+        },
+    });
+
+    // 5. db-data-risk
+    let db_count = inv.db_clients.len();
+    let ddr_score = if db_count > 1 {
+        65
+    } else if db_count == 1 {
+        35
+    } else {
+        15
+    };
+    dims.push(LiabilityDimension {
+        name: "db-data-risk".to_string(),
+        score: ddr_score,
+        weight: 0.13,
+        evidence: vec![format!("{} DB client(s) detected", db_count)],
+    });
+
+    // 6. test-proof-gaps
+    let has_tests = !inv.test_frameworks.is_empty();
+    let has_ci = !inv.ci_systems.is_empty();
+    let tpg_score = match (has_tests, has_ci) {
+        (true, true) => 15,
+        (true, false) => 40,
+        (false, true) => 50,
+        (false, false) => 80,
+    };
+    dims.push(LiabilityDimension {
+        name: "test-proof-gaps".to_string(),
+        score: tpg_score,
+        weight: 0.15,
+        evidence: vec![format!("tests={has_tests}, ci={has_ci}")],
+    });
+
+    // 7. runtime-cost-risk
+    let is_rust = inv.languages.iter().any(|l| l.name == "rust");
+    let rcr_score = if is_rust {
+        15
+    } else if inv.languages.iter().any(|l| l.name == "go") {
+        25
+    } else {
+        50
+    };
+    dims.push(LiabilityDimension {
+        name: "runtime-cost-risk".to_string(),
+        score: rcr_score,
+        weight: 0.10,
+        evidence: vec![format!(
+            "primary language: {}",
+            inv.languages
+                .first()
+                .map(|l| l.name.as_str())
+                .unwrap_or("unknown")
+        )],
+    });
+
+    // 8. migration-complexity
+    let fw_count = inv.frameworks.len();
+    let mc_score = if fw_count > 2 {
+        70
+    } else if fw_count > 0 {
+        40
+    } else {
+        55
+    };
+    dims.push(LiabilityDimension {
+        name: "migration-complexity".to_string(),
+        score: mc_score,
+        weight: 0.13,
+        evidence: vec![format!("{} framework(s) detected", fw_count)],
+    });
+
+    let total: f64 = dims.iter().map(|d| d.score as f64 * d.weight).sum();
+    LiabilityBreakdown {
+        total: total.round().clamp(0.0, 100.0) as u32,
+        dimensions: dims,
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Report Builder
 // ---------------------------------------------------------------------------
 
-pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
-    let det = detect_stack(repo);
-    let liability = compute_liability(repo, &det);
+pub fn build_migration_report(repo: &Path, target: &str) -> Result<MigrationReport> {
+    let inv = detect_stack(repo);
+    let liability = compute_liability(repo, &inv);
 
     let mut module_inventory = vec![];
-    for lang in &det.languages {
-        module_inventory.push(format!("language:{lang}"));
+    for item in &inv.languages {
+        module_inventory.push(format!("language:{}", item.name));
     }
-    for fw in &det.frameworks {
-        module_inventory.push(format!("framework:{fw}"));
+    for item in &inv.frameworks {
+        module_inventory.push(format!("framework:{}", item.name));
     }
-    for pm in &det.package_managers {
-        module_inventory.push(format!("package-manager:{pm}"));
+    for item in &inv.package_managers {
+        module_inventory.push(format!("package-manager:{}", item.name));
     }
 
-    let db_surfaces = if det.db_clients.is_empty() {
+    let db_surfaces = if inv.db_clients.is_empty() {
         None
     } else {
         Some(
-            det.db_clients
+            inv.db_clients
                 .iter()
-                .map(|c| format!("db-client:{c}"))
+                .map(|c| format!("db-client:{}", c.name))
                 .collect(),
         )
     };
 
-    let api_surfaces = if det.frameworks.is_empty() {
+    let api_surfaces = if inv.api_surfaces.is_empty() {
         None
     } else {
         Some(
-            det.frameworks
+            inv.api_surfaces
                 .iter()
-                .map(|f| format!("api-framework:{f}"))
+                .map(|a| format!("api-framework:{}", a.framework))
                 .collect(),
         )
     };
 
-    let strangler_candidates = if det.db_clients.is_empty() && det.frameworks.is_empty() {
+    let strangler_candidates = if inv.db_clients.is_empty() && inv.api_surfaces.is_empty() {
         None
     } else {
         let mut candidates = vec![];
-        for db in &det.db_clients {
-            candidates.push(format!("isolate-db-layer:{db}"));
+        for db in &inv.db_clients {
+            candidates.push(format!("isolate-db-layer:{}", db.name));
         }
-        for fw in &det.frameworks {
-            candidates.push(format!("isolate-api-surface:{fw}"));
+        for api in &inv.api_surfaces {
+            candidates.push(format!("isolate-api-surface:{}", api.framework));
         }
         Some(candidates)
     };
@@ -392,7 +580,7 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
         "inventory-and-classify".to_string(),
         "extract-contracts".to_string(),
     ];
-    if !det.db_clients.is_empty() {
+    if !inv.db_clients.is_empty() {
         recommended_slice_order.push("isolate-db-adapter-layer".to_string());
     }
     recommended_slice_order.push("port-business-logic".to_string());
@@ -401,7 +589,7 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
 
     let required_proof_lanes = vec!["fast".to_string(), "contract".to_string()];
 
-    let missing_tests = if !det.has_tests() {
+    let missing_tests = if inv.test_frameworks.is_empty() {
         Some(vec![
             "no test framework detected — migration risk is elevated".to_string(),
         ])
@@ -409,12 +597,29 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
         None
     };
 
-    let high_risk_areas = if !det.has_ci() {
+    let high_risk_areas = if inv.ci_systems.is_empty() {
         Some(vec![
             "no CI system detected — migration cannot be verified automatically".to_string(),
         ])
     } else {
         None
+    };
+
+    let source_stack = {
+        let langs: Vec<&str> = inv.languages.iter().map(|l| l.name.as_str()).collect();
+        let fws: Vec<&str> = inv.frameworks.iter().map(|f| f.name.as_str()).collect();
+        let mut parts = vec![];
+        if !langs.is_empty() {
+            parts.push(langs.join("+"));
+        }
+        if !fws.is_empty() {
+            parts.push(fws.join("+"));
+        }
+        if parts.is_empty() {
+            "unknown".to_string()
+        } else {
+            parts.join("/")
+        }
     };
 
     Ok(MigrationReport {
@@ -423,9 +628,11 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
         status: "complete".to_string(),
         generated_at: now_string(),
         source_root: repo.display().to_string(),
-        source_stack: det.summary(),
-        target_stack: "rust-ts-postgres".to_string(),
-        liability_score: liability,
+        source_stack,
+        target_stack: target.to_string(),
+        liability_score: liability.total,
+        liability_breakdown: liability,
+        inventory: inv.clone(),
         module_inventory,
         owner_guesses: None,
         external_boundaries: None,
@@ -435,6 +642,7 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
         high_risk_areas,
         missing_tests,
         strangler_candidates,
+        contract_evidence: inv.contract_evidence,
         recommended_slice_order,
         required_proof_lanes,
         rollback_cutover_notes: vec![
@@ -448,18 +656,27 @@ pub fn build_migration_report(repo: &Path) -> Result<MigrationReport> {
 // Plan Builder
 // ---------------------------------------------------------------------------
 
-pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
-    let report = build_migration_report(repo)?;
+pub fn build_migration_plan(repo: &Path, target: &str) -> Result<MigrationPlan> {
+    let report = build_migration_report(repo, target)?;
 
     let mut slices = vec![];
+    let mut order: u32 = 1;
 
     // Generate one slice per DB surface
     if let Some(ref db_surfaces) = report.db_surfaces {
         for (i, db) in db_surfaces.iter().enumerate() {
+            let risk = if report.liability_score > 60 {
+                "high"
+            } else {
+                "medium"
+            };
             slices.push(MigrationSlice {
                 slice_id: format!("db-isolation-{}", i + 1),
                 owner: "tools".to_string(),
                 status: "candidate".to_string(),
+                risk_level: risk.to_string(),
+                dependency_order: order,
+                human_approval_required: risk == "high",
                 allowed_paths: vec![format!("crates/adapters/db/{}", db.replace("db-client:", ""))],
                 forbidden_paths: vec!["crates/domain/".to_string()],
                 contracts: vec!["adapter boundary interface".to_string()],
@@ -469,6 +686,7 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
                 cutover_notes: None,
                 notes: Some(format!("isolate {db} behind adapter boundary")),
             });
+            order += 1;
         }
     }
 
@@ -479,6 +697,9 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
                 slice_id: format!("api-contract-{}", i + 1),
                 owner: "tools".to_string(),
                 status: "candidate".to_string(),
+                risk_level: "medium".to_string(),
+                dependency_order: order,
+                human_approval_required: false,
                 allowed_paths: vec!["contracts/".to_string()],
                 forbidden_paths: vec![],
                 contracts: vec!["OpenAPI or JSON Schema contract".to_string()],
@@ -490,6 +711,7 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
                 cutover_notes: None,
                 notes: Some(format!("extract contract for {api}")),
             });
+            order += 1;
         }
     }
 
@@ -502,6 +724,9 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
         } else {
             "candidate".to_string()
         },
+        risk_level: "high".to_string(),
+        dependency_order: order,
+        human_approval_required: true,
         allowed_paths: vec!["tests/equivalence/".to_string()],
         forbidden_paths: vec![],
         contracts: vec!["golden input/output equivalence".to_string()],
@@ -526,7 +751,7 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
         command: "jankurai migrate".to_string(),
         status: "complete".to_string(),
         generated_at: now_string(),
-        source_report: format!("target/jankurai/migration-report.json"),
+        source_report: "target/jankurai/migration-report.json".to_string(),
         target_stack: report.target_stack.clone(),
         plan_mode: "dry-run".to_string(),
         slices,
@@ -552,13 +777,23 @@ pub fn build_migration_plan(repo: &Path) -> Result<MigrationPlan> {
 
 pub fn run(args: MigrateArgs) -> Result<()> {
     match args.mode {
-        MigrateMode::Analyze => run_analyze(&args.repo, args.out.as_deref(), args.md.as_deref()),
-        MigrateMode::Plan => run_plan(&args.repo, args.out.as_deref(), args.md.as_deref()),
+        MigrateMode::Analyze => run_analyze(
+            &args.repo,
+            args.out.as_deref(),
+            args.md.as_deref(),
+            &args.target,
+        ),
+        MigrateMode::Plan => run_plan(
+            &args.repo,
+            args.out.as_deref(),
+            args.md.as_deref(),
+            &args.target,
+        ),
     }
 }
 
-fn run_analyze(repo: &Path, out: Option<&str>, md: Option<&str>) -> Result<()> {
-    let report = build_migration_report(repo)?;
+fn run_analyze(repo: &Path, out: Option<&str>, md: Option<&str>, target: &str) -> Result<()> {
+    let report = build_migration_report(repo, target)?;
     if let Some(path) = out {
         validation::write_json(repo, ArtifactSchema::MigrationReport, path, &report)?;
     } else {
@@ -570,8 +805,8 @@ fn run_analyze(repo: &Path, out: Option<&str>, md: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-fn run_plan(repo: &Path, out: Option<&str>, md: Option<&str>) -> Result<()> {
-    let plan = build_migration_plan(repo)?;
+fn run_plan(repo: &Path, out: Option<&str>, md: Option<&str>, target: &str) -> Result<()> {
+    let plan = build_migration_plan(repo, target)?;
     if let Some(path) = out {
         validation::write_json(repo, ArtifactSchema::MigrationPlan, path, &plan)?;
     } else {

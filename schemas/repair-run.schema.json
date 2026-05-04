@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://jankurai.dev/schemas/repair-run.schema.json",
   "title": "jankurai repair run",
-  "description": "Dry-run or fixture-apply repair execution receipt emitted by jankurai repair.",
+  "description": "Dry-run, fixture-apply, or real-apply repair execution receipt emitted by jankurai repair.",
   "type": "object",
   "required": [
     "schema_version",
@@ -30,11 +30,17 @@
     "plan": { "type": "string" },
     "generated_at": { "type": "string" },
     "status": { "enum": ["complete", "blocked", "failed"] },
-    "execution_mode": { "enum": ["dry-run", "fixture-apply"] },
+    "execution_mode": { "enum": ["dry-run", "fixture-apply", "real-apply"] },
     "dry_run": { "type": "boolean" },
     "auto_pr_requested": { "type": "boolean" },
     "auto_pr_status": {
-      "enum": ["not-requested", "eligible-dry-run-only", "blocked"]
+      "enum": [
+        "not-requested",
+        "eligible-dry-run-only",
+        "blocked",
+        "prepared",
+        "created"
+      ]
     },
     "max_risk": { "enum": ["low", "medium", "high", "critical"] },
     "planned_packets": { "type": "integer" },
@@ -133,6 +139,50 @@
         "artifact_links": { "type": "array", "items": { "type": "string" } },
         "git_mutation_allowed": { "type": "boolean" },
         "github_mutation_allowed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "git_mutation": {
+      "type": "object",
+      "required": [
+        "status",
+        "base_branch",
+        "head_branch",
+        "base_sha",
+        "head_sha",
+        "commit_title",
+        "files_committed",
+        "rollback_command",
+        "remote",
+        "pushed"
+      ],
+      "properties": {
+        "status": { "enum": ["committed", "rolled-back", "failed"] },
+        "base_branch": { "type": "string" },
+        "head_branch": { "type": "string" },
+        "base_sha": { "type": "string" },
+        "head_sha": { "type": "string" },
+        "commit_sha": { "type": "string" },
+        "commit_title": { "type": "string" },
+        "files_committed": { "type": "array", "items": { "type": "string" } },
+        "rollback_command": { "type": "string" },
+        "remote": { "type": "string" },
+        "pushed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "github_pr": {
+      "type": "object",
+      "required": ["status", "draft", "remote", "base_branch", "head_branch", "command"],
+      "properties": {
+        "status": { "enum": ["created", "failed"] },
+        "draft": { "type": "boolean" },
+        "url": { "type": "string" },
+        "remote": { "type": "string" },
+        "base_branch": { "type": "string" },
+        "head_branch": { "type": "string" },
+        "command": { "type": "array", "items": { "type": "string" } },
+        "error": { "type": "string" }
       },
       "additionalProperties": false
     },

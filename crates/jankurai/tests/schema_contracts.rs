@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use jankurai::validation::ArtifactSchema;
+use jankurai::validation::{self, ArtifactSchema};
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -324,13 +324,21 @@ fn cell_registry_and_manifest_schemas_parse() {
     );
     assert_eq!(
         repair_run["properties"]["execution_mode"]["enum"],
-        serde_json::json!(["dry-run", "fixture-apply"])
+        serde_json::json!(["dry-run", "fixture-apply", "real-apply"])
     );
     assert_eq!(
         repair_run["properties"]["auto_pr_status"]["enum"],
-        serde_json::json!(["not-requested", "eligible-dry-run-only", "blocked"])
+        serde_json::json!([
+            "not-requested",
+            "eligible-dry-run-only",
+            "blocked",
+            "prepared",
+            "created"
+        ])
     );
     assert!(repair_run["properties"].get("auto_pr_draft").is_some());
+    assert!(repair_run["properties"].get("git_mutation").is_some());
+    assert!(repair_run["properties"].get("github_pr").is_some());
     let auto_pr_draft_props = repair_run["properties"]["auto_pr_draft"]["properties"]
         .as_object()
         .unwrap();
@@ -346,6 +354,36 @@ fn cell_registry_and_manifest_schemas_parse() {
         "github_mutation_allowed",
     ] {
         assert!(auto_pr_draft_props.contains_key(key));
+    }
+    let git_mutation_props = repair_run["properties"]["git_mutation"]["properties"]
+        .as_object()
+        .unwrap();
+    for key in [
+        "status",
+        "base_branch",
+        "head_branch",
+        "base_sha",
+        "head_sha",
+        "commit_title",
+        "files_committed",
+        "rollback_command",
+        "remote",
+        "pushed",
+    ] {
+        assert!(git_mutation_props.contains_key(key));
+    }
+    let github_pr_props = repair_run["properties"]["github_pr"]["properties"]
+        .as_object()
+        .unwrap();
+    for key in [
+        "status",
+        "draft",
+        "remote",
+        "base_branch",
+        "head_branch",
+        "command",
+    ] {
+        assert!(github_pr_props.contains_key(key));
     }
     assert!(repair_run["properties"]
         .get("proof_evidence_index")
@@ -630,11 +668,110 @@ fn repair_run_schema_requires_execution_mode() {
 }
 
 #[test]
+fn repair_run_examples_validate_across_execution_modes() {
+    let repo = repo_root();
+
+    let base_run = || {
+        serde_json::json!({
+            "schema_version": "1.0.0",
+            "repo": ".",
+            "plan": "plan.json",
+            "generated_at": "0",
+            "status": "complete",
+            "execution_mode": "dry-run",
+            "dry_run": true,
+            "auto_pr_requested": false,
+            "auto_pr_status": "not-requested",
+            "max_risk": "medium",
+            "planned_packets": 1,
+            "risk_summary": {"low": 1, "medium": 0, "high": 0, "critical": 0},
+            "blocked_packets": [],
+            "applied_edits": [],
+            "skipped_edits": [],
+            "files_written": [],
+            "proof_lanes": ["audit"],
+            "notes": ["fixture receipt"]
+        })
+    };
+
+    let dry_run = base_run();
+    validation::validate_value(&repo, ArtifactSchema::RepairRun, &dry_run).unwrap();
+
+    let mut fixture_apply = base_run();
+    fixture_apply["execution_mode"] = serde_json::json!("fixture-apply");
+    fixture_apply["dry_run"] = serde_json::json!(false);
+    fixture_apply["proof_evidence_index"] =
+        serde_json::json!("target/jankurai/p13-fixture-evidence-index.json");
+    fixture_apply["applied_edits"] = serde_json::json!([{
+        "finding_fingerprint": "sha256:fixture",
+        "path": "docs/notes.md",
+        "apply_strategy": "append-text",
+        "before_sha256": "sha256:before",
+        "after_sha256": "sha256:after",
+        "status": "applied"
+    }]);
+    fixture_apply["files_written"] = serde_json::json!(["docs/notes.md"]);
+    validation::validate_value(&repo, ArtifactSchema::RepairRun, &fixture_apply).unwrap();
+
+    let mut real_apply = base_run();
+    real_apply["execution_mode"] = serde_json::json!("real-apply");
+    real_apply["dry_run"] = serde_json::json!(false);
+    real_apply["proof_evidence_index"] =
+        serde_json::json!("target/jankurai/p13-real-evidence-index.json");
+    real_apply["applied_edits"] = serde_json::json!([{
+        "finding_fingerprint": "sha256:real",
+        "path": "docs/notes.md",
+        "apply_strategy": "append-text",
+        "before_sha256": "sha256:before",
+        "after_sha256": "sha256:after",
+        "status": "applied"
+    }]);
+    real_apply["files_written"] = serde_json::json!(["docs/notes.md"]);
+    validation::validate_value(&repo, ArtifactSchema::RepairRun, &real_apply).unwrap();
+
+    let mut real_apply_git = real_apply.clone();
+    real_apply_git["git_mutation"] = serde_json::json!({
+        "status": "committed",
+        "base_branch": "main",
+        "head_branch": "jankurai/repair/abc123",
+        "base_sha": "abc123",
+        "head_sha": "def456",
+        "commit_sha": "def456",
+        "commit_title": "Repair docs",
+        "files_committed": ["docs/notes.md"],
+        "rollback_command": "git -C . reset --hard abc123",
+        "remote": "origin",
+        "pushed": true
+    });
+    validation::validate_value(&repo, ArtifactSchema::RepairRun, &real_apply_git).unwrap();
+
+    let mut real_apply_github = real_apply_git.clone();
+    real_apply_github["auto_pr_requested"] = serde_json::json!(true);
+    real_apply_github["auto_pr_status"] = serde_json::json!("created");
+    real_apply_github["github_pr"] = serde_json::json!({
+        "status": "created",
+        "draft": true,
+        "url": "https://example.test/pr/42",
+        "remote": "origin",
+        "base_branch": "main",
+        "head_branch": "jankurai/repair/abc123",
+        "command": ["gh", "pr", "create", "--draft"]
+    });
+    validation::validate_value(&repo, ArtifactSchema::RepairRun, &real_apply_github).unwrap();
+}
+
+#[test]
 fn agent_control_plane_schemas_parse_and_repo_fixtures_validate() {
     let repo = repo_root();
     for (path, load) in [
-        ("schemas/owner-map.schema.json", "https://jankurai.dev/schemas/owner-map.schema.json"),
-        ("schemas/test-map.schema.json", "https://jankurai.dev/schemas/test-map.schema.json"),
+        (
+            "schemas/owner-map.schema.json",
+            "https://jankurai.dev/schemas/owner-map.schema.json",
+        ),
+        (
+            "schemas/test-map.schema.json",
+            "https://jankurai.dev/schemas/test-map.schema.json",
+        ),
         (
             "schemas/generated-zones.schema.json",
             "https://jankurai.dev/schemas/generated-zones.schema.json",
@@ -660,7 +797,8 @@ fn agent_control_plane_schemas_parse_and_repo_fixtures_validate() {
             "https://jankurai.dev/schemas/repair-queue.schema.json",
         ),
     ] {
-        let v: serde_json::Value = serde_json::from_str(&fs::read_to_string(repo.join(path)).unwrap()).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(repo.join(path)).unwrap()).unwrap();
         assert_eq!(v["$id"], load);
     }
 
