@@ -12,14 +12,28 @@ agents -> score -> ci -> full -> ratchet
 
 Start with agent/provider hooks, add local scoring when ready, run CI in observe mode before enforcing anything, install the full scaffold only when the repository wants the whole control plane, and ratchet only after accepting a baseline.
 
-## Install
+## Quick Start
 
-While public packaging is being prepared, install from this source checkout:
+Prerequisites: `git` and a Rust toolchain with `cargo` on `PATH`.
 
 ```bash
+git clone https://github.com/jeppsontaylor/Jankurai.git
+cd Jankurai
 cargo install --path crates/jankurai --locked
 jankurai --version
 ```
+
+Run the smallest install against a repository. This example uses a throwaway local repo so you can see the generated plan before writing anything important:
+
+```bash
+DEMO_REPO="$(mktemp -d)"
+cd "$DEMO_REPO"
+jankurai init . --level agents --dry-run --plan-json target/jankurai/init-agents.json
+jankurai init . --level agents --yes
+jankurai adapters verify .
+```
+
+For an existing project, run the same `jankurai init ...` commands from that project's root.
 
 ## Minimal Agent Install
 
