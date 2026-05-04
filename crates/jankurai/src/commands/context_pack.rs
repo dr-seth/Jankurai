@@ -1,4 +1,4 @@
-use crate::commands::context_data::{push_unique, RepoCatalog};
+use crate::commands::context_data::{push_unique, GeneratedZone, RepoCatalog};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::Result;
 use serde::Serialize;
@@ -28,10 +28,27 @@ pub struct ContextPack {
     pub proof_lanes: Vec<String>,
     pub commands: Vec<String>,
     pub likely_rules: Vec<String>,
+    pub scope_decisions: Vec<ContextScopeDecision>,
+    pub human_approval_required: bool,
+    pub human_approval_reasons: Vec<String>,
     pub max_context_files: usize,
     pub stop_conditions: Vec<String>,
     pub residual_risk: Vec<String>,
     pub token_budget: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ContextScopeDecision {
+    pub path: String,
+    pub owner: String,
+    pub owner_route: String,
+    pub test_command: String,
+    pub proof_lane: String,
+    pub generated_zone: bool,
+    pub generated_source: String,
+    pub generated_command: String,
+    pub decision: String,
+    pub reason: String,
 }
 
 pub fn run(args: ContextPackArgs) -> Result<()> {
@@ -102,14 +119,26 @@ pub fn build_context_pack(repo: &Path, task: &str, changed: &[PathBuf]) -> Resul
         }
     }
     let likely_rules = build_likely_rules(&task_lc, &permission_profile, &owner, &allowed_paths);
-    let stop_conditions =
-        build_stop_conditions(&permission_profile, &allowed_paths, &generated_zones);
+    let scope_paths = if changed_paths.is_empty() {
+        allowed_paths.clone()
+    } else {
+        changed_paths.clone()
+    };
+    let scope_decisions = build_scope_decisions(&catalog, &scope_paths);
+    let human_approval_reasons = build_human_approval_reasons(&scope_decisions);
+    let human_approval_required = !human_approval_reasons.is_empty();
+    let stop_conditions = build_stop_conditions(
+        &permission_profile,
+        &allowed_paths,
+        &generated_zones,
+        &scope_decisions,
+    );
     let residual_risk = vec![
         "heuristic routing can miss a cross-owner edit".to_string(),
         "confirm the source contract before editing generated output".to_string(),
     ];
     Ok(ContextPack {
-        schema_version: "1.0.0".to_string(),
+        schema_version: "1.1.0".to_string(),
         task: task.to_string(),
         owner,
         permission_profile,
@@ -122,6 +151,9 @@ pub fn build_context_pack(repo: &Path, task: &str, changed: &[PathBuf]) -> Resul
         proof_lanes,
         commands,
         likely_rules,
+        scope_decisions,
+        human_approval_required,
+        human_approval_reasons,
         max_context_files: 12,
         stop_conditions,
         residual_risk,
@@ -162,6 +194,16 @@ fn render_markdown(pack: &ContextPack) -> String {
         "- likely rules: `{}`",
         join_or_none(&pack.likely_rules)
     );
+    let _ = writeln!(
+        out,
+        "- human approval required: `{}`",
+        pack.human_approval_required
+    );
+    let _ = writeln!(
+        out,
+        "- human approval reasons: `{}`",
+        join_or_none(&pack.human_approval_reasons)
+    );
     let _ = writeln!(out, "- max context files: `{}`", pack.max_context_files);
     let _ = writeln!(out, "- stop: `{}`", join_or_none(&pack.stop_conditions));
     let _ = writeln!(
@@ -170,6 +212,27 @@ fn render_markdown(pack: &ContextPack) -> String {
         join_or_none(&pack.residual_risk)
     );
     let _ = writeln!(out, "- token budget: `{}`", pack.token_budget);
+    let _ = writeln!(out);
+    let _ = writeln!(out, "## Scope decisions");
+    if pack.scope_decisions.is_empty() {
+        let _ = writeln!(out, "- none");
+    } else {
+        for decision in &pack.scope_decisions {
+            let _ = writeln!(
+                out,
+                "- `{}`: `{}` owner=`{}` owner_route=`{}` proof_lane=`{}` generated=`{}` source=`{}` command=`{}` reason=`{}`",
+                decision.path,
+                decision.decision,
+                decision.owner,
+                decision.owner_route,
+                decision.proof_lane,
+                decision.generated_zone,
+                decision.generated_source,
+                decision.generated_command,
+                decision.reason
+            );
+        }
+    }
     out
 }
 
@@ -383,6 +446,7 @@ fn build_stop_conditions(
     permission_profile: &str,
     allowed_paths: &[String],
     generated_zones: &[String],
+    scope_decisions: &[ContextScopeDecision],
 ) -> Vec<String> {
     let mut out = vec![
         "stop if the requested edit would touch `reference/`".to_string(),
@@ -408,7 +472,148 @@ fn build_stop_conditions(
             "stop if any edit lands in a generated zone instead of the declared source",
         );
     }
+    if scope_decisions
+        .iter()
+        .any(|decision| decision.owner == "unmapped")
+    {
+        push_unique(
+            &mut out,
+            "stop if any changed path lacks owner-map coverage",
+        );
+    }
+    if scope_decisions
+        .iter()
+        .any(|decision| decision.test_command == "unmapped")
+    {
+        push_unique(
+            &mut out,
+            "stop if any changed path lacks test-map/proof-lane coverage",
+        );
+    }
+    if scope_decisions
+        .iter()
+        .any(|decision| decision.generated_zone)
+    {
+        push_unique(
+            &mut out,
+            "stop if the requested edit targets generated output instead of its declared source",
+        );
+    }
     out
+}
+
+fn build_scope_decisions(
+    catalog: &RepoCatalog,
+    candidate_paths: &[String],
+) -> Vec<ContextScopeDecision> {
+    let mut unique_paths = Vec::new();
+    for path in candidate_paths {
+        push_unique(&mut unique_paths, path.clone());
+    }
+
+    unique_paths
+        .into_iter()
+        .map(|path| {
+            let owner = catalog
+                .owner_for_path(&path)
+                .unwrap_or("unmapped")
+                .to_string();
+            let owner_route = catalog
+                .owner_prefix_for_path(&path)
+                .unwrap_or_else(|| "unmapped".to_string());
+            let test_command = catalog
+                .test_route_for_path(&path)
+                .map(|(_, spec)| spec.command)
+                .unwrap_or_else(|| "unmapped".to_string());
+            let proof_lane = if test_command == "unmapped" {
+                "unmapped".to_string()
+            } else {
+                catalog
+                    .proof_lane_for_command(&test_command)
+                    .unwrap_or_else(|| "test-map".to_string())
+            };
+            let generated_match = generated_zone_for_path(&path, &catalog.generated_zones);
+            let generated_zone = generated_match.is_some();
+            let generated_source = generated_match
+                .map(|zone| non_empty_or_none(&zone.source))
+                .unwrap_or_else(|| "none".to_string());
+            let generated_command = generated_match
+                .map(|zone| non_empty_or_none(&zone.command))
+                .unwrap_or_else(|| "none".to_string());
+            let (decision, reason) = if generated_zone {
+                (
+                    "read-only",
+                    "path is declared generated output; edit the source contract and rerun its command",
+                )
+            } else if owner == "unmapped" {
+                (
+                    "human-review",
+                    "path lacks owner-map coverage; add ownership before editing",
+                )
+            } else if test_command == "unmapped" {
+                (
+                    "human-review",
+                    "path lacks test-map proof routing; add proof before editing",
+                )
+            } else {
+                (
+                    "allowed",
+                    "owner and proof route are mapped for the requested scope",
+                )
+            };
+
+            ContextScopeDecision {
+                path,
+                owner,
+                owner_route,
+                test_command,
+                proof_lane,
+                generated_zone,
+                generated_source,
+                generated_command,
+                decision: decision.to_string(),
+                reason: reason.to_string(),
+            }
+        })
+        .collect()
+}
+
+fn build_human_approval_reasons(decisions: &[ContextScopeDecision]) -> Vec<String> {
+    let mut out = Vec::new();
+    for decision in decisions {
+        if decision.decision != "allowed" {
+            push_unique(&mut out, format!("{}: {}", decision.path, decision.reason));
+        }
+    }
+    out
+}
+
+fn generated_zone_for_path<'a>(
+    path: &str,
+    generated_zones: &'a [GeneratedZone],
+) -> Option<&'a GeneratedZone> {
+    let path = path.trim().trim_matches('/');
+    if path.is_empty() {
+        return None;
+    }
+    generated_zones.iter().find(|zone| {
+        let zone_path = zone.path.trim().trim_matches('/');
+        if zone_path.is_empty() {
+            return false;
+        }
+        path == zone_path
+            || path.starts_with(&format!("{zone_path}/"))
+            || zone_path.starts_with(&format!("{path}/"))
+    })
+}
+
+fn non_empty_or_none(value: &str) -> String {
+    let value = value.trim();
+    if value.is_empty() {
+        "none".to_string()
+    } else {
+        value.to_string()
+    }
 }
 
 fn fallback_commands(permission_profile: &str) -> Vec<String> {

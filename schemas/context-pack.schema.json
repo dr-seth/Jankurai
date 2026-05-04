@@ -17,6 +17,9 @@
     "proof_lanes",
     "commands",
     "likely_rules",
+    "scope_decisions",
+    "human_approval_required",
+    "human_approval_reasons",
     "max_context_files",
     "stop_conditions",
     "residual_risk",
@@ -36,6 +39,41 @@
     "proof_lanes": { "type": "array", "items": { "type": "string" } },
     "commands": { "type": "array", "items": { "type": "string" } },
     "likely_rules": { "type": "array", "items": { "type": "string" } },
+    "scope_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "owner",
+          "owner_route",
+          "test_command",
+          "proof_lane",
+          "generated_zone",
+          "generated_source",
+          "generated_command",
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "path": { "type": "string" },
+          "owner": { "type": "string" },
+          "owner_route": { "type": "string" },
+          "test_command": { "type": "string" },
+          "proof_lane": { "type": "string" },
+          "generated_zone": { "type": "boolean" },
+          "generated_source": { "type": "string" },
+          "generated_command": { "type": "string" },
+          "decision": {
+            "type": "string",
+            "enum": ["allowed", "read-only", "human-review"]
+          },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "human_approval_required": { "type": "boolean" },
+    "human_approval_reasons": { "type": "array", "items": { "type": "string" } },
     "max_context_files": { "type": "integer", "minimum": 1 },
     "stop_conditions": { "type": "array", "items": { "type": "string" } },
     "residual_risk": { "type": "array", "items": { "type": "string" } },

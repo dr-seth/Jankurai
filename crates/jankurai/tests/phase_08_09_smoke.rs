@@ -56,6 +56,7 @@ fn context_pack_command_writes_pack_and_markdown() {
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&json_out).unwrap()).unwrap();
     validation::validate_value(dir.path(), ArtifactSchema::ContextPack, &value).unwrap();
+    assert_eq!(value["schema_version"], "1.1.0");
     assert_eq!(value["owner"], "agent");
     assert_eq!(value["permission_profile"], "code-edit");
     assert!(value["allowed_paths"]
@@ -78,9 +79,64 @@ fn context_pack_command_writes_pack_and_markdown() {
         .unwrap()
         .iter()
         .any(|item| item == "just fast"));
-    assert!(fs::read_to_string(md_out)
+    assert_eq!(value["human_approval_required"], false);
+    let decisions = value["scope_decisions"].as_array().unwrap();
+    let agent_decision = decisions
+        .iter()
+        .find(|decision| decision["path"] == "agent/JANKURAI_STANDARD.md")
+        .expect("scope decision for changed agent file");
+    assert_eq!(agent_decision["decision"], "allowed");
+    assert_eq!(agent_decision["owner"], "agent");
+    assert_eq!(agent_decision["owner_route"], "agent/");
+    assert_eq!(agent_decision["proof_lane"], "test-map");
+    assert!(!agent_decision["generated_zone"].as_bool().unwrap());
+    let markdown = fs::read_to_string(md_out).unwrap();
+    assert!(markdown.contains("# jankurai Context Pack"));
+    assert!(markdown.contains("## Scope decisions"));
+}
+
+#[test]
+fn context_pack_flags_generated_changed_paths_for_human_review() {
+    let dir = tempdir().unwrap();
+    seed_catalog(dir.path());
+
+    let out = dir.path().join("target/jankurai/context-pack.json");
+    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("context-pack")
+        .arg(dir.path())
+        .arg("--task")
+        .arg("update generated repo score evidence")
+        .arg("--changed")
+        .arg("agent/repo-score.json")
+        .arg("--out")
+        .arg(&out)
+        .status()
         .unwrap()
-        .contains("# jankurai Context Pack"));
+        .success());
+
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    validation::validate_value(dir.path(), ArtifactSchema::ContextPack, &value).unwrap();
+    assert_eq!(value["human_approval_required"], true);
+    assert!(value["human_approval_reasons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap().contains("generated output")));
+    let decision = &value["scope_decisions"][0];
+    assert_eq!(decision["path"], "agent/repo-score.json");
+    assert_eq!(decision["decision"], "read-only");
+    assert!(decision["generated_zone"].as_bool().unwrap());
+    assert_eq!(decision["generated_source"], "crates/jankurai");
+    assert_eq!(
+        decision["generated_command"],
+        "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
+    );
+    assert!(value["stop_conditions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap().contains("generated output")));
 }
 
 #[test]
