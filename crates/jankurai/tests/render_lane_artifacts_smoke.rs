@@ -90,11 +90,20 @@ fn minimal_security_envelope() -> serde_json::Value {
         "exit_code": 0,
         "elapsed_ms": 9,
         "log_path": "target/jankurai/security/run.log",
+        "policy": {
+            "schema_version": "1.0.0",
+            "enabled_tools": ["gitleaks"],
+            "required_tools": ["gitleaks"],
+            "advisory_tools": [],
+            "fail_lane_on": "high"
+        },
         "commands": [{
             "label": "lane",
             "shell_command": "bash tools/security-lane.sh",
             "status": "ran",
-            "advisory": false
+            "advisory": false,
+            "required_by_policy": true,
+            "blocking": false
         }]
     })
 }

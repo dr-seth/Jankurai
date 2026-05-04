@@ -7,6 +7,7 @@ pub mod fix_queue;
 pub mod fs;
 pub mod helpers;
 pub mod policy;
+pub mod rule_analyzer;
 pub mod rules;
 pub mod scan;
 pub mod security_artifact;
@@ -271,6 +272,17 @@ fn missing_sha256() -> String {
     "sha256:0000000000000000000000000000000000000000000000000000000000000000".into()
 }
 
+fn sha256_string(value: &str) -> String {
+    format!("sha256:{:x}", Sha256::digest(value.as_bytes()))
+}
+
+fn display_rel(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
+}
+
 fn manifest_fingerprints(root: &Path) -> ManifestFingerprints {
     ManifestFingerprints {
         owner_map: file_fingerprint(&root.join("agent/owner-map.json")),
@@ -345,17 +357,17 @@ fn build_findings(
         b.add("high", "proof", ".", "no deterministic fast lane was detected", "add a fast lane that runs the narrowest deterministic proof loop and keep it canonical", vec!["no fast lane markers found".into()], Some("HLT-004-UNMAPPED-PROOF"), None);
     }
     if caps_applied.contains(&"no-security-lane-on-high-risk-repo".into()) {
-        b.add("high", "security", ".github/workflows", "high-risk repo has no explicit security lane", "add a dedicated security lane with secret scanning, dependency review, and workflow linting", vec!["no security lane markers found".into()], Some("HLT-009-GENERATED-SECURITY"), None);
+        b.add_with_rule("HLT-009-GENERATED-SECURITY", ".github/workflows", "high-risk repo has no explicit security lane", "add a dedicated security lane with secret scanning, dependency review, and workflow linting", vec!["no security lane markers found".into()], None, None, None);
     }
     if caps_applied.contains(&"generated-contracts-or-public-api-drift-untested".into()) {
-        b.add(
-            "high",
-            "boundary",
+        b.add_with_rule(
+            "HLT-007-HANDWRITTEN-CONTRACT",
             "contracts/",
             "generated contracts or public API drift are not being checked",
             "generate boundary clients and gate drift with public-API or semver checks",
             vec!["contract surface exists".into()],
-            Some("HLT-007-HANDWRITTEN-CONTRACT"),
+            None,
+            None,
             None,
         );
     }
@@ -372,14 +384,14 @@ fn build_findings(
         );
     }
     if caps_applied.contains(&"no-secret-or-dependency-scanning-in-ci".into()) {
-        b.add(
-            "high",
-            "security",
+        b.add_with_rule(
+            "HLT-016-SUPPLY-CHAIN-DRIFT",
             ".github/workflows",
             "no secret or dependency scanning was found in CI",
             "add secret scanning, dependency review, and SBOM or provenance checks to CI",
             vec!["no CI scan markers found".into()],
-            Some("HLT-010-SECRET-SPRAWL"),
+            None,
+            None,
             None,
         );
     }
@@ -470,7 +482,7 @@ fn build_findings(
     }
     if !scan::generated_zone_issues(ctx).is_empty() {
         let hit = scan::generated_zone_issues(ctx)[0].clone();
-        b.add("high", "generated", &hit.path, "generated zone is not protected strongly enough against hand edits", "add `agent/generated-zones.toml`, require generated/do-not-edit markers, and route repairs to the source contract", vec![hit.problem.clone()], Some("HLT-002-GENERATED-MUTATION"), hit.line);
+        b.add_with_rule("HLT-002-GENERATED-MUTATION", &hit.path, "generated zone is not protected strongly enough against hand edits", "add `agent/generated-zones.toml`, require generated/do-not-edit markers, and route repairs to the source contract", vec![hit.problem.clone()], hit.line, None, None);
     }
     for hit in scan::generated_zone_manifest_metadata_issues(ctx) {
         b.add(
@@ -486,7 +498,7 @@ fn build_findings(
     }
     if !scan::wrong_layer_db_hits(ctx).is_empty() {
         let hit = scan::wrong_layer_db_hits(ctx)[0].clone();
-        b.add("high", "data", &hit.path, "direct database access appears in a wrong layer", "move SQL and DB clients to `crates/adapters` or `db/`; expose typed application/domain APIs upward", vec![hit.problem.clone()], Some("HLT-006-DIRECT-DB-WRONG-LAYER"), hit.line);
+        b.add_with_rule("HLT-006-DIRECT-DB-WRONG-LAYER", &hit.path, "direct database access appears in a wrong layer", "move SQL and DB clients to `crates/adapters` or `db/`; expose typed application/domain APIs upward", vec![hit.problem.clone()], hit.line, None, None);
     }
 
     // AST / Graph Pilot findings
@@ -597,45 +609,45 @@ fn build_findings(
     }
     if !scan::agency_hits(ctx).is_empty() {
         let hit = scan::agency_hits(ctx)[0].clone();
-        b.add("high","security",&hit.path,"agent/tool permissions appear broader than the requested proof lane","replace broad terminal/browser/network/filesystem permissions with least-privilege lane profiles and explicit approval gates", vec![hit.problem], Some("HLT-012-OVERBROAD-AGENCY"), hit.line);
+        b.add_with_rule("HLT-012-OVERBROAD-AGENCY", &hit.path, "agent/tool permissions appear broader than the requested proof lane", "replace broad terminal/browser/network/filesystem permissions with least-privilege lane profiles and explicit approval gates", vec![hit.problem], hit.line, None, None);
     }
     if !scan::secret_hits(ctx).is_empty() {
         let hit = scan::secret_hits(ctx)[0].clone();
-        b.add("critical","security",&hit.path,"secret-like value or credential material appears in repository text","remove and rotate the credential, add local and CI secret scanning, and scan transcripts/artifacts/MCP config for related exposure", vec![hit.problem], Some("HLT-010-SECRET-SPRAWL"), hit.line);
+        b.add_with_rule("HLT-010-SECRET-SPRAWL", &hit.path, "secret-like value or credential material appears in repository text", "remove and rotate the credential, add local and CI secret scanning, and scan transcripts/artifacts/MCP config for related exposure", vec![hit.problem], hit.line, None, None);
     }
     if !scan::false_green_hits(ctx).is_empty() {
         let hit = scan::false_green_hits(ctx)[0].clone();
-        b.add("high","test",&hit.path,"test code contains disabled, focused, tautological, or snapshot-only proof","replace false-green tests with behavior assertions, red/green evidence, and mutation or fault checks for changed behavior", vec![hit.problem], Some("HLT-008-FALSE-GREEN-RISK"), hit.line);
+        b.add_with_rule("HLT-008-FALSE-GREEN-RISK", &hit.path, "test code contains disabled, focused, tautological, or snapshot-only proof", "replace false-green tests with behavior assertions, red/green evidence, and mutation or fault checks for changed behavior", vec![hit.problem], hit.line, None, None);
     }
     if !scan::ci_hardening_hits(ctx).is_empty() {
         let hit = scan::ci_hardening_hits(ctx)[0].clone();
-        b.add(
-            "high",
-            "security",
+        b.add_with_rule(
+            "HLT-020-CI-HARDENING-GAP",
             &hit.path,
             &hit.problem,
             &hit.agent_fix,
-            vec![hit.text],
-            Some("HLT-020-CI-HARDENING-GAP"),
+            vec!["CI hardening gap detected".into()],
             hit.line,
+            None,
+            None,
         );
     }
     if !destructive_sql_hits.is_empty() {
         let hit = destructive_sql_hits[0].clone();
         let fix = hit.agent_fix.as_str();
-        b.add(
-            "high",
-            "data",
+        b.add_with_rule(
+            "HLT-021-DESTRUCTIVE-MIGRATION",
             &hit.path,
             "destructive migration lacks documented safety evidence",
             fix,
-            vec![hit.problem],
-            Some("HLT-021-DESTRUCTIVE-MIGRATION"),
+            vec![hit.problem.clone()],
             hit.line,
+            None,
+            None,
         );
     }
     if caps_applied.contains(&"missing-rust-property-or-integration-tests".into()) {
-        b.add("high","test","crates/","Rust surface lacks required property and/or integration tests","add `proptest` or equivalent invariant tests plus `tests/` integration coverage routed through `cargo nextest` or `cargo test`", vec!["Rust surface detected".into()], Some("HLT-008-FALSE-GREEN-RISK"), None);
+        b.add_with_rule("HLT-008-FALSE-GREEN-RISK", "crates/", "Rust surface lacks required property and/or integration tests", "add `proptest` or equivalent invariant tests plus `tests/` integration coverage routed through `cargo nextest` or `cargo test`", vec!["Rust surface detected".into()], None, None, None);
     }
     if caps_applied.contains(&"no-agent-friendly-exception-pattern".into()) {
         let exception = helpers::audit_repair_exception();
@@ -661,15 +673,15 @@ fn build_findings(
     }
     if !scan::streaming_runtime_hits(ctx).is_empty() {
         let hit = scan::streaming_runtime_hits(ctx)[0].clone();
-        b.add(
-            "high",
-            "boundary",
+        b.add_with_rule(
+            "HLT-019-STREAMING-RUNTIME-DRIFT",
             &hit.path,
             "queue or streaming runtime client appears outside the declared adapter boundary",
             "move Kafka/Tansu/Iggy/Fluvio/NATS/Redis-stream clients behind `crates/adapters/queues` or document a brownfield exception with owner, expiry, and migration path",
-            vec![hit.problem],
-            Some("HLT-019-STREAMING-RUNTIME-DRIFT"),
+            vec![hit.problem.clone()],
             hit.line,
+            None,
+            None,
         );
     }
     // Phase 07 H1: contract source detection
@@ -687,15 +699,15 @@ fn build_findings(
     }
     // Phase 07 H2: generated zone existence + header
     for hit in scan::generated_zone_existence_hits(ctx) {
-        b.add(
-            "high",
-            "generated",
+        b.add_with_rule(
+            "HLT-002-GENERATED-MUTATION",
             &hit.path,
             &hit.problem,
             &hit.agent_fix,
-            vec![hit.text],
-            Some("HLT-002-GENERATED-MUTATION"),
+            vec!["generated zone integrity violation".into()],
             hit.line,
+            None,
+            None,
         );
     }
     // Phase 07 H4: event contract path validation
@@ -854,6 +866,338 @@ fn load_proof_receipts(root: &Path, path: Option<&str>) -> Result<Vec<ProofRecei
         receipts.push(receipt);
     }
     Ok(receipts)
+}
+
+pub fn release_proof_findings(
+    root: &Path,
+    proof_receipts: Option<&str>,
+    proof_evidence: Option<&str>,
+) -> Result<Vec<Finding>> {
+    if let Some(path) = proof_evidence {
+        return release_proof_evidence_findings(root, path);
+    }
+    if let Some(path) = proof_receipts {
+        if load_proof_receipts(root, Some(path))?.is_empty() {
+            return Ok(vec![release_proof_finding(
+                "release mode requires proof evidence or proof receipts for the audited scope",
+                vec!["no proof receipts were supplied".into()],
+                "HLT-004-UNMAPPED-PROOF",
+                "proof-receipts",
+                "run `jankurai prove` and feed its evidence into `jankurai audit --proof-evidence`",
+                "receipt",
+                "proof receipts",
+                "release mode cannot be verified without proof evidence",
+            )]);
+        }
+        return Ok(vec![]);
+    }
+    Ok(vec![release_proof_finding(
+        "release mode requires proof evidence for the audited scope",
+        vec!["no proof evidence was supplied".into()],
+        "HLT-004-UNMAPPED-PROOF",
+        "proof-evidence",
+        "run `jankurai prove` and feed its evidence index into `jankurai audit --proof-evidence`",
+        "receipt",
+        "proof evidence",
+        "release mode cannot be verified without proof evidence",
+    )])
+}
+
+fn release_proof_evidence_findings(root: &Path, path: &str) -> Result<Vec<Finding>> {
+    let evidence_path = root.join(path);
+    if !evidence_path.is_file() {
+        return Ok(vec![release_proof_finding(
+            "release mode requires proof evidence for the audited scope",
+            vec![format!("missing proof evidence `{}`", display_rel(root, &evidence_path))],
+            "HLT-004-UNMAPPED-PROOF",
+            &display_rel(root, &evidence_path),
+            "run `jankurai prove` and feed its evidence index into `jankurai audit --proof-evidence`",
+            "receipt",
+            "proof evidence",
+            "release mode cannot be verified without proof evidence",
+        )]);
+    }
+
+    let text = std::fs::read_to_string(&evidence_path)?;
+    let value: serde_json::Value = serde_json::from_str(&text)?;
+    crate::validation::validate_value(
+        root,
+        crate::validation::ArtifactSchema::EvidenceIndex,
+        &value,
+    )?;
+
+    let mut issues = Vec::new();
+    let current_manifest = manifest_fingerprints(root);
+    let evidence_manifest = value
+        .get("manifest_fingerprints")
+        .and_then(serde_json::Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    compare_manifest_fingerprint(
+        &mut issues,
+        "owner_map",
+        current_manifest.owner_map.as_deref(),
+        evidence_manifest
+            .get("owner_map")
+            .and_then(serde_json::Value::as_str),
+    );
+    compare_manifest_fingerprint(
+        &mut issues,
+        "test_map",
+        current_manifest.test_map.as_deref(),
+        evidence_manifest
+            .get("test_map")
+            .and_then(serde_json::Value::as_str),
+    );
+    compare_manifest_fingerprint(
+        &mut issues,
+        "generated_zones",
+        current_manifest.generated_zones.as_deref(),
+        evidence_manifest
+            .get("generated_zones")
+            .and_then(serde_json::Value::as_str),
+    );
+    compare_manifest_fingerprint(
+        &mut issues,
+        "boundaries",
+        current_manifest.boundaries.as_deref(),
+        evidence_manifest
+            .get("boundaries")
+            .and_then(serde_json::Value::as_str),
+    );
+    compare_manifest_fingerprint(
+        &mut issues,
+        "proof_lanes",
+        current_manifest.proof_lanes.as_deref(),
+        evidence_manifest
+            .get("proof_lanes")
+            .and_then(serde_json::Value::as_str),
+    );
+    compare_manifest_fingerprint(
+        &mut issues,
+        "standard_version",
+        current_manifest.standard_version.as_deref(),
+        evidence_manifest
+            .get("standard_version")
+            .and_then(serde_json::Value::as_str),
+    );
+
+    let plan_path = value
+        .get("plan_path")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
+    if plan_path.is_empty() {
+        issues.push("proof evidence missing plan_path".into());
+    } else {
+        let plan_abs = root.join(plan_path);
+        if !plan_abs.is_file() {
+            issues.push(format!("proof plan `{}` is missing", plan_path));
+        } else {
+            let expected_digest = file_fingerprint(&plan_abs).unwrap_or_else(missing_sha256);
+            let actual_digest = value
+                .get("plan_digest")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("missing");
+            if actual_digest != expected_digest {
+                issues.push(format!(
+                    "plan digest mismatch for `{plan_path}`: evidence `{actual_digest}` vs current `{expected_digest}`"
+                ));
+            }
+        }
+    }
+
+    let receipts = value
+        .get("receipts")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let receipt_digest_entries = value
+        .get("receipt_digests")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let command_digest_entries = value
+        .get("command_digests")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let log_digest_entries = value
+        .get("log_digests")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let artifact_digest_entries = value
+        .get("artifact_digests")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let coverage_verdicts = value
+        .get("coverage_verdicts")
+        .cloned()
+        .unwrap_or_else(|| serde_json::Value::Array(vec![]));
+
+    if receipts.is_empty() {
+        issues.push("proof evidence has no receipts".into());
+    }
+    if coverage_verdicts
+        .as_array()
+        .map(|items| items.is_empty())
+        .unwrap_or(true)
+    {
+        issues.push("proof evidence has no coverage verdicts".into());
+    }
+
+    for receipt_rel_value in receipts {
+        let Some(receipt_rel) = receipt_rel_value.as_str() else {
+            continue;
+        };
+        let receipt_path = root.join(receipt_rel);
+        if !receipt_path.is_file() {
+            issues.push(format!("missing proof receipt `{receipt_rel}`"));
+            continue;
+        }
+        let text = std::fs::read_to_string(&receipt_path)?;
+        let receipt_json: serde_json::Value = serde_json::from_str(&text)?;
+        crate::validation::validate_value(
+            root,
+            crate::validation::ArtifactSchema::ProofReceipt,
+            &receipt_json,
+        )?;
+        let receipt: ProofReceipt = serde_json::from_value(receipt_json.clone())?;
+        let receipt_digest = file_fingerprint(&receipt_path).unwrap_or_else(missing_sha256);
+        if !receipt_digest_entries.iter().any(|entry| {
+            entry.get("path").and_then(serde_json::Value::as_str) == Some(receipt_rel)
+                && entry.get("sha256").and_then(serde_json::Value::as_str)
+                    == Some(receipt_digest.as_str())
+        }) {
+            issues.push(format!("receipt digest mismatch for `{receipt_rel}`"));
+        }
+        if let Some(plan_digest) = receipt.plan_digest.as_deref() {
+            let expected = value
+                .get("plan_digest")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("missing");
+            if plan_digest != expected {
+                issues.push(format!("receipt `{receipt_rel}` plan digest mismatch"));
+            }
+        }
+        if let Some(command_digest) = receipt.command_digest.as_deref() {
+            let expected = sha256_string(&receipt.command);
+            if command_digest != expected {
+                issues.push(format!("receipt `{receipt_rel}` command digest mismatch"));
+            }
+            if !command_digest_entries.iter().any(|entry| {
+                entry.get("path").and_then(serde_json::Value::as_str)
+                    == Some(format!("{}::{}", receipt.lane, receipt.command).as_str())
+                    && entry.get("sha256").and_then(serde_json::Value::as_str)
+                        == Some(expected.as_str())
+            }) {
+                issues.push(format!(
+                    "command digest index mismatch for receipt `{receipt_rel}`"
+                ));
+            }
+        }
+        if let Some(log_rel) = receipt.log_path.as_deref() {
+            let log_path = root.join(log_rel);
+            if !log_path.is_file() {
+                issues.push(format!("missing proof log `{log_rel}`"));
+            } else {
+                let expected = file_fingerprint(&log_path).unwrap_or_else(missing_sha256);
+                if receipt.log_sha256.as_deref() != Some(expected.as_str()) {
+                    issues.push(format!("receipt `{receipt_rel}` log digest mismatch"));
+                }
+                if !log_digest_entries.iter().any(|entry| {
+                    entry.get("path").and_then(serde_json::Value::as_str) == Some(log_rel)
+                        && entry.get("sha256").and_then(serde_json::Value::as_str)
+                            == Some(expected.as_str())
+                }) {
+                    issues.push(format!("log digest index mismatch for `{log_rel}`"));
+                }
+            }
+        }
+        if let Some(recorded) = receipt.artifact_digests.first() {
+            if !artifact_digest_entries.iter().any(|entry| {
+                entry.get("path").and_then(serde_json::Value::as_str)
+                    == Some(recorded.path.as_str())
+                    && entry.get("sha256").and_then(serde_json::Value::as_str)
+                        == Some(recorded.sha256.as_str())
+            }) {
+                issues.push(format!(
+                    "artifact digest index mismatch for receipt `{receipt_rel}`"
+                ));
+            }
+        }
+        if receipt.exit_code != 0 {
+            issues.push(format!(
+                "receipt `{receipt_rel}` exited with {}",
+                receipt.exit_code
+            ));
+        }
+    }
+
+    if issues.is_empty() {
+        return Ok(vec![]);
+    }
+
+    Ok(vec![release_proof_finding(
+        "release proof evidence is stale or incomplete",
+        issues,
+        "HLT-008-FALSE-GREEN-RISK",
+        &display_rel(root, &evidence_path),
+        "regenerate proof evidence and re-run `jankurai audit --proof-evidence`",
+        "receipt",
+        "proof evidence",
+        "release mode proof integrity checks failed",
+    )])
+}
+
+fn compare_manifest_fingerprint(
+    issues: &mut Vec<String>,
+    name: &str,
+    current: Option<&str>,
+    evidence: Option<&str>,
+) {
+    if current != evidence {
+        issues.push(format!(
+            "manifest fingerprint mismatch for {name}: evidence `{}` vs current `{}`",
+            evidence.unwrap_or("missing"),
+            current.unwrap_or("missing")
+        ));
+    }
+}
+
+fn release_proof_finding(
+    problem: &str,
+    evidence: Vec<String>,
+    rule_id: &str,
+    path: &str,
+    agent_fix: &str,
+    evidence_kind: &str,
+    matched_term: &str,
+    reason: &str,
+) -> Finding {
+    Finding {
+        severity: "high".into(),
+        category: "proof".into(),
+        path: path.into(),
+        problem: problem.into(),
+        agent_fix: agent_fix.into(),
+        evidence,
+        check_id: "proof-evidence".into(),
+        hardness: "hard".into(),
+        confidence: 1.0,
+        evidence_kind: evidence_kind.into(),
+        rerun_command: "jankurai prove".into(),
+        fingerprint: "sha256:pending".into(),
+        rule_id: Some(rule_id.into()),
+        tlr: Some("proof".into()),
+        lane: Some("release".into()),
+        docs_url: Some("agent/JANKURAI_STANDARD.md#proof-lanes".into()),
+        owner: Some("agent".into()),
+        line: None,
+        matched_term: Some(matched_term.into()),
+        reason: Some(reason.into()),
+    }
 }
 
 pub fn docs_for_rule_id(rule: &str) -> Option<&'static str> {

@@ -64,6 +64,19 @@ impl RepairRisk {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuleStatus {
+    Stable,
+    Experimental,
+    Deprecated,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfidencePolicy {
+    High,
+    Medium,
+    Low,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RuleSpec {
     pub id: &'static str,
     pub name: &'static str,
@@ -78,6 +91,10 @@ pub struct RuleSpec {
     pub repair_eligibility: RepairEligibility,
     pub repair_risk: RepairRisk,
     pub repair_reason: &'static str,
+    pub status: RuleStatus,
+    pub standard_section: &'static str,
+    pub cap_key: Option<&'static str>,
+    pub confidence_policy: ConfidencePolicy,
 }
 
 pub const RULES: &[RuleSpec] = &[
@@ -95,6 +112,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::AgentAssisted,
         repair_risk: RepairRisk::Medium,
         repair_reason: "marker cleanup is scoped but still needs proof that intent was not removed",
+        status: RuleStatus::Stable,
+        standard_section: "Entropy",
+        cap_key: Some("future-hostile-dead-language-in-product-code"),
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-002-GENERATED-MUTATION",
@@ -110,6 +131,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "generated artifacts require source or generator review before repair",
+        status: RuleStatus::Stable,
+        standard_section: "Generated Zones",
+        cap_key: Some("generated-zone-mutation-risk"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-003-OWNERLESS-PATH",
@@ -125,6 +150,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::AgentAssisted,
         repair_risk: RepairRisk::Medium,
         repair_reason: "ownership map edits are bounded but affect agent routing",
+        status: RuleStatus::Stable,
+        standard_section: "Ownership Boundaries",
+        cap_key: None,
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-004-UNMAPPED-PROOF",
@@ -140,6 +169,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::AgentAssisted,
         repair_risk: RepairRisk::Medium,
         repair_reason: "proof routing repairs are bounded but must preserve validation coverage",
+        status: RuleStatus::Stable,
+        standard_section: "Proof Lanes",
+        cap_key: None,
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-005-PYTHON-PRODUCT-TRUTH",
@@ -155,6 +188,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "product truth boundary changes require architectural review",
+        status: RuleStatus::Stable,
+        standard_section: "Python Boundary",
+        cap_key: Some("python-direct-product-truth-or-db-ownership"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-006-DIRECT-DB-WRONG-LAYER",
@@ -170,6 +207,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "database layer movement can affect durable data behavior",
+        status: RuleStatus::Stable,
+        standard_section: "Database Boundary",
+        cap_key: Some("direct-db-access-from-wrong-layer"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-007-HANDWRITTEN-CONTRACT",
@@ -185,6 +226,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "contract drift repair can alter public API compatibility",
+        status: RuleStatus::Stable,
+        standard_section: "Contract Boundaries",
+        cap_key: Some("generated-contracts-or-public-api-drift-untested"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-008-FALSE-GREEN-RISK",
@@ -200,6 +245,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::AgentAssisted,
         repair_risk: RepairRisk::Medium,
         repair_reason: "test proof repairs are scoped but can create false confidence",
+        status: RuleStatus::Stable,
+        standard_section: "Testing",
+        cap_key: Some("false-green-test-risk"),
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-009-GENERATED-SECURITY",
@@ -215,6 +264,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "generated security behavior must be reviewed before repair",
+        status: RuleStatus::Stable,
+        standard_section: "Security Lanes",
+        cap_key: Some("no-security-lane-on-high-risk-repo"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-010-SECRET-SPRAWL",
@@ -230,6 +283,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::NeverAuto,
         repair_risk: RepairRisk::Critical,
         repair_reason: "secret exposure requires human-led rotation and incident review",
+        status: RuleStatus::Stable,
+        standard_section: "Secrets",
+        cap_key: Some("secret-like-content-detected"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-011-PROMPT-INJECTION",
@@ -245,6 +302,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "trusted policy changes require human review against prompt injection",
+        status: RuleStatus::Stable,
+        standard_section: "Prompt Injection",
+        cap_key: Some("prompt-injection-risk"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-012-OVERBROAD-AGENCY",
@@ -260,6 +321,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "agent authority changes require explicit human approval",
+        status: RuleStatus::Stable,
+        standard_section: "Agent Authority",
+        cap_key: Some("overbroad-agent-agency"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-013-RENDERED-UX-GAP",
@@ -275,6 +340,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "user-facing UX proof gaps require rendered evidence review",
+        status: RuleStatus::Stable,
+        standard_section: "UX QA",
+        cap_key: Some("missing-rendered-ux-qa-lane"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-014-A11Y-GAP",
@@ -290,6 +359,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "accessibility fixes require rendered and assistive proof review",
+        status: RuleStatus::Stable,
+        standard_section: "Accessibility",
+        cap_key: None,
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-015-CONTEXT-SETUP-GAP",
@@ -305,6 +378,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::AgentAssisted,
         repair_risk: RepairRisk::Medium,
         repair_reason: "context setup repairs are bounded but affect agent bootstrap behavior",
+        status: RuleStatus::Stable,
+        standard_section: "Agent Context",
+        cap_key: Some("no-root-agent-instructions"),
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-016-SUPPLY-CHAIN-DRIFT",
@@ -320,6 +397,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "supply-chain changes require provenance and dependency review",
+        status: RuleStatus::Stable,
+        standard_section: "Supply Chain",
+        cap_key: Some("no-secret-or-dependency-scanning-in-ci"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-017-OPAQUE-OBSERVABILITY",
@@ -335,6 +416,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::AgentAssisted,
         repair_risk: RepairRisk::Medium,
         repair_reason: "observability repairs are typically scoped to telemetry and error receipts",
+        status: RuleStatus::Stable,
+        standard_section: "Observability",
+        cap_key: None,
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-018-PERF-CONCURRENCY-DRIFT",
@@ -351,6 +436,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_risk: RepairRisk::Medium,
         repair_reason:
             "performance and concurrency repairs require targeted proof but can be planned narrowly",
+        status: RuleStatus::Stable,
+        standard_section: "Performance",
+        cap_key: None,
+        confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
         id: "HLT-019-STREAMING-RUNTIME-DRIFT",
@@ -366,6 +455,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "streaming runtime boundaries can affect production integration behavior",
+        status: RuleStatus::Stable,
+        standard_section: "Streaming",
+        cap_key: Some("streaming-runtime-drift"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-020-CI-HARDENING-GAP",
@@ -381,6 +474,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_eligibility: RepairEligibility::HumanRequired,
         repair_risk: RepairRisk::High,
         repair_reason: "CI hardening changes alter release authority and require review",
+        status: RuleStatus::Stable,
+        standard_section: "CI Hardening",
+        cap_key: Some("no-jankurai-audit-lane-in-ci"),
+        confidence_policy: ConfidencePolicy::High,
     },
     RuleSpec {
         id: "HLT-021-DESTRUCTIVE-MIGRATION",
@@ -397,6 +494,10 @@ pub const RULES: &[RuleSpec] = &[
         repair_risk: RepairRisk::High,
         repair_reason:
             "destructive migrations require documented rollback, backfill, and lock safety",
+        status: RuleStatus::Stable,
+        standard_section: "Migrations",
+        cap_key: Some("destructive-migration-risk"),
+        confidence_policy: ConfidencePolicy::High,
     },
 ];
 

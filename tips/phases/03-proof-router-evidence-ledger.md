@@ -1,8 +1,8 @@
 # Phase 03: Proof Router And Evidence Ledger
 
-Status: complete
+Status: hardened
 Owner: tools
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-03
 Parallel MCP candidate: partial
 
 ## Objective
@@ -22,8 +22,9 @@ Existing pieces:
 - `agent/test-map.json` maps paths to commands and purposes.
 - `agent/proof-lanes.toml` defines lane names and command strings.
 - `jankurai lane` and `jankurai proof` build and optionally write a normalized proof plan (`schemas/proof-plan.schema.json`), including `planned_runs`, `skipped_lane_entries`, and routing risk metadata.
-- `jankurai prove` executes planned commands, writes receipts under `target/jankurai/proof-receipts/`, command logs under `target/jankurai/logs/`, and `target/jankurai/evidence-index.json` (`schemas/evidence-index.schema.json`). The evidence index **`schema_version` is `1.2.0`** and, when those files exist at index write time, may include **optional repo-relative** `ux_qa_report_path` (`target/jankurai/ux-qa.json`), `security_evidence_path` (`target/jankurai/security/evidence.json`), `repo_score_json_path` (`agent/repo-score.json`), `sarif_path` (`target/jankurai/jankurai.sarif`), `github_step_summary_path` (`target/jankurai/summary.md`), and `repair_queue_jsonl_path` (`target/jankurai/repair-queue.jsonl`). Execution allowlists commands to the union of proof-lanes and test-map unless `--allow-unsigned-commands` and `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1`.
+- `jankurai prove` executes planned commands, writes receipts under `target/jankurai/proof-receipts/`, command logs under `target/jankurai/logs/`, and `target/jankurai/evidence-index.json` (`schemas/evidence-index.schema.json`). The evidence index **`schema_version` is `1.2.0`**, records plan/command/log/receipt/artifact digests plus manifest fingerprints, and, when those files exist at index write time, may include **optional repo-relative** `ux_qa_report_path` (`target/jankurai/ux-qa.json`), `security_evidence_path` (`target/jankurai/security/evidence.json`), `repo_score_json_path` (`agent/repo-score.json`), `sarif_path` (`target/jankurai/jankurai.sarif`), `github_step_summary_path` (`target/jankurai/summary.md`), and `repair_queue_jsonl_path` (`target/jankurai/repair-queue.jsonl`). Execution allowlists commands to the union of proof-lanes and test-map unless `--allow-unsigned-commands` and `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1`.
 - `jankurai prove` accepts either `--plan <path>` or changed-path inputs through `--changed` / `--changed-from`, reusing the same planner and runner path.
+- `jankurai proof-verify` compares a persisted proof plan and evidence index against the current repo state and emits a verification envelope with verdicts, coverage, and digests.
 - `audit --changed` and `--changed-from` exist.
 - `jankurai audit --proof-receipts` loads receipt JSON into `Report.proof_receipts`.
 - `ProofReceipt.rules_covered` now has a compatibility-preserving rich/simple representation. Current proof execution keeps unknown or custom rule coverage empty rather than guessing from command text.

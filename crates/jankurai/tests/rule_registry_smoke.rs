@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::fs;
+use std::path::PathBuf;
 
 use jankurai::audit::{rule_registry, rules};
 
@@ -53,6 +55,27 @@ fn every_rule_has_repair_policy_metadata() {
                 "low" | "medium" | "high" | "critical"
             ),
             "{} has invalid repair risk",
+            rule.id
+        );
+    }
+}
+
+#[test]
+fn every_rule_id_is_documented_in_the_standard() {
+    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let standard = fs::read_to_string(repo.join("docs/agent-native-standard.md")).unwrap();
+    let brief = fs::read_to_string(repo.join("agent/JANKURAI_STANDARD.md")).unwrap();
+    for rule in rules::all() {
+        assert!(
+            standard.contains(rule.id),
+            "{} missing from docs/agent-native-standard.md",
+            rule.id
+        );
+        assert!(
+            brief.contains(rule.id),
+            "{} missing from agent/JANKURAI_STANDARD.md",
             rule.id
         );
     }

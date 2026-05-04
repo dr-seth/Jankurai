@@ -1,8 +1,8 @@
 # Phase 01: Standard Stabilization
 
-Status: complete
+Status: hardened
 Owner: standard
-Last reviewed: 2026-05-02
+Last reviewed: 2026-05-03
 Applies to: `tips/phases/01-standard-stabilization.md`
 
 ## Purpose
@@ -10,6 +10,8 @@ Applies to: `tips/phases/01-standard-stabilization.md`
 This file is the canonical router for Phase 01. It tells a future implementation agent what to read, what to own, what to avoid, which contracts must stay stable, how to split parallel work, and which evidence closes the phase.
 
 This file does not implement Phase 01 itself. It is a docs-only execution plan for the implementation that follows.
+
+Hardening receipt: the standard parity guard, schema keyword coverage, typed doctor diagnostics, policy-aware security evidence, and proof verification envelope are now implemented; the remaining sections below are historical planning context for the now-hardened phase.
 
 ## Phase 01 Goal
 

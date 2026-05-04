@@ -127,10 +127,11 @@ fn db_migrations_paths_resolve_to_db_migration_analyze_lane() {
     let root = workspace_root();
     let catalog = RepoCatalog::load(&root).expect("repo catalog");
     let path = "db/migrations/V1__x.sql";
-    let (prefix, spec) = catalog
+    let (route, spec) = catalog
         .test_route_for_path(path)
         .unwrap_or_else(|| panic!("no test-map route for {path}"));
-    assert_eq!(prefix, "db/migrations/");
+    assert_eq!(route.prefix, "db/migrations");
+    assert_eq!(route.match_kind, "directory");
     let lane = catalog
         .proof_lane_for_command(spec.command.trim())
         .unwrap_or_else(|| panic!("no proof lane for command {}", spec.command));

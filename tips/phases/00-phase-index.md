@@ -91,9 +91,9 @@ This router change does not require owner-map or test-map edits because the touc
 
 | Phase | State | Router note |
 | --- | --- | --- |
-| 01 | complete | standard stabilized |
-| 02 | complete | rule engine and semantic oracle in place |
-| 03 | complete | proof router and evidence ledger in place |
+| 01 | hardened | standard stabilized and verification envelopes added |
+| 02 | hardened | canonical policy contract and rule mapping added |
+| 03 | hardened | proof router, evidence ledger, and verification envelope in place |
 | 04 | complete | init profiles and golden repos in place |
 | 05 | complete | UX proof platform in place |
 | 06 | complete | security supply chain and compliance evidence in place |

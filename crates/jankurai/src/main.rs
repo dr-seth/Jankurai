@@ -32,6 +32,7 @@ enum Commands {
     Lane(ProofPlanArgs),
     Proof(ProofPlanArgs),
     Prove(ProveArgs),
+    ProofVerify(ProofVerifyArgs),
     Registry(RegistryArgs),
     Cell(CellArgs),
     Migrate(MigrateArgs),
@@ -125,6 +126,8 @@ struct AuditArgs {
     repair_queue_jsonl: Option<String>,
     #[arg(long, value_name = "PATH")]
     proof_receipts: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    proof_evidence: Option<String>,
     #[arg(long, value_name = "PATH")]
     baseline: Option<String>,
     #[arg(long, value_name = "PATH")]
@@ -262,6 +265,20 @@ struct ProveArgs {
     /// Requires `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1` in the environment.
     #[arg(long = "allow-unsigned-commands")]
     allow_unsigned_commands: bool,
+}
+
+#[derive(Args, Debug)]
+struct ProofVerifyArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "PATH")]
+    plan: String,
+    #[arg(long, value_name = "PATH")]
+    evidence_index: String,
+    #[arg(long, value_name = "PATH")]
+    out: String,
+    #[arg(long, value_name = "PATH")]
+    md: String,
 }
 
 #[derive(Args, Debug)]
@@ -596,6 +613,15 @@ fn main() -> anyhow::Result<()> {
                 allow_unsigned_commands: args.allow_unsigned_commands,
             })?;
         }
+        Some(Commands::ProofVerify(args)) => {
+            proof::run_proof_verify(proof::ProofVerifyArgs {
+                repo: args.repo,
+                plan: args.plan,
+                evidence_index: args.evidence_index,
+                out: args.out,
+                md: args.md,
+            })?;
+        }
         Some(Commands::Registry(args)) => {
             registry::run(registry::RegistryArgs {
                 repo: args.repo,
@@ -790,41 +816,26 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
         }
     }
     apply_mode_and_baseline(&mut report, mode, args.baseline.as_deref())?;
-    if matches!(mode, AuditMode::Release) && report.proof_receipts.is_empty() {
-        report.findings.push(jankurai::model::Finding {
-            severity: "high".into(),
-            category: "proof".into(),
-            path: "agent/test-map.json".into(),
-            problem: "release mode requires proof receipts for the audited scope".into(),
-            agent_fix:
-                "run `jankurai prove` and feed its receipts into `jankurai audit --proof-receipts`"
-                    .into(),
-            evidence: vec!["no proof receipts were supplied".into()],
-            check_id: "proof-receipts".into(),
-            hardness: "hard".into(),
-            confidence: 1.0,
-            evidence_kind: "receipt".into(),
-            rerun_command: "jankurai prove".into(),
-            fingerprint: "sha256:pending".into(),
-            rule_id: Some("HLT-004-UNMAPPED-PROOF".into()),
-            tlr: Some("proof".into()),
-            lane: Some("release".into()),
-            docs_url: Some("agent/JANKURAI_STANDARD.md#proof-lanes".into()),
-            owner: Some("agent".into()),
-            line: None,
-            matched_term: Some("proof receipts".into()),
-            reason: Some("release mode cannot be verified without receipt evidence".into()),
-        });
-        jankurai::audit::rebuild_agent_fix_queue(&mut report);
-        if let Some(decision) = report.decision.as_mut() {
-            decision.hard_findings = report
-                .findings
-                .iter()
-                .filter(|finding| matches!(finding.severity.as_str(), "high" | "critical"))
-                .count();
-            decision.soft_findings = report.findings.len().saturating_sub(decision.hard_findings);
-            decision.passed = false;
-            decision.status = "fail".into();
+    if matches!(mode, AuditMode::Release) {
+        let proof_findings = jankurai::audit::release_proof_findings(
+            &args.repo,
+            args.proof_receipts.as_deref(),
+            args.proof_evidence.as_deref(),
+        )?;
+        if !proof_findings.is_empty() {
+            report.findings.extend(proof_findings);
+            jankurai::audit::rebuild_agent_fix_queue(&mut report);
+            if let Some(decision) = report.decision.as_mut() {
+                decision.hard_findings = report
+                    .findings
+                    .iter()
+                    .filter(|finding| matches!(finding.severity.as_str(), "high" | "critical"))
+                    .count();
+                decision.soft_findings =
+                    report.findings.len().saturating_sub(decision.hard_findings);
+                decision.passed = false;
+                decision.status = "fail".into();
+            }
         }
     }
     report.report_fingerprint = jankurai::audit::report_fingerprint(&report);

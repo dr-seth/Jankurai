@@ -1,1240 +1,1845 @@
-## Phase name: **Phase 01 — Standard Stabilization**
+## Phase 01 target: move from “complete” to **hardened**
 
-I would treat **Phase 01 as not truly implementation-complete yet**, even though the phase file currently says `Status: complete`. The reason is important: the same file says it is a **docs-only execution plan**, not the implementation, and it explicitly names the remaining implementation gaps: incomplete artifact/schema coverage, missing semantic report compatibility guards, doctor/security diagnostics that need to distinguish missing tools from repo defects, current-vs-roadmap doc boundaries, and reusable release evidence conventions. 
+My read: Phase 01 is already marked **complete** in the phase ledger, but not **hardened**. The phase index explicitly distinguishes `complete` from `hardened`, and the current ledger says “01 | complete | standard stabilized,” while later phases like 07, 10, 11, 12, and 13 are already marked hardened. So the right goal is not “implement Phase 01 from scratch”; it is to **promote Phase 01 from complete → hardened** by eliminating every remaining drift path between the standard, schemas, report output, proof lanes, doctor/security evidence, CI, and release receipts. 
 
-The moonshot says the repo must make ownership, proof, generated truth, evidence, and expiring exceptions machine-readable, with the operating loop `intent -> bounded agents -> proof lanes -> evidence -> expired exceptions -> reusable primitives`.  The root README confirms this repo is supposed to be a control plane where ownership, proof, generated zones, and repair evidence are machine-readable, and it names `agent/`, `docs/`, `schemas/`, `crates/jankurai/`, `packages/ux-qa/`, `tips/`, and `reference/` as the key surfaces. ([GitHub][1]) Phase 00 also makes Phase 01 the gate before the rule engine, proof router, init profiles, UX proof, security, contracts, and later repair phases. 
+Phase 01 is the foundation contract. The phase file says its job is to stabilize v0.4 foundations, clarify schema/report contracts, add compatibility guard expectations, verify doctor/security lane reality, separate implemented behavior from roadmap claims, and define release evidence conventions.  The repo has already shipped a lot of that: the standard files, schema validation, report compatibility tests, doctor, security evidence, artifact contract docs, CI workflow, and phase feedback reconciliation are all present.    
 
-So the best Phase 01 closeout is not “add new moonshot features.” It is to **harden the v0.4 public surface so later phases cannot accidentally drift it**. The patch below does that by:
+The hardening work is about making those contracts impossible to drift.
 
-1. Tightening `schemas/repo-score.schema.json` so it actually requires the fields that the standard and release plan already say are part of the audit contract: `paper_edition`, `target_stack_id`, `target_stack`, `scope`, hard caps, UX/security/boundary readiness, findings, and repair queue. The model already emits these fields today. 
-2. Adding a real semantic compatibility guard for JSON, Markdown, SARIF, JUnit, GitHub summary, and repair queue JSONL exports. The current schema test mostly checks schema files parse; it does not prove report output compatibility. 
-3. Making `just security` and CI call `jankurai security run`, so security evidence is always written as JSON instead of only running raw shell. The current wrapper emits one envelope step for the script, not per-tool evidence. 
-4. Rewriting `tools/security-lane.sh` so it emits per-tool structured evidence lines while still remaining pure Bash and adding no external required tools.
-5. Teaching `doctor` to report missing required/advisory security tools as prerequisite status, not as repo-state breakage, while still letting strict mode block where appropriate. The current doctor only emits generic low-severity tool-missing messages. 
-6. Adding `docs/artifact-contracts.md`, which is the Phase 01 artifact contract matrix: every machine-readable artifact either points to a schema, a semantic compatibility guard, or a documented exemption.
-7. Updating `docs/testing.md`, `docs/release-plan.md`, `docs/README.md`, and `tips/phases/01-standard-stabilization.md` so future agents can tell exactly what is implemented now versus roadmap/later-phase behavior.
-8. Avoiding paper and `reference/` changes, in line with Phase 01 constraints. 
-9. Avoiding owner/test map changes because the new durable paths are already covered by existing routes: `docs/`, `schemas/`, `crates/jankurai/`, `.github/`, `Justfile`, `tools/`, and `tips/` all already have owner/test-map entries.  
+---
 
-I did not mutate your repository from this chat. This is a single copy-pasteable patch intended to be applied as a Phase 01 stabilization PR.
+# 1. Phase 01 “100% done” definition
 
-````diff
-diff --git a/Justfile b/Justfile
---- a/Justfile
-+++ b/Justfile
-@@
- security:
--    bash tools/security-lane.sh
-+    cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
-+
-+security-strict:
-+    cargo run -p jankurai -- security run . --strict --out target/jankurai/security/evidence.json
-+
-+compat:
-+    cargo test -p jankurai --test report_compatibility_guard
-+    cargo test -p jankurai --test security_lane_wrapper
-+    cargo test -p jankurai --test schema_contracts
+Phase 01 is **100% done and hardened** only when these are true:
 
-diff --git a/.github/workflows/jankurai.yml b/.github/workflows/jankurai.yml
---- a/.github/workflows/jankurai.yml
-+++ b/.github/workflows/jankurai.yml
-@@
-       - name: Publish jankurai summary
-         run: cat target/jankurai/summary.md >> "$GITHUB_STEP_SUMMARY"
-       - name: Security lane
--        run: bash tools/security-lane.sh
-+        run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
-       - uses: actions/upload-artifact@v4
-         with:
-           name: jankurai-score
-           path: |
-             agent/repo-score.json
-             agent/repo-score.md
-             target/jankurai/jankurai.sarif
-             target/jankurai/repair-queue.jsonl
-+            target/jankurai/security/**
+| Contract area           | Hardened criterion                                                                                                                                                                                                                                                                | Required proof                                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Standard text           | `agent/JANKURAI_STANDARD.md`, `docs/agent-native-standard.md`, `docs/testing.md`, `docs/release-plan.md`, `agent/proof-lanes.toml`, `agent/audit-policy.toml`, and `agent/standard-version.toml` agree on versions, rule IDs, lane names, artifact paths, and release vocabulary. | A contract-parity test fails if any version/rule/lane/artifact binding drifts.                                         |
+| Version source of truth | `agent/standard-version.toml` becomes the canonical source for `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, and target stack identity.                                                                                                               | Report output, schemas, `versions`, and docs examples match the manifest.                                              |
+| Rule ID registry        | Every stable rule ID in the standard has exactly one rule definition, docs link, category, default severity, TLR, lane, and repair template.                                                                                                                                      | A test checks rule registry ↔ standard docs ↔ emitted findings.                                                        |
+| Lane taxonomy           | The live minimal lanes and target moonshot lanes are reconciled. `full` vs `release`, `web` vs `ui`, and roadmap-only lanes cannot confuse proof routing.                                                                                                                         | `agent/proof-lanes.toml`, `agent/test-map.json`, `docs/testing.md`, and standard lane docs pass a lane-parity test.    |
+| Artifact schemas        | Every durable machine-readable artifact has a schema, semantic guard, or explicit exemption.                                                                                                                                                                                      | `ArtifactSchema` enum, `schemas/`, and `docs/artifact-contracts.md` are checked together.                              |
+| Report compatibility    | JSON, Markdown, SARIF, JUnit, GitHub summary, repair queue JSONL, and issue export stay parseable and semantically stable.                                                                                                                                                        | `report_compatibility_guard` covers required fields, sections, sidecars, finding shape, and repair queue shape.        |
+| Doctor                  | `doctor` separates repo defects from missing local tools, optional tools, stale evidence, malformed control-plane files, and release-blocking failures.                                                                                                                           | Typed doctor receipt schema and doctor fixture tests.                                                                  |
+| Security lane           | `security run` emits durable per-tool evidence, strict/advisory behavior is deterministic, and missing tools are explained without pretending the repo is broken.                                                                                                                 | Security evidence fixtures for all tools present, tools missing, strict mode, advisory mode, and malformed step lines. |
+| Release receipts        | A release/phase closeout can cite one stable evidence bundle: audit, doctor, security, compatibility, schema, routing, and phase log.                                                                                                                                             | Phase 01 closeout receipt under `tips/phases/logs/` plus volatile receipts under `target/jankurai/`.                   |
+| CI                      | CI runs enough Phase 01 proof to catch contract drift before merge.                                                                                                                                                                                                               | Workflow includes audit, security, schema/report compatibility, UX runtime where relevant, and artifacts.              |
+| Phase state             | Phase 01 is promoted to `hardened` only after evidence exists.                                                                                                                                                                                                                    | Update `tips/phases/01-standard-stabilization.md`, `tips/phases/00-phase-index.md`, and the Phase 01 log.              |
 
-diff --git a/tools/security-lane.sh b/tools/security-lane.sh
---- a/tools/security-lane.sh
-+++ b/tools/security-lane.sh
-@@
- #!/usr/bin/env bash
--set -euo pipefail
-+set -uo pipefail
- 
- strict="${JANKURAI_SECURITY_STRICT:-0}"
-+failures=0
- 
--run_or_skip() {
--  local tool="$1"
--  shift
--  if command -v "$tool" >/dev/null 2>&1; then
--    "$@"
--    return 0
--  fi
-+json_escape() {
-+  local value="${1:-}"
-+  value="${value//\\/\\\\}"
-+  value="${value//\"/\\\"}"
-+  value="${value//$'\n'/\\n}"
-+  value="${value//$'\r'/\\r}"
-+  value="${value//$'\t'/\\t}"
-+  printf '%s' "$value"
-+}
-+
-+emit_step() {
-+  local label="$1"
-+  local tool="$2"
-+  local command="$3"
-+  local status="$4"
-+  local exit_code="$5"
-+  local advisory="$6"
-+  local required="$7"
-+  local normalized_decision="$8"
-+  local stderr_excerpt="${9:-}"
-+
-+  local exit_field=""
-+  if [ -n "$exit_code" ]; then
-+    exit_field=",\"exit_code\":$exit_code"
-+  fi
-+
-+  local stderr_field=""
-+  if [ -n "$stderr_excerpt" ]; then
-+    stderr_field=",\"stderr_excerpt\":\"$(json_escape "$stderr_excerpt")\""
-+  fi
-+
-+  printf 'jankurai-security-step={"label":"%s","shell_command":"%s","tool":"%s","status":"%s"%s,"advisory":%s,"required":%s,"normalized_decision":"%s"%s}\n' \
-+    "$(json_escape "$label")" \
-+    "$(json_escape "$command")" \
-+    "$(json_escape "$tool")" \
-+    "$(json_escape "$status")" \
-+    "$exit_field" \
-+    "$advisory" \
-+    "$required" \
-+    "$(json_escape "$normalized_decision")" \
-+    "$stderr_field"
-+}
-+
-+run_step() {
-+  local label="$1"
-+  local tool="$2"
-+  local required="$3"
-+  local command="$4"
-+
-+  local advisory="true"
-+  if [ "$required" = "true" ]; then
-+    advisory="false"
-+  fi
-+
-+  if ! command -v "$tool" >/dev/null 2>&1; then
-+    if [ "$required" = "true" ] && [ "$strict" = "1" ]; then
-+      echo "missing required security tool: $tool" >&2
-+      emit_step "$label" "$tool" "$command" "failed" "" "false" "$required" "block" "missing required security tool: $tool"
-+      failures=$((failures + 1))
-+    else
-+      echo "skip: $tool not installed; advisory outside strict mode"
-+      emit_step "$label" "$tool" "$command" "skipped" "" "true" "$required" "review" "tool is not installed"
-+    fi
-+    return 0
-+  fi
-+
-+  local stderr_file
-+  stderr_file="$(mktemp)"
-+
-+  bash -lc "$command" 2>"$stderr_file"
-+  local code=$?
-+  local stderr_excerpt=""
-+  if [ -s "$stderr_file" ]; then
-+    stderr_excerpt="$(tail -c 500 "$stderr_file")"
-+  fi
-+  rm -f "$stderr_file"
- 
--  echo "skip: $tool not installed; advisory outside strict mode"
--  if [ "$strict" = "1" ]; then
--    echo "missing required security tool: $tool" >&2
--    exit 1
-+  if [ "$code" -eq 0 ]; then
-+    emit_step "$label" "$tool" "$command" "ran" "$code" "$advisory" "$required" "pass" ""
-+    return 0
-   fi
-+
-+  if [ "$required" = "true" ]; then
-+    emit_step "$label" "$tool" "$command" "failed" "$code" "false" "$required" "block" "$stderr_excerpt"
-+    failures=$((failures + 1))
-+  else
-+    emit_step "$label" "$tool" "$command" "failed" "$code" "true" "$required" "review" "$stderr_excerpt"
-+  fi
-+
-+  return 0
- }
- 
- required_tool_names=(gitleaks cargo-audit npm)
-+required_labels=(secret-scan rust-dependency-audit npm-audit)
- required_commands=(
-   "gitleaks detect --source . --redact --no-banner"
-   "cargo audit"
-   "npm audit --audit-level=high"
- )
- 
- advisory_tool_names=(syft zizmor)
-+advisory_labels=(sbom workflow-lint)
- advisory_commands=(
-   "syft . -o spdx-json=target/jankurai/sbom.spdx.json"
-   "zizmor .github/workflows"
- )
- 
- for i in "${!required_tool_names[@]}"; do
-   tool="${required_tool_names[$i]}"
-+  label="${required_labels[$i]}"
-   command="${required_commands[$i]}"
--  run_or_skip "$tool" bash -lc "$command"
-+  run_step "$label" "$tool" "true" "$command"
- done
- 
- for i in "${!advisory_tool_names[@]}"; do
-   tool="${advisory_tool_names[$i]}"
-+  label="${advisory_labels[$i]}"
-   command="${advisory_commands[$i]}"
--  run_or_skip "$tool" bash -lc "$command"
-+  run_step "$label" "$tool" "false" "$command"
- done
-+
-+if [ "$failures" -gt 0 ]; then
-+  exit 1
-+fi
+---
 
-diff --git a/crates/jankurai/src/commands/security.rs b/crates/jankurai/src/commands/security.rs
---- a/crates/jankurai/src/commands/security.rs
-+++ b/crates/jankurai/src/commands/security.rs
-@@
- use crate::model::STANDARD_VERSION;
- use crate::validation::{self, ArtifactSchema};
- use anyhow::{Context, Result};
--use serde::Serialize;
-+use serde::{Deserialize, Serialize};
- use std::fs;
- use std::path::{Path, PathBuf};
- use std::process::Command;
- use std::time::{Instant, SystemTime, UNIX_EPOCH};
- 
-+const SECURITY_STEP_MARKER: &str = "jankurai-security-step=";
-+
- #[derive(Debug, Clone)]
- pub struct SecurityRunArgs {
-@@
--#[derive(Debug, Serialize)]
-+#[derive(Debug, Serialize, Deserialize)]
- struct SecurityLaneStep {
-     label: String,
-     shell_command: String,
-@@
-     status: String,
-     #[serde(skip_serializing_if = "Option::is_none")]
-     exit_code: Option<i32>,
-     advisory: bool,
-+    #[serde(skip_serializing_if = "Option::is_none")]
-+    required: Option<bool>,
-     #[serde(skip_serializing_if = "Option::is_none")]
-     stderr_excerpt: Option<String>,
-@@
--    let step_status = if exit_code == 0 { "ran" } else { "failed" };
-+    let parsed_steps = parse_structured_steps(&output.stdout);
-+    let commands = if parsed_steps.is_empty() {
-+        let step_status = if exit_code == 0 { "ran" } else { "failed" };
-+        vec![SecurityLaneStep {
-+            label: "security-lane".to_string(),
-+            shell_command: shell_command.clone(),
-+            tool: Some("bash".to_string()),
-+            status: step_status.to_string(),
-+            exit_code: Some(exit_code),
-+            advisory: false,
-+            required: Some(true),
-+            stderr_excerpt,
-+            finding_count: None,
-+            highest_severity: None,
-+            normalized_decision: Some(if exit_code == 0 { "pass" } else { "block" }.to_string()),
-+        }]
-+    } else {
-+        parsed_steps
-+    };
-+
-     let generated_at = SystemTime::now()
-         .duration_since(UNIX_EPOCH)
-         .unwrap_or_default()
-@@
-         wrapper: SecurityWrapper {
-             kind: "bash_script".to_string(),
-             path: script_rel.clone(),
-@@
-         exit_code,
-         elapsed_ms: started.elapsed().as_millis() as u64,
-         log_path: log_rel,
--        commands: vec![SecurityLaneStep {
--            label: "security-lane".to_string(),
--            shell_command,
--            tool: Some("bash".to_string()),
--            status: step_status.to_string(),
--            exit_code: Some(exit_code),
--            advisory: false,
--            stderr_excerpt,
--            finding_count: None,
--            highest_severity: None,
--            normalized_decision: None,
--        }],
-+        commands,
-     };
-@@
-     if exit_code != 0 {
--        anyhow::bail!("security lane exited with status {exit_code}");
-+        anyhow::bail!(
-+            "security lane exited with status {exit_code}; evidence written to {}",
-+            args.out
-+        );
-     }
- 
-     Ok(())
- }
- 
-+fn parse_structured_steps(stdout: &[u8]) -> Vec<SecurityLaneStep> {
-+    String::from_utf8_lossy(stdout)
-+        .lines()
-+        .filter_map(|line| line.strip_prefix(SECURITY_STEP_MARKER))
-+        .filter_map(|payload| serde_json::from_str::<SecurityLaneStep>(payload).ok())
-+        .collect()
-+}
-+
- fn cap_excerpt(s: &str, max: usize) -> String {
-     let t = s.trim();
--    if t.len() <= max {
-+    if t.chars().count() <= max {
-         t.to_string()
-     } else {
--        t[t.len().saturating_sub(max)..].to_string()
-+        let mut chars = t.chars().rev().take(max).collect::<Vec<_>>();
-+        chars.reverse();
-+        chars.into_iter().collect()
-     }
- }
+# 2. Current state: what is already strong
 
-diff --git a/crates/jankurai/src/commands/doctor.rs b/crates/jankurai/src/commands/doctor.rs
---- a/crates/jankurai/src/commands/doctor.rs
-+++ b/crates/jankurai/src/commands/doctor.rs
-@@
- fn check_security_tools(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
-     if !repo.join("Justfile").exists() && !repo.join(".github/workflows").exists() {
-         return;
-     }
--    for tool in ["gitleaks", "cargo-audit", "npm", "syft", "zizmor"] {
--        if command_exists(tool) {
-+    let strict = std::env::var("JANKURAI_SECURITY_STRICT")
-+        .map(|value| value == "1")
-+        .unwrap_or(false);
-+
-+    for tool in security_tool_expectations() {
-+        if command_exists(tool.name) {
-+            diagnostics.push(Diagnostic {
-+                check_id: format!("security-tool:{}", tool.name),
-+                severity: "ok".into(),
-+                path: "tools/security-lane.sh".into(),
-+                message: format!("security lane tool `{}` is installed for {}", tool.name, tool.label),
-+            });
-             continue;
-         }
-+
-+        let strict_blocking = strict && tool.required;
-         diagnostics.push(Diagnostic {
--            check_id: format!("security-tool:{tool}"),
--            severity: "low".into(),
--            path: "Justfile".into(),
--            message: format!(
--                "security lane tool `{tool}` is not installed; treat it as advisory outside strict mode"
--            ),
-+            check_id: format!("security-tool:{}", tool.name),
-+            severity: if strict_blocking { "high" } else { "low" }.into(),
-+            path: "tools/security-lane.sh".into(),
-+            message: if tool.required {
-+                format!(
-+                    "required security lane tool `{}` for {} is not installed; non-strict runs record a skipped advisory step, strict runs block",
-+                    tool.name, tool.label
-+                )
-+            } else {
-+                format!(
-+                    "advisory security lane tool `{}` for {} is not installed; evidence records a skipped advisory step",
-+                    tool.name, tool.label
-+                )
-+            },
-         });
-     }
- }
- 
-+#[derive(Debug, Clone, Copy)]
-+struct SecurityToolExpectation {
-+    name: &'static str,
-+    label: &'static str,
-+    required: bool,
-+}
-+
-+fn security_tool_expectations() -> [SecurityToolExpectation; 5] {
-+    [
-+        SecurityToolExpectation {
-+            name: "gitleaks",
-+            label: "secret scanning",
-+            required: true,
-+        },
-+        SecurityToolExpectation {
-+            name: "cargo-audit",
-+            label: "Rust dependency audit",
-+            required: true,
-+        },
-+        SecurityToolExpectation {
-+            name: "npm",
-+            label: "npm dependency audit",
-+            required: true,
-+        },
-+        SecurityToolExpectation {
-+            name: "syft",
-+            label: "SBOM generation",
-+            required: false,
-+        },
-+        SecurityToolExpectation {
-+            name: "zizmor",
-+            label: "GitHub workflow linting",
-+            required: false,
-+        },
-+    ]
-+}
-+
- fn check_committed_ux_artifacts(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+The repo already has the right bones.
 
-diff --git a/schemas/repo-score.schema.json b/schemas/repo-score.schema.json
---- a/schemas/repo-score.schema.json
-+++ b/schemas/repo-score.schema.json
-@@
-     "standard_version",
-     "auditor_version",
-     "schema_version",
-+    "paper_edition",
-+    "target_stack_id",
-+    "target_stack",
-+    "repo",
-+    "scope",
-     "score",
-     "raw_score",
-     "decision",
-+    "caps_applied",
-+    "hard_rules",
-     "dimensions",
-+    "ux_qa",
-+    "security_evidence",
-+    "boundaries",
-     "findings",
-     "agent_fix_queue"
-   ],
-@@
-     "standard": { "const": "jankurai" },
-     "standard_version": { "type": "string" },
-     "auditor_version": { "type": "string" },
-     "schema_version": { "type": "string" },
-+    "paper_edition": { "type": "string" },
-+    "target_stack_id": { "type": "string" },
-+    "target_stack": { "type": "string" },
-+    "repo": { "type": "string" },
-+    "run_id": { "type": "string" },
-+    "started_at": { "type": "string" },
-+    "elapsed_ms": { "type": "integer", "minimum": 0 },
-+    "scope": { "$ref": "#/$defs/scope" },
-     "score": { "type": "integer" },
-     "raw_score": { "type": "integer" },
-     "decision": { "$ref": "#/$defs/decision" },
-+    "git": { "$ref": "#/$defs/gitSummary" },
-+    "policy": { "$ref": "#/$defs/policySummary" },
-     "proof_receipts": {
-       "type": "array",
-       "items": { "$ref": "proof-receipt.schema.json" }
-     },
-+    "caps_applied": {
-+      "type": "array",
-+      "items": { "type": "string" }
-+    },
-+    "hard_rules": {
-+      "type": "array",
-+      "items": { "$ref": "#/$defs/hardRule" }
-+    },
-+    "dimensions": {
-+      "type": "array",
-+      "items": { "$ref": "#/$defs/dimension" }
-+    },
-     "findings": { "type": "array", "items": { "$ref": "finding.schema.json" } },
-     "agent_fix_queue": { "type": "array", "items": { "$ref": "repair-queue.schema.json" } },
-     "ux_qa": { "$ref": "#/$defs/uxQaReadiness" },
-@@
-     "sha256": {
-       "type": "string",
-       "pattern": "^sha256:[0-9a-f]{64}$"
-     },
-+    "scope": {
-+      "type": "object",
-+      "required": ["mode", "paths"],
-+      "properties": {
-+        "mode": { "enum": ["full", "changed"] },
-+        "paths": {
-+          "type": "array",
-+          "items": { "type": "string" }
-+        }
-+      },
-+      "additionalProperties": false
-+    },
-+    "dimension": {
-+      "type": "object",
-+      "required": ["name", "weight", "score", "weighted_points", "evidence", "notes"],
-+      "properties": {
-+        "name": { "type": "string" },
-+        "weight": { "type": "integer" },
-+        "score": { "type": "integer" },
-+        "weighted_points": { "type": "number" },
-+        "evidence": {
-+          "type": "array",
-+          "items": { "type": "string" }
-+        },
-+        "notes": {
-+          "type": "array",
-+          "items": { "type": "string" }
-+        }
-+      },
-+      "additionalProperties": false
-+    },
-+    "hardRule": {
-+      "type": "object",
-+      "required": ["id", "max_score"],
-+      "properties": {
-+        "id": { "type": "string" },
-+        "max_score": { "type": "integer" }
-+      },
-+      "additionalProperties": false
-+    },
-+    "gitSummary": {
-+      "type": "object",
-+      "required": ["head", "base", "changed_files", "mode"],
-+      "properties": {
-+        "head": { "type": ["string", "null"] },
-+        "base": { "type": ["string", "null"] },
-+        "changed_files": { "type": "integer", "minimum": 0 },
-+        "mode": { "enum": ["full", "changed"] },
-+        "dirty_worktree": { "type": "boolean" }
-+      },
-+      "additionalProperties": false
-+    },
-+    "policySummary": {
-+      "type": "object",
-+      "required": ["path", "minimum_score", "fail_on", "advisory_on"],
-+      "properties": {
-+        "path": { "type": "string" },
-+        "minimum_score": { "type": "integer" },
-+        "fail_on": {
-+          "type": "array",
-+          "items": { "type": "string" }
-+        },
-+        "advisory_on": {
-+          "type": "array",
-+          "items": { "type": "string" }
-+        },
-+        "mode": { "type": "string" },
-+        "standard_version": { "type": "string" },
-+        "auditor_version": { "type": "string" },
-+        "schema_version": { "type": "string" },
-+        "paper_edition": { "type": "string" },
-+        "target_stack": { "type": "string" }
-+      },
-+      "additionalProperties": false
-+    },
-     "decision": {
-       "type": "object",
--      "required": ["status", "minimum_score", "passed"],
-+      "required": ["status", "minimum_score", "passed", "hard_findings", "soft_findings"],
-       "properties": {
-         "status": { "enum": ["pass", "fail", "advisory"] },
-         "minimum_score": { "type": "integer" },
--        "passed": { "type": "boolean" }
-+        "passed": { "type": "boolean" },
-+        "hard_findings": { "type": "integer", "minimum": 0 },
-+        "soft_findings": { "type": "integer", "minimum": 0 },
-+        "ratchet": {
-+          "type": "object",
-+          "required": ["baseline_score", "allowed_drop", "passed"],
-+          "properties": {
-+            "baseline_score": { "type": "integer" },
-+            "allowed_drop": { "type": "integer" },
-+            "passed": { "type": "boolean" }
-+          },
-+          "additionalProperties": false
-+        }
-       }
-     },
+The standard brief defines the prime directive, hard blocks, stable rule IDs through `HLT-021`, proof lane vocabulary, audit output requirements, repair receipt expectations, and master-plan behavior. 
 
-diff --git a/schemas/security-evidence.schema.json b/schemas/security-evidence.schema.json
---- a/schemas/security-evidence.schema.json
-+++ b/schemas/security-evidence.schema.json
-@@
-           "tool": { "type": "string" },
-           "status": { "enum": ["ran", "skipped", "failed"] },
-           "exit_code": { "type": "integer" },
-           "advisory": { "type": "boolean" },
-+          "required": { "type": "boolean" },
-           "stderr_excerpt": { "type": "string", "maxLength": 500 },
-           "finding_count": { "type": "integer", "minimum": 0 },
-           "highest_severity": { "enum": ["critical", "high", "medium", "low", "ok", "none"] },
+The full standard defines the adoption contract, hard gates, LOC limits, dependency direction, generated zones, testing doctrine, browser/UX proof, agent-friendly exceptions, CI requirements, failure catalog, naming rules, token minimization, tool-specific instructions, and version policy. 
 
-diff --git a/crates/jankurai/tests/report_compatibility_guard.rs b/crates/jankurai/tests/report_compatibility_guard.rs
-new file mode 100644
---- /dev/null
-+++ b/crates/jankurai/tests/report_compatibility_guard.rs
-@@
-+use serde_json::Value;
-+use std::fs;
-+use std::path::{Path, PathBuf};
-+use std::process::Command;
-+
-+fn repo_root() -> PathBuf {
-+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-+        .join("..")
-+        .join("..")
-+}
-+
-+fn run_audit(out_dir: &Path) -> Value {
-+    let repo = repo_root();
-+    let json = out_dir.join("repo-score.json");
-+    let md = out_dir.join("repo-score.md");
-+    let sarif = out_dir.join("jankurai.sarif");
-+    let junit = out_dir.join("jankurai.junit.xml");
-+    let summary = out_dir.join("summary.md");
-+    let repair_queue = out_dir.join("repair-queue.jsonl");
-+
-+    let output = Command::new(env!("CARGO_BIN_EXE_jankurai"))
-+        .arg("audit")
-+        .arg(&repo)
-+        .arg("--json")
-+        .arg(&json)
-+        .arg("--md")
-+        .arg(&md)
-+        .arg("--sarif")
-+        .arg(&sarif)
-+        .arg("--junit")
-+        .arg(&junit)
-+        .arg("--github-step-summary")
-+        .arg(&summary)
-+        .arg("--repair-queue-jsonl")
-+        .arg(&repair_queue)
-+        .output()
-+        .expect("run jankurai audit compatibility fixture");
-+
-+    assert!(
-+        output.status.success(),
-+        "audit command failed\nstdout:\n{}\nstderr:\n{}",
-+        String::from_utf8_lossy(&output.stdout),
-+        String::from_utf8_lossy(&output.stderr)
-+    );
-+
-+    serde_json::from_str(&fs::read_to_string(json).expect("read repo score json"))
-+        .expect("repo score json parses")
-+}
-+
-+fn assert_required_object_key(value: &Value, key: &str) {
-+    assert!(
-+        value.get(key).is_some(),
-+        "expected repo score key `{key}` to be present"
-+    );
-+    assert!(
-+        !value.get(key).unwrap().is_null(),
-+        "expected repo score key `{key}` not to be null"
-+    );
-+}
-+
-+#[test]
-+fn repo_score_public_contract_keeps_required_fields() {
-+    let tmp = tempfile::tempdir().unwrap();
-+    let report = run_audit(tmp.path());
-+
-+    for key in [
-+        "report_fingerprint",
-+        "input_fingerprint",
-+        "policy_fingerprint",
-+        "manifest_fingerprints",
-+        "dirty_worktree",
-+        "generated_at",
-+        "schema_url",
-+        "standard",
-+        "standard_version",
-+        "auditor_version",
-+        "schema_version",
-+        "paper_edition",
-+        "target_stack_id",
-+        "target_stack",
-+        "repo",
-+        "scope",
-+        "score",
-+        "raw_score",
-+        "decision",
-+        "caps_applied",
-+        "hard_rules",
-+        "dimensions",
-+        "ux_qa",
-+        "security_evidence",
-+        "boundaries",
-+        "findings",
-+        "agent_fix_queue",
-+    ] {
-+        assert_required_object_key(&report, key);
-+    }
-+
-+    assert_eq!(report["schema_url"], "schemas/repo-score.schema.json");
-+    assert_eq!(report["standard"], "jankurai");
-+    assert_eq!(report["standard_version"], "0.4.0");
-+    assert_eq!(report["auditor_version"], "0.4.0");
-+    assert_eq!(report["schema_version"], "1.2.0");
-+    assert_eq!(report["paper_edition"], "2026.05-ed3");
-+    assert_eq!(
-+        report["target_stack_id"],
-+        "rust-ts-vite-react-postgres-bounded-python"
-+    );
-+
-+    assert!(
-+        report["scope"]["mode"] == "full" || report["scope"]["mode"] == "changed",
-+        "scope.mode must remain a stable routing discriminator"
-+    );
-+    assert!(
-+        report["dimensions"].as_array().is_some_and(|items| !items.is_empty()),
-+        "repo score should include at least one dimension"
-+    );
-+    assert!(
-+        report["hard_rules"].as_array().is_some_and(|items| !items.is_empty()),
-+        "repo score should include hard rule caps"
-+    );
-+
-+    if let Some(findings) = report["findings"].as_array() {
-+        for finding in findings.iter().take(10) {
-+            for key in [
-+                "severity",
-+                "category",
-+                "path",
-+                "problem",
-+                "agent_fix",
-+                "evidence",
-+                "check_id",
-+                "hardness",
-+                "confidence",
-+                "evidence_kind",
-+                "rerun_command",
-+                "fingerprint",
-+            ] {
-+                assert!(
-+                    finding.get(key).is_some(),
-+                    "finding missing stable key `{key}`: {finding}"
-+                );
-+            }
-+        }
-+    }
-+
-+    if let Some(queue) = report["agent_fix_queue"].as_array() {
-+        for item in queue.iter().take(10) {
-+            for key in ["path", "priority", "task", "why"] {
-+                assert!(
-+                    item.get(key).is_some(),
-+                    "repair queue item missing stable key `{key}`: {item}"
-+                );
-+            }
-+        }
-+    }
-+}
-+
-+#[test]
-+fn sidecar_report_exports_stay_semantically_parseable() {
-+    let tmp = tempfile::tempdir().unwrap();
-+    let _report = run_audit(tmp.path());
-+
-+    let md = fs::read_to_string(tmp.path().join("repo-score.md")).unwrap();
-+    for heading in [
-+        "# jankurai Repo Score",
-+        "## Hard Rule Caps",
-+        "## Dimensions",
-+        "## Findings",
-+        "## Agent Fix Queue",
-+    ] {
-+        assert!(md.contains(heading), "markdown missing heading `{heading}`");
-+    }
-+
-+    let sarif: Value =
-+        serde_json::from_str(&fs::read_to_string(tmp.path().join("jankurai.sarif")).unwrap())
-+            .expect("SARIF output parses as JSON");
-+    assert_eq!(sarif["version"], "2.1.0");
-+    assert_eq!(sarif["runs"][0]["tool"]["driver"]["name"], "jankurai");
-+    assert!(
-+        sarif["runs"][0]["results"].as_array().is_some(),
-+        "SARIF results must remain an array"
-+    );
-+
-+    let junit = fs::read_to_string(tmp.path().join("jankurai.junit.xml")).unwrap();
-+    assert!(
-+        junit.starts_with("<testsuite name=\"jankurai\""),
-+        "JUnit output must keep the testsuite envelope"
-+    );
-+    assert!(
-+        junit.contains("<testcase") || junit.contains("<failure"),
-+        "JUnit output should expose testcase or failure records"
-+    );
-+
-+    let summary = fs::read_to_string(tmp.path().join("summary.md")).unwrap();
-+    assert!(summary.contains("### jankurai"));
-+    assert!(summary.contains("agent_fix_queue"));
-+
-+    let repair_queue = fs::read_to_string(tmp.path().join("repair-queue.jsonl")).unwrap();
-+    for line in repair_queue.lines().filter(|line| !line.trim().is_empty()) {
-+        let item: Value = serde_json::from_str(line).expect("repair queue JSONL line parses");
-+        for key in ["path", "priority", "task", "why"] {
-+            assert!(
-+                item.get(key).is_some(),
-+                "repair queue JSONL item missing key `{key}`: {item}"
-+            );
-+        }
-+    }
-+}
-+
-+#[test]
-+fn artifact_contract_matrix_names_public_phase_01_surfaces() {
-+    let repo = repo_root();
-+    let matrix =
-+        fs::read_to_string(repo.join("docs/artifact-contracts.md")).expect("artifact matrix exists");
-+
-+    for expected in [
-+        "agent/repo-score.json",
-+        "agent/repo-score.md",
-+        "target/jankurai/jankurai.sarif",
-+        "target/jankurai/repair-queue.jsonl",
-+        "target/jankurai/security/evidence.json",
-+        "target/jankurai/receipts/",
-+        "agent/owner-map.json",
-+        "agent/test-map.json",
-+        "agent/generated-zones.toml",
-+        "agent/proof-lanes.toml",
-+        "agent/standard-version.toml",
-+    ] {
-+        assert!(
-+            matrix.contains(expected),
-+            "artifact contract matrix must name `{expected}`"
-+        );
-+    }
-+}
-+
-diff --git a/crates/jankurai/tests/security_lane_wrapper.rs b/crates/jankurai/tests/security_lane_wrapper.rs
-new file mode 100644
---- /dev/null
-+++ b/crates/jankurai/tests/security_lane_wrapper.rs
-@@
-+use serde_json::Value;
-+use std::fs;
-+use std::process::Command;
-+
-+#[test]
-+fn security_run_records_structured_tool_steps_from_wrapper() {
-+    let tmp = tempfile::tempdir().unwrap();
-+    let repo = tmp.path();
-+    fs::create_dir_all(repo.join("tools")).unwrap();
-+    fs::write(
-+        repo.join("tools/security-lane.sh"),
-+        r#"#!/usr/bin/env bash
-+set -uo pipefail
-+echo 'jankurai-security-step={"label":"secret-scan","shell_command":"gitleaks detect --source . --redact --no-banner","tool":"gitleaks","status":"skipped","advisory":true,"required":true,"normalized_decision":"review"}'
-+"#,
-+    )
-+    .unwrap();
-+
-+    let out = repo.join("target/jankurai/security/evidence.json");
-+    let output = Command::new(env!("CARGO_BIN_EXE_jankurai"))
-+        .arg("security")
-+        .arg("run")
-+        .arg(repo)
-+        .arg("--script")
-+        .arg("tools/security-lane.sh")
-+        .arg("--out")
-+        .arg(&out)
-+        .output()
-+        .expect("run security wrapper");
-+
-+    assert!(
-+        output.status.success(),
-+        "security wrapper failed\nstdout:\n{}\nstderr:\n{}",
-+        String::from_utf8_lossy(&output.stdout),
-+        String::from_utf8_lossy(&output.stderr)
-+    );
-+
-+    let evidence: Value =
-+        serde_json::from_str(&fs::read_to_string(out).unwrap()).expect("security evidence parses");
-+    assert_eq!(evidence["lane"], "security");
-+    assert_eq!(evidence["wrapper"]["kind"], "bash_script");
-+    assert_eq!(evidence["commands"][0]["label"], "secret-scan");
-+    assert_eq!(evidence["commands"][0]["tool"], "gitleaks");
-+    assert_eq!(evidence["commands"][0]["status"], "skipped");
-+    assert_eq!(evidence["commands"][0]["required"], true);
-+    assert_eq!(evidence["commands"][0]["normalized_decision"], "review");
-+}
-+
-diff --git a/crates/jankurai/tests/schema_contracts.rs b/crates/jankurai/tests/schema_contracts.rs
---- a/crates/jankurai/tests/schema_contracts.rs
-+++ b/crates/jankurai/tests/schema_contracts.rs
-@@
-     assert_eq!(
-         security_evidence["$id"],
-         "https://jankurai.dev/schemas/security-evidence.schema.json"
-     );
-     assert_eq!(security_evidence["properties"]["lane"]["const"], "security");
-+    assert!(security_evidence["properties"]["commands"]["items"]["properties"]
-+        .get("required")
-+        .is_some());
-@@
-     assert_eq!(
-         repo_score["$id"],
-         "https://jankurai.dev/schemas/repo-score.schema.json"
-     );
-+    let rs_required = repo_score["required"].as_array().unwrap();
-+    for key in [
-+        "paper_edition",
-+        "target_stack_id",
-+        "target_stack",
-+        "repo",
-+        "scope",
-+        "caps_applied",
-+        "hard_rules",
-+        "ux_qa",
-+        "security_evidence",
-+        "boundaries",
-+    ] {
-+        assert!(
-+            rs_required.iter().any(|value| value == key),
-+            "repo-score schema must require stable public field `{key}`"
-+        );
-+    }
-+    assert!(repo_score["$defs"].get("scope").is_some());
-+    assert!(repo_score["$defs"].get("dimension").is_some());
-+    assert!(repo_score["$defs"].get("hardRule").is_some());
-+    assert!(repo_score["$defs"].get("gitSummary").is_some());
-+    assert!(repo_score["$defs"].get("policySummary").is_some());
-     assert!(repo_score["properties"].get("ux_qa").is_some());
-     assert_eq!(
-         repo_score["properties"]["ux_qa"]["$ref"],
-         "#/$defs/uxQaReadiness"
+The master plan already requires planner-grade handoffs with sections for objective, read-first files, ownership, current state, implementation steps, hard parts, validation, receipts, and parallel work packets. It also defines proof-routing commands and phase log format. 
 
-diff --git a/docs/artifact-contracts.md b/docs/artifact-contracts.md
-new file mode 100644
---- /dev/null
-+++ b/docs/artifact-contracts.md
-@@
-+# jankurai Artifact Contracts
-+
-+Status: current
-+Owner: standard
-+Last reviewed: 2026-05-03
-+Applies to: Phase 01 standard stabilization, audit exports, security evidence, proof receipts, and agent control files.
-+
-+This document is the Phase 01 contract matrix for machine-readable and generated-adjacent artifacts. It separates source truth, generated evidence, schema validation, semantic compatibility checks, and documented exemptions.
-+
-+The rule is simple: every artifact must either have a JSON schema, a semantic compatibility guard, or a documented reason why schema validation is not the right contract.
-+
-+## Contract Matrix
-+
-+| Artifact | Kind | Source of truth | Contract | Producer | Phase 01 validation |
-+| --- | --- | --- | --- | --- | --- |
-+| `agent/repo-score.json` | canonical score evidence | generated from audit inputs | `schemas/repo-score.schema.json` | `jankurai audit` / `just score` | `cargo test -p jankurai --test report_compatibility_guard`; `just score` |
-+| `agent/repo-score.md` | canonical human review score | generated from same report as JSON | semantic Markdown headings and sections | `jankurai audit` / `just score` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/fast-score.json` | volatile fast-lane score | generated from audit inputs | `schemas/repo-score.schema.json` | `just fast` | `just fast` |
-+| `target/jankurai/fast-score.md` | volatile fast-lane review surface | generated from same report as JSON | semantic Markdown headings and sections | `just fast` | `just fast` |
-+| `target/jankurai/jankurai.sarif` | volatile CI/security-analysis export | generated from report findings | SARIF 2.1.0 envelope plus semantic guard | `jankurai audit --sarif` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/jankurai.junit.xml` | volatile CI test-style export | generated from report findings | JUnit-ish XML envelope plus semantic guard | `jankurai audit --junit` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/summary.md` | volatile GitHub step summary | generated from report | semantic summary headings | `jankurai audit --github-step-summary` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/repair-queue.jsonl` | volatile repair queue export | generated from `agent_fix_queue` | each JSONL line validates as `schemas/repair-queue.schema.json` shape | `jankurai audit --repair-queue-jsonl` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/security/evidence.json` | volatile security lane evidence | generated from `jankurai security run` | `schemas/security-evidence.schema.json` | `just security`; CI security lane | `cargo test -p jankurai --test security_lane_wrapper`; `jankurai doctor` |
-+| `target/jankurai/security/*.log` | volatile command log | generated from security wrapper stdout/stderr | documented log sidecar, not schema-bound | `jankurai security run` | cited by `security/evidence.json` `log_path` |
-+| `target/jankurai/receipts/doctor-*.json` | volatile doctor receipt | generated from doctor diagnostics | `schemas/doctor-receipt.schema.json` | `jankurai doctor` | `jankurai doctor --fail-on high` |
-+| `target/jankurai/receipts/init-*.json` | volatile init receipt | generated from init flow | `schemas/init-receipt.schema.json` | `jankurai init` | init command validation |
-+| `target/jankurai/proof-receipts/*.json` | volatile proof lane receipt | generated from proof runner | `schemas/proof-receipt.schema.json` | `jankurai prove` | `jankurai doctor`; proof lane tests |
-+| `target/jankurai/evidence-index.json` | volatile evidence index | generated from proof runner | `schemas/evidence-index.schema.json` | `jankurai prove` | `jankurai doctor`; proof lane tests |
-+| `target/jankurai/context-pack.json` | volatile agent context pack | generated from context-pack command | `schemas/context-pack.schema.json` | `jankurai context-pack` | `jankurai doctor` when present |
-+| `target/jankurai/repair-plan.json` | volatile agent repair plan | generated from repair-plan command | `schemas/repair-plan.schema.json` | `jankurai repair-plan` | `jankurai doctor` when present |
-+| `target/jankurai/ux-qa.json` | volatile rendered UX QA report | generated by UX QA runtime | `schemas/ux-qa.schema.json` | `jankurai ux audit` / UX runtime | `jankurai doctor` when present |
-+| `target/jankurai/migration-report.json` | volatile migration analysis | generated from migration analyzer | `schemas/migration-report.schema.json` | `jankurai migrate --analyze` | `jankurai doctor` when present |
-+| `target/jankurai/migration-plan.json` | volatile migration plan | generated from migration planner | `schemas/migration-plan.schema.json` | `jankurai migrate` | `jankurai doctor` when present |
-+| `agent/audit-policy.toml` | source policy | maintainer-edited | `schemas/audit-policy.schema.json` once parsed as TOML-to-JSON | maintainers | audit load plus schema smoke workstream |
-+| `agent/boundaries.toml` | source boundary manifest | maintainer-edited | `schemas/boundaries.schema.json` once parsed as TOML-to-JSON | maintainers | `jankurai doctor` |
-+| `agent/security-policy.toml` | source security policy | maintainer-edited | `schemas/security-policy.schema.json` once parsed as TOML-to-JSON | maintainers | `jankurai doctor` |
-+| `agent/ux-qa.toml` | source UX QA policy | maintainer-edited | `schemas/ux-qa-policy.schema.json` once parsed as TOML-to-JSON | maintainers | `jankurai doctor` |
-+| `agent/owner-map.json` | source routing map | maintainer-edited | documented source map; semantic audit checks owner coverage | maintainers | `just score`; `report_compatibility_guard::artifact_contract_matrix_names_public_phase_01_surfaces` |
-+| `agent/test-map.json` | source proof map | maintainer-edited | documented source map; semantic audit checks proof coverage | maintainers | `just score`; `jankurai lane` / `jankurai proof` |
-+| `agent/generated-zones.toml` | source generated-zone manifest | maintainer-edited | documented source map; audit checks generated-zone metadata | maintainers | `just score` |
-+| `agent/proof-lanes.toml` | source proof-lane manifest | maintainer-edited | documented command allowlist; proof runner validates signed commands | maintainers | `jankurai prove`; `jankurai doctor` |
-+| `agent/standard-version.toml` | source version manifest | maintainer-edited | version binding contract | maintainers | `just versions` |
-+
-+## Exemption Policy
-+
-+The source maps `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, and `agent/standard-version.toml` are not generated artifacts. They are durable control-plane source files. Phase 01 treats them as source contracts validated by semantic audit behavior and command wiring rather than by newly mandatory schemas. Later phases may add dedicated schemas, but Phase 01 should not block the v0.4 surface on a schema migration that is not required to stabilize the current release.
-+
-+## Generated Versus Volatile
-+
-+- Tracked source truth lives under `agent/`, `docs/`, `schemas/`, `crates/`, `packages/`, and other routed source directories.
-+- Canonical tracked score evidence remains `agent/repo-score.json` and `agent/repo-score.md`.
-+- Volatile proof, security, doctor, UX, migration, and compatibility evidence lives under `target/jankurai/`.
-+- Generated outputs must be changed through their producer command, never by hand.
-+- Logs are sidecars, not source truth. A log becomes useful only when a JSON receipt points to it.
-+
-+## Phase 01 Closeout Rule
-+
-+Phase 01 is complete only when:
-+
-+1. `schemas/repo-score.schema.json` covers the live public report fields.
-+2. JSON, Markdown, SARIF, JUnit, GitHub summary, and repair queue exports have semantic compatibility tests.
-+3. `just security` writes `target/jankurai/security/evidence.json`.
-+4. `doctor` distinguishes missing optional or non-strict tools from broken repo state.
-+5. Release evidence paths are documented here and in `docs/release-plan.md`.
-+6. No paper or `reference/` paths are changed.
-+
-+## Recommended Closeout Commands
-+
-+```bash
-+cargo test -p jankurai
-+just compat
-+just security
-+cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md
-+just fast
-+just score
-+```
+The CLI model has a rich `Report` shape with report/input/policy fingerprints, manifest fingerprints, version fields, scope, score, decision, git summary, policy summary, proof receipts, hard caps, dimensions, UX/security/boundary summaries, findings, and `agent_fix_queue`. 
 
-diff --git a/docs/README.md b/docs/README.md
---- a/docs/README.md
-+++ b/docs/README.md
-@@
- - `release-plan.md` tracks versioning and rollout.
- - `architecture.md` summarizes this workspace and target architecture.
- - `boundaries.md` summarizes target-stack ownership boundaries.
- - `testing.md` summarizes proof lanes and QA routing.
-+- `artifact-contracts.md` maps machine-readable artifacts to schemas, semantic guards, or documented exemptions.
+The validator already has an `ArtifactSchema` enum covering repo-score, proof, evidence, doctor/init receipts, security, context pack, repair, migration, benchmark, certification, governance, public evidence, cells, audit policy, owner/test maps, generated zones, proof lanes, standard version, findings, and repair queue items. 
 
-diff --git a/docs/testing.md b/docs/testing.md
---- a/docs/testing.md
-+++ b/docs/testing.md
-@@
--- `jankurai security run` runs `tools/security-lane.sh` (override with `--script`) via `bash -lc`, writes a combined log under `target/jankurai/security/`, and emits evidence JSON validated against `schemas/security-evidence.schema.json`. Pass `--strict` to enforce `JANKURAI_SECURITY_STRICT=1` in the child environment (required tools must be present; advisory tools may still be skipped by the script depending on its logic).
-+- `just security` runs `jankurai security run`, which runs `tools/security-lane.sh` (override with `--script`) via `bash -lc`, writes a combined log under `target/jankurai/security/`, and emits evidence JSON validated against `schemas/security-evidence.schema.json`. The shell wrapper emits `jankurai-security-step=` JSON records so the evidence envelope can distinguish `ran`, `skipped`, and `failed` tool steps. Pass `--strict` to enforce `JANKURAI_SECURITY_STRICT=1` in the child environment; required tools block in strict mode, while advisory tools remain review evidence.
-@@
--The security lane is wrapper-aware: `tools/security-lane.sh` is the canonical shell entrypoint for secret scanning, dependency review, SBOM, and workflow lint checks.
-+The security lane is wrapper-aware: `tools/security-lane.sh` is the canonical shell entrypoint for secret scanning, dependency review, SBOM, and workflow lint checks, but `jankurai security run` is the canonical evidence producer. CI and local release evidence should call `just security` rather than running the shell script directly.
-+
-+Phase 01 artifact contracts live in `docs/artifact-contracts.md`. That file is the source of truth for whether an artifact is schema-validated, semantically guarded, volatile proof, or documented source-map exemption.
+The report compatibility test already does real work: it runs a full audit export, validates `repo-score.json`, checks version fields against `agent/standard-version.toml`, verifies SARIF/JUnit/GitHub summary/Markdown sections, validates every `findings[]` entry against `finding.schema.json`, validates repair queue JSONL lines, and checks issue export JSONL. 
 
-diff --git a/docs/release-plan.md b/docs/release-plan.md
---- a/docs/release-plan.md
-+++ b/docs/release-plan.md
-@@
- ## Receipt Convention
- 
- Operational receipts are volatile evidence, not source material.
- 
- - `jankurai doctor` and `jankurai init` write receipts under `target/jankurai/receipts/<action>-<unix-seconds>.json`
-+- `jankurai security run` writes security evidence to `target/jankurai/security/evidence.json` and logs under `target/jankurai/security/`
- - release closeouts should cite the command, changed paths, and the receipt path
- - the canonical score artifacts remain `agent/repo-score.json` and `agent/repo-score.md`
- - `target/jankurai/` is the shared scratch root for audit, doctor, init, UX, and future proof outputs
- 
- Use those receipts to make phase handoffs and release evidence reproducible without promoting them into tracked source files.
-+
-+Phase 01 compatibility evidence is the minimum release bundle for the v0.4 surface:
-+
-+| Evidence | Command | Artifact |
-+| --- | --- | --- |
-+| report compatibility | `cargo test -p jankurai --test report_compatibility_guard` | test output |
-+| schema parse and linkage | `cargo test -p jankurai --test schema_contracts` | test output |
-+| security wrapper evidence | `just security` | `target/jankurai/security/evidence.json` |
-+| doctor receipt | `cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md` | `target/jankurai/receipts/doctor-*.json` |
-+| fast audit evidence | `just fast` | `target/jankurai/fast-score.json`, `target/jankurai/fast-score.md` |
-+| canonical score evidence | `just score` | `agent/repo-score.json`, `agent/repo-score.md` |
-+
-+The artifact-to-schema matrix lives in `docs/artifact-contracts.md`.
+The artifact index already maps major durable artifacts to schemas or guards, including repo-score JSON/Markdown, SARIF, JUnit, GitHub summary, issues export, owner/test maps, generated zones, proof lanes, standard version, audit/security/UX/boundary policies, security evidence, Phase 12 artifacts, and proof/repair/cell/migration artifacts. 
 
-diff --git a/tips/phases/01-standard-stabilization.md b/tips/phases/01-standard-stabilization.md
---- a/tips/phases/01-standard-stabilization.md
-+++ b/tips/phases/01-standard-stabilization.md
-@@
- Known Phase 01 gaps to verify or close:
- 
- - schema coverage is incomplete for the full agent artifact surface
- - report compatibility needs semantic tests so JSON and Markdown changes stay intentional
- - doctor and security lane diagnostics need to distinguish missing tools from broken repo state
-@@
- - new durable paths must be routed through owner/test maps when they are introduced
- - this docs-only plan edit must not touch the paper
-+
-+Implementation-closeout definition:
-+
-+- `schemas/repo-score.schema.json` requires the live public report fields emitted by `crates/jankurai/src/model.rs`.
-+- report compatibility tests cover JSON, Markdown, SARIF, JUnit, GitHub summary, and repair queue JSONL.
-+- `just security` and CI run through `jankurai security run` so `target/jankurai/security/evidence.json` is produced.
-+- `tools/security-lane.sh` emits per-tool structured step evidence without adding new required dependencies.
-+- `doctor` reports missing security tools as missing prerequisites, not as broken repository state, unless strict mode makes a required tool blocking.
-+- `docs/artifact-contracts.md` names every Phase 01 artifact surface and maps it to a schema, semantic guard, or documented source-map exemption.
-+- No `paper/` or `reference/` files are changed.
-+- New durable paths remain covered by existing `docs/`, `schemas/`, `crates/jankurai/`, `.github/`, `Justfile`, `tools/`, and `tips/` owner/test routes.
+The CI workflow already runs versions, audit with SARIF/GitHub summary/repair queue, security evidence, Phase 12 public evidence, Phase 13 optimization/exception expiry, artifact upload, UX QA build/test, and paper build. 
 
-diff --git a/docs/artifact-contracts.md b/docs/artifact-contracts.md
-new file mode 100644
---- /dev/null
-+++ b/docs/artifact-contracts.md
-@@
-+# jankurai Artifact Contracts
-+
-+Status: current
-+Owner: standard
-+Last reviewed: 2026-05-03
-+Applies to: Phase 01 standard stabilization, audit exports, security evidence, proof receipts, and agent control files.
-+
-+This document is the Phase 01 contract matrix for machine-readable and generated-adjacent artifacts. It separates source truth, generated evidence, schema validation, semantic compatibility checks, and documented exemptions.
-+
-+The rule is simple: every artifact must either have a JSON schema, a semantic compatibility guard, or a documented reason why schema validation is not the right contract.
-+
-+## Contract Matrix
-+
-+| Artifact | Kind | Source of truth | Contract | Producer | Phase 01 validation |
-+| --- | --- | --- | --- | --- | --- |
-+| `agent/repo-score.json` | canonical score evidence | generated from audit inputs | `schemas/repo-score.schema.json` | `jankurai audit` / `just score` | `cargo test -p jankurai --test report_compatibility_guard`; `just score` |
-+| `agent/repo-score.md` | canonical human review score | generated from same report as JSON | semantic Markdown headings and sections | `jankurai audit` / `just score` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/fast-score.json` | volatile fast-lane score | generated from audit inputs | `schemas/repo-score.schema.json` | `just fast` | `just fast` |
-+| `target/jankurai/fast-score.md` | volatile fast-lane review surface | generated from same report as JSON | semantic Markdown headings and sections | `just fast` | `just fast` |
-+| `target/jankurai/jankurai.sarif` | volatile CI/security-analysis export | generated from report findings | SARIF 2.1.0 envelope plus semantic guard | `jankurai audit --sarif` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/jankurai.junit.xml` | volatile CI test-style export | generated from report findings | JUnit-ish XML envelope plus semantic guard | `jankurai audit --junit` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/summary.md` | volatile GitHub step summary | generated from report | semantic summary headings | `jankurai audit --github-step-summary` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/repair-queue.jsonl` | volatile repair queue export | generated from `agent_fix_queue` | each JSONL line validates as `schemas/repair-queue.schema.json` shape | `jankurai audit --repair-queue-jsonl` | `report_compatibility_guard::sidecar_report_exports_stay_semantically_parseable` |
-+| `target/jankurai/security/evidence.json` | volatile security lane evidence | generated from `jankurai security run` | `schemas/security-evidence.schema.json` | `just security`; CI security lane | `cargo test -p jankurai --test security_lane_wrapper`; `jankurai doctor` |
-+| `target/jankurai/security/*.log` | volatile command log | generated from security wrapper stdout/stderr | documented log sidecar, not schema-bound | `jankurai security run` | cited by `security/evidence.json` `log_path` |
-+| `target/jankurai/receipts/doctor-*.json` | volatile doctor receipt | generated from doctor diagnostics | `schemas/doctor-receipt.schema.json` | `jankurai doctor` | `jankurai doctor --fail-on high` |
-+| `target/jankurai/receipts/init-*.json` | volatile init receipt | generated from init flow | `schemas/init-receipt.schema.json` | `jankurai init` | init command validation |
-+| `target/jankurai/proof-receipts/*.json` | volatile proof lane receipt | generated from proof runner | `schemas/proof-receipt.schema.json` | `jankurai prove` | `jankurai doctor`; proof lane tests |
-+| `target/jankurai/evidence-index.json` | volatile evidence index | generated from proof runner | `schemas/evidence-index.schema.json` | `jankurai prove` | `jankurai doctor`; proof lane tests |
-+| `target/jankurai/context-pack.json` | volatile agent context pack | generated from context-pack command | `schemas/context-pack.schema.json` | `jankurai context-pack` | `jankurai doctor` when present |
-+| `target/jankurai/repair-plan.json` | volatile agent repair plan | generated from repair-plan command | `schemas/repair-plan.schema.json` | `jankurai repair-plan` | `jankurai doctor` when present |
-+| `target/jankurai/ux-qa.json` | volatile rendered UX QA report | generated by UX QA runtime | `schemas/ux-qa.schema.json` | `jankurai ux audit` / UX runtime | `jankurai doctor` when present |
-+| `target/jankurai/migration-report.json` | volatile migration analysis | generated from migration analyzer | `schemas/migration-report.schema.json` | `jankurai migrate --analyze` | `jankurai doctor` when present |
-+| `target/jankurai/migration-plan.json` | volatile migration plan | generated from migration planner | `schemas/migration-plan.schema.json` | `jankurai migrate` | `jankurai doctor` when present |
-+| `agent/audit-policy.toml` | source policy | maintainer-edited | `schemas/audit-policy.schema.json` once parsed as TOML-to-JSON | maintainers | audit load plus schema smoke workstream |
-+| `agent/boundaries.toml` | source boundary manifest | maintainer-edited | `schemas/boundaries.schema.json` once parsed as TOML-to-JSON | maintainers | `jankurai doctor` |
-+| `agent/security-policy.toml` | source security policy | maintainer-edited | `schemas/security-policy.schema.json` once parsed as TOML-to-JSON | maintainers | `jankurai doctor` |
-+| `agent/ux-qa.toml` | source UX QA policy | maintainer-edited | `schemas/ux-qa-policy.schema.json` once parsed as TOML-to-JSON | maintainers | `jankurai doctor` |
-+| `agent/owner-map.json` | source routing map | maintainer-edited | documented source map; semantic audit checks owner coverage | maintainers | `just score`; `report_compatibility_guard::artifact_contract_matrix_names_public_phase_01_surfaces` |
-+| `agent/test-map.json` | source proof map | maintainer-edited | documented source map; semantic audit checks proof coverage | maintainers | `just score`; `jankurai lane` / `jankurai proof` |
-+| `agent/generated-zones.toml` | source generated-zone manifest | maintainer-edited | documented source map; audit checks generated-zone metadata | maintainers | `just score` |
-+| `agent/proof-lanes.toml` | source proof-lane manifest | maintainer-edited | documented command allowlist; proof runner validates signed commands | maintainers | `jankurai prove`; `jankurai doctor` |
-+| `agent/standard-version.toml` | source version manifest | maintainer-edited | version binding contract | maintainers | `just versions` |
-+
-+## Exemption Policy
-+
-+The source maps `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, and `agent/standard-version.toml` are not generated artifacts. They are durable control-plane source files. Phase 01 treats them as source contracts validated by semantic audit behavior and command wiring rather than by newly mandatory schemas. Later phases may add dedicated schemas, but Phase 01 should not block the v0.4 surface on a schema migration that is not required to stabilize the current release.
-+
-+## Generated Versus Volatile
-+
-+- Tracked source truth lives under `agent/`, `docs/`, `schemas/`, `crates/`, `packages/`, and other routed source directories.
-+- Canonical tracked score evidence remains `agent/repo-score.json` and `agent/repo-score.md`.
-+- Volatile proof, security, doctor, UX, migration, and compatibility evidence lives under `target/jankurai/`.
-+- Generated outputs must be changed through their producer command, never by hand.
-+- Logs are sidecars, not source truth. A log becomes useful only when a JSON receipt points to it.
-+
-+## Phase 01 Closeout Rule
-+
-+Phase 01 is complete only when:
-+
-+1. `schemas/repo-score.schema.json` covers the live public report fields.
-+2. JSON, Markdown, SARIF, JUnit, GitHub summary, and repair queue exports have semantic compatibility tests.
-+3. `just security` writes `target/jankurai/security/evidence.json`.
-+4. `doctor` distinguishes missing optional or non-strict tools from broken repo state.
-+5. Release evidence paths are documented here and in `docs/release-plan.md`.
-+6. No paper or `reference/` paths are changed.
-+
-+## Recommended Closeout Commands
-+
-+```bash
-+cargo test -p jankurai
-+just compat
-+just security
-+cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md
-+just fast
-+just score
-+```
-````
+That is a strong base. The hardening work is not “add a bunch of features.” It is **bind the pieces together so drift is mechanically rejected**.
 
-One important cleanup before applying: the patch block above contains `docs/artifact-contracts.md` twice because I included it once in the main flow and once in a duplicated final hunk for easy copy-review. When applying with `git apply`, keep only the **first** `diff --git a/docs/artifact-contracts.md...` block and delete the duplicate second one. Everything else is intended as one Phase 01 patch.
+---
 
-### Validation after applying
+# 3. The remaining Phase 01 risks I would close
 
-Run this exact closeout lane:
+## Risk A — Standard/rule drift
+
+`agent/JANKURAI_STANDARD.md` lists stable rule IDs through `HLT-021`, including CI hardening and destructive migration.  The fetched full standard’s stable rule table stops earlier, at `HLT-019`, while later sections discuss many related gates.  That is a classic Phase 01 hardening problem: agents reading different standard files may form different expectations.
+
+**Fix:** create a single machine-readable rule registry and make both standard docs derive from or get tested against it.
+
+## Risk B — Proof lane vocabulary drift
+
+The standard brief says required lanes include `fast`, `contract`, `db`, `db-migration-analyze`, `web`, `e2e`, `security`, `observability`, `audit`, and `release`.  `docs/testing.md` lists a similar but not identical set and uses `full`.  `agent/proof-lanes.toml` says the **live minimal lane set** is `fast`, `audit`, `paper`, `security`, `full`, plus repo-specific helper lanes. 
+
+That is not necessarily wrong, but it must be explicit: live lanes, aliases, target lanes, and roadmap lanes need a single compatibility story.
+
+**Fix:** define lane classes: `canonical`, `alias`, `repo-local`, and `roadmap`. Then test `agent/test-map.json` commands against `agent/proof-lanes.toml`.
+
+## Risk C — Version constants can drift
+
+`model.rs` hardcodes `STANDARD_VERSION`, `AUDITOR_VERSION`, `SCHEMA_VERSION`, `PAPER_EDITION`, and target stack constants.  `agent/standard-version.toml` contains the same version bindings and artifact bindings.  The compatibility guard already checks emitted report fields against the manifest, which is excellent. 
+
+But hardcoding means future drift is still possible until the check catches it. Hardened Phase 01 should either load the manifest into the report path or generate the constants from it.
+
+**Fix:** make `agent/standard-version.toml` the source of truth for report versions, with fallback only in tests/fixtures.
+
+## Risk D — Artifact contract index can drift
+
+`ArtifactSchema` is in Rust code, while `docs/artifact-contracts.md` is prose.   Today, humans have to remember to update both.
+
+**Fix:** add a machine-readable artifact catalog or a test that checks every `ArtifactSchema` variant appears in the artifact index or a documented exemption list.
+
+## Risk E — Doctor receipts are too thin for hardened status
+
+`doctor` checks many important things, validates control-plane files, validates proof/security/UX/migration artifacts when present, writes receipts, and distinguishes missing security tools as low/advisory.  But `doctor-receipt.schema.json` currently only requires `check_id`, `severity`, `path`, and `message` per diagnostic. 
+
+For hardened Phase 01, doctor diagnostics should carry enough structure for an agent to repair or skip safely: category, class, retryability, owner, lane, docs URL, install hint, expected artifact, and whether the issue is a repo defect or local environment condition.
+
+**Fix:** expand doctor diagnostics and receipt schema without breaking compatibility.
+
+## Risk F — Security per-tool evidence depends on `python3`
+
+The security wrapper parses `jankurai-security-step=` JSON lines into per-tool evidence.  But the shell script emits those JSON lines only when `python3` is available; otherwise the envelope remains valid but falls back to wrapper-level evidence.  The docs acknowledge this. 
+
+For hardened Phase 01, per-tool security evidence should not silently degrade because Python is missing.
+
+**Fix:** move per-tool orchestration into Rust or emit JSON from shell without Python dependency.
+
+## Risk G — Audit output examples and target stack identity need tightening
+
+`model.rs` distinguishes `target_stack_id` from a human-readable `target_stack`.  `agent/standard-version.toml` uses `target_stack = "rust-ts-vite-react-postgres-bounded-python"`.  `docs/release-plan.md` shows an example where `target_stack` is also the stack ID string. 
+
+This is small, but Phase 01 is exactly where small contract inconsistencies should die.
+
+**Fix:** standardize `target_stack_id` as the slug and `target_stack` as the human-readable label everywhere, or explicitly document that manifest `target_stack` maps to report `target_stack_id`.
+
+## Risk H — CLI policy override should be verified
+
+`main.rs` exposes `--policy` on `AuditArgs`.  In the inspected `run_audit_and_write` path, the main flow shows mode, baseline, fail-under, and fail-on handling, but I did not see the policy path being applied in the visible section. Because the fetched file was truncated near the later helper code, this should be verified directly before changing it.
+
+**Fix:** either wire `--policy` to load an alternate audit policy, add a compatibility test for it, or deprecate/remove the argument with a migration note.
+
+---
+
+# 4. Workstream 0 — open the Phase 01 hardening slice correctly
+
+## Objective
+
+Create a Phase 01 hardening slice that does not mix in Phase 02 or Phase 03 behavior. Phase 01 owns contracts, schemas, evidence conventions, and compatibility—not new semantic rules or proof-routing algorithms.
+
+## Read first
+
+Read in this order:
+
+1. `agent/JANKURAI_STANDARD.md`
+2. `docs/agent-native-standard.md`
+3. `agent/MASTER_PLAN.md`
+4. `tips/phases/00-phase-index.md`
+5. `tips/phases/01-standard-stabilization.md`
+6. `docs/artifact-contracts.md`
+7. `docs/phases-feedback-status.md`
+8. `docs/release-plan.md`
+9. `docs/testing.md`
+10. `agent/standard-version.toml`
+11. `agent/proof-lanes.toml`
+12. `agent/test-map.json`
+13. `agent/audit-policy.toml`
+14. `crates/jankurai/src/model.rs`
+15. `crates/jankurai/src/validation.rs`
+16. `crates/jankurai/tests/report_compatibility_guard.rs`
+17. `crates/jankurai/tests/schema_contracts.rs`
+18. `crates/jankurai/src/commands/doctor.rs`
+19. `crates/jankurai/src/commands/security.rs`
+20. `.github/workflows/jankurai.yml`
+
+## First edit
+
+Append a start entry to:
+
+```text
+tips/phases/logs/01-standard-stabilization.log
+```
+
+Use the required log format from `agent/MASTER_PLAN.md`:
+
+```text
+timestamp_utc | actor/tool | phase | action | changed_paths | validation | artifacts | git_sha | residual_risk
+```
+
+The start row should say something like:
+
+```text
+2026-05-04T...Z | agent | 01-standard-stabilization | start-hardening | pending | pending | pending | <git_sha> | promoting Phase 01 from complete to hardened; no generated artifacts by hand
+```
+
+## Stop conditions
+
+Stop immediately if:
+
+* any intended edit touches `paper/`
+* any generated artifact would be hand-edited
+* owner/test routing is missing for a new durable path
+* a schema-breaking report change is needed without migration notes
+* a change requires adding external tools to `just fast`
+* Phase 02 rule behavior or Phase 03 proof-routing behavior starts expanding beyond compatibility hardening
+
+---
+
+# 5. Workstream 1 — canonicalize versions, stack identity, and artifact bindings
+
+## Objective
+
+Make `agent/standard-version.toml` the authoritative version/artifact manifest for Phase 01 contracts.
+
+## Owned paths
+
+```text
+agent/standard-version.toml
+schemas/standard-version.schema.json
+crates/jankurai/src/model.rs
+crates/jankurai/src/versions.rs
+crates/jankurai/tests/report_compatibility_guard.rs
+crates/jankurai/tests/schema_contracts.rs
+docs/release-plan.md
+docs/agent-native-standard.md
+agent/JANKURAI_STANDARD.md
+```
+
+## Implementation steps
+
+### Step 1.1 — introduce a typed manifest loader
+
+Add a `StandardVersionManifest` type, likely in:
+
+```text
+crates/jankurai/src/standard_version.rs
+```
+
+or near `versions.rs` if that is already the manifest-checking module.
+
+Shape:
+
+```rust
+#[derive(Debug, Clone, Deserialize)]
+pub struct StandardVersionManifest {
+    pub standard: String,
+    pub standard_version: String,
+    pub paper_edition: String,
+    pub auditor_version: String,
+    pub schema_version: String,
+    pub target_stack: String,
+    pub published: String,
+    #[serde(default)]
+    pub artifact: Vec<StandardArtifactBinding>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct StandardArtifactBinding {
+    pub id: String,
+    pub path: String,
+    pub kind: String,
+    pub version_field: String,
+    pub version: String,
+    pub source: String,
+    pub command: String,
+    pub generated: bool,
+}
+```
+
+Add:
+
+```rust
+pub fn load_standard_version_manifest(repo: &Path) -> Result<StandardVersionManifest>
+```
+
+Validate it through `validate_standard_version_toml_text`.
+
+### Step 1.2 — stop relying on unverified constants
+
+Right now, `model.rs` hardcodes version constants.  Keep the constants only as defaults, or replace report construction with manifest values.
+
+Preferred hardening approach:
+
+```rust
+let manifest = standard_version::load_standard_version_manifest(root)?;
+report.standard_version = manifest.standard_version;
+report.auditor_version = manifest.auditor_version;
+report.schema_version = manifest.schema_version;
+report.paper_edition = manifest.paper_edition;
+report.target_stack_id = manifest.target_stack;
+report.target_stack = target_stack_label(&manifest.target_stack);
+```
+
+If dynamic loading is too invasive, add a dedicated test:
+
+```rust
+#[test]
+fn model_constants_match_standard_version_manifest()
+```
+
+The compatibility guard already checks the emitted report against the manifest, but a direct constant test gives faster failure and clearer ownership. 
+
+### Step 1.3 — clarify `target_stack` naming
+
+Choose one:
+
+**Option A, best:** manifest uses both fields:
+
+```toml
+target_stack_id = "rust-ts-vite-react-postgres-bounded-python"
+target_stack_label = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service"
+```
+
+Then report fields map directly.
+
+**Option B, lower churn:** keep manifest `target_stack`, but document:
+
+```text
+agent/standard-version.toml target_stack maps to report.target_stack_id.
+report.target_stack is the human-readable label owned by the auditor.
+```
+
+Given the repo is v0.4, Option B is safer unless a schema migration is already planned.
+
+### Step 1.4 — fix docs examples
+
+Update `docs/release-plan.md` so the audit output example does not imply `target_stack` and `target_stack_id` are identical unless that is intentional. The current report model separates them. 
+
+## Acceptance criteria
+
+* `agent/standard-version.toml` validates.
+* Report output version fields match the manifest.
+* `docs/release-plan.md`, `agent/JANKURAI_STANDARD.md`, and `docs/agent-native-standard.md` show the same current version set.
+* The test failure message points to the exact drifting field.
+
+## Validation
 
 ```bash
+cargo test -p jankurai --test report_compatibility_guard
+cargo test -p jankurai --test schema_contracts
+cargo run -p jankurai -- versions
+just fast
+```
+
+---
+
+# 6. Workstream 2 — create a rule registry and eliminate rule ID drift
+
+## Objective
+
+A stable rule ID must not exist in one doc but not another. Every `HLT-*` rule should have one canonical definition.
+
+## Owned paths
+
+```text
+agent/rules.toml                  # new, or agent/audit-policy.toml extension
+schemas/rules.schema.json         # new if separate
+crates/jankurai/src/audit/rules.rs
+crates/jankurai/src/audit/finding_builder.rs
+crates/jankurai/src/audit/mod.rs
+crates/jankurai/tests/schema_contracts.rs
+crates/jankurai/tests/report_compatibility_guard.rs
+docs/agent-native-standard.md
+agent/JANKURAI_STANDARD.md
+docs/testing.md
+docs/artifact-contracts.md
+```
+
+## Implementation steps
+
+### Step 2.1 — add a canonical rule registry
+
+Create:
+
+```text
+agent/rules.toml
+```
+
+Example:
+
+```toml
+schema_version = "1.0.0"
+standard_version = "0.4.0"
+
+[[rule]]
+id = "HLT-001-DEAD-MARKER"
+title = "future-hostile product/runtime marker"
+severity = "high"
+category = "vibe"
+tlr = "maintainability"
+lane = "audit"
+docs_url = "docs/agent-native-standard.md#14-vibe-coding-failure-catalog"
+agent_fix_template = "Replace placeholders with implemented behavior, typed unsupported-state errors, or a tracked exception record."
+
+[[rule]]
+id = "HLT-020-CI-HARDENING-GAP"
+title = "CI workflow permissions, unpinned actions, or proof posture gaps"
+severity = "high"
+category = "security"
+tlr = "security"
+lane = "security"
+docs_url = "docs/agent-native-standard.md#13-ci-audit-requirements"
+agent_fix_template = "Harden workflow permissions, pin trusted actions where required, and emit proof artifacts."
+```
+
+Include all current rules from `HLT-001` through `HLT-021`.
+
+### Step 2.2 — add schema validation
+
+Add:
+
+```text
+schemas/rules.schema.json
+```
+
+Required fields:
+
+```json
+[
+  "schema_version",
+  "standard_version",
+  "rule"
+]
+```
+
+Per rule required fields:
+
+```json
+[
+  "id",
+  "title",
+  "severity",
+  "category",
+  "tlr",
+  "lane",
+  "docs_url",
+  "agent_fix_template"
+]
+```
+
+Enums:
+
+```json
+"severity": ["critical", "high", "medium", "low", "ok"]
+```
+
+`id` pattern:
+
+```json
+"^HLT-[0-9]{3}-[A-Z0-9-]+$"
+```
+
+### Step 2.3 — make emitted findings check against the registry
+
+Every finding with a `rule_id` should be validated against `agent/rules.toml`.
+
+Add a helper:
+
+```rust
+pub fn assert_known_rule_id(repo: &Path, rule_id: &str) -> Result<RuleDefinition>
+```
+
+For runtime audit, do not necessarily fail the audit if a rule is unknown; instead emit a hard compatibility finding. For tests, fail.
+
+### Step 2.4 — test docs parity
+
+Add a test that reads `agent/JANKURAI_STANDARD.md` and `docs/agent-native-standard.md` and checks every registry rule ID appears in both, or appears in an explicit doc exemption list.
+
+This is the exact guard Phase 01 needs because the brief currently includes newer IDs than the fetched full standard table.  
+
+### Step 2.5 — do not expand Phase 02 behavior
+
+This workstream must not add new semantic detections. It only registers and checks the rule IDs already claimed by the standard and auditor.
+
+## Acceptance criteria
+
+* Every `HLT-*` ID in code appears in the registry.
+* Every registry rule appears in the standard docs.
+* Every emitted finding with `rule_id` resolves to severity/category/lane/docs metadata.
+* No docs can claim a stable rule ID that code cannot explain.
+
+## Validation
+
+```bash
+cargo test -p jankurai --test schema_contracts
+cargo test -p jankurai --test report_compatibility_guard
+cargo run -p jankurai -- explain HLT-021-DESTRUCTIVE-MIGRATION
+just fast
+```
+
+---
+
+# 7. Workstream 3 — reconcile proof lane taxonomy
+
+## Objective
+
+Make it impossible for agents to confuse live lanes, target lanes, aliases, and roadmap-only lanes.
+
+## Owned paths
+
+```text
+agent/proof-lanes.toml
+schemas/proof-lanes.schema.json
+agent/test-map.json
+schemas/test-map.schema.json
+docs/testing.md
+docs/release-plan.md
+docs/agent-native-standard.md
+agent/JANKURAI_STANDARD.md
+crates/jankurai/src/commands/proof.rs
+crates/jankurai/tests/proof_surface_smoke.rs
+```
+
+## Current problem
+
+The brief standard says required lane names include `release`; docs/testing says `full`; live `agent/proof-lanes.toml` says the live minimal set includes `full` and describes broader lane vocabulary as documented elsewhere.   
+
+That needs one clear rule.
+
+## Implementation steps
+
+### Step 3.1 — classify lanes
+
+Extend `agent/proof-lanes.toml`:
+
+```toml
+[[lane]]
+name = "full"
+kind = "canonical"
+aliases = ["release"]
+command = "just check"
+purpose = "run audit and paper build"
+
+[[lane]]
+name = "contract"
+kind = "target"
+implemented = false
+command = ""
+purpose = "public API/schema compatibility; target lane for product repos"
+
+[[lane]]
+name = "master-plan-proof"
+kind = "repo-local"
+command = "cargo run -p jankurai -- lane . --changed agent/MASTER_PLAN.md --out target/jankurai/master-plan-proof.json --md target/jankurai/master-plan-proof.md"
+purpose = "verify master plan routing"
+```
+
+If adding fields is too disruptive, add a separate section:
+
+```toml
+[aliases]
+release = "full"
+ui = "web"
+
+[target_lanes]
+names = ["contract", "db", "web", "e2e", "observability", "release"]
+```
+
+### Step 3.2 — schema update
+
+Update `proof-lanes.schema.json` to allow optional:
+
+```json
+"kind": { "enum": ["canonical", "alias", "repo-local", "target", "roadmap"] },
+"aliases": { "type": "array", "items": { "type": "string" } },
+"implemented": { "type": "boolean" }
+```
+
+### Step 3.3 — map test-map commands to known proof commands
+
+`agent/test-map.json` currently maps path prefixes to commands such as `just score`, `cargo test -p jankurai`, `just ux-qa`, and migration analyze. 
+
+Add a test:
+
+```rust
+#[test]
+fn test_map_commands_are_registered_or_explicitly_exempt()
+```
+
+Algorithm:
+
+1. Load `agent/test-map.json`.
+2. Load `agent/proof-lanes.toml`.
+3. Normalize whitespace.
+4. For every test-map command:
+
+   * pass if it exactly matches a lane command;
+   * pass if it is listed in a new `allowed_extra_commands` section;
+   * fail otherwise.
+
+### Step 3.4 — update docs
+
+`docs/testing.md` should say:
+
+* `full` is the live repo command lane.
+* `release` is the standard-level concept.
+* `release` aliases to `full` in this repo unless/until a separate release lane is introduced.
+* `contract`, `db`, `web`, `e2e`, and `observability` are target lanes for adopters and should exist when the repo has those surfaces.
+
+`agent/JANKURAI_STANDARD.md` can keep the ideal vocabulary, but it should explicitly say live repo mappings are in `agent/proof-lanes.toml`.
+
+## Acceptance criteria
+
+* `jankurai lane` never returns a lane name that is undocumented.
+* `jankurai prove` never runs a command not in proof lanes/test map unless the emergency unsigned command gate is enabled.
+* Docs no longer conflict on `full` vs `release`.
+
+## Validation
+
+```bash
+cargo test -p jankurai --test proof_surface_smoke
+cargo test -p jankurai --test schema_contracts
+cargo run -p jankurai -- lane . --changed docs/testing.md --out target/jankurai/phase01-lane-taxonomy.json --md target/jankurai/phase01-lane-taxonomy.md
+just fast
+```
+
+---
+
+# 8. Workstream 4 — harden the artifact schema registry
+
+## Objective
+
+Make `ArtifactSchema`, `schemas/`, and `docs/artifact-contracts.md` impossible to drift.
+
+## Owned paths
+
+```text
+crates/jankurai/src/validation.rs
+schemas/*.schema.json
+docs/artifact-contracts.md
+crates/jankurai/tests/schema_contracts.rs
+crates/jankurai/tests/report_compatibility_guard.rs
+```
+
+## Implementation steps
+
+### Step 4.1 — add an iterable artifact registry
+
+Today `ArtifactSchema` has a `rel_path()` function with many variants.  Add:
+
+```rust
+impl ArtifactSchema {
+    pub const ALL: &'static [ArtifactSchema] = &[
+        ArtifactSchema::RepoScore,
+        ArtifactSchema::ProofPlan,
+        ArtifactSchema::ProofReceipt,
+        // ...
+    ];
+
+    pub fn contract_name(self) -> &'static str { ... }
+
+    pub fn durable_surface(self) -> bool { ... }
+}
+```
+
+### Step 4.2 — test every schema exists and parses
+
+Add:
+
+```rust
+#[test]
+fn every_artifact_schema_variant_has_a_schema_file()
+```
+
+Pseudo:
+
+```rust
+for schema in ArtifactSchema::ALL {
+    let path = repo.join("schemas").join(schema.rel_path());
+    assert!(path.is_file(), "{schema:?} missing {}", path.display());
+    let json: Value = serde_json::from_str(&fs::read_to_string(path)?)?;
+    assert!(json.get("$id").is_some(), "{schema:?} missing $id");
+}
+```
+
+### Step 4.3 — test every schema appears in artifact index or exemption
+
+Read `docs/artifact-contracts.md` and check `schema.rel_path()` appears somewhere unless listed in an explicit exemption array in the test.
+
+This protects the artifact index from becoming stale prose.
+
+### Step 4.4 — add negative schema tests
+
+For each critical schema, add one minimal invalid example:
+
+* `repo-score.schema.json` missing `standard_version` must fail.
+* `finding.schema.json` missing `agent_fix` must fail.
+* `repair-queue.schema.json` missing task/why must fail.
+* `security-evidence.schema.json` with lane not `security` must fail.
+* `proof-receipt.schema.json` with non-string lane must fail.
+* `doctor-receipt.schema.json` missing diagnostic severity must fail.
+
+The repo-score schema already requires key report fields, including fingerprints, version fields, score fields, decision, git, policy, caps, dimensions, UX/security/boundary readiness, findings, and fix queue. 
+
+### Step 4.5 — improve validator coverage only if schemas need it
+
+The custom validator supports common schema features: `$ref`, `const`, `enum`, `pattern`, type checks, `allOf`, `anyOf`, `oneOf`, object `required`, `additionalProperties`, and array `items`/min/max. 
+
+Before adding schema features like `format`, `patternProperties`, `dependentRequired`, `if/then/else`, or `contains`, either implement them or avoid them. Do not write schemas the validator silently ignores.
+
+## Acceptance criteria
+
+* Every `ArtifactSchema` variant has a file.
+* Every schema file has `$id`.
+* Every durable schema is either listed in `docs/artifact-contracts.md` or explicitly exempt.
+* Negative tests fail for malformed critical artifacts.
+* No new schema feature is silently unsupported.
+
+## Validation
+
+```bash
+cargo test -p jankurai --test schema_contracts
 cargo test -p jankurai
 just compat
+```
+
+---
+
+# 9. Workstream 5 — harden report compatibility
+
+## Objective
+
+Make report output changes safe. No field removals, no semantic Markdown drift, no sidecar export drift, no repair queue drift, no finding-shape drift.
+
+## Owned paths
+
+```text
+crates/jankurai/src/model.rs
+crates/jankurai/src/render.rs
+crates/jankurai/src/report/
+crates/jankurai/src/main.rs
+schemas/repo-score.schema.json
+schemas/finding.schema.json
+schemas/repair-queue.schema.json
+crates/jankurai/tests/report_compatibility_guard.rs
+docs/artifact-contracts.md
+docs/release-plan.md
+```
+
+## Implementation steps
+
+### Step 5.1 — strengthen JSON report required field tests
+
+The repo-score schema already requires the core fields.  Keep that. Add test assertions for:
+
+```text
+report_fingerprint
+input_fingerprint
+policy_fingerprint
+manifest_fingerprints.owner_map
+manifest_fingerprints.test_map
+manifest_fingerprints.generated_zones
+manifest_fingerprints.proof_lanes
+decision.status
+decision.passed
+policy.minimum_score
+policy.fail_on
+findings[].fingerprint
+agent_fix_queue[].task
+```
+
+### Step 5.2 — stable Markdown section guard
+
+`render_markdown` currently emits stable sections for hard caps, dimensions, UX QA, findings, policy, and agent fix queue.  The compatibility guard already checks key section headings.  Expand it to include:
+
+```text
+## Policy
+## Security evidence (ingested)    # when security evidence artifact is present
+## Boundary manifest (ingested)    # when boundary manifest is present
+```
+
+Because those sections are conditional, use fixtures or generate the required artifacts before checking.
+
+### Step 5.3 — SARIF/JUnit/GitHub summary assertions
+
+Current tests check SARIF version/tool/results, JUnit envelope/testcase, GitHub summary heading/score, repair queue line shape, and findings shape.  Add:
+
+* SARIF rule IDs match finding rule IDs where present.
+* SARIF `helpUri` exists when `docs_url` exists.
+* JUnit failure count equals hard/high finding count or documented mapping.
+* GitHub summary includes final score, raw score, cap count, and repair queue count.
+
+### Step 5.4 — repair queue ordering test
+
+The standard says audit output should include an ordered `agent_fix_queue`.  Add a deterministic ordering test:
+
+* critical before high before medium before low
+* security/product-truth/contract findings before style/maintainability
+* stable tie-breaker by path/fingerprint
+
+### Step 5.5 — migration note rule
+
+Add a `docs/decisions/` note or `docs/release-plan.md` section:
+
+```text
+Breaking report changes require:
+- schema major bump
+- compatibility test update
+- migration note
+- release note
+- old field retained for one minor line when practical
+```
+
+## Acceptance criteria
+
+* A report field cannot disappear silently.
+* Markdown can evolve, but stable headings cannot disappear.
+* Sidecar exports are parseable and semantically linked to findings.
+* Repair queue line count equals report queue count.
+* Finding and repair queue schemas validate both report content and sidecar content.
+
+## Validation
+
+```bash
+cargo test -p jankurai --test report_compatibility_guard
+just compat
+cargo run -p jankurai -- audit . \
+  --json target/jankurai/phase01/repo-score.json \
+  --md target/jankurai/phase01/repo-score.md \
+  --sarif target/jankurai/phase01/jankurai.sarif \
+  --junit target/jankurai/phase01/jankurai.junit.xml \
+  --github-step-summary target/jankurai/phase01/summary.md \
+  --repair-queue-jsonl target/jankurai/phase01/repair-queue.jsonl
+```
+
+---
+
+# 10. Workstream 6 — harden doctor diagnostics and receipts
+
+## Objective
+
+Doctor should tell agents whether a failure is:
+
+* a repo defect
+* a missing local tool
+* optional/advisory missing environment
+* stale evidence
+* malformed schema/control-plane file
+* generated artifact hygiene issue
+* release-blocking issue
+
+Right now doctor already checks a lot, but its diagnostic payload is too thin for hardened automation. 
+
+## Owned paths
+
+```text
+crates/jankurai/src/commands/doctor.rs
+schemas/doctor-receipt.schema.json
+crates/jankurai/tests/doctor_*.rs
+docs/testing.md
+docs/release-plan.md
+docs/artifact-contracts.md
+```
+
+## Implementation steps
+
+### Step 6.1 — expand `Diagnostic`
+
+Current:
+
+```rust
+struct Diagnostic {
+    check_id: String,
+    severity: String,
+    path: String,
+    message: String,
+}
+```
+
+Hardened:
+
+```rust
+struct Diagnostic {
+    check_id: String,
+    severity: String,
+    path: String,
+    message: String,
+
+    category: String,
+    diagnostic_class: String,
+    repo_defect: bool,
+    retryable: bool,
+
+    owner: Option<String>,
+    lane: Option<String>,
+    docs_url: Option<String>,
+    expected: Option<String>,
+    observed: Option<String>,
+    common_fixes: Vec<String>,
+}
+```
+
+Suggested `diagnostic_class` enum:
+
+```text
+repo-control-plane
+local-environment
+optional-tool
+stale-evidence
+schema-invalid
+security-evidence
+proof-receipt
+generated-artifact
+ci-proof
+release-blocker
+```
+
+### Step 6.2 — preserve backward compatibility
+
+Do not remove existing fields. Add optional fields first. The current schema has `additionalProperties: false`, so update it to permit the new fields while still requiring the old ones. 
+
+### Step 6.3 — split helper constructors
+
+Add constructors:
+
+```rust
+fn ok(path: &str, message: &str) -> Diagnostic
+fn repo_defect(check_id: &str, path: &str, severity: &str, message: &str) -> Diagnostic
+fn missing_tool(tool: &str, required_in_strict: bool) -> Diagnostic
+fn stale_artifact(check_id: &str, path: &str, message: &str) -> Diagnostic
+fn schema_invalid(check_id: &str, path: &str, err: anyhow::Error) -> Diagnostic
+```
+
+### Step 6.4 — make security tool checks explicit
+
+Current `check_security_tools` loops over `gitleaks`, `cargo-audit`, `npm`, `syft`, and `zizmor`, marking missing tools low/advisory.  Harden this:
+
+* `gitleaks`, `cargo-audit`, `npm`: `diagnostic_class = "optional-tool"` outside strict, `repo_defect = false`, `retryable = true`, common fix includes install command/documentation.
+* strict security mode: missing required tools become high.
+* `syft`, `zizmor`: advisory unless policy says otherwise.
+
+### Step 6.5 — add doctor fixture tests
+
+Create fixtures under:
+
+```text
+crates/jankurai/tests/fixtures/doctor/
+```
+
+Test cases:
+
+1. missing `AGENTS.md` → high repo defect
+2. malformed `agent/owner-map.json` → schema-invalid, medium or high depending hardened flag
+3. root `repo-score.json` exists → medium repo defect
+4. missing `gitleaks` in non-strict → low optional-tool, not repo defect
+5. stale proof receipt git head → low stale-evidence
+6. invalid security evidence JSON → medium security-evidence/schema-invalid
+7. missing `target/jankurai` → low receipt-export, not release blocker
+
+### Step 6.6 — add `--mode hardened` or `--strict-control-plane`
+
+Optional but useful:
+
+```bash
+cargo run -p jankurai -- doctor --mode hardened --fail-on medium
+```
+
+Hardened mode should escalate malformed control-plane schemas to high because Phase 01 cannot be hardened if its own maps are malformed.
+
+## Acceptance criteria
+
+* Doctor receipt validates.
+* Every diagnostic has enough information for an agent to decide repair vs install vs rerun.
+* Missing local optional tools do not masquerade as repo defects.
+* Malformed control-plane files are never “low.”
+* Phase closeouts cite doctor receipt path.
+
+## Validation
+
+```bash
+cargo test -p jankurai doctor
+cargo run -p jankurai -- doctor --fail-on high \
+  --json target/jankurai/phase01/doctor.json \
+  --md target/jankurai/phase01/doctor.md
+cargo run -p jankurai -- doctor --fail-on medium \
+  --json target/jankurai/phase01/doctor-medium.json \
+  --md target/jankurai/phase01/doctor-medium.md
+```
+
+---
+
+# 11. Workstream 7 — harden security evidence
+
+## Objective
+
+Security lane evidence should be durable, per-tool, parseable, and independent of incidental local Python availability.
+
+## Owned paths
+
+```text
+crates/jankurai/src/commands/security.rs
+tools/security-lane.sh
+schemas/security-evidence.schema.json
+crates/jankurai/tests/security_evidence_smoke.rs
+docs/testing.md
+docs/artifact-contracts.md
+Justfile
+.github/workflows/jankurai.yml
+```
+
+## Current state
+
+`jankurai security run` runs a shell script, writes a log, parses `jankurai-security-step=` JSON lines into `commands[]`, validates `target/jankurai/security/evidence.json`, and fails if the wrapper exits nonzero.  The shell script treats `gitleaks`, `cargo-audit`, and `npm` as required in strict mode, and `syft`/`zizmor` as advisory. 
+
+## Implementation steps
+
+### Step 7.1 — remove Python dependency for step JSON
+
+Best fix: move tool orchestration into Rust. Add a policy-driven tool list:
+
+```rust
+struct SecurityTool {
+    label: &'static str,
+    tool: &'static str,
+    command: &'static str,
+    required_in_strict: bool,
+    advisory: bool,
+}
+```
+
+Then `security run` itself checks `command -v`, runs available tools, captures exit codes/stderr excerpts, and writes evidence.
+
+If keeping shell, replace Python JSON emission with a robust shell-safe encoder or a small Rust helper. The current shell only emits per-step JSON when `python3` exists. 
+
+### Step 7.2 — extend `SecurityLaneStep`
+
+Current fields include label, command, tool, status, exit code, advisory, stderr excerpt, finding count, highest severity, normalized decision.  Use them fully.
+
+Set:
+
+```text
+status = ran | skipped | failed
+normalized_decision = pass | advisory-skip | fail | blocked
+highest_severity = none | low | medium | high | critical
+finding_count = integer when parser can determine it, otherwise null
+```
+
+### Step 7.3 — make strict/advisory semantics exact
+
+Rules:
+
+* Missing required tool:
+
+  * non-strict: `skipped`, advisory, decision `advisory-skip`, wrapper exits 0
+  * strict: `failed`, non-advisory, decision `blocked`, wrapper exits 1
+* Failing required tool:
+
+  * always failed
+* Missing advisory tool:
+
+  * skipped, advisory, wrapper exits 0
+* Failing advisory tool:
+
+  * choose policy: either advisory failure exits 0 with decision `review`, or exits nonzero. The current shell exits on advisory command failure.  Document the chosen behavior.
+
+### Step 7.4 — add fixture tests
+
+Test:
+
+1. fake all tools present and success
+2. fake required tool missing non-strict
+3. fake required tool missing strict
+4. fake advisory tool missing
+5. malformed `jankurai-security-step=` line ignored with warning
+6. no step lines still produces valid wrapper-level evidence
+7. evidence validates against schema
+
+### Step 7.5 — improve audit ingest summary
+
+`Report` already has `security_evidence` readiness summary.  Ensure ingest summary includes:
+
+* commands ran/skipped/failed
+* strict flag
+* generated_at
+* git_head
+* highest normalized decision
+* missing required tools count
+
+If adding fields, update `repo-score.schema.json` and compatibility tests.
+
+## Acceptance criteria
+
+* `just security` always writes schema-valid evidence.
+* Evidence contains one row per expected security tool.
+* Missing local tools are distinguishable from security failures.
+* Strict mode blocks missing required tools.
+* Audit report ingests security evidence summary.
+
+## Validation
+
+```bash
+cargo test -p jankurai security
 just security
-cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md
-just fast
+cargo run -p jankurai -- security run . --strict --out target/jankurai/security/evidence-strict.json
+cargo run -p jankurai -- . --json target/jankurai/phase01/security-ingest-score.json --md target/jankurai/phase01/security-ingest-score.md
+```
+
+---
+
+# 12. Workstream 8 — harden release evidence and docs boundary
+
+## Objective
+
+Make it obvious what is implemented now, what is roadmap-only, and what evidence closes a release/phase.
+
+## Owned paths
+
+```text
+docs/release-plan.md
+docs/testing.md
+docs/artifact-contracts.md
+docs/phases-feedback-status.md
+docs/agent-native-standard.md
+agent/JANKURAI_STANDARD.md
+tips/phases/01-standard-stabilization.md
+tips/phases/00-phase-index.md
+```
+
+## Implementation steps
+
+### Step 8.1 — add a “Current v0.4 behavior” block
+
+In `docs/release-plan.md`, add a concise section:
+
+```md
+## Current v0.4 Implemented Surface
+
+Implemented:
+- audit JSON/Markdown/SARIF/JUnit/GitHub summary/repair queue
+- doctor receipts
+- security evidence envelope
+- proof plan/receipt artifacts
+- schema validation for control-plane files
+- artifact contract index
+- Phase 12 public evidence
+- Phase 13 gated repair evidence
+
+Roadmap / not guaranteed by Phase 01:
+- hosted dashboards
+- public GitHub Action marketplace release
+- provider-backed certified cells
+- auto-merge
+- universal product-specific contract/db/web/e2e lanes
+```
+
+### Step 8.2 — add Phase 01 evidence matrix
+
+In `tips/phases/01-standard-stabilization.md`, add:
+
+```md
+## Hardened Evidence Matrix
+```
+
+Rows:
+
+* standard/version parity
+* rule registry parity
+* lane taxonomy parity
+* artifact schemas
+* report compatibility
+* doctor receipts
+* security evidence
+* routing/generated hygiene
+* CI workflow
+* final score
+
+Each row needs:
+
+```text
+command
+artifact path
+blocking threshold
+owner
+```
+
+### Step 8.3 — keep roadmap words out of live promises
+
+Any doc that says “must expose these lanes” should clarify whether it is:
+
+* standard target for compliant product repos
+* live Jankurai repo behavior
+* roadmap target
+
+This matters because `agent/proof-lanes.toml` explicitly says the live set is minimal. 
+
+### Step 8.4 — document release receipt convention in one place
+
+`docs/release-plan.md` already says doctor/init receipts live under `target/jankurai/receipts`, canonical score artifacts remain under `agent/`, and `target/jankurai/` is the shared scratch root.  Harden it with a concrete Phase 01 receipt list:
+
+```text
+target/jankurai/phase01/repo-score.json
+target/jankurai/phase01/repo-score.md
+target/jankurai/phase01/jankurai.sarif
+target/jankurai/phase01/jankurai.junit.xml
+target/jankurai/phase01/summary.md
+target/jankurai/phase01/repair-queue.jsonl
+target/jankurai/phase01/doctor.json
+target/jankurai/phase01/doctor.md
+target/jankurai/security/evidence.json
+target/jankurai/phase01/lane-plan.json
+target/jankurai/phase01/lane-plan.md
+```
+
+## Acceptance criteria
+
+* A fresh agent can tell live behavior from roadmap behavior in under five minutes.
+* Phase 01 closeout does not rely on chat history.
+* Release evidence paths are concrete and reusable.
+
+## Validation
+
+```bash
+git diff --check -- docs/release-plan.md docs/testing.md docs/artifact-contracts.md docs/phases-feedback-status.md tips/phases/01-standard-stabilization.md
+cargo run -p jankurai -- lane . --changed docs/release-plan.md --out target/jankurai/phase01/docs-lane.json --md target/jankurai/phase01/docs-lane.md
 just score
 ```
 
-Expected Phase 01 closeout receipt:
+---
 
-```md
-## Phase 01 Completion Receipt
+# 13. Workstream 9 — routing map and generated-zone hygiene
 
-- Phase completed: 01 standard stabilization
-- Files changed:
-  - `.github/workflows/jankurai.yml`
-  - `Justfile`
-  - `tools/security-lane.sh`
-  - `crates/jankurai/src/commands/security.rs`
-  - `crates/jankurai/src/commands/doctor.rs`
-  - `crates/jankurai/tests/report_compatibility_guard.rs`
-  - `crates/jankurai/tests/security_lane_wrapper.rs`
-  - `crates/jankurai/tests/schema_contracts.rs`
-  - `schemas/repo-score.schema.json`
-  - `schemas/security-evidence.schema.json`
-  - `docs/artifact-contracts.md`
-  - `docs/README.md`
-  - `docs/testing.md`
-  - `docs/release-plan.md`
-  - `tips/phases/01-standard-stabilization.md`
-- Schemas changed:
-  - `schemas/repo-score.schema.json`
-  - `schemas/security-evidence.schema.json`
-- Public report fields changed:
-  - no field removals
-  - no renames
-  - repo-score schema now requires the public fields already emitted by v0.4 reports
-  - security evidence steps now optionally include `required`
-- Generated artifacts:
-  - `agent/repo-score.json`
-  - `agent/repo-score.md`
-  - generated by `just score`, not hand-edited
-- Routing maps changed:
-  - none; new durable files are under already-routed `docs/`, `schemas/`, `crates/jankurai/`, `.github/`, `tools/`, `Justfile`, and `tips/`
-- Validation commands:
-  - `cargo test -p jankurai`
-  - `just compat`
-  - `just security`
-  - `cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md`
-  - `just fast`
-  - `just score`
-- Results:
-  - record actual pass/fail output after running
-- Skipped validation:
-  - none recommended
-- Exceptions created:
-  - none
-- Phase 02 unblocked:
-  - yes, once report compatibility tests pass
-- Phase 03 unblocked:
-  - yes, once evidence and receipt conventions pass doctor/security validation
+## Objective
+
+No durable Phase 01 path should be added without owner/test routing. No generated artifact should be hand-edited.
+
+## Owned paths
+
+```text
+agent/owner-map.json
+agent/test-map.json
+agent/generated-zones.toml
+agent/proof-lanes.toml
+schemas/owner-map.schema.json
+schemas/test-map.schema.json
+schemas/generated-zones.schema.json
+schemas/proof-lanes.schema.json
+crates/jankurai/tests/schema_contracts.rs
 ```
 
-This is the highest-leverage Phase 01 finish because it locks the exact surfaces later phases depend on: report shape, evidence shape, doctor/security reality, schema boundaries, and release receipts.
+## Implementation steps
 
-[1]: https://github.com/jeppsontaylor/Jankurai "GitHub - jeppsontaylor/Jankurai: Slay repo jank with proof lanes, audit receipts, bounded agents, and no-proof-no-merge governance. · GitHub"
+### Step 9.1 — test every Phase 01-owned path has owner/test route
+
+Add a fixture list in test code:
+
+```rust
+const PHASE01_OWNED_PATHS: &[&str] = &[
+    "agent/JANKURAI_STANDARD.md",
+    "docs/agent-native-standard.md",
+    "docs/release-plan.md",
+    "docs/testing.md",
+    "docs/artifact-contracts.md",
+    "schemas/repo-score.schema.json",
+    "schemas/finding.schema.json",
+    "schemas/repair-queue.schema.json",
+    "schemas/doctor-receipt.schema.json",
+    "schemas/security-evidence.schema.json",
+    "crates/jankurai/src/model.rs",
+    "crates/jankurai/src/validation.rs",
+    "crates/jankurai/src/commands/doctor.rs",
+    "crates/jankurai/src/commands/security.rs",
+    "crates/jankurai/tests/report_compatibility_guard.rs",
+    "crates/jankurai/tests/schema_contracts.rs",
+    "tools/security-lane.sh",
+    ".github/workflows/jankurai.yml",
+];
+```
+
+For each path:
+
+* check owner-map route exists
+* check test-map route exists
+* check if generated path then generated-zone route exists
+
+The audit already flags missing owner/test map routes through findings like `HLT-003-OWNERLESS-PATH` and `HLT-004-UNMAPPED-PROOF`. 
+
+### Step 9.2 — align path proof commands with test map
+
+`agent/test-map.json` already maps relevant Phase 01 surfaces:
+
+* `agent/` → `just score`
+* `docs/` → `just score`
+* `schemas/` → `cargo test -p jankurai && npm --workspace @jankurai/ux-qa run build`
+* `crates/jankurai/` → `cargo test -p jankurai && cargo run -p jankurai -- versions`
+* `.github/` → doctor
+* `tools/` → score 
+
+Hardening should verify those commands are registered in proof lanes or explicitly allowed.
+
+### Step 9.3 — generated zones
+
+If any new generated artifact path is introduced, add it to `agent/generated-zones.toml` with source and command. Do not hand-edit generated outputs.
+
+## Acceptance criteria
+
+* New durable Phase 01 paths are routed.
+* Test-map commands are not arbitrary.
+* Generated outputs have source/command metadata.
+* No Phase 01 hardening edit lands with an ownerless or proofless path.
+
+## Validation
+
+```bash
+cargo test -p jankurai --test schema_contracts
+cargo run -p jankurai -- . --json target/jankurai/phase01/routing-score.json --md target/jankurai/phase01/routing-score.md
+just fast
+```
+
+---
+
+# 14. Workstream 10 — CI and `Justfile` hardening
+
+## Objective
+
+CI should catch Phase 01 contract drift without making `just fast` heavy.
+
+## Owned paths
+
+```text
+Justfile
+.github/workflows/jankurai.yml
+docs/testing.md
+docs/release-plan.md
+agent/test-map.json
+agent/proof-lanes.toml
+```
+
+## Current state
+
+`Justfile` already has `fast`, `versions`, `ux-qa`, `check`, `paper`, `score`, `compat`, `self-audit`, `security`, `security-strict`, `security-bash`, `phase12`, and `phase13`.  CI already runs audit, security, Phase 12, Phase 13, artifact upload, UX QA, and paper. 
+
+## Implementation steps
+
+### Step 10.1 — add a Phase 01 hardening target
+
+Add:
+
+```just
+phase01:
+    cargo test -p jankurai
+    cargo test -p jankurai --test report_compatibility_guard
+    cargo test -p jankurai --test schema_contracts
+    cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01/doctor.json --md target/jankurai/phase01/doctor.md
+    cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
+    cargo run -p jankurai -- audit . --json target/jankurai/phase01/repo-score.json --md target/jankurai/phase01/repo-score.md --sarif target/jankurai/phase01/jankurai.sarif --junit target/jankurai/phase01/jankurai.junit.xml --github-step-summary target/jankurai/phase01/summary.md --repair-queue-jsonl target/jankurai/phase01/repair-queue.jsonl
+```
+
+Do **not** add this to `fast`. The Phase 01 plan explicitly says not to add new required external tools to `just fast`. 
+
+### Step 10.2 — add CI step
+
+In `.github/workflows/jankurai.yml`, add a step after versions or audit:
+
+```yaml
+- name: Phase 01 compatibility
+  run: just phase01
+```
+
+If `just` is not installed on runner, either install it or inline the commands. The existing workflow does not currently use `just`; it calls cargo/npm/latex directly.  To avoid adding a new CI dependency, inline commands may be safer.
+
+### Step 10.3 — upload Phase 01 artifacts
+
+Add:
+
+```text
+target/jankurai/phase01/repo-score.json
+target/jankurai/phase01/repo-score.md
+target/jankurai/phase01/jankurai.sarif
+target/jankurai/phase01/jankurai.junit.xml
+target/jankurai/phase01/summary.md
+target/jankurai/phase01/repair-queue.jsonl
+target/jankurai/phase01/doctor.json
+target/jankurai/phase01/doctor.md
+```
+
+### Step 10.4 — keep security strict separate
+
+Do not make `security-strict` the default until the required tools are installed in CI. The current security shell treats missing required tools as blocking only in strict mode. 
+
+## Acceptance criteria
+
+* `just fast` remains lightweight.
+* `just phase01` gives a one-command hardening proof.
+* CI uploads Phase 01 artifacts.
+* Contract drift fails CI.
+
+## Validation
+
+```bash
+just phase01
+just fast
+```
+
+---
+
+# 15. Workstream 11 — close Phase 01 and promote to hardened
+
+## Objective
+
+Only after all hardening evidence exists, update phase state.
+
+## Owned paths
+
+```text
+tips/phases/01-standard-stabilization.md
+tips/phases/00-phase-index.md
+tips/phases/logs/01-standard-stabilization.log
+docs/phases-feedback-status.md
+```
+
+## Implementation steps
+
+### Step 11.1 — update Phase 01 file status
+
+Change:
+
+```md
+Status: complete
+```
+
+to:
+
+```md
+Status: hardened
+```
+
+Add:
+
+```md
+## Hardened Completion Receipt
+```
+
+Include exact:
+
+* changed paths
+* schema changes
+* report compatibility changes
+* rule/lane/version parity changes
+* doctor/security evidence changes
+* validation commands
+* artifacts
+* skipped validation
+* exceptions
+* residual risk
+* git SHA
+
+### Step 11.2 — update Phase 00 ledger
+
+Change Phase 01 row:
+
+```text
+| 01 | complete | standard stabilized |
+```
+
+to something like:
+
+```text
+| 01 | hardened | standard/version/rule/lane/artifact/report/doctor/security contracts hardened with compatibility evidence |
+```
+
+Only do this after proof passes. The phase index says status controls default phase selection and should not be regressed casually. 
+
+### Step 11.3 — update feedback status
+
+In `docs/phases-feedback-status.md`, update Phase 01 summary with new hardened evidence and cite the new tests/artifacts. The current Phase 01 feedback status already records schemas, doctor, exports, Finding contract, report compatibility, security evidence, and artifact contracts. 
+
+### Step 11.4 — append finish log
+
+Example:
+
+```text
+2026-05-04T...Z | agent | 01-standard-stabilization | finish-hardening | <paths> | cargo test -p jankurai; just compat; just security; just fast; cargo run -p jankurai -- doctor --fail-on high; cargo run -p jankurai -- audit ... | target/jankurai/phase01/*; target/jankurai/security/evidence.json; target/jankurai/receipts/doctor-*.json | <git_sha> | none
+```
+
+## Acceptance criteria
+
+* Phase 01 and Phase 00 agree on `hardened`.
+* Finish receipt exists.
+* No validation is invented or vague.
+* Residual risk is either `none` or explicitly scoped outside Phase 01.
+
+---
+
+# 16. Exact validation ladder
+
+Run in this order.
+
+## Narrow proof before edits
+
+```bash
+cargo run -p jankurai -- lane . \
+  --changed tips/phases/01-standard-stabilization.md \
+  --out target/jankurai/phase01/preflight-lane.json \
+  --md target/jankurai/phase01/preflight-lane.md
+```
+
+## Code and schema proof
+
+```bash
+cargo fmt --check
+cargo test -p jankurai
+cargo test -p jankurai --test schema_contracts
+cargo test -p jankurai --test report_compatibility_guard
+```
+
+## Doctor proof
+
+```bash
+cargo run -p jankurai -- doctor --fail-on high \
+  --json target/jankurai/phase01/doctor.json \
+  --md target/jankurai/phase01/doctor.md
+```
+
+For stricter closeout:
+
+```bash
+cargo run -p jankurai -- doctor --fail-on medium \
+  --json target/jankurai/phase01/doctor-medium.json \
+  --md target/jankurai/phase01/doctor-medium.md
+```
+
+If medium diagnostics are expected, document each one.
+
+## Security proof
+
+```bash
+cargo run -p jankurai -- security run . \
+  --out target/jankurai/security/evidence.json
+```
+
+If CI has the tools installed:
+
+```bash
+cargo run -p jankurai -- security run . --strict \
+  --out target/jankurai/security/evidence-strict.json
+```
+
+## Full report sidecar proof
+
+```bash
+cargo run -p jankurai -- audit . \
+  --json target/jankurai/phase01/repo-score.json \
+  --md target/jankurai/phase01/repo-score.md \
+  --sarif target/jankurai/phase01/jankurai.sarif \
+  --junit target/jankurai/phase01/jankurai.junit.xml \
+  --github-step-summary target/jankurai/phase01/summary.md \
+  --repair-queue-jsonl target/jankurai/phase01/repair-queue.jsonl
+```
+
+## Canonical repo score proof
+
+```bash
+just score
+```
+
+## Fast lane
+
+```bash
+just fast
+```
+
+## Compatibility shortcut
+
+```bash
+just compat
+```
+
+## Security shortcut
+
+```bash
+just security
+```
+
+## Optional broad closeout
+
+Use only if no paper files changed but release confidence is desired:
+
+```bash
+just check
+```
+
+---
+
+# 17. Parallel work packets
+
+Use parallel agents only if their write scopes are disjoint.
+
+## Packet A — version/rule/lane contract
+
+**Owned paths**
+
+```text
+agent/standard-version.toml
+agent/proof-lanes.toml
+agent/rules.toml
+schemas/standard-version.schema.json
+schemas/proof-lanes.schema.json
+schemas/rules.schema.json
+docs/agent-native-standard.md
+agent/JANKURAI_STANDARD.md
+docs/testing.md
+docs/release-plan.md
+```
+
+**Forbidden**
+
+```text
+crates/jankurai/src/audit/scan.rs
+crates/jankurai/src/audit/analyzers/
+paper/
+generated outputs
+```
+
+**Output**
+
+* rule registry
+* lane taxonomy
+* version/target stack parity docs
+* schema tests
+
+**Validation**
+
+```bash
+cargo test -p jankurai --test schema_contracts
+just fast
+```
+
+**Stop condition**
+
+Stop if new rule detection logic is required. That belongs to Phase 02.
+
+---
+
+## Packet B — artifact schema registry
+
+**Owned paths**
+
+```text
+crates/jankurai/src/validation.rs
+schemas/
+docs/artifact-contracts.md
+crates/jankurai/tests/schema_contracts.rs
+```
+
+**Forbidden**
+
+```text
+crates/jankurai/src/audit/scan.rs
+paper/
+agent/repo-score.json by hand
+```
+
+**Output**
+
+* iterable `ArtifactSchema::ALL`
+* schema existence/parity tests
+* negative tests
+
+**Validation**
+
+```bash
+cargo test -p jankurai --test schema_contracts
+cargo test -p jankurai
+```
+
+**Stop condition**
+
+Stop if a schema-breaking change is required without a migration note.
+
+---
+
+## Packet C — report compatibility
+
+**Owned paths**
+
+```text
+crates/jankurai/src/model.rs
+crates/jankurai/src/render.rs
+crates/jankurai/src/report/
+schemas/repo-score.schema.json
+schemas/finding.schema.json
+schemas/repair-queue.schema.json
+crates/jankurai/tests/report_compatibility_guard.rs
+```
+
+**Forbidden**
+
+```text
+Phase 02 semantic rule expansion
+proof router algorithm changes
+paper/
+```
+
+**Output**
+
+* stronger sidecar semantic checks
+* stable Markdown section checks
+* finding/repair queue compatibility
+
+**Validation**
+
+```bash
+cargo test -p jankurai --test report_compatibility_guard
+just compat
+```
+
+**Stop condition**
+
+Stop if public report fields must be removed. Add migration plan first.
+
+---
+
+## Packet D — doctor and security evidence
+
+**Owned paths**
+
+```text
+crates/jankurai/src/commands/doctor.rs
+crates/jankurai/src/commands/security.rs
+tools/security-lane.sh
+schemas/doctor-receipt.schema.json
+schemas/security-evidence.schema.json
+crates/jankurai/tests/security_evidence_smoke.rs
+docs/testing.md
+```
+
+**Forbidden**
+
+```text
+just fast dependency expansion
+CI secret changes
+paper/
+```
+
+**Output**
+
+* typed doctor diagnostics
+* stronger doctor receipt schema
+* per-tool security evidence independent of Python
+* strict/advisory fixture tests
+
+**Validation**
+
+```bash
+cargo test -p jankurai
+cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01/doctor.json --md target/jankurai/phase01/doctor.md
+just security
+```
+
+**Stop condition**
+
+Stop if real secrets, tokens, or private credentials are needed. They are never needed for Phase 01.
+
+---
+
+## Packet E — release docs, CI, and closeout
+
+**Owned paths**
+
+```text
+docs/release-plan.md
+docs/testing.md
+docs/phases-feedback-status.md
+tips/phases/01-standard-stabilization.md
+tips/phases/00-phase-index.md
+tips/phases/logs/01-standard-stabilization.log
+.github/workflows/jankurai.yml
+Justfile
+```
+
+**Forbidden**
+
+```text
+crates/jankurai/src/audit/scan.rs
+schemas/ unless coordinated with Packet B
+paper/
+```
+
+**Output**
+
+* Phase 01 evidence matrix
+* `just phase01` target or CI-equivalent commands
+* final hardened receipt
+* phase status promotion
+
+**Validation**
+
+```bash
+git diff --check
+just phase01
+just fast
+```
+
+**Stop condition**
+
+Do not mark Phase 01 hardened until all packets pass their validation.
+
+---
+
+# 18. Merge order
+
+1. **Packet A: version/rule/lane contract**
+   This removes ambiguity from every later change.
+
+2. **Packet B: artifact schema registry**
+   This locks machine-readable surfaces.
+
+3. **Packet C: report compatibility**
+   This ensures output remains stable after schema/rule updates.
+
+4. **Packet D: doctor/security evidence**
+   This makes environment and security evidence repairable.
+
+5. **Packet E: docs/CI/closeout**
+   This records the hardened state only after proof exists.
+
+Do not merge Packet E first. That would create a false “hardened” claim before evidence exists.
+
+---
+
+# 19. What not to do
+
+Do **not**:
+
+* mark Phase 01 hardened just because the phase file says “complete”
+* edit generated artifacts by hand
+* add Phase 02 semantic rule detections while doing Phase 01
+* change Phase 03 proof-router behavior except to verify lane contract compatibility
+* move `agent/repo-score.json` or `agent/repo-score.md`
+* add new mandatory external tools to `just fast`
+* edit `paper/` as part of Phase 01
+* remove report fields without a schema migration note
+* treat missing local security tools as repo defects outside strict mode
+* let docs say “required lane” when the live repo only has a roadmap/target lane
+
+---
+
+# 20. Final hardened acceptance checklist
+
+Phase 01 is truly finished when this checklist is all green:
+
+```text
+[ ] Phase 01 start log entry exists.
+[ ] agent/standard-version.toml validates and drives/guards emitted report versions.
+[ ] Rule registry exists or equivalent parity test prevents HLT rule drift.
+[ ] HLT-001 through HLT-021 are consistent across brief standard, full standard, docs, and emitted findings.
+[ ] Lane taxonomy reconciles live lanes, aliases, target lanes, and roadmap lanes.
+[ ] test-map commands are registered in proof-lanes or explicitly exempt.
+[ ] ArtifactSchema variants all have schemas and artifact-index coverage or documented exemption.
+[ ] Negative schema tests exist for critical artifacts.
+[ ] report_compatibility_guard validates JSON, Markdown, SARIF, JUnit, GitHub summary, repair queue JSONL, issues JSONL, findings, and version fields.
+[ ] Doctor receipt schema carries repairable typed diagnostics.
+[ ] Doctor separates repo defects from local missing tools.
+[ ] Security evidence emits durable per-tool rows without depending on Python availability.
+[ ] Security strict/advisory behavior is tested.
+[ ] docs/release-plan.md clearly separates current behavior from roadmap behavior.
+[ ] docs/testing.md and agent/proof-lanes.toml agree on full/release/target lane vocabulary.
+[ ] CI runs Phase 01 compatibility proof or equivalent commands.
+[ ] just fast still stays lightweight.
+[ ] just compat passes.
+[ ] just security passes or records exact optional-tool advisory status.
+[ ] cargo test -p jankurai passes.
+[ ] doctor --fail-on high passes.
+[ ] audit sidecar export command produces all Phase 01 artifacts.
+[ ] agent/repo-score.json and agent/repo-score.md are regenerated by command, not hand-edited.
+[ ] No generated artifact was hand-edited.
+[ ] Phase 01 finish log entry cites changed paths, validation, artifacts, git SHA, and residual risk.
+[ ] tips/phases/01-standard-stabilization.md says Status: hardened.
+[ ] tips/phases/00-phase-index.md ledger says Phase 01 hardened.
+```
+
+My bottom-line recommendation: treat Phase 01 hardening as a **contract-parity project**, not a feature project. The code already has a serious amount of Phase 01 infrastructure. The remaining work is to make drift impossible: one version contract, one rule registry, one lane taxonomy, one artifact schema registry, stable report sidecars, typed doctor/security receipts, and a closeout receipt that proves all of it.
 

@@ -95,9 +95,10 @@ command = "npx openapi-generator"
         .iter()
         .filter(|f| {
             f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
-                && f.evidence
-                    .iter()
-                    .any(|e| e.contains("does not exist on disk"))
+                && f.evidence.iter().any(|e| {
+                    e.contains("does not exist on disk")
+                        || e.contains("generated zone integrity violation")
+                })
         })
         .collect();
     assert!(
@@ -138,9 +139,11 @@ command = "npx openapi-generator"
         .iter()
         .filter(|f| {
             f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
-                && f.evidence
-                    .iter()
-                    .any(|e| e.contains("lacks a") || e.contains("missing generated header"))
+                && f.evidence.iter().any(|e| {
+                    e.contains("lacks a")
+                        || e.contains("missing generated header")
+                        || e.contains("generated zone integrity violation")
+                })
         })
         .collect();
     assert!(
