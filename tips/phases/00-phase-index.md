@@ -100,7 +100,7 @@ This router change does not require owner-map or test-map edits because the touc
 | 07 | hardened | contracts/DB/generated boundaries hardened; all residual gaps closed |
 | 08 | complete | agent context and repair scaffolding in place |
 | 09 | complete | reference product platform in place |
-| 10 | hardened | four certified cells (audit-log, crud-resource, rbac, auth-session); mutating/provider-backed installs remain deferred |
+| 10 | hardened | five certified cells (audit-log, crud-resource, rbac, auth-session, organization-team); mutating/provider-backed installs remain deferred |
 | 11 | hardened | structured inventory, 8-dimension liability scoring, fixture-backed detection tests, slice risk levels |
 | 12 | hardened | Phase 12 public bundle: `jankurai publish`, badge JSON/SVG, `public-evidence-bundle` schema; CI + `just phase12`; GitHub attest / Sigstore / dashboards remain optional |
 | 13 | hardened | dry-run repair, fixture apply, gated real-apply, rollback, draft PR creation, optimize, and exception expiry are live; live GitHub draft PR creation still depends on network access and gh auth; auto-merge intentionally deferred |

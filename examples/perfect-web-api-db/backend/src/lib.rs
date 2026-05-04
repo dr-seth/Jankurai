@@ -10,6 +10,7 @@ pub mod adapters;
 pub mod application;
 pub mod auth_session;
 pub mod domain;
+pub mod organization_team;
 
 pub fn service_name() -> &'static str {
     "perfect-web-api-db"
