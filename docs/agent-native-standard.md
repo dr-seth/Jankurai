@@ -1,9 +1,9 @@
 # jankurai Agent-Native Repository Standard
 
-Standard version: `0.6.1`
+Standard version: `0.7.0`
 Published: `2026-05-04`
-Paper: `Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge`
-Public thesis line: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
+Paper: `Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge`
+Public thesis line: `No proof, no merge; no receipt, no trust.`
 Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
 
 This is an operational standard for coding agents and maintainers. Repositories do not need jankurai merely because they use AI. Repositories claiming jankurai conformance should point root agent instructions to this file and to `agent/JANKURAI_STANDARD.md`.

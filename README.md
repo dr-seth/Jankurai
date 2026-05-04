@@ -7,13 +7,13 @@
 [![jankurai CI](https://github.com/jeppsontaylor/Jankurai/actions/workflows/jankurai.yml/badge.svg)](https://github.com/jeppsontaylor/Jankurai/actions/workflows/jankurai.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Jankurai is a trustworthy-merge standard and local audit CLI for teams that want every human or AI-authored change to arrive with proof. Its public rule is simple: no proof, no merge; no receipt, no trust.
+Jankurai is a repository conformance standard and local audit CLI for auditable AI-assisted merge. Its public rule is simple: no proof, no merge; no receipt, no trust.
 
 - Turns ownership maps, proof lanes, generated zones, security boundaries, rolling scores, merge witnesses, and repair queues into files agents and humans can both read.
 - Starts with read-only reports, then lets teams adopt guidance, CI, hooks, and ratchets only when they choose.
 - Leaves receipts: JSON/Markdown reports, score history, proof artifacts, and command evidence under predictable paths.
 
-Jankurai is not a model, hosted AI service, or "open source AI" system. It is repository infrastructure for governing how agents work with code.
+Jankurai is not a model, hosted AI service, or "open source AI" system. It is repository infrastructure for making merge decisions reproducible.
 
 ## Install
 
@@ -76,9 +76,12 @@ Ratchet mode is impossible without an accepted baseline. Start in observe or adv
 ```bash
 jankurai context-pack . --changed <path> --max-tokens 6000 --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
 jankurai prove . --changed <path> --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
+jankurai audit . --changed-fast --changed-from origin/main --json target/jankurai/audit-fast.json --md target/jankurai/audit-fast.md --timings-json target/jankurai/audit-timings.json
 jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 jankurai witness . --changed-from origin/main --baseline agent/repo-score.json --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
 ```
+
+`--changed-fast` is an advisory inner-loop scan. It inventories changed files plus required control files, skips score-history writes, and must be followed by the full audit before merge or release.
 
 Preview before tracked writes:
 
@@ -155,7 +158,14 @@ The loop is intentionally ordinary: changed paths map to owners and proof lanes,
 
 ## Project Status
 
-Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge*.
+Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge*.
+
+Paper framing:
+
+- The standard is stack-neutral.
+- The CLI is a reference implementation.
+- The Rust/TypeScript/PostgreSQL profile is non-normative.
+- Full audit remains the merge and release gate.
 
 Compatibility posture:
 
@@ -207,9 +217,9 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 ## Citation And Paper
 
-This repository is the working source for the paper *Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge*.
+This repository is the working source for the paper *Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge*.
 
-Public thesis line: *Humans Were the Bug: From Vibe Coding to Agent-Native Engineering*.
+Public thesis line: *No proof, no merge; no receipt, no trust.*
 
 - Paper source: [paper/jankurai.tex](paper/jankurai.tex)
 - Agent-readable companion: [paper/jankurai.md](paper/jankurai.md)

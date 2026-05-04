@@ -1,14 +1,14 @@
 # Jankurai
 
-Title: **Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge**
+Title: **Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge**
 
-Public thesis line: **Humans Were the Bug: From Vibe Coding to Agent-Native Engineering**
+Public thesis line: **No proof, no merge; no receipt, no trust.**
 
-Paper edition: `2026.05-ed6`
+Paper edition: `2026.05-ed7`
 
-Standard version: `0.6.1`
+Standard version: `0.7.0`
 
-Schema version: `1.4.1`
+Schema version: `1.5.0`
 
 Canonical source: `paper/jankurai.tex` plus `paper/tex/`
 
@@ -119,7 +119,7 @@ Appendices:
 | `agent/standard-version.toml` | Canonical version manifest | all versions |
 | `agent/repo-score.json` | Canonical audit report JSON | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
 | `agent/repo-score.md` | Human-readable audit and repair brief | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
-| `agent/vibe-coverage.toml` | Canonical mapping from 260 vibe-coding source rows to coverage controls | coverage schema `1.4.1` |
+| `agent/vibe-coverage.toml` | Canonical mapping from 260 vibe-coding source rows to coverage controls | coverage schema `1.5.0` |
 | `target/jankurai/vibe-coverage.json` | Emitted vibe coverage report | coverage report schema |
 | `paper/tex/generated/vibe_coverage_table.tex` | Generated paper appendix coverage table | `paper_edition` |
 | `target/jankurai/evidence-index.json` | Proof evidence index from `jankurai prove` | proof schema |
@@ -141,7 +141,7 @@ Jankurai's standard method borrows:
 
 | Level | Purpose |
 | --- | --- |
-| `agents` | Install only `AGENTS.md`, `agent/JANKURAI_STANDARD.md`, `agent/MASTER_PLAN.md`, and provider adapters. |
+| `agents` | Install only `AGENTS.md`, `agent/JANKURAI_STANDARD.md`, and provider adapters. |
 | `score` | Add owner/test/generated-zone/proof/audit/version manifests and minimal local recipes. |
 | `ci` | Add observe-mode workflow, security policy, and stub evidence path without a score gate. |
 | `full` | Preserve the selected profile's full scaffold behavior. |

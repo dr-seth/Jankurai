@@ -12,7 +12,7 @@ rule_id = "HLT-023-INPUT-BOUNDARY-GAP"
 source_ref = "tip1:6"
 canonical_group = "secrets-privacy"
 rule_id = "HLT-010-SECRET-SPRAWL"
-coverage = "absolute"
+coverage = "detector-backed"
 
 [[expect]]
 source_ref = "tip1:21"
@@ -28,7 +28,27 @@ rule_id = "HLT-024-AGENT-TOOL-SUPPLY-GAP"
 source_ref = "tip2:29"
 canonical_group = "prod-destructive-release"
 rule_id = "HLT-021-DESTRUCTIVE-MIGRATION"
-coverage = "absolute"
+coverage = "detector-backed"
+
+[[expect]]
+source_ref = "tip2:12"
+canonical_group = "input-boundary"
+rule_id = "HLT-023-INPUT-BOUNDARY-GAP"
+
+[[expect]]
+source_ref = "tip2:28"
+canonical_group = "prod-destructive-release"
+rule_id = "HLT-025-RELEASE-READINESS-GAP"
+
+[[expect]]
+source_ref = "tip3:47"
+canonical_group = "agent-tool-supply"
+rule_id = "HLT-012-OVERBROAD-AGENCY"
+
+[[expect]]
+source_ref = "tip5:43"
+canonical_group = "test-verification"
+rule_id = "HLT-008-FALSE-GREEN-RISK"
 
 [[expect]]
 source_ref = "tip1:34"
@@ -39,7 +59,7 @@ rule_id = "HLT-026-COST-BUDGET-GAP"
 source_ref = "tip5:41"
 canonical_group = "test-verification"
 rule_id = "HLT-008-FALSE-GREEN-RISK"
-coverage = "absolute"
+coverage = "detector-backed"
 
 [[expect]]
 source_ref = "tip3:3"

@@ -103,10 +103,14 @@ pub fn run_validate(args: VibeValidateArgs) -> Result<()> {
         );
     }
     println!(
-        "vibe coverage ok: issues={} refs={} absolute={} partial={} none={}",
+        "vibe coverage ok: issues={} refs={} detector-backed={} partial={} none={}",
         report.issue_count,
         report.source_ref_count,
-        report.coverage_counts.get("absolute").copied().unwrap_or(0),
+        report
+            .coverage_counts
+            .get("detector-backed")
+            .copied()
+            .unwrap_or(0),
         report.coverage_counts.get("partial").copied().unwrap_or(0),
         report.coverage_counts.get("none").copied().unwrap_or(0)
     );
@@ -140,8 +144,13 @@ pub fn build_report(repo: &Path, source: &str, tips: &str) -> Result<VibeCoverag
     let source_text = fs::read_to_string(&source_path).with_context(|| format!("read {source}"))?;
     let source_value = validation::validate_vibe_coverage_source_toml_text(repo, &source_text)?;
     validation::validate_value(repo, ArtifactSchema::VibeCoverageSource, &source_value)?;
-    let parsed: CoverageSource =
+    let mut parsed: CoverageSource =
         toml::from_str(&source_text).with_context(|| format!("parse {source}"))?;
+    for issue in &mut parsed.issues {
+        if issue.coverage == "absolute" {
+            issue.coverage = "detector-backed".into();
+        }
+    }
 
     let expected_rows = parse_tip_rows(&repo.join(tips))?;
     validate_source_shape(&parsed, &expected_rows)?;
@@ -193,7 +202,7 @@ pub fn build_report(repo: &Path, source: &str, tips: &str) -> Result<VibeCoverag
     let mut top_gaps = parsed
         .issues
         .iter()
-        .filter(|issue| issue.coverage != "absolute")
+        .filter(|issue| issue.coverage != "detector-backed")
         .map(|issue| VibeCoverageGap {
             id: issue.id.clone(),
             name: issue.name.clone(),
@@ -258,8 +267,11 @@ fn validate_source_shape(
     source: &CoverageSource,
     expected_rows: &BTreeMap<String, String>,
 ) -> Result<()> {
-    if source.schema_version != "1.4.1" {
-        bail!("agent/vibe-coverage.toml schema_version must be 1.4.1");
+    if source.schema_version != crate::model::SCHEMA_VERSION {
+        bail!(
+            "agent/vibe-coverage.toml schema_version must be {}",
+            crate::model::SCHEMA_VERSION
+        );
     }
     if source.paper_edition != PAPER_EDITION {
         bail!(
@@ -334,7 +346,10 @@ fn validate_source_shape(
         if !ids.insert(issue.id.as_str()) {
             bail!("duplicate vibe issue id {}", issue.id);
         }
-        if !matches!(issue.coverage.as_str(), "absolute" | "partial" | "none") {
+        if !matches!(
+            issue.coverage.as_str(),
+            "detector-backed" | "absolute" | "partial" | "none"
+        ) {
             bail!("{} has invalid coverage {}", issue.id, issue.coverage);
         }
         if issue.source_refs.is_empty() {
@@ -396,12 +411,12 @@ fn validate_source_shape(
                 bail!("{} references unknown proof_lane {}", issue.id, lane);
             }
         }
-        if issue.coverage == "absolute" {
+        if issue.coverage == "detector-backed" || issue.coverage == "absolute" {
             if issue.detector_status != "detector-backed"
                 || issue.evidence_status != "audit-evidence"
             {
                 bail!(
-                    "{} absolute coverage must be detector-backed with audit evidence",
+                    "{} detector-backed coverage must have detector-backed audit evidence",
                     issue.id
                 );
             }
@@ -409,7 +424,7 @@ fn validate_source_shape(
                 artifact == "agent/repo-score.json" || artifact == "agent/repo-score.md"
             }) {
                 bail!(
-                    "{} absolute coverage lacks audit report artifact evidence",
+                    "{} detector-backed coverage lacks audit report artifact evidence",
                     issue.id
                 );
             }
@@ -469,7 +484,7 @@ fn coverage_rank(coverage: &str) -> u8 {
     match coverage {
         "none" => 0,
         "partial" => 1,
-        "absolute" => 2,
+        "absolute" | "detector-backed" => 2,
         _ => 3,
     }
 }
@@ -495,7 +510,7 @@ fn render_markdown(report: &VibeCoverageReport) -> String {
     let _ = writeln!(out);
     let _ = writeln!(out, "| Coverage | Count |");
     let _ = writeln!(out, "| --- | ---: |");
-    for key in ["absolute", "partial", "none"] {
+    for key in ["detector-backed", "partial", "none"] {
         let _ = writeln!(
             out,
             "| `{}` | {} |",
@@ -582,7 +597,7 @@ fn render_tex(report: &VibeCoverageReport) -> String {
     let _ = writeln!(out, "\\begin{{longtable}}{{@{{}}>{{\\raggedright\\arraybackslash}}p{{0.12\\textwidth}}>{{\\raggedright\\arraybackslash}}p{{0.18\\textwidth}}>{{\\raggedright\\arraybackslash}}p{{0.09\\textwidth}}>{{\\raggedright\\arraybackslash}}p{{0.08\\textwidth}}>{{\\raggedright\\arraybackslash}}p{{0.12\\textwidth}}>{{\\raggedright\\arraybackslash}}p{{0.33\\textwidth}}@{{}}}}");
     let _ = writeln!(
         out,
-        "\\caption{{Vibe-coding source-row coverage. Green = absolute, yellow = partial, red = none.}}\\\\"
+        "\\caption{{Vibe-coding source-row coverage. Green = detector-backed, yellow = partial, red = none.}}\\\\"
     );
     let _ = writeln!(out, "\\toprule");
     let _ = writeln!(out, "\\textbf{{Source}} & \\textbf{{Issue}} & \\textbf{{Coverage}} & \\textbf{{Rule}} & \\textbf{{Group}} & \\textbf{{Gap / next action}} \\\\");
@@ -594,7 +609,7 @@ fn render_tex(report: &VibeCoverageReport) -> String {
     let _ = writeln!(out, "\\endhead");
     for issue in &report.issues {
         let color = match issue.coverage.as_str() {
-            "absolute" => "green!18",
+            "detector-backed" | "absolute" => "green!18",
             "partial" => "yellow!28",
             _ => "red!18",
         };
@@ -605,7 +620,7 @@ fn render_tex(report: &VibeCoverageReport) -> String {
             .collect::<Vec<_>>()
             .join(", ");
         let source_refs = issue.source_refs.join(", ");
-        let gap = if issue.coverage == "absolute" {
+        let gap = if issue.coverage == "detector-backed" || issue.coverage == "absolute" {
             issue.coverage_reason.clone()
         } else {
             format!("{}; next: {}", issue.gap, issue.next_action)

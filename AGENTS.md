@@ -1,13 +1,13 @@
 # Jankurai Agent Instructions
 
-Read `agent/JANKURAI_STANDARD.md` first. `agent/MASTER_PLAN.md` and
-`tips/phases/*` apply only when the user explicitly asks for MASTER_PLAN or
-phase work. For explicit phase or MASTER_PLAN work, read `agent/MASTER_PLAN.md`
-before `tips/phases/00-phase-index.md`. The full standard is in
+Read `agent/JANKURAI_STANDARD.md` first. The full standard is in
 `docs/agent-native-standard.md`; the paper mission is in `docs/mission.md`.
+When a user provides a paper, release, implementation, or handoff plan in the
+conversation, treat that plan as the controlling plan. Do not route such plans
+through the separate local phase workflow unless the user explicitly names it.
 
 This workspace is writing and validating the paper:
-`Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`.
+`Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge`.
 
 ## Rules
 

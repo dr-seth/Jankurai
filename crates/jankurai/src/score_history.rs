@@ -51,57 +51,69 @@ pub fn append_score_history(
         .with_context(|| format!("append {}", history_path.display()))?;
 
     if let Some(csv_path) = csv_path {
-        write_score_history_csv(repo, &history_path, csv_path)?;
+        append_score_history_csv(repo, &history_path, csv_path, &entry)?;
     }
 
     Ok(history_path)
 }
 
-fn write_score_history_csv(repo: &Path, history_path: &Path, csv_path: &str) -> Result<()> {
+fn append_score_history_csv(
+    repo: &Path,
+    history_path: &Path,
+    csv_path: &str,
+    entry: &Value,
+) -> Result<()> {
     let csv_path = resolve_output_path(repo, csv_path);
     if let Some(parent) = csv_path.parent() {
         fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
     }
 
-    let text = fs::read_to_string(history_path)
-        .with_context(|| format!("read {}", history_path.display()))?;
-    let mut out = String::from(
-        "index,generated_at,branch,commit,dirty_worktree,score,raw_score,caps,finding_count,hard_findings,soft_findings,decision,minimum_score,scope,report_fingerprint\n",
-    );
-    for (index, line) in text
+    let needs_header = !csv_path.exists() || csv_path.metadata().map(|m| m.len()).unwrap_or(0) == 0;
+    let index = fs::read_to_string(history_path)
+        .with_context(|| format!("read {}", history_path.display()))?
         .lines()
         .filter(|line| !line.trim().is_empty())
-        .enumerate()
-    {
-        let value: Value = serde_json::from_str(line)
-            .with_context(|| format!("parse score history line {}", index + 1))?;
-        let row = [
-            (index + 1).to_string(),
-            string_field(&value, "generated_at"),
-            string_field(&value, "branch"),
-            string_field(&value, "commit"),
-            bool_field(&value, "dirty_worktree"),
-            int_field(&value, "score"),
-            int_field(&value, "raw_score"),
-            array_len_field(&value, "caps_applied"),
-            int_field(&value, "finding_count"),
-            int_field(&value, "hard_findings"),
-            int_field(&value, "soft_findings"),
-            string_field(&value, "decision"),
-            int_field(&value, "minimum_score"),
-            string_field(&value, "scope"),
-            string_field(&value, "report_fingerprint"),
-        ];
-        out.push_str(
-            &row.iter()
-                .map(|field| csv_escape(field))
-                .collect::<Vec<_>>()
-                .join(","),
-        );
-        out.push('\n');
+        .count();
+    let row = csv_row(index, entry);
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&csv_path)
+        .with_context(|| format!("open {}", csv_path.display()))?;
+    if needs_header {
+        writeln!(file, "{}", csv_header())
+            .with_context(|| format!("write {}", csv_path.display()))?;
     }
-    fs::write(&csv_path, out).with_context(|| format!("write {}", csv_path.display()))?;
+    writeln!(file, "{}", row).with_context(|| format!("append {}", csv_path.display()))?;
     Ok(())
+}
+
+fn csv_header() -> &'static str {
+    "index,generated_at,branch,commit,dirty_worktree,score,raw_score,caps,finding_count,hard_findings,soft_findings,decision,minimum_score,scope,report_fingerprint"
+}
+
+fn csv_row(index: usize, value: &Value) -> String {
+    let row = [
+        index.to_string(),
+        string_field(value, "generated_at"),
+        string_field(value, "branch"),
+        string_field(value, "commit"),
+        bool_field(value, "dirty_worktree"),
+        int_field(value, "score"),
+        int_field(value, "raw_score"),
+        array_len_field(value, "caps_applied"),
+        int_field(value, "finding_count"),
+        int_field(value, "hard_findings"),
+        int_field(value, "soft_findings"),
+        string_field(value, "decision"),
+        int_field(value, "minimum_score"),
+        string_field(value, "scope"),
+        string_field(value, "report_fingerprint"),
+    ];
+    row.iter()
+        .map(|field| csv_escape(field))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn resolve_output_path(repo: &Path, path: &str) -> PathBuf {

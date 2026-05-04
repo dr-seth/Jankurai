@@ -18,6 +18,10 @@
     "paper_edition",
     "target_stack_id",
     "target_stack",
+    "claimed_conformance_level",
+    "observed_conformance_level",
+    "conformance_decision",
+    "conformance_blockers",
     "repo",
     "run_id",
     "started_at",
@@ -64,6 +68,16 @@
     "paper_edition": { "type": "string" },
     "target_stack_id": { "type": "string" },
     "target_stack": { "type": "string" },
+    "claimed_conformance_level": { "$ref": "#/$defs/conformanceLevel" },
+    "observed_conformance_level": { "$ref": "#/$defs/conformanceLevel" },
+    "conformance_decision": {
+      "type": "string",
+      "enum": ["pass", "review", "block", "fail"]
+    },
+    "conformance_blockers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "repo": { "type": "string" },
     "run_id": { "type": "string" },
     "started_at": { "type": "string" },
@@ -102,6 +116,10 @@
     "sha256": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "conformanceLevel": {
+      "type": "string",
+      "enum": ["HL0", "HL1", "HL2", "HL3", "HL4", "HL5"]
     },
     "scope": {
       "type": "object",

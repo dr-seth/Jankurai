@@ -1,6 +1,6 @@
 # jankurai Audit Rubric
 
-Version: `0.6.1`
+Version: `0.7.0`
 
 Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + bounded Python AI/data service.
 
@@ -95,7 +95,7 @@ Vibe coverage adds detector-backed stable rule IDs
 `HLT-024-AGENT-TOOL-SUPPLY-GAP`, `HLT-025-RELEASE-READINESS-GAP`,
 `HLT-026-COST-BUDGET-GAP`, and
 `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP`. These rules are coverage labels for
-source-row reporting; rows are marked `absolute`, `partial`, or `none` based on
+source-row reporting; rows are marked `detector-backed`, `partial`, or `none` based on
 whether Jankurai has deterministic detector evidence, proof-lane evidence, and
 CI/report artifacts.
 

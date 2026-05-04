@@ -105,6 +105,10 @@
       "command": "just score",
       "purpose": "verify docs remain agent-readable and routed"
     },
+    "conformance/": {
+      "command": "just conformance",
+      "purpose": "verify seed conformance fixtures and expected decisions remain present"
+    },
     "examples/perfect-web-api-db/": {
       "command": "cargo test -p jankurai",
       "purpose": "verify the reference platform scaffold stays machine-readable"

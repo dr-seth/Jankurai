@@ -1,15 +1,42 @@
 \section{New Bottleneck: Trustworthy Merge}
 
-The public thesis line is intentionally blunt, but the paper's contribution is a standard. Humans were not the bug because humans wrote software. Humans were the bug because most repositories were organized around human memory, human patience, human taste, and slow human review. That organization worked only while code arrived slowly enough for teams to compensate with folklore and senior-engineer recall. Agentic coding removes that throttle.
+An agent opens a pull request that changes a checkout flow. The diff touches product UI, a generated API client, a schema-adjacent file, tests, and documentation. The hard reviewer question is no longer whether the patch looks plausible. It is: what evidence makes this safe to merge?
+
+That question is the center of Jankurai. The public thesis line, ``Humans Were the Bug,'' is intentionally blunt, but the standard's claim is more precise: humans were not the bug because humans wrote software; memory-dependent repositories were the bug. Most repositories were organized around human memory, human patience, human taste, and slow human review. That organization worked only while code arrived slowly enough for teams to compensate with folklore and senior-engineer recall. Agentic coding removes that throttle.
 
 GitHub's 2025 Octoverse report describes an ecosystem where AI is mainstream in development and TypeScript has become the most-used language on GitHub \cite{githubOctoverse2025}. DORA's 2025 research frames AI as an amplifier of existing organizational capability rather than an automatic productivity guarantee \cite{doraStateAIAssistedSoftwareDevelopment2025}. Security evidence is less forgiving: Veracode reports that generated code can be syntactically plausible while still containing known flaws \cite{veracodeGenaiCodeSecurity2025}, and GitGuardian reports accelerating secret exposure in public GitHub activity, including AI-assisted commits \cite{gitguardianSecretsSprawl2026,gitguardianSecretsSprawl2026Blog}.
 
-The correct response is not to slow agents down until the old review process survives. The correct response is to redesign the repository as the verification interface that constrains, proves, and repairs every change before merge. The operating loop is:
+The correct response is not to slow agents down until the old review process survives. The correct response is to redesign the repository as the verification interface that constrains, proves, and repairs every change before merge. Jankurai turns a pull request merge decision into a reproducible, versioned audit artifact. Its central object is the merge witness:
 
 \begin{center}
-\small\texttt{intent -> bounded authority -> proof lanes -> evidence -> repair or exception expiry -> reusable primitives}
+\small
+\begin{tabular}{c}
+\(\mathrm{merge\ witness}=\mathrm{changed\ paths}+\mathrm{owner\ route}\) \\
+\(+\ \mathrm{required\ proof\ receipts}+\mathrm{score\ delta}\) \\
+\(+\ \mathrm{missing\ evidence\ decision}+\mathrm{commit/tool\ identity}\)
+\end{tabular}
 \end{center}
 
-That loop is the product, the standard, and the paper thesis at the same time. Agent-native engineering is not ``humans approve whatever the model says.'' It is human-directed engineering in which intent becomes bounded authority, changed paths become proof lanes, proof lanes leave evidence, evidence drives repair or exception expiry, and repeated repairs become reusable primitives. The same machinery must govern human-authored code, because a vague PR from a person and a vague patch from an agent fail in the same place: the repository cannot tell what owns the behavior, which proof applies, or what evidence would make the merge trustworthy.
+\begin{table}[t]
+\caption{Agent-native merge loop.}
+\label{tab:merge-loop}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.30\columnwidth} Y}
+\toprule
+\textbf{Step} & \textbf{Repository question} \\
+\midrule
+Change proposal & Which paths, contracts, and generated zones changed? \\
+Owner routing & Which owner cells are responsible for those paths? \\
+Proof selection & Which lanes are required by path, risk, and policy? \\
+Proof execution & Which commands ran, with what tool versions and artifacts? \\
+Witness creation & What evidence, missing evidence, score delta, and identity bind this PR? \\
+Reviewer/CI decision & Is the witness sufficient to merge, review, block, or ratchet-fail? \\
+History update & Which receipts and baseline rows remain reusable for future repair? \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-This paper makes four claims. First, programming languages are bottleneck-compression systems, not merely syntax preferences. Second, once agents can learn syntax on demand, language choice shifts toward rejection speed, security, proof locality, and auditability. Third, those qualities need a repository standard before stack preference matters: owner routing, generated-zone policy, proof lanes, evidence indexes, audit reports, repair queues, and versioned conformance artifacts. Fourth, after the control plane is present, the strongest general-purpose reference profile is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python. The standard is the primary claim; the stack is a default profile that must earn trust through the same proof loop.
+Agent-native engineering is not ``humans approve whatever the model says.'' It is human-directed engineering in which intent becomes bounded authority, changed paths become proof lanes, proof lanes leave evidence, evidence drives repair or exception expiry, and repeated repairs become reusable primitives. The same machinery must govern human-authored code, because a vague PR from a person and a vague patch from an agent fail in the same place: the repository cannot tell what owns the behavior, which proof applies, or what evidence would make the merge trustworthy.
+
+This paper makes four contributions. First, it defines a repository conformance model for agent-native merge. Second, it specifies a merge-witness artifact that binds changed paths to ownership and proof. Third, it turns missing evidence into stable rule IDs and an ordered repair queue. Fourth, it provides a non-normative reference implementation and reference profile. Stack comparison appears later as one policy-weighted profile analysis; the standard's primary claim is reproducible merge evidence.

@@ -15,7 +15,11 @@
           "path": { "type": "string" },
           "source": { "type": "string" },
           "command": { "type": "string" },
-          "read_only": { "type": "boolean" }
+          "read_only": { "type": "boolean" },
+          "write_policy": {
+            "type": "string",
+            "enum": ["generator_only", "auditor_output", "lockfile", "reviewed_manual"]
+          }
         },
         "additionalProperties": false
       }

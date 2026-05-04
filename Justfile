@@ -29,8 +29,17 @@ paper:
 score:
     cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv
 
+audit-fast base="origin/main":
+    cargo run -p jankurai -- audit . --changed-fast --changed-from {{base}} --json target/jankurai/audit-fast.json --md target/jankurai/audit-fast.md --timings-json target/jankurai/audit-timings.json
+
 compat:
     cargo test -p jankurai --test report_compatibility_guard
+
+conformance:
+    test -f conformance/README.md
+    test "$(find conformance/fixtures -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "10"
+    test "$(find conformance/expected -type f -name '*.json' | wc -l | tr -d ' ')" = "12"
+    cargo test -p jankurai conformance_fixture_inventory
 
 self-audit:
     cargo run -p jankurai -- audit . --self-audit --json target/jankurai/self-audit.json --md target/jankurai/self-audit.md

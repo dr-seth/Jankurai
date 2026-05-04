@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
-use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
+use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
     migrate, optimize, proof, publish, registry, repair, repair_plan, rules, rust, score, security,
@@ -182,8 +182,12 @@ struct AuditArgs {
     changed: Vec<PathBuf>,
     #[arg(long, value_name = "REF")]
     changed_from: Option<String>,
+    #[arg(long)]
+    changed_fast: bool,
     #[arg(long, default_value = "standard")]
     mode: String,
+    #[arg(long, value_name = "PATH")]
+    timings_json: Option<String>,
     #[arg(long, value_name = "PATH")]
     sarif: Option<String>,
     #[arg(long, value_name = "PATH")]
@@ -256,10 +260,6 @@ struct InitArgs {
     bootstrap_commit: bool,
     #[arg(long, default_value = "Adopt Jankurai control plane")]
     bootstrap_message: String,
-    #[arg(long, hide = true)]
-    yolo: bool,
-    #[arg(long, hide = true, default_value = "Adopt Jankurai control plane")]
-    yolo_message: String,
 }
 
 #[derive(Args, Debug)]
@@ -896,7 +896,7 @@ fn main() -> anyhow::Result<()> {
             })?;
         }
         Some(Commands::Init(args)) => {
-            if args.bootstrap_commit || args.yolo {
+            if args.bootstrap_commit {
                 run_init_bootstrap_commit(args)?;
                 return Ok(());
             }
@@ -1297,15 +1297,6 @@ fn run_init_bootstrap_commit(args: InitArgs) -> anyhow::Result<()> {
             "--bootstrap-commit commits changes; omit --dry-run/--diff or run normal init first"
         );
     }
-    if args.yolo {
-        eprintln!(
-            "{}",
-            jankurai::ui::epaint(
-                jankurai::ui::Style::Warn,
-                "--yolo is deprecated; use --bootstrap-commit"
-            )
-        );
-    }
     if !args.yes {
         eprintln!(
             "{}",
@@ -1390,6 +1381,8 @@ fn run_init_bootstrap_commit(args: InitArgs) -> anyhow::Result<()> {
         score_history: history_jsonl.display().to_string(),
         score_history_csv: Some(history_csv.display().to_string()),
         no_score_history: false,
+        changed_fast: false,
+        timings_json: None,
     })?;
     let score_trailers = score_trailers_from_report(&repo, &score_json)?;
 
@@ -1409,11 +1402,7 @@ fn run_init_bootstrap_commit(args: InitArgs) -> anyhow::Result<()> {
         println!("--bootstrap-commit found no staged changes to commit");
         return Ok(());
     }
-    let commit_message = if args.yolo && args.yolo_message != "Adopt Jankurai control plane" {
-        &args.yolo_message
-    } else {
-        &args.bootstrap_message
-    };
+    let commit_message = &args.bootstrap_message;
     run_git_env(
         &repo,
         &["commit", "-m", commit_message, "-m", &score_trailers],
@@ -1544,6 +1533,7 @@ fn score_trailers_from_report(
 }
 
 fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
+    let command_started = std::time::Instant::now();
     if args.json == "-" && args.md == "-" {
         anyhow::bail!("use at most one stdout target; JSON and Markdown may not share stdout");
     }
@@ -1554,6 +1544,9 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     } else {
         args.changed
     };
+    if args.changed_fast && changed.is_empty() {
+        anyhow::bail!("--changed-fast requires --changed PATH or --changed-from REF");
+    }
     progress.tick("load audit mode");
     let mode = AuditMode::parse(&args.mode)?;
     if matches!(mode, AuditMode::Ratchet) && args.baseline.is_none() {
@@ -1562,14 +1555,20 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
         );
     }
     progress.tick("scan repository");
-    let mut report = run_audit_with_options(
+    let (mut report, mut timings) = run_audit_timed_with_options(
         &args.repo,
         &changed,
         AuditOptions {
             self_audit: args.self_audit,
             proof_receipts: args.proof_receipts.clone(),
+            changed_fast: args.changed_fast,
         },
     )?;
+    if args.changed_fast {
+        if let Some(git) = report.git.as_mut() {
+            git.mode = "changed-fast".into();
+        }
+    }
     progress.tick("apply score policy");
     if let Some(minimum_score) = args.fail_under {
         if let Some(policy) = report.policy.as_mut() {
@@ -1614,6 +1613,7 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     report.report_fingerprint = jankurai::audit::report_fingerprint(&report);
     let md_text = render_markdown(&report);
     progress.tick("write JSON and Markdown");
+    let report_write_started = std::time::Instant::now();
     validation::write_json(&args.repo, ArtifactSchema::RepoScore, &args.json, &report)?;
     write_markdown(&args.md, &md_text)?;
     if let Some(path) = args.sarif.as_deref() {
@@ -1631,7 +1631,10 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     if let Some(path) = args.repair_queue_jsonl.as_deref() {
         write_json(path, &jankurai::report::issues::repair_queue_jsonl(&report))?;
     }
-    if !args.no_score_history {
+    timings.record_duration("report_write", report_write_started.elapsed());
+    let write_history = !args.no_score_history && !args.changed_fast;
+    if write_history {
+        let history_started = std::time::Instant::now();
         let history_path = jankurai::score_history::append_score_history(
             &args.repo,
             &report,
@@ -1640,7 +1643,14 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             &args.score_history,
             args.score_history_csv.as_deref(),
         )?;
+        timings.record_duration("history_write", history_started.elapsed());
         eprintln!("score history appended {}", history_path.display());
+    } else {
+        timings.record_ms("history_write", 0);
+    }
+    if let Some(path) = args.timings_json.as_deref() {
+        timings.total_ms = command_started.elapsed().as_millis();
+        write_json(path, &serde_json::to_string_pretty(&timings)?)?;
     }
     progress.finish(format!(
         "score {} raw {} findings {}",

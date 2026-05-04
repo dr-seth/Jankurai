@@ -2,9 +2,11 @@ pub mod analyzers;
 pub mod boundaries_artifact;
 pub mod caps;
 pub mod evidence;
+pub mod file_kinds;
 pub mod finding_builder;
 pub mod fix_queue;
 pub mod fs;
+pub mod fs_policy;
 pub mod helpers;
 pub mod policy;
 pub mod rule_analyzer;
@@ -18,16 +20,47 @@ use anyhow::Result;
 use caps::{caps_applied, CAPS};
 use finding_builder::{dimension_soft_route, FindingBuilder};
 use helpers::AuditContext;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Default)]
 pub struct AuditOptions {
     pub self_audit: bool,
     pub proof_receipts: Option<String>,
+    pub changed_fast: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct AuditTimings {
+    pub total_ms: u128,
+    pub phases: Vec<AuditTimingPhase>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AuditTimingPhase {
+    pub name: String,
+    pub elapsed_ms: u128,
+}
+
+impl AuditTimings {
+    pub fn record_duration(&mut self, name: impl Into<String>, duration: Duration) {
+        self.phases.push(AuditTimingPhase {
+            name: name.into(),
+            elapsed_ms: duration.as_millis(),
+        });
+    }
+
+    pub fn record_ms(&mut self, name: impl Into<String>, elapsed_ms: u128) {
+        self.phases.push(AuditTimingPhase {
+            name: name.into(),
+            elapsed_ms,
+        });
+    }
 }
 
 pub fn run_audit(root: &Path, changed: &[PathBuf]) -> Result<Report> {
@@ -39,12 +72,33 @@ pub fn run_audit_with_options(
     changed: &[PathBuf],
     options: AuditOptions,
 ) -> Result<Report> {
+    Ok(run_audit_timed_with_options(root, changed, options)?.0)
+}
+
+pub fn run_audit_timed_with_options(
+    root: &Path,
+    changed: &[PathBuf],
+    options: AuditOptions,
+) -> Result<(Report, AuditTimings)> {
     let started = Instant::now();
-    let all_files = fs::inventory_repo(root)?;
+    let mut timings = AuditTimings::default();
     let scope_paths: Vec<String> = changed
         .iter()
         .filter_map(|p| normalize_changed_path(root, p))
         .collect();
+    let inventory_options = fs::InventoryOptions::from_policy(root);
+    let inventory_started = Instant::now();
+    let inventory = if options.changed_fast {
+        let paths = changed_fast_inventory_paths(&scope_paths);
+        fs::inventory_paths_detailed(root, &paths, &inventory_options)?
+    } else {
+        fs::inventory_repo_detailed(root, &inventory_options)?
+    };
+    timings.record_ms("walk", inventory.timings.walk_ms);
+    timings.record_ms("metadata", inventory.timings.metadata_ms);
+    timings.record_ms("text_capture", inventory.timings.text_capture_ms);
+    timings.record_duration("inventory", inventory_started.elapsed());
+    let all_files = inventory.files;
     let scope_files = if scope_paths.is_empty() {
         all_files.clone()
     } else {
@@ -55,6 +109,7 @@ pub fn run_audit_with_options(
             .collect()
     };
 
+    let index_started = Instant::now();
     let ctx = AuditContext {
         root: root.to_path_buf(),
         all_files,
@@ -62,7 +117,10 @@ pub fn run_audit_with_options(
         scope_paths,
         self_audit: options.self_audit,
     };
+    timings.record_duration("index_build", index_started.elapsed());
+    let analyzers_started = Instant::now();
     let dimensions = analyzers::all_dimensions(&ctx);
+    timings.record_duration("analyzers", analyzers_started.elapsed());
     let raw_score = dimensions
         .iter()
         .map(|d| d.weighted_points)
@@ -77,6 +135,7 @@ pub fn run_audit_with_options(
     let policy = load_policy(root);
     let ux_qa = attach_ux_report_artifact(root, analyzers::ux_qa_status(&ctx));
     let tool_adoption = analyzers::tool_adoption::status(&ctx);
+    let findings_started = Instant::now();
     let findings = build_findings(
         &ctx,
         &dimensions,
@@ -87,10 +146,14 @@ pub fn run_audit_with_options(
         &destructive_sql_hits,
     );
     let agent_fix_queue = fix_queue::build_agent_fix_queue(&findings);
+    timings.record_duration("findings", findings_started.elapsed());
     let decision = report_decision(final_score, &findings, policy.minimum_score);
+    let (observed_conformance_level, conformance_decision, conformance_blockers) =
+        conformance_summary(&decision, &findings);
     let git = git_summary(root, changed);
     let dirty_worktree = git.dirty_worktree.unwrap_or(false);
     let proof_receipts = load_proof_receipts(root, options.proof_receipts.as_deref())?;
+    let versions = report_versions(root);
     let mut report = Report {
         report_fingerprint: "sha256:pending".into(),
         input_fingerprint: input_fingerprint(&ctx),
@@ -101,18 +164,24 @@ pub fn run_audit_with_options(
         generated_at: started_at(),
         schema_url: "schemas/repo-score.schema.json".into(),
         standard: "jankurai".into(),
-        standard_version: STANDARD_VERSION.into(),
-        auditor_version: AUDITOR_VERSION.into(),
-        schema_version: SCHEMA_VERSION.into(),
-        paper_edition: PAPER_EDITION.into(),
-        target_stack_id: TARGET_STACK_ID.into(),
+        standard_version: versions.standard_version,
+        auditor_version: versions.auditor_version,
+        schema_version: versions.schema_version,
+        paper_edition: versions.paper_edition,
+        target_stack_id: versions.target_stack_id,
         target_stack: TARGET_STACK.into(),
+        claimed_conformance_level: "HL3".into(),
+        observed_conformance_level,
+        conformance_decision,
+        conformance_blockers,
         repo: root.display().to_string(),
         run_id: Some(run_id()),
         started_at: Some(started_at()),
         elapsed_ms: Some(started.elapsed().as_millis()),
         scope: Scope {
-            mode: if ctx.scope_paths.is_empty() {
+            mode: if options.changed_fast {
+                "changed-fast".into()
+            } else if ctx.scope_paths.is_empty() {
                 "full".into()
             } else {
                 "changed".into()
@@ -147,7 +216,72 @@ pub fn run_audit_with_options(
         agent_fix_queue,
     };
     report.report_fingerprint = report_fingerprint(&report);
-    Ok(report)
+    timings.total_ms = started.elapsed().as_millis();
+    Ok((report, timings))
+}
+
+struct ReportVersions {
+    standard_version: String,
+    auditor_version: String,
+    schema_version: String,
+    paper_edition: String,
+    target_stack_id: String,
+}
+
+fn report_versions(root: &Path) -> ReportVersions {
+    let mut versions = ReportVersions {
+        standard_version: STANDARD_VERSION.into(),
+        auditor_version: AUDITOR_VERSION.into(),
+        schema_version: SCHEMA_VERSION.into(),
+        paper_edition: PAPER_EDITION.into(),
+        target_stack_id: TARGET_STACK_ID.into(),
+    };
+    if let Ok(text) = std::fs::read_to_string(root.join("agent/standard-version.toml")) {
+        if let Ok(value) = toml::from_str::<toml::Value>(&text) {
+            versions.standard_version =
+                toml_string(&value, "standard_version").unwrap_or(versions.standard_version);
+            versions.auditor_version =
+                toml_string(&value, "auditor_version").unwrap_or(versions.auditor_version);
+            versions.schema_version =
+                toml_string(&value, "schema_version").unwrap_or(versions.schema_version);
+            versions.paper_edition =
+                toml_string(&value, "paper_edition").unwrap_or(versions.paper_edition);
+            versions.target_stack_id =
+                toml_string(&value, "target_stack").unwrap_or(versions.target_stack_id);
+            return versions;
+        }
+    }
+    if let Some(version) = standard_doc_version(root) {
+        versions.standard_version = version;
+    }
+    versions
+}
+
+fn toml_string(value: &toml::Value, key: &str) -> Option<String> {
+    value.get(key)?.as_str().map(ToString::to_string)
+}
+
+fn standard_doc_version(root: &Path) -> Option<String> {
+    for path in [
+        root.join("agent/JANKURAI_STANDARD.md"),
+        root.join("docs/agent-native-standard.md"),
+    ] {
+        let Ok(text) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        for line in text.lines() {
+            let Some(rest) = line.strip_prefix("Standard version: `") else {
+                continue;
+            };
+            let Some((version, _)) = rest.split_once('`') else {
+                continue;
+            };
+            if !version.trim().is_empty() {
+                return Some(version.trim().to_string());
+            }
+        }
+    }
+    None
 }
 
 pub fn rebuild_agent_fix_queue(report: &mut Report) {
@@ -216,6 +350,30 @@ fn report_decision(score: i32, findings: &[Finding], minimum_score: i32) -> Repo
             allowed_drop: 0,
             passed,
         }),
+    }
+}
+
+fn conformance_summary(
+    decision: &ReportDecision,
+    findings: &[Finding],
+) -> (String, String, Vec<String>) {
+    let blockers: Vec<String> = findings
+        .iter()
+        .filter(|finding| matches!(finding.severity.as_str(), "critical" | "high"))
+        .map(|finding| {
+            format!(
+                "{} on {}",
+                finding.rule_id.as_deref().unwrap_or(&finding.check_id),
+                finding.path
+            )
+        })
+        .collect();
+    if decision.passed {
+        ("HL3".into(), "pass".into(), blockers)
+    } else if blockers.is_empty() {
+        ("HL2".into(), "review".into(), blockers)
+    } else {
+        ("HL2".into(), "block".into(), blockers)
     }
 }
 
@@ -881,6 +1039,31 @@ fn path_matches_scope(rel_path: &str, scopes: &[String]) -> bool {
             || rel_path.starts_with(&format!("{}/", scope))
             || scope.starts_with(&format!("{}/", rel_path))
     })
+}
+
+fn changed_fast_inventory_paths(scope_paths: &[String]) -> Vec<String> {
+    let mut paths: BTreeSet<String> = scope_paths.iter().cloned().collect();
+    for path in [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "GEMINI.md",
+        "Justfile",
+        "Cargo.toml",
+        "Cargo.lock",
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "pyproject.toml",
+        "requirements.txt",
+        "go.mod",
+        "go.sum",
+        "agent",
+        ".github/workflows",
+    ] {
+        paths.insert(path.to_string());
+    }
+    paths.into_iter().collect()
 }
 
 fn normalize_changed_path(root: &Path, path: &Path) -> Option<String> {

@@ -1144,6 +1144,7 @@ fn execute_run(
         .unwrap_or_default()
         .as_secs();
     let run_id = proof_run_id(plan_path, index, &run.lane, &run.command, started_secs);
+    let started_at = now_string();
     let command_output = Command::new("bash")
         .arg("-lc")
         .arg(&run.command)
@@ -1172,7 +1173,15 @@ fn execute_run(
     let exit_code = command_output.status.code().unwrap_or(-1);
     let stdout_stderr_bytes = fs::metadata(&log_file).map(|m| m.len()).ok();
     let retryable = if exit_code != 0 { Some(true) } else { None };
+    let receipt_path = display_relative(
+        repo,
+        &receipt_dir.join(receipt_file_name(index, &run.lane, &run.command)),
+    );
     Ok(ProofReceipt {
+        schema_version: Some(crate::model::SCHEMA_VERSION.into()),
+        standard_version: Some(crate::model::STANDARD_VERSION.into()),
+        auditor_version: Some(crate::model::AUDITOR_VERSION.into()),
+        receipt_id: Some(format!("proof-{run_id}")),
         lane: run.lane.clone(),
         command: run.command.clone(),
         exit_code,
@@ -1183,13 +1192,14 @@ fn execute_run(
         skipped_reason: run.skipped_reason.clone(),
         residual_risk: run.residual_risk.clone(),
         log_path: Some(display_relative(repo, &log_file)),
-        receipt_path: Some(display_relative(
-            repo,
-            &receipt_dir.join(receipt_file_name(index, &run.lane, &run.command)),
-        )),
-        generated_at: Some(now_string()),
+        receipt_path: Some(receipt_path),
+        generated_at: Some(started_at.clone()),
+        started_at: Some(started_at),
+        finished_at: Some(now_string()),
+        repo: Some(repo.display().to_string()),
         repo_root: Some(repo.display().to_string()),
         git_head: git_head(repo).ok(),
+        dirty_worktree: Some(crate::commands::witness::git_dirty_for_receipt(repo)),
         run_id: Some(run_id),
         plan_path: Some(plan_path.to_string()),
         plan_digest: Some(plan_digest.to_string()),
@@ -1202,6 +1212,7 @@ fn execute_run(
         rules_covered: rules_covered_for_run(run),
         retryable,
         stdout_stderr_bytes,
+        extensions: serde_json::Map::new(),
     })
 }
 

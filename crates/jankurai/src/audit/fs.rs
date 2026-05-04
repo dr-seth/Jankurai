@@ -1,7 +1,13 @@
 use crate::model::FileInfo;
 use anyhow::Result;
 use ignore::WalkBuilder;
+use rayon::prelude::*;
+use std::io::BufRead;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
+
+use super::file_kinds::{is_code_file, is_text_candidate, suffix_of};
+pub use super::fs_policy::{InventoryOptions, InventoryResult, InventoryTimings};
 
 const EXCLUDED_DIRS: &[&str] = &[
     ".git",
@@ -27,118 +33,32 @@ const EXCLUDED_DIRS: &[&str] = &[
 const EXCLUDED_AGENT_STATE_DIRS: &[&str] = &[".antigravity", "antigravity"];
 const CURSOR_ALLOWED_PREFIXES: &[&str] = &[".cursor/rules/"];
 
-const TEXT_BASENAMES: &[&str] = &[
-    "AGENTS.md",
-    "CODEOWNERS",
-    "Cargo.lock",
-    "Cargo.toml",
-    "Dockerfile",
-    "Gemfile",
-    "Gemfile.lock",
-    "Justfile",
-    "LICENSE",
-    "Makefile",
-    "Pipfile",
-    "Pipfile.lock",
-    "Procfile",
-    "README",
-    "README.md",
-    "Taskfile.yaml",
-    "Taskfile.yml",
-    "build.gradle",
-    "build.gradle.kts",
-    "bunfig.toml",
-    "clippy.toml",
-    "go.mod",
-    "go.sum",
-    "justfile",
-    "makefile",
-    "package-lock.json",
-    "package.json",
-    "pnpm-lock.yaml",
-    "poetry.lock",
-    "pyproject.toml",
-    "requirements.txt",
-    "rust-toolchain.toml",
-    "rustfmt.toml",
-    "tsconfig.json",
-    "uv.lock",
-    "yarn.lock",
-];
-
-const TEXT_EXTS: &[&str] = &[
-    ".c",
-    ".cc",
-    ".cfg",
-    ".cjs",
-    ".conf",
-    ".cpp",
-    ".cs",
-    ".css",
-    ".dart",
-    ".d.ts",
-    ".dockerfile",
-    ".env",
-    ".gitattributes",
-    ".gitignore",
-    ".go",
-    ".gql",
-    ".graphql",
-    ".h",
-    ".hh",
-    ".hpp",
-    ".htm",
-    ".html",
-    ".ini",
-    ".java",
-    ".js",
-    ".json",
-    ".jsx",
-    ".kt",
-    ".kts",
-    ".ex",
-    ".exs",
-    ".lua",
-    ".m",
-    ".md",
-    ".mk",
-    ".mjs",
-    ".mm",
-    ".ps1",
-    ".php",
-    ".py",
-    ".rb",
-    ".rst",
-    ".rs",
-    ".sh",
-    ".sql",
-    ".swift",
-    ".scala",
-    ".tex",
-    ".toml",
-    ".ts",
-    ".tsx",
-    ".txt",
-    ".yaml",
-    ".yml",
-];
-
-const CODE_EXTS: &[&str] = &[
-    ".c", ".cc", ".cpp", ".cs", ".dart", ".go", ".h", ".hh", ".hpp", ".java", ".js", ".jsx", ".kt",
-    ".kts", ".ex", ".exs", ".lua", ".m", ".mm", ".py", ".php", ".rb", ".rs", ".sh", ".swift",
-    ".scala", ".ts", ".tsx",
-];
-
-const MAX_CAPTURE_CHARS: usize = 120_000;
-
 pub fn inventory_repo(root: &Path) -> Result<Vec<FileInfo>> {
+    Ok(inventory_repo_detailed(root, &InventoryOptions::from_policy(root))?.files)
+}
+
+pub fn inventory_repo_for_paths(root: &Path, paths: &[String]) -> Result<Vec<FileInfo>> {
+    let options = InventoryOptions::from_policy(root);
+    Ok(inventory_paths_detailed(root, paths, &options)?.files)
+}
+
+pub fn inventory_repo_detailed(root: &Path, options: &InventoryOptions) -> Result<InventoryResult> {
+    let walk_started = Instant::now();
     let mut paths: Vec<PathBuf> = Vec::new();
+    let filter_root = root.to_path_buf();
+    let filter_options = options.clone();
     for entry in WalkBuilder::new(root)
         .hidden(false)
         .git_ignore(true)
         .git_exclude(true)
         .git_global(true)
         .max_depth(None)
+        .filter_entry(move |entry| {
+            let Ok(rel) = entry.path().strip_prefix(&filter_root) else {
+                return true;
+            };
+            rel.as_os_str().is_empty() || !should_skip(rel, &filter_options)
+        })
         .build()
     {
         let entry = match entry {
@@ -153,56 +73,175 @@ pub fn inventory_repo(root: &Path) -> Result<Vec<FileInfo>> {
             Ok(rel) => rel,
             Err(_) => continue,
         };
-        if should_skip(rel) {
+        if should_skip(rel, options) {
             continue;
         }
         paths.push(rel.to_path_buf());
     }
     paths.sort();
+    paths.dedup();
+    let walk = walk_started.elapsed();
 
-    let mut files = Vec::with_capacity(paths.len());
-    for rel in paths {
-        let abs = root.join(&rel);
-        let meta = match abs.metadata() {
-            Ok(meta) => meta,
-            Err(_) => continue,
-        };
-        let rel_path = rel.to_string_lossy().replace('\\', "/");
-        let name = abs
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("")
-            .to_string();
-        let suffix = suffix_of(&rel_path);
-        let is_code = is_code_file(&name, &suffix);
-        let (text, line_count) = if is_text_candidate(&name, &suffix, &rel_path) {
-            read_text_sample(&abs)?
-        } else {
-            (String::new(), 0)
-        };
-        let is_generated = rel_path.split('/').any(|part| {
-            part == "generated"
-                || part.starts_with("generated")
-                || part == "gen"
-                || part == "artifacts"
-        });
-        files.push(FileInfo {
-            rel_path,
-            name,
-            suffix,
-            size: meta.len(),
-            line_count,
-            text,
-            is_generated,
-            is_code,
-        });
-    }
-    Ok(files)
+    inventory_from_paths(root, paths, options, walk)
 }
 
-fn should_skip(path: &Path) -> bool {
+pub fn inventory_paths_detailed(
+    root: &Path,
+    paths: &[String],
+    options: &InventoryOptions,
+) -> Result<InventoryResult> {
+    let walk_started = Instant::now();
+    let mut collected = Vec::new();
+    for rel in paths {
+        let rel = rel.trim().trim_start_matches("./");
+        if rel.is_empty() {
+            continue;
+        }
+        let rel_path = PathBuf::from(rel);
+        if should_skip(&rel_path, options) {
+            continue;
+        }
+        let abs = root.join(&rel_path);
+        if abs.is_file() {
+            collected.push(rel_path);
+        } else if abs.is_dir() {
+            let filter_root = root.to_path_buf();
+            let filter_options = options.clone();
+            for entry in WalkBuilder::new(&abs)
+                .hidden(false)
+                .git_ignore(true)
+                .git_exclude(true)
+                .git_global(true)
+                .filter_entry(move |entry| {
+                    let Ok(rel) = entry.path().strip_prefix(&filter_root) else {
+                        return true;
+                    };
+                    rel.as_os_str().is_empty() || !should_skip(rel, &filter_options)
+                })
+                .build()
+            {
+                let Ok(entry) = entry else {
+                    continue;
+                };
+                let path = entry.path();
+                if !path.is_file() {
+                    continue;
+                }
+                let Ok(rel) = path.strip_prefix(root) else {
+                    continue;
+                };
+                if should_skip(rel, options) {
+                    continue;
+                }
+                collected.push(rel.to_path_buf());
+            }
+        }
+    }
+    collected.sort();
+    collected.dedup();
+    let walk = walk_started.elapsed();
+    inventory_from_paths(root, collected, options, walk)
+}
+
+fn inventory_from_paths(
+    root: &Path,
+    paths: Vec<PathBuf>,
+    options: &InventoryOptions,
+    walk: Duration,
+) -> Result<InventoryResult> {
+    let metadata_started = Instant::now();
+    let mut seeds: Vec<FileSeed> = paths
+        .par_iter()
+        .filter_map(|rel| {
+            if should_skip(rel, options) {
+                return None;
+            }
+            file_seed(root, rel)
+        })
+        .collect();
+    seeds.sort_by(|a, b| a.rel_path.cmp(&b.rel_path));
+    let metadata = metadata_started.elapsed();
+
+    let text_started = Instant::now();
+    let mut files: Vec<FileInfo> = seeds
+        .into_par_iter()
+        .map(|seed| {
+            let (text, line_count) = if seed.is_text {
+                read_text_sample(&root.join(&seed.rel), options.text_capture_chars)
+                    .unwrap_or_default()
+            } else {
+                (String::new(), 0)
+            };
+            FileInfo {
+                rel_path: seed.rel_path,
+                name: seed.name,
+                suffix: seed.suffix,
+                size: seed.size,
+                line_count,
+                text,
+                is_generated: seed.is_generated,
+                is_code: seed.is_code,
+            }
+        })
+        .collect();
+    files.sort_by(|a, b| a.rel_path.cmp(&b.rel_path));
+    let text_capture = text_started.elapsed();
+
+    Ok(InventoryResult {
+        files,
+        timings: InventoryTimings {
+            walk_ms: walk.as_millis(),
+            metadata_ms: metadata.as_millis(),
+            text_capture_ms: text_capture.as_millis(),
+        },
+    })
+}
+
+fn file_seed(root: &Path, rel: &Path) -> Option<FileSeed> {
+    let abs = root.join(&rel);
+    let meta = abs.metadata().ok()?;
+    let rel_path = rel.to_string_lossy().replace('\\', "/");
+    let name = abs
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+    let suffix = suffix_of(&rel_path);
+    let is_code = is_code_file(&name, &suffix);
+    let is_generated = rel_path.split('/').any(|part| {
+        part == "generated" || part.starts_with("generated") || part == "gen" || part == "artifacts"
+    });
+    let is_text = is_text_candidate(&name, &suffix, &rel_path);
+    Some(FileSeed {
+        rel: rel.to_path_buf(),
+        rel_path,
+        name,
+        suffix,
+        size: meta.len(),
+        is_text,
+        is_generated,
+        is_code,
+    })
+}
+
+fn should_skip(path: &Path, options: &InventoryOptions) -> bool {
     let rel = path.to_string_lossy().replace('\\', "/");
-    if rel.starts_with(".cursor/") && !CURSOR_ALLOWED_PREFIXES.iter().any(|p| rel.starts_with(p)) {
+    if rel.starts_with(".cursor/")
+        && rel != ".cursor/rules"
+        && !CURSOR_ALLOWED_PREFIXES.iter().any(|p| rel.starts_with(p))
+    {
+        return true;
+    }
+    if options.extra_excluded_paths.iter().any(|excluded| {
+        rel == *excluded || rel.starts_with(&format!("{}/", excluded.trim_end_matches('/')))
+    }) {
+        return true;
+    }
+    if options
+        .extra_excluded_globs
+        .as_ref()
+        .is_some_and(|set| set.is_match(&rel))
+    {
         return true;
     }
     if EXCLUDED_AGENT_STATE_DIRS
@@ -217,51 +256,38 @@ fn should_skip(path: &Path) -> bool {
     })
 }
 
-fn suffix_of(rel_path: &str) -> String {
-    let lower = rel_path.to_ascii_lowercase();
-    if lower.ends_with(".d.ts") {
-        ".d.ts".to_string()
-    } else {
-        Path::new(rel_path)
-            .extension()
-            .and_then(|s| s.to_str())
-            .map(|s| format!(".{}", s.to_ascii_lowercase()))
-            .unwrap_or_default()
-    }
-}
-
-fn is_text_candidate(name: &str, suffix: &str, rel_path: &str) -> bool {
-    let lower = rel_path.to_ascii_lowercase();
-    TEXT_BASENAMES
-        .iter()
-        .any(|item| item.eq_ignore_ascii_case(name))
-        || TEXT_EXTS.iter().any(|ext| lower.ends_with(ext))
-        || matches!(suffix, ".dockerfile")
-        || matches!(
-            name.to_ascii_lowercase().as_str(),
-            "dockerfile" | "makefile" | "justfile"
-        )
-}
-
-fn is_code_file(name: &str, suffix: &str) -> bool {
-    matches!(name, "Makefile" | "makefile" | "Justfile" | "justfile") || CODE_EXTS.contains(&suffix)
-}
-
-fn read_text_sample(path: &Path) -> Result<(String, usize)> {
-    let text = std::fs::read_to_string(path).unwrap_or_default();
+fn read_text_sample(path: &Path, max_capture_chars: usize) -> Result<(String, usize)> {
+    let file = std::fs::File::open(path)?;
+    let mut reader = std::io::BufReader::new(file);
     let mut line_count = 0usize;
     let mut captured = String::new();
-    for line in text.lines() {
+    let mut line = Vec::new();
+    loop {
+        line.clear();
+        let read = reader.read_until(b'\n', &mut line)?;
+        if read == 0 {
+            break;
+        }
         line_count += 1;
-        if captured.len() < MAX_CAPTURE_CHARS {
-            let remaining = MAX_CAPTURE_CHARS - captured.len();
-            let mut piece = line.as_bytes();
+        if captured.len() < max_capture_chars {
+            let remaining = max_capture_chars - captured.len();
+            let mut piece = line.as_slice();
             if piece.len() > remaining {
                 piece = &piece[..remaining];
             }
-            captured.push_str(std::str::from_utf8(piece).unwrap_or_default());
-            captured.push('\n');
+            captured.push_str(&String::from_utf8_lossy(piece));
         }
     }
     Ok((captured, line_count))
+}
+
+struct FileSeed {
+    rel: PathBuf,
+    rel_path: String,
+    name: String,
+    suffix: String,
+    size: u64,
+    is_text: bool,
+    is_generated: bool,
+    is_code: bool,
 }

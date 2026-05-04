@@ -109,8 +109,8 @@ fn init_v061_artifacts_are_idempotent() {
     }
 
     let standard = fs::read_to_string(dir.path().join("agent/standard-version.toml")).unwrap();
-    assert!(standard.contains("standard_version = \"0.6.1\""));
-    assert!(standard.contains("schema_version = \"1.4.1\""));
+    assert!(standard.contains("standard_version = \"0.7.0\""));
+    assert!(standard.contains("schema_version = \"1.5.0\""));
     assert_eq!(standard.matches("standard_version").count(), 1);
 }
 

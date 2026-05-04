@@ -2,7 +2,7 @@
 
 Stable rule identifiers make audit output durable enough for repair agents, CI annotations, and release notes.
 
-\begin{table*}[h]
+\begin{table*}[t]
 \caption{Initial jankurai rule identifiers.}
 \label{tab:rule-ids}
 \centering
@@ -46,57 +46,71 @@ The audit JSON should include the rule ID whenever a finding maps cleanly to one
 
 \subsection{Vibe-Coding Source Coverage}
 
-Jankurai 0.6.1 maps every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
+Jankurai 0.7.0 maps every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
 through \texttt{tip5.txt} into \texttt{agent/vibe-coverage.toml}. Coverage is
-green only when a row has detector-backed proof/report evidence; yellow when
-Jankurai has a reviewed control family but still needs issue-specific fixture,
-CI, or governance evidence. The v0.6.1 source has no red rows.
+detector-backed only when a narrowed row has deterministic rule coverage plus
+proof/report evidence; partial when Jankurai has a reviewed control family but
+still needs issue-specific fixture, CI, or governance evidence. The full
+row-level registry is supplemental source material in
+\texttt{agent/vibe-coverage.toml}; the generated machine-readable outputs are
+emitted under \texttt{target/jankurai/} by the documented coverage command.
 
-\IfFileExists{paper/tex/generated/vibe_coverage_table.tex}{%
-  \input{paper/tex/generated/vibe_coverage_table.tex}%
-}{%
-  \IfFileExists{tex/generated/vibe_coverage_table.tex}{%
-    \input{tex/generated/vibe_coverage_table.tex}%
-  }{%
-    \textit{Run \texttt{cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe\_coding --tex paper/tex/generated/vibe\_coverage\_table.tex} to generate the coverage table.}%
-  }%
-}
-
-\begin{table*}[h]
-\caption{Taxonomy-to-audit detector status.}
-\label{tab:taxonomy-detectors}
+\begin{table*}[t]
+\caption{Compact vibe-coverage registry summary for v0.7.0.}
+\label{tab:vibe-coverage-summary}
 \centering
 \scriptsize
-\begin{tabularx}{\textwidth}{L{0.18\textwidth} L{0.16\textwidth} L{0.16\textwidth} Y}
+\begin{tabularx}{\textwidth}{L{0.23\textwidth} L{0.12\textwidth} Y}
 \toprule
-\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.6.1} \\
+\textbf{Status or family} & \textbf{Count} & \textbf{Interpretation} \\
 \midrule
-Security & HLT-009/010/011/012/016/020/023/024 & security & Partial: CI scan presence, secret-like content, prompt-injection markers, overbroad agency markers, input-boundary markers, agent-tool supply surfaces, generated-security gaps, CI hardening gaps. \\
-Business truth & HLT-005/008/022 & db, fast, release & Partial: Python truth, false-green markers, and authz/data-isolation evidence gaps; domain invariant quality remains evidence-driven. \\
-Contracts/data & HLT-002/006/007/021 & contract, db & Implemented for generated-zone risk, handwritten DTO/fetch markers, wrong-layer DB markers, and destructive SQL heuristics. \\
-Verification and UX & HLT-008/013/014/025/026 & fast, web, release & Partial: rendered-UX readiness, release gates, cost budgets, and \texttt{@jankurai/ux-qa}; ARIA/axe/baseline governance are evidence requirements. \\
-Context/setup & HLT-003/004/015 & fast, audit & Partial: root instructions, owner/test maps, setup/fast lane presence; changed-path coverage is planned. \\
-Repair & HLT-017/027 & observability, audit & Partial: structured exception markers, review evidence, and repair hints; production trace quality is evidence-driven. \\
-Entropy & HLT-001/008/018 & fast, release & Implemented for dead markers, fallback soup, duplication, file/function size; performance evidence remains soft. \\
-Streaming & HLT-019 & contract, observability & Implemented for direct broker clients outside queue adapters and Kafka brownfield exception shape. \\
+Source rows mapped & 260 & Every parsed row from \texttt{tips/vibe\_coding/tip1.txt} through \texttt{tip5.txt} has one canonical issue. \\
+Detector-backed & 17 & Narrow issue families with deterministic detector evidence and audit/report artifacts. \\
+Partial & 243 & Reviewed control families that still require issue-specific fixture, CI, or governance evidence. \\
+Unmapped / none & 0 & No source rows are intentionally left without a control-family mapping in this release. \\
+Security TLR rows & 117 & Largest source bucket; includes secrets, prompt injection, agency, supply chain, and input/security boundaries. \\
+Verification TLR rows & 61 & Includes false-green tests, UI/a11y proof, and destructive/release checks that route through proof lanes. \\
+Business-truth TLR rows & 24 & Includes authorization, data isolation, and state-machine correctness risks. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-\begin{lstlisting}[style=codebox]
-{
-  "standard_version": "0.6.1",
-  "auditor_version": "0.6.1",
-  "schema_version": "1.4.1",
-  "paper_edition": "2026.05-ed6",
-  "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
-  "agent_fix_queue": [
-    {
-      "rule_id": "HLT-002-GENERATED-MUTATION",
-      "path": "apps/web/src/generated/client.ts",
-      "priority": "high",
-      "task": "change contracts/openapi/api.yaml and regenerate"
-    }
-  ]
-}
-\end{lstlisting}
+\begin{table*}[t]
+\caption{Representative vibe-coverage mappings.}
+\label{tab:vibe-coverage-representative}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.13\textwidth} L{0.28\textwidth} L{0.10\textwidth} L{0.14\textwidth} Y}
+\toprule
+\textbf{Source} & \textbf{Issue} & \textbf{Rule} & \textbf{Status} & \textbf{Evidence requirement} \\
+\midrule
+\texttt{tip1:6} & Hardcoded secrets & \texttt{HLT-010} & Detector-backed & Secret-like content scan plus audit JSON/Markdown evidence. \\
+\texttt{tip2:12} & Cross-site scripting / unsafe rendering & \texttt{HLT-023} & Partial & XSS payload fixtures, encoding/sanitizer proof, and security lane artifacts. \\
+\texttt{tip2:28} & No rollback / weak backup discipline & \texttt{HLT-025} & Partial & Restore drill, rollback plan, backup evidence, and release gate receipt. \\
+\texttt{tip2:29} & Unsafe migrations & \texttt{HLT-021} & Detector-backed & Destructive SQL heuristic plus DB migration proof evidence. \\
+\texttt{tip3:47} & Prompt-level rules treated as security controls & \texttt{HLT-012} & Partial & Enforced permissions, branch/deploy gates, and agent-tool policy receipts. \\
+\texttt{tip5:43} & Broken business logic / skipped transitions & \texttt{HLT-008} & Partial & State-machine invariants, wrong-actor tests, and proof-lane receipt. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Taxonomy-to-audit detector status.}
+\label{tab:taxonomy-detectors}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.17\textwidth} L{0.13\textwidth} L{0.17\textwidth} Y}
+\toprule
+\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.7.0} \\
+\midrule
+Security & HLT-009 through HLT-024 set & security & Partial: CI scan presence, secret-like content, prompt-injection markers, overbroad agency markers, input-boundary markers, agent-tool supply surfaces, generated-security gaps, CI hardening gaps. \\
+Business truth & HLT-005/008/022 & db, fast, release & Partial: Python truth, false-green markers, and authz/data-isolation evidence gaps; domain invariant quality remains evidence-driven. \\
+Contracts/data & HLT-002/006/007/021 & contract, db & Implemented for generated-zone risk, handwritten DTO/fetch markers, wrong-layer DB markers, and destructive SQL heuristics. \\
+Verification and UX & HLT-008/013/014/025/026 & fast, web, release & Partial: rendered-UX readiness, release gates, cost budgets, and \texttt{@jankurai/ux-qa}; ARIA/axe/baseline governance are evidence requirements. \\
+Context/setup & HLT-003/004/015 & fast, audit & Partial: root instructions, owner/test maps, setup/fast lane presence; changed-path coverage is planned. \\
+Repair & HLT-017/027 & obs., audit & Partial: structured exception markers, review evidence, and repair hints; production trace quality is evidence-driven. \\
+Entropy & HLT-001/008/018 & fast, release & Implemented for dead markers, fallback soup, duplication, file/function size; performance evidence remains soft. \\
+Streaming & HLT-019 & contract, obs. & Implemented for direct broker clients outside queue adapters and Kafka brownfield exception shape. \\
+\bottomrule
+\end{tabularx}
+\end{table*}

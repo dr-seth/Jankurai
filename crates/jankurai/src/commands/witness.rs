@@ -25,6 +25,8 @@ pub struct WitnessArgs {
 #[derive(Debug, Clone, Serialize)]
 pub struct MergeWitness {
     pub schema_version: String,
+    pub standard_version: String,
+    pub auditor_version: String,
     pub command: String,
     pub generated_at: String,
     pub repo: String,
@@ -39,6 +41,10 @@ pub struct MergeWitness {
     pub current_raw_score: i32,
     pub baseline_score: Option<i32>,
     pub score_delta: Option<i32>,
+    pub claimed_conformance_level: String,
+    pub observed_conformance_level: String,
+    pub conformance_decision: String,
+    pub conformance_blockers: Vec<String>,
     pub caps_applied: Vec<String>,
     pub caps_added: Vec<String>,
     pub new_findings: Vec<FindingSummary>,
@@ -118,6 +124,7 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
         AuditOptions {
             self_audit: false,
             proof_receipts: args.proof_receipts.clone(),
+            changed_fast: false,
         },
     )?;
     let receipts = load_proof_receipts(&args.repo, args.proof_receipts.as_deref())?;
@@ -203,8 +210,12 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
         next_repair.push("merge proof is complete; keep receipts attached to the PR".into());
     }
 
+    let conformance_blockers = missing_evidence.clone();
+    let observed_conformance_level = if decision == "pass" { "HL3" } else { "HL2" };
     Ok(MergeWitness {
         schema_version: "1.0.0".into(),
+        standard_version: crate::model::STANDARD_VERSION.into(),
+        auditor_version: crate::model::AUDITOR_VERSION.into(),
         command: "jankurai witness".into(),
         generated_at: unix_seconds(),
         repo: args.repo.display().to_string(),
@@ -227,6 +238,10 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
         current_raw_score: report.raw_score,
         baseline_score,
         score_delta,
+        claimed_conformance_level: "HL3".into(),
+        observed_conformance_level: observed_conformance_level.into(),
+        conformance_decision: decision.into(),
+        conformance_blockers,
         caps_applied: report.caps_applied,
         caps_added,
         new_findings,
@@ -235,6 +250,10 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
         decision: decision.into(),
         next_repair,
     })
+}
+
+pub fn git_dirty_for_receipt(repo: &Path) -> bool {
+    git_dirty(repo)
 }
 
 fn route_decisions(catalog: &RepoCatalog, changed_paths: &[String]) -> Vec<RouteDecision> {

@@ -12,6 +12,15 @@
     "auditor_version": { "type": "string" },
     "schema_version": { "type": "string" },
     "paper_edition": { "type": "string" },
-    "target_stack": { "type": "string" }
+    "target_stack": { "type": "string" },
+    "scan": {
+      "type": "object",
+      "properties": {
+        "text_capture_chars": { "type": "integer", "minimum": 1 },
+        "max_capture_chars": { "type": "integer", "minimum": 1 },
+        "extra_excluded_paths": { "type": "array", "items": { "type": "string" } },
+        "extra_excluded_globs": { "type": "array", "items": { "type": "string" } }
+      }
+    }
   }
 }

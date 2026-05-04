@@ -26,6 +26,7 @@
     "agent/": "agent",
     "assets/": "paper",
     "docs/": "standard",
+    "conformance/": "standard",
     "schemas/": "standard",
     "contracts/": "standard",
     "db/": "standard",

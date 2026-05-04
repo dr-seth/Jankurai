@@ -43,7 +43,7 @@ fn run_vibe_coverage(repo: &Path, out_dir: &Path) -> Value {
     assert!(md_text.contains("# Vibe Coding Coverage"));
     assert!(md_text.contains("- Unmapped source rows: `0`"));
     let tex_text = fs::read_to_string(tex).unwrap();
-    assert!(tex_text.contains("Green = absolute"));
+    assert!(tex_text.contains("Green = detector-backed"));
     assert!(tex_text.contains("\\scriptsize"));
     assert!(tex_text.contains("\\setlength{\\tabcolsep}{2pt}"));
     assert!(tex_text.contains("\\rowcolor{green!18}"));
@@ -77,7 +77,12 @@ fn validates_all_source_rows_and_report_schema() {
         .as_array()
         .unwrap()
         .is_empty());
-    assert!(report["coverage_counts"]["absolute"].as_u64().unwrap() > 0);
+    assert!(
+        report["coverage_counts"]["detector-backed"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
     assert!(report["coverage_counts"]["partial"].as_u64().unwrap() > 0);
     assert_eq!(report["coverage_counts"]["none"].as_u64().unwrap_or(0), 0);
     assert_eq!(
@@ -88,7 +93,9 @@ fn validates_all_source_rows_and_report_schema() {
         report["detector_status_counts"]["detector-backed"]
             .as_u64()
             .unwrap(),
-        report["coverage_counts"]["absolute"].as_u64().unwrap()
+        report["coverage_counts"]["detector-backed"]
+            .as_u64()
+            .unwrap()
     );
 }
 

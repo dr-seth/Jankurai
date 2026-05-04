@@ -33,7 +33,14 @@
   belowskip=2pt
 }
 
-\title{Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge}
+\hypersetup{
+  pdftitle={Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge},
+  pdfauthor={Jankurai Project},
+  pdfsubject={Repository conformance standard for auditable AI-assisted merge decisions},
+  pdfkeywords={trustworthy merge, proof receipts, AI-assisted software engineering, repository conformance, policy-as-code, CI/CD, generated code governance, supply-chain security}
+}
+
+\title{Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge}
 \author{\IEEEauthorblockN{Jankurai Project}}
 
 \begin{document}
@@ -43,32 +50,32 @@
 \vspace*{0.15in}
 {\Huge\bfseries Jankurai\par}
 \vspace{0.25em}
-{\Large\bfseries A Versioned Agent-Native Repository Standard for Trustworthy Merge\par}
+{\Large\bfseries A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge\par}
 \vspace{0.25em}
-{\large\bfseries Humans Were the Bug: From Vibe Coding to Agent-Native Engineering \twemoji[height=0.82em]{bug}\par}
+{\large\bfseries Proof Receipts, Merge Witnesses, and Repair Queues for Agent-Native Software Engineering\par}
 \vspace{0.6em}
 {\normalsize Jankurai Project \textbullet{} \href{https://github.com/jeppsontaylor/jankurai}{github.com/jeppsontaylor/jankurai}\par}
 \vspace{0.35em}
-{\small\texttt{standard\_version=0.6.1} \textbullet{} \texttt{schema\_version=1.4.1} \textbullet{} \texttt{paper\_edition=2026.05-ed6}\par}
-\vspace{1.0em}
+{\small\texttt{standard\_version=0.7.0} \textbullet{} \texttt{auditor\_version=0.7.0} \textbullet{} \texttt{schema\_bundle\_version=1.5.0} \textbullet{} \texttt{paper\_edition=2026.05-ed7}\par}
+\vspace{0.65em}
 \IfFileExists{assets/jankurai_github_header_transparent.png}{%
-  \includegraphics[width=0.91\textwidth,height=0.40\textheight,keepaspectratio]{assets/jankurai_github_header_transparent.png}%
+  \includegraphics[width=0.62\textwidth,height=0.18\textheight,keepaspectratio]{assets/jankurai_github_header_transparent.png}%
 }{%
-  \includegraphics[width=0.91\textwidth,height=0.40\textheight,keepaspectratio]{../assets/jankurai_github_header_transparent.png}%
+  \includegraphics[width=0.62\textwidth,height=0.18\textheight,keepaspectratio]{../assets/jankurai_github_header_transparent.png}%
 }
-\vspace{1.1em}
+\vspace{0.8em}
 
 \begin{minipage}{0.92\textwidth}
 \begin{abstract}
-AI coding changes the bottleneck in software engineering. The scarce act is no longer typing plausible code; agents can produce plausible code in many mainstream languages, and humans can still write plausible code that escapes review. The scarce act is trustworthy merge: no proof, no merge; no receipt, no trust. This paper presents Jankurai as a versioned, auditable agent-native repository standard for making that merge decision reproducible.
+AI-assisted coding lowers the cost of producing plausible code but raises the importance of deciding whether a change is safe to merge. Jankurai turns a pull request merge decision into a reproducible, versioned audit artifact. It defines a repository conformance standard for human- and agent-authored changes whose central artifact is the merge witness: a binding among changed paths, owner routing, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool version, and commit identity.
 
-The paper makes three contributions. First, it defines an agent-native repository standard: conformance levels, stable rule identifiers, generated-zone policy, owner maps, test maps, version manifests, and bounded authority for human and agent-authored changes. Second, it specifies a conformance and audit mechanism: local/PR/CI proof lanes, audit JSON and Markdown, proof receipts, evidence indexes, merge witnesses, repair queues, ratchets, and release gates. Third, it separates the standard from its reference profile: Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+The paper contributes a stack-neutral, agent-native repository model with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, and bounded authority; a conformance mechanism based on proof lanes, audit JSON/Markdown, repair queues, and merge witnesses; and a non-normative reference implementation and reference profile. Conformance is pass/fail against required artifacts. Scores are posture and prioritization signals, not merge approval by themselves.
 
-The claim is deliberately bounded. Jankurai does not prove all program semantics, and it does not have the institutional standing of IETF, W3C, CNCF, SPDX, OpenAPI, or OpenSSF. It borrows proven standards mechanics from those ecosystems and applies them to repository structure: normative terms, versioned compatibility, current and previous artifact handling, maturity states, testable conformance, automated posture scoring, and explicit supersession. Repositories do not need Jankurai merely because they use AI. Repositories claiming Jankurai conformance need current machine-readable artifacts strong enough to prove the claim at merge time.
+The claim is deliberately bounded. Jankurai does not prove full program semantics, does not claim final empirical superiority, and does not require its Rust/TypeScript/PostgreSQL reference profile. It is a standards proposal with an early local CLI and a conformance-oriented evaluation path. The thesis is operational: repositories claiming Jankurai conformance need current machine-readable artifacts strong enough to audit the merge decision at merge time.
 \end{abstract}
 
 \begin{IEEEkeywords}
-AI-assisted software engineering, agentic coding, repository architecture, Rust, TypeScript, PostgreSQL, software audit, verification, code generation.
+AI-assisted software engineering, agentic coding, trustworthy merge, repository conformance, proof receipts, policy-as-code, CI/CD, generated code governance, supply-chain security.
 \end{IEEEkeywords}
 \end{minipage}
 \vfill

@@ -4,6 +4,7 @@ use std::process::Command;
 use tempfile::tempdir;
 
 use jankurai::commands::bench;
+use jankurai::model::STANDARD_VERSION;
 use jankurai::validation::{self, ArtifactSchema};
 
 fn binary_path() -> PathBuf {
@@ -112,7 +113,7 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     validation::validate_value(repo.path(), ArtifactSchema::BenchmarkReport, &bench).unwrap();
 
     let (certify, certify_md) = run_command(&repo.path().to_path_buf(), &["certify"]);
-    assert_eq!(certify["standard_version"], "0.5.0");
+    assert_eq!(certify["standard_version"], STANDARD_VERSION);
     assert_eq!(certify["score"], 0);
     assert_eq!(certify["conformance_level"], "HL0");
     assert!(certify_md.starts_with("# jankurai Certification"));

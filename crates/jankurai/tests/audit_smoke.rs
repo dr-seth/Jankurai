@@ -1,3 +1,4 @@
+use jankurai::audit::fs as audit_fs;
 use jankurai::audit::helpers::AuditContext;
 use jankurai::audit::scan;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
@@ -8,6 +9,7 @@ use jankurai::report::{issues, junit, sarif};
 use jankurai::validation::{self, ArtifactSchema};
 use std::collections::HashSet;
 use std::fs;
+use std::process::Command;
 use tempfile::tempdir;
 
 #[test]
@@ -93,6 +95,148 @@ fn changed_scope_is_preserved() {
     let report = run_audit(dir.path(), &changed).unwrap();
     assert_eq!(report.scope.mode, "changed");
     assert_eq!(report.scope.paths, vec!["README.md".to_string()]);
+}
+
+#[test]
+fn changed_fast_scope_is_advisory_and_partial() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::write(dir.path().join("README.md"), "# Repo\n").unwrap();
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::write(
+        dir.path().join("src/unrelated.rs"),
+        "fn unrelated() { todo!(\"not in changed-fast scope\"); }\n",
+    )
+    .unwrap();
+
+    let report = run_audit_with_options(
+        dir.path(),
+        &[dir.path().join("README.md")],
+        AuditOptions {
+            self_audit: false,
+            proof_receipts: None,
+            changed_fast: true,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(report.scope.mode, "changed-fast");
+    assert_eq!(report.scope.paths, vec!["README.md".to_string()]);
+    assert!(!report
+        .findings
+        .iter()
+        .any(|finding| finding.path == "src/unrelated.rs"));
+}
+
+#[test]
+fn changed_fast_cli_requires_changed_scope_and_skips_score_history() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(dir.path().join("README.md"), "# Repo\n").unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    let json = dir.path().join("score.json");
+    let md = dir.path().join("score.md");
+    let history = dir.path().join("history.jsonl");
+
+    let failed = Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--changed-fast")
+        .arg("--json")
+        .arg(&json)
+        .arg("--md")
+        .arg(&md)
+        .output()
+        .expect("spawn changed-fast audit without scope");
+    assert!(!failed.status.success());
+    assert!(String::from_utf8_lossy(&failed.stderr)
+        .contains("--changed-fast requires --changed PATH or --changed-from REF"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--changed-fast")
+        .arg("--changed")
+        .arg("README.md")
+        .arg("--json")
+        .arg(&json)
+        .arg("--md")
+        .arg(&md)
+        .arg("--score-history")
+        .arg(&history)
+        .output()
+        .expect("spawn changed-fast audit");
+    assert!(
+        output.status.success(),
+        "changed-fast audit failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        !history.exists(),
+        "changed-fast should not write score history"
+    );
+    assert!(fs::read_to_string(&md)
+        .unwrap()
+        .contains("changed-fast scans only changed files plus required control files"));
+}
+
+#[test]
+fn inventory_is_sorted_prunes_excluded_dirs_and_uses_bounded_capture() {
+    let dir = tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::create_dir_all(dir.path().join("node_modules/pkg")).unwrap();
+    fs::write(dir.path().join("src/b.rs"), "b\n").unwrap();
+    fs::write(dir.path().join("src/a.rs"), "line1\nline2\n").unwrap();
+    fs::write(dir.path().join("node_modules/pkg/index.rs"), "excluded\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/audit-policy.toml"),
+        "[scan]\ntext_capture_chars = 6\n",
+    )
+    .unwrap();
+
+    let files = audit_fs::inventory_repo(dir.path()).unwrap();
+    let paths = files
+        .iter()
+        .map(|file| file.rel_path.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        paths,
+        vec!["agent/audit-policy.toml", "src/a.rs", "src/b.rs"]
+    );
+    let a = files
+        .iter()
+        .find(|file| file.rel_path == "src/a.rs")
+        .unwrap();
+    assert_eq!(a.line_count, 2);
+    assert!(a.text.len() <= 6);
+}
+
+#[test]
+fn inventory_policy_can_prune_extra_paths_and_globs() {
+    let dir = tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::create_dir_all(dir.path().join("tmp")).unwrap();
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::write(
+        dir.path().join("agent/audit-policy.toml"),
+        "[scan]\nextra_excluded_paths = [\"tmp\"]\nextra_excluded_globs = [\"**/*.snap\"]\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("tmp/large.rs"), "excluded\n").unwrap();
+    fs::write(dir.path().join("src/kept.rs"), "kept\n").unwrap();
+    fs::write(dir.path().join("src/ui.snap"), "excluded\n").unwrap();
+
+    let paths = audit_fs::inventory_repo(dir.path())
+        .unwrap()
+        .into_iter()
+        .map(|file| file.rel_path)
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths, vec!["agent/audit-policy.toml", "src/kept.rs"]);
 }
 
 #[test]
@@ -578,6 +722,7 @@ fn audit_self_audit_includes_tool_internals() {
         AuditOptions {
             self_audit: true,
             proof_receipts: None,
+            changed_fast: false,
         },
     )
     .unwrap();
@@ -717,6 +862,10 @@ fn markdown_renders_proof_receipts() {
     fs::write(dir.path().join("README.md"), "# thin repo\n").unwrap();
     let mut report = run_audit(dir.path(), &[]).unwrap();
     report.proof_receipts.push(ProofReceipt {
+        schema_version: None,
+        standard_version: None,
+        auditor_version: None,
+        receipt_id: None,
         lane: "fast".into(),
         command: "just fast".into(),
         exit_code: 0,
@@ -729,8 +878,12 @@ fn markdown_renders_proof_receipts() {
         log_path: None,
         receipt_path: None,
         generated_at: None,
+        started_at: None,
+        finished_at: None,
+        repo: None,
         repo_root: None,
         git_head: None,
+        dirty_worktree: None,
         run_id: None,
         plan_path: None,
         plan_digest: None,
@@ -740,6 +893,7 @@ fn markdown_renders_proof_receipts() {
         rules_covered: vec![],
         retryable: None,
         stdout_stderr_bytes: None,
+        extensions: serde_json::Map::new(),
     });
 
     let markdown = render_markdown(&report);

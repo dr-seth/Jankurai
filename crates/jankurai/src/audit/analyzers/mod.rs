@@ -13,21 +13,23 @@ pub mod tool_adoption;
 
 use super::helpers::AuditContext;
 use crate::model::*;
+use rayon::prelude::*;
 
 pub fn all_dimensions(ctx: &AuditContext) -> Vec<DimensionResult> {
-    vec![
-        ownership::analyze(ctx),
-        contracts::analyze(ctx),
-        proof::analyze(ctx),
-        security::analyze(ctx),
-        shape::analyze(ctx),
-        data::analyze(ctx),
-        observability::analyze(ctx),
-        context::analyze(ctx),
-        tool_adoption::analyze(ctx),
-        python::analyze(ctx),
-        speed::analyze(ctx),
-    ]
+    let analyzers: [fn(&AuditContext) -> DimensionResult; 11] = [
+        ownership::analyze,
+        contracts::analyze,
+        proof::analyze,
+        security::analyze,
+        shape::analyze,
+        data::analyze,
+        observability::analyze,
+        context::analyze,
+        tool_adoption::analyze,
+        python::analyze,
+        speed::analyze,
+    ];
+    analyzers.par_iter().map(|analyze| analyze(ctx)).collect()
 }
 
 pub fn ux_qa_status(ctx: &AuditContext) -> UxQaReadiness {

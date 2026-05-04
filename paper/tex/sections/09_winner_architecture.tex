@@ -1,6 +1,6 @@
-\section{Default Winner Architecture}
+\section{Reference Architecture Profile}
 
-Once the standard identifies a default, continuing to optimize for every runner-up becomes noise. The agent needs one default map. The audit needs one default policy. CI needs one default set of gates. Exceptions remain available, but they must be named and versioned.
+The Rust/TypeScript/PostgreSQL profile is a reference architecture, not the definition of Jankurai conformance. It gives agents one concrete map, audit one concrete policy, and CI one concrete set of gates for projects that choose this profile. Other profiles can conform when they preserve the same ownership, proof, generated-boundary, security, and witness artifacts.
 
 \begin{figure*}[t]
 \centering
@@ -40,12 +40,12 @@ repo/
     runbooks/
 \end{lstlisting}
 \end{minipage}
-\caption{Ownership spine and agent-control spine for the default stack.}
+\caption{Ownership spine and agent-control spine for the reference profile.}
 \label{fig:repo-tree-main}
 \end{figure*}
 
 \begin{table*}[t]
-\caption{Default ownership cells for the winning stack.}
+\caption{Representative ownership cells for the reference profile.}
 \label{tab:ownership}
 \centering
 \small

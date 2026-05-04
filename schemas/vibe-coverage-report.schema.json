@@ -71,7 +71,10 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "coverage": { "type": "string", "enum": ["absolute", "partial", "none"] },
+        "coverage": {
+          "type": "string",
+          "enum": ["detector-backed", "absolute", "partial", "none"]
+        },
         "priority": { "type": "string" },
         "gap": { "type": "string" },
         "next_action": { "type": "string" }

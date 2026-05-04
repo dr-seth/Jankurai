@@ -17,7 +17,6 @@
     ".github/instructions/jankurai-rust.instructions.md",
     ".github/workflows/jankurai.yml",
     "agent/JANKURAI_STANDARD.md",
-    "agent/MASTER_PLAN.md",
     "agent/audit-policy.toml",
     "agent/boundaries.toml",
     "agent/security-policy.toml",

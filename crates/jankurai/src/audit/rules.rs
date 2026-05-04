@@ -515,7 +515,7 @@ pub const RULES: &[RuleSpec] = &[
         repair_reason: "authorization and tenant isolation gaps require reviewed negative tests",
         status: RuleStatus::Stable,
         standard_section: "Authorization",
-        cap_key: None,
+        cap_key: Some("authz-or-data-isolation-gap"),
         confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
@@ -534,7 +534,7 @@ pub const RULES: &[RuleSpec] = &[
         repair_reason: "unsafe sinks and unvalidated boundaries can become exploitable behavior",
         status: RuleStatus::Stable,
         standard_section: "Input Boundaries",
-        cap_key: None,
+        cap_key: Some("input-boundary-gap"),
         confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
@@ -553,7 +553,7 @@ pub const RULES: &[RuleSpec] = &[
         repair_reason: "agent tool and MCP trust changes alter execution authority",
         status: RuleStatus::Stable,
         standard_section: "Agent Tool Supply",
-        cap_key: None,
+        cap_key: Some("agent-tool-supply-chain-gap"),
         confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {
@@ -572,7 +572,7 @@ pub const RULES: &[RuleSpec] = &[
         repair_reason: "launch gates must prove backups, monitoring, security, and rollback",
         status: RuleStatus::Stable,
         standard_section: "Release Readiness",
-        cap_key: None,
+        cap_key: Some("release-readiness-gap"),
         confidence_policy: ConfidencePolicy::Medium,
     },
     RuleSpec {

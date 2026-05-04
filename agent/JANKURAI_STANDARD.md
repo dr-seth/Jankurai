@@ -1,11 +1,11 @@
 # jankurai Standard Agent Bootstrap
 
-Standard version: `0.6.1`
+Standard version: `0.7.0`
 Published: `2026-05-04`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
-Paper: `Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge`
-Public thesis line: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
+Paper: `Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge`
+Public thesis line: `No proof, no merge; no receipt, no trust.`
 
 ## Prime Directive
 
@@ -186,15 +186,14 @@ For non-trivial fixes, leave enough evidence for the next agent:
 
 Operational receipts from `doctor`, `init`, and phase closeouts belong under `target/jankurai/receipts/` and should be cited by path when they matter.
 
-## Master Plan Work
+## User-Provided Plans
 
-When asked to progress `MASTER_PLAN`, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active phase file under `tips/phases/`.
-
-Default to the earliest incomplete or blocked phase whose dependencies can be advanced, unless the user names a phase. Do not regress phase status, shorten phase plans, erase receipts, or move canonical phase history out of `tips/phases/logs/`.
-
-Before editing, append a start entry to the matching phase log. Before broad validation, run `jankurai lane` or `jankurai proof` against changed paths to choose the smallest credible proof lane. For audit requests, run `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md`.
-
-At handoff, append a finish entry with changed paths, validation, proof artifacts, current git SHA, and residual risk. Keep volatile proof receipts under `target/jankurai/`; keep tracked phase history under `tips/phases/logs/`.
+When the user provides a paper, release, implementation, or handoff plan in the
+conversation, treat that plan as controlling. Do not route it through local phase
+or master-plan files unless the user explicitly names those local files. Before
+broad validation, run `jankurai lane` or `jankurai proof` against changed paths
+to choose the smallest credible proof lane. For audit requests, run
+`cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md`.
 
 ## Local Commands
 

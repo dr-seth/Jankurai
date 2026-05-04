@@ -845,7 +845,7 @@ fn vibe_coverage_schemas_parse_and_source_validates() {
     );
     assert_eq!(
         source_schema["properties"]["schema_version"]["const"],
-        "1.4.1"
+        "1.5.0"
     );
     let issue_required = source_schema["$defs"]["issue"]["required"]
         .as_array()

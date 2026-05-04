@@ -2,7 +2,58 @@
 
 Jankurai is the control plane and the formal contribution of this paper. It is not a general-purpose claim that all AI repositories should use one stack or one tool. It is a versioned standard for repositories that want to claim agent-native conformance. The standard binds prose, machine-readable maps, generated-zone policy, audit output, CI behavior, proof receipts, repair evidence, and release governance.
 
-The adoption loop is itself part of the standard: \texttt{jankurai init} installs the control plane, \texttt{jankurai doctor} reports drift, and \texttt{jankurai audit} produces the proof ledger. A repository that only mentions the standard but does not install or execute it is not conformant. Conformance is not prose: a repository that cannot emit current audit JSON, audit Markdown, proof receipts, and version-bound artifacts has no Jankurai conformance claim to evaluate.
+The standard's public primitive is the merge witness. The trustworthy merge equation is:
+\begin{center}
+\small
+\begin{tabular}{c}
+\(\mathrm{merge\ witness}=\mathrm{changed\ paths}+\mathrm{owner\ route}\) \\
+\(+\ \mathrm{required\ proof\ receipts}+\mathrm{score\ delta}\) \\
+\(+\ \mathrm{missing\ evidence\ decision}+\mathrm{commit/tool\ identity}\)
+\end{tabular}
+\end{center}
+
+\begin{lstlisting}[style=codebox]
+{
+  "schema": "jankurai.merge_witness.v1",
+  "commit": "9f3a1c4",
+  "tool_version": "jankurai 0.6.1",
+  "changed_paths": [
+    "apps/web/src/checkout/Checkout.tsx",
+    "apps/web/src/generated/client.ts",
+    "contracts/openapi/api.yaml"
+  ],
+  "owner_route": ["web", "contracts"],
+  "required_receipts": ["web", "contract", "security"],
+  "present_receipts": ["contract"],
+  "missing_evidence": ["rendered_ux_receipt"],
+  "score_delta": { "from": 91, "to": 89 },
+  "decision": "merge_blocked"
+}
+\end{lstlisting}
+
+\begin{table*}[t]
+\caption{Normative artifact checklist by conformance level.}
+\label{tab:artifact-checklist}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.28\textwidth} L{0.09\textwidth} L{0.09\textwidth} L{0.09\textwidth} L{0.09\textwidth} L{0.09\textwidth} Y}
+\toprule
+\textbf{Artifact or behavior} & \textbf{HL1} & \textbf{HL2} & \textbf{HL3} & \textbf{HL4} & \textbf{HL5} & \textbf{Requirement} \\
+\midrule
+Versioned policy files and stable rule IDs & MUST & MUST & MUST & MUST & MUST & The repository exposes a versioned standard target and machine-readable rule families. \\
+Changed-path inventory, owner routing, generated-zone detection & SHOULD & MUST & MUST & MUST & MUST & Merge decisions bind concrete paths to owners and generated boundaries. \\
+Audit JSON and audit Markdown & MUST & MUST & MUST & MUST & MUST & Machines consume JSON; reviewers consume Markdown. \\
+Required proof receipts and merge witness & MAY & SHOULD & MUST & MUST & MUST & Current high-risk changes cannot merge without witness-bound evidence. \\
+Repair queue, score delta, historical audit comparison & MAY & SHOULD & SHOULD & MUST & MUST & The repo can route missing evidence and detect posture regression. \\
+Reproducible conformance-suite pass & MAY & MAY & SHOULD & SHOULD & MUST & HL5 requires runnable fixtures and independently repeatable expected output. \\
+Signed or independently verifiable receipts & MAY & MAY & MAY & SHOULD & SHOULD & Strongly recommended for release and federation, not required in v0.6.1. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Conformance and score are deliberately separate. Conformance is pass/fail against required artifacts for the claimed level. Score is posture and prioritization. A high score without current required receipts is not conformant. A low score can still be useful as an advisory finding, but it MUST NOT be represented as merge approval.
+
+The adoption loop is itself part of the standard: \texttt{jankurai init} installs the control plane, \texttt{jankurai doctor} reports drift, and \texttt{jankurai audit} produces the evidence history. A repository that only mentions the standard but does not install or execute it is not conformant. Conformance is not prose: a repository that cannot emit current audit JSON, audit Markdown, proof receipts, and version-bound artifacts has no Jankurai conformance claim to evaluate.
 
 Jankurai borrows standards mechanics without claiming institutional equivalence. Normative requirements use BCP 14-style \textsc{must}, \textsc{should}, and \textsc{may} language for clarity \cite{bcp14RfcEditor2026}. Standard, auditor, schema, and paper artifacts use SemVer-like compatibility signaling where breaking report changes require a major version, additive fields are minor-compatible, and copy or clarification changes can remain patch-level \cite{semverSpec2026}. Current and previous releases follow the SPDX pattern of visible specification history \cite{spdxSpecifications2026}. The OpenAPI distinction between specification text and schema artifacts informs Jankurai's split between normative prose, JSON schemas, and patch/minor report compatibility \cite{openapiSpecification2026}. W3C-style maturity states make draft, candidate, implementation evidence, superseded, and obsolete status explicit \cite{w3cProcess2026}. Kubernetes-style conformance means certification must rest on runnable tests and reproducible evidence, not branding \cite{kubernetesConformance2026}. OpenSSF Scorecard motivates automated open-source posture scoring as an adoption surface rather than a private checklist \cite{openssfScorecard2026}.
 
@@ -72,17 +123,28 @@ MUST, SHOULD, and MAY are used in the RFC sense inside the standard. A repositor
 
 Stable rule identifiers make the standard repairable. \texttt{HLT-001} through \texttt{HLT-027} are stable rule families tied to evidence and repair, not just detector names. They cover dead markers, generated-zone mutation, ownerless paths, unmapped proof, Python product truth, wrong-layer DB access, handwritten contracts, false-green risk, generated-code security, secret sprawl, hostile context, overbroad agency, rendered UX gaps, accessibility gaps, setup/context gaps, supply-chain drift, opaque observability, performance or concurrency drift, streaming runtime drift, CI hardening, destructive migrations, authorization isolation, unsafe input boundaries, agent-tool supply chain, release readiness, cost budgets, and human-review receipts. Appendix~A expands these IDs into required evidence and repair fields.
 
+\begin{table}[t]
+\caption{Public interface promises.}
+\label{tab:interface-promises}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.34\columnwidth} Y}
+\toprule
+\textbf{Surface} & \textbf{Compatibility promise} \\
+\midrule
+Rule IDs & Stable IDs keep old findings and repair receipts interpretable. \\
+Schemas & Breaking output changes require major schema-version movement. \\
+Audit ordering & Findings and queues are deterministic so diffs are reviewable. \\
+CLI exits & Passing, advisory, blocked, and tool-failure outcomes are distinguishable. \\
+Fixtures & Conformance examples include known-good and known-bad repositories. \\
+Generated zones & Output paths declare source, command, and hand-edit policy. \\
+Proof receipts & Receipts name command, inputs, artifacts, result, and tool identity. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 The audit loop is intentionally concrete. A failing repository might emit \texttt{HLT-010-SECRET-SPRAWL} for an exposed token in a fixture, \texttt{HLT-007-HANDWRITTEN-CONTRACT} for a handwritten web DTO, and \texttt{HLT-013-RENDERED-UX-GAP} for a checkout change without browser artifacts. The \texttt{agent\_fix\_queue} should order those by TLR priority, route them to \texttt{security}, \texttt{contract}, and \texttt{web} lanes, and require repair receipts: rotated credential and secret-scan output, regenerated client and drift check, screenshot/ARIA/geometry report for the changed viewport. Proof beats claims. A green score without those receipts is not conformance; it is merely an absence of local evidence.
 
 Centerline drift is the score delta between a repository's claimed standard and its observed behavior. Hard caps are versioned policy, not final empirical truth. The point is to make governance explicit: teams can argue about weights and caps in releases, not in scattered PR comments. Alternate stacks can conform if they provide equivalent owner routing, generated boundaries, proof lanes, security evidence, and repair artifacts; the reference stack is not a loophole around conformance.
 
-The v0.5 public primitive is the merge witness. The trustworthy merge equation is:
-\begin{center}
-\small
-\begin{tabular}{c}
-\(\mathrm{merge}=\mathrm{changed\ paths}+\mathrm{owner\ route}\) \\
-\(+\ \mathrm{proof\ receipts}+\mathrm{score\ delta}\) \\
-\(+\ \mathrm{missing\ evidence\ decision}\)
-\end{tabular}
-\end{center}
-\texttt{jankurai witness} renders that equation as JSON and Markdown for a pull request. It records changed paths, generated-zone touches, required lanes, available receipts, baseline score, new/resolved/carried findings, caps, missing evidence, and a decision: pass, review, block, ratchet fail, or release fail. The slogan is operational rather than decorative: no proof, no merge; no receipt, no trust.
+\texttt{jankurai witness} renders the merge-witness equation as JSON and Markdown for a pull request. It records changed paths, generated-zone touches, required lanes, available receipts, baseline score, new/resolved/carried findings, caps, missing evidence, and a decision: pass, review, block, ratchet fail, or release fail. The slogan is operational rather than decorative: no proof, no merge; no receipt, no trust.

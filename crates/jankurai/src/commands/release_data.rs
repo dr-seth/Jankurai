@@ -56,8 +56,13 @@ pub fn load_release_data(repo: &Path) -> Result<ReleaseData> {
         .with_context(|| format!("read {}", manifest_path.display()))?;
     let manifest: StandardVersionManifest =
         toml::from_str(&text).with_context(|| format!("parse {}", manifest_path.display()))?;
+    let standard_version = if repo.join("agent/standard-version.toml").exists() {
+        manifest.standard_version
+    } else {
+        standard_doc_version(repo).unwrap_or(manifest.standard_version)
+    };
     Ok(ReleaseData {
-        standard_version: manifest.standard_version,
+        standard_version,
         auditor_version: manifest.auditor_version,
         paper_edition: manifest.paper_edition,
         schema_version: manifest.schema_version,
@@ -90,6 +95,29 @@ fn release_manifest_path(repo: &Path) -> PathBuf {
     } else {
         workspace_root().join("agent/standard-version.toml")
     }
+}
+
+fn standard_doc_version(root: &Path) -> Option<String> {
+    for path in [
+        root.join("agent/JANKURAI_STANDARD.md"),
+        root.join("docs/agent-native-standard.md"),
+    ] {
+        let Ok(text) = fs::read_to_string(path) else {
+            continue;
+        };
+        for line in text.lines() {
+            let Some(rest) = line.strip_prefix("Standard version: `") else {
+                continue;
+            };
+            let Some((version, _)) = rest.split_once('`') else {
+                continue;
+            };
+            if !version.trim().is_empty() {
+                return Some(version.trim().to_string());
+            }
+        }
+    }
+    None
 }
 
 fn read_score(value: &Value) -> i32 {

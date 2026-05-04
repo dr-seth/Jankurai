@@ -56,6 +56,12 @@ pub fn render_markdown(report: &Report) -> String {
     if !report.scope.paths.is_empty() {
         let _ = writeln!(out, "- Changed: `{}`", report.scope.paths.join(", "));
     }
+    if report.scope.mode == "changed-fast" {
+        let _ = writeln!(
+            out,
+            "- Advisory: `changed-fast scans only changed files plus required control files; run the full audit before merge or release.`"
+        );
+    }
     proof::append_proof_receipts(&mut out, report);
     let _ = writeln!(out, "- Raw score: `{}`", report.raw_score);
     let _ = writeln!(out, "- Final score: `{}`", report.score);
@@ -289,10 +295,10 @@ pub fn render_markdown(report: &Report) -> String {
         );
         let _ = writeln!(
             out,
-            "- Coverage: absolute=`{}` partial=`{}` none=`{}`",
+            "- Coverage: detector-backed=`{}` partial=`{}` none=`{}`",
             summary
                 .coverage_counts
-                .get("absolute")
+                .get("detector-backed")
                 .copied()
                 .unwrap_or(0),
             summary.coverage_counts.get("partial").copied().unwrap_or(0),

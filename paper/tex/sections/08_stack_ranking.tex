@@ -1,9 +1,9 @@
-\section{Stack Ranking, Sensitivity, and Exceptions}
+\section{Reference Profile Comparison}
 
-The top-five result is a default recommendation, not a metaphysical law. The scores are policy scores under this paper edition. They assume durable product systems with web product surface, API/service behavior, operational security requirements, and long-running maintenance by agents and humans together.
+The comparison below is illustrative, policy-weighted, and non-normative. The standard is the merge witness and conformance artifact boundary, not a stack ranking. The scores assume durable product systems with web product surface, API/service behavior, operational security requirements, and long-running maintenance by agents and humans together. Alternative stacks can conform when they produce equivalent proof receipts and merge witnesses.
 
 \begin{table}[t]
-\caption{Top-five stack results under the jankurai rubric.}
+\caption{Reference profile results under the jankurai scoring model.}
 \label{tab:stack-ranking}
 \centering
 \small
@@ -28,7 +28,7 @@ The top-five result is a default recommendation, not a metaphysical law. The sco
   \includegraphics[width=0.94\textwidth]{figures/stack-ranking.pdf}%
 }
 \vspace{-0.4em}
-\caption{Top-five stack ranking by Agent-Native Stack Score (ANSS), the weighted jankurai 100-point rubric. The figure is a zoomed comparison of close contenders; Table~\ref{tab:stack-ranking} gives the absolute scores. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
+\caption{Reference profile comparison by Agent-Native Stack Score (ANSS), the weighted jankurai scoring model. The figure is a zoomed comparison of close contenders; Table~\ref{tab:stack-ranking} gives the policy scores. Labels: RUST = Rust core, GOSV = Go services, NET = C\#/.NET, TSRG = TypeScript product plane with Rust/Go compute cells, and JVM = Kotlin/Java. All entries assume TypeScript/React/Vite product surface and PostgreSQL durable truth; streaming buses are workload-specific additions.}
 \label{fig:stack-ranking}
 \end{figure*}
 
@@ -53,7 +53,7 @@ JVM/Spring or Kotlin + Postgres & 15 & 11 & 11 & 10 & 40 & $\pm 5$ & Brownfield 
 \end{tabularx}
 \end{table*}
 
-Sensitivity is concentrated in three weights: memory safety/security, ecosystem corpus strength, and runtime/concurrency. Increase ecosystem weight and Go, .NET, and JVM improve. Increase type-state and memory-safety weight and Rust separates. Increase product velocity and full-stack TypeScript rises, but it hits hard filters unless durable truth, generated contracts, and server ownership are explicit.
+Sensitivity is concentrated in three weights: memory safety/security, ecosystem corpus strength, and runtime/concurrency. Increase ecosystem weight and Go, .NET, and JVM improve. Increase type-state and memory-safety weight and Rust separates. Increase product velocity and full-stack TypeScript rises, but it hits hard filters unless durable truth, generated contracts, and server ownership are explicit. These scores are reproducible from stated assumptions, not empirical universals.
 
 \subsection{Streaming Infrastructure: Kafka Today, Rust Tomorrow}
 

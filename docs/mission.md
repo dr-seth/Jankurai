@@ -1,8 +1,8 @@
 # Mission: Jankurai
 
-Paper title: "Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge"
+Paper title: "Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge"
 
-Public thesis line: "Humans Were the Bug: From Vibe Coding to Agent-Native Engineering"
+Public thesis line: "No proof, no merge; no receipt, no trust."
 
 Jankurai exists to make agent-native engineering concrete as a versioned, auditable repository standard. The public thesis line is deliberately sharp: most repositories were shaped around human comfort, human memory, human navigation, and human tolerance for ambiguity. That design target is now wrong. Agents can generate code quickly, but they still fail when a repo hides ownership, accepts duplicate truth, lacks deterministic proof lanes, or forces the model to infer architecture from scattered convention.
 

@@ -5,6 +5,8 @@
   "type": "object",
   "required": [
     "schema_version",
+    "standard_version",
+    "auditor_version",
     "command",
     "generated_at",
     "repo",
@@ -17,6 +19,10 @@
     "missing_evidence",
     "current_score",
     "current_raw_score",
+    "claimed_conformance_level",
+    "observed_conformance_level",
+    "conformance_decision",
+    "conformance_blockers",
     "caps_applied",
     "caps_added",
     "new_findings",
@@ -27,6 +33,8 @@
   ],
   "properties": {
     "schema_version": { "type": "string" },
+    "standard_version": { "type": "string" },
+    "auditor_version": { "type": "string" },
     "command": { "const": "jankurai witness" },
     "generated_at": { "type": "string" },
     "repo": { "type": "string" },
@@ -50,6 +58,13 @@
     "current_raw_score": { "type": "integer" },
     "baseline_score": { "type": ["integer", "null"] },
     "score_delta": { "type": ["integer", "null"] },
+    "claimed_conformance_level": { "$ref": "#/$defs/conformanceLevel" },
+    "observed_conformance_level": { "$ref": "#/$defs/conformanceLevel" },
+    "conformance_decision": {
+      "type": "string",
+      "enum": ["pass", "review", "block", "ratchet_fail", "release_fail"]
+    },
+    "conformance_blockers": { "type": "array", "items": { "type": "string" } },
     "caps_applied": { "type": "array", "items": { "type": "string" } },
     "caps_added": { "type": "array", "items": { "type": "string" } },
     "new_findings": { "type": "array", "items": { "type": "object" } },
@@ -60,5 +75,12 @@
       "enum": ["pass", "review", "block", "ratchet_fail", "release_fail"]
     },
     "next_repair": { "type": "array", "items": { "type": "string" } }
-  }
+  },
+  "$defs": {
+    "conformanceLevel": {
+      "type": "string",
+      "enum": ["HL0", "HL1", "HL2", "HL3", "HL4", "HL5"]
+    }
+  },
+  "additionalProperties": false
 }

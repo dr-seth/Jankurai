@@ -1,10 +1,10 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-pub const STANDARD_VERSION: &str = "0.6.1";
-pub const AUDITOR_VERSION: &str = "0.6.1";
-pub const SCHEMA_VERSION: &str = "1.4.1";
-pub const PAPER_EDITION: &str = "2026.05-ed6";
+pub const STANDARD_VERSION: &str = "0.7.0";
+pub const AUDITOR_VERSION: &str = "0.7.0";
+pub const SCHEMA_VERSION: &str = "1.5.0";
+pub const PAPER_EDITION: &str = "2026.05-ed7";
 pub const TARGET_STACK_ID: &str = "rust-ts-vite-react-postgres-bounded-python";
 pub const TARGET_STACK: &str = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service";
 
@@ -125,6 +125,14 @@ pub struct ArtifactDigest {
 
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct ProofReceipt {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub schema_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub standard_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auditor_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub receipt_id: Option<String>,
     pub lane: String,
     pub command: String,
     pub exit_code: i32,
@@ -145,9 +153,17 @@ pub struct ProofReceipt {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub generated_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finished_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repo: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub repo_root: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub git_head: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dirty_worktree: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub run_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -166,6 +182,8 @@ pub struct ProofReceipt {
     pub retryable: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stdout_stderr_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "serde_json::Map::is_empty")]
+    pub extensions: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -321,6 +339,10 @@ pub struct Report {
     pub paper_edition: String,
     pub target_stack_id: String,
     pub target_stack: String,
+    pub claimed_conformance_level: String,
+    pub observed_conformance_level: String,
+    pub conformance_decision: String,
+    pub conformance_blockers: Vec<String>,
     pub repo: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub run_id: Option<String>,

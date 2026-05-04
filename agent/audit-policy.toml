@@ -1,10 +1,10 @@
 minimum_score = 85
 fail_on = ["critical", "high"]
 advisory_on = ["medium", "low"]
-standard_version = "0.6.1"
-auditor_version = "0.6.1"
-schema_version = "1.4.1"
-paper_edition = "2026.05-ed6"
+standard_version = "0.7.0"
+auditor_version = "0.7.0"
+schema_version = "1.5.0"
+paper_edition = "2026.05-ed7"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 
 [caps]
@@ -43,3 +43,6 @@ python_ai_file_hard = 300
 function_hard = 70
 agent_instruction_hard = 180
 design_doc_hard = 600
+
+[scan]
+extra_excluded_paths = ["conformance/fixtures"]

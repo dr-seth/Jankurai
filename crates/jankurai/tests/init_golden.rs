@@ -131,7 +131,6 @@ fn init_level_agents_only_plans_agent_and_provider_guidance() {
     let paths = plan_paths(&value);
     assert!(paths.contains(&"AGENTS.md".to_string()));
     assert!(paths.contains(&"agent/JANKURAI_STANDARD.md".to_string()));
-    assert!(paths.contains(&"agent/MASTER_PLAN.md".to_string()));
     assert!(paths.contains(&"CLAUDE.md".to_string()));
     assert!(paths.contains(&"GEMINI.md".to_string()));
     assert!(paths.contains(&".cursor/rules/jankurai.mdc".to_string()));
@@ -435,7 +434,7 @@ edition = "2021"
 }
 
 #[test]
-fn init_hidden_yolo_alias_is_still_parsed() {
+fn init_yolo_alias_is_rejected() {
     let dir = tempdir().unwrap();
     init_git_repo(dir.path());
     let output = Command::new(binary_path())
@@ -447,10 +446,7 @@ fn init_hidden_yolo_alias_is_still_parsed() {
         .unwrap();
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("--bootstrap-commit commits changes"),
-        "{stderr}"
-    );
+    assert!(stderr.contains("unexpected argument '--yolo'"), "{stderr}");
 }
 
 #[test]
@@ -1072,7 +1068,6 @@ fn init_generated_templates_are_external_repo_safe() {
     for rel in [
         "Justfile",
         ".github/workflows/jankurai.yml",
-        "agent/MASTER_PLAN.md",
         "agent/generated-zones.toml",
         "agent/test-map.json",
         "agent/proof-lanes.toml",

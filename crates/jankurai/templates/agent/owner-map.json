@@ -4,7 +4,6 @@
     "AGENTS.md": "agent",
     "README.md": "workspace",
     ".github/": "ops",
-    "agent/MASTER_PLAN.md": "agent",
     "agent/": "agent",
     "contracts/": "contracts",
     "crates/": "tools",

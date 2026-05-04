@@ -4,13 +4,13 @@ Vibe coding is not a mood. It is a fault class: shipping code whose correctness 
 
 Public evidence supports treating vibe coding as a high-risk production pattern rather than a harmless workflow style. Veracode reports that AI-generated samples introduced risky security flaws in 45\% of tests \cite{veracodeGenaiCodeSecurity2025}. GitGuardian reports accelerating hardcoded-secret exposure in public GitHub activity and AI-service leak growth \cite{gitguardianSecretsSprawl2026,gitguardianSecretsSprawl2026Blog}. Stack Overflow's 2025 survey reports that developers' largest AI frustration is output that is almost right but not quite, with time-consuming AI-code debugging close behind \cite{stackOverflowAISurvey2025}. OWASP's LLM Top 10 names prompt injection, sensitive information disclosure, supply-chain risk, improper output handling, and excessive agency as first-order AI application risks \cite{owaspLlmTopTen2025}. SetupBench and ContextBench add the operational failure modes: agents still struggle with environment bootstrap and useful context retrieval \cite{setupBench2025,contextBench2026}.
 
-The v0.6.1 coverage release turns the source material behind this taxonomy into
+The v0.7.0 coverage release turns the source material behind this taxonomy into
 a tracked registry. Every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
 through \texttt{tip5.txt} maps to exactly one canonical issue in
 \texttt{agent/vibe-coverage.toml}. Appendix~A renders the generated table:
 green means detector-backed Jankurai control plus proof/report evidence, yellow
 means a reviewed control family exists but still needs issue-specific fixture,
-CI, or governance evidence. The v0.6.1 registry has no red rows.
+CI, or governance evidence. The v0.7.0 registry has no red rows.
 
 \begin{table*}[t]
 \caption{Ranked vibe-coding fault taxonomy. RPN is a jankurai policy priority, not an empirical frequency claim.}
@@ -22,7 +22,7 @@ CI, or governance evidence. The v0.6.1 registry has no red rows.
 \textbf{TLR} & \textbf{RPN} & \textbf{Fault} & \textbf{Rule/lane} & \textbf{Required control} & \textbf{Hardness} \\
 \midrule
 Business truth & 125 & False-green business logic & HLT-008 / fast & Domain invariants, property tests, golden workflows, DB constraints, incident replay tests. & Hard \\
-Business truth & 100 & Authorization or data-isolation drift & HLT-005 / db & Role matrix tests, negative authz tests, owner-map routing, RLS where useful. & Hard \\
+Business truth & 100 & Authorization or data-isolation drift & HLT-022 / db & Role matrix tests, negative authz tests, owner-map routing, RLS where useful. & Hard \\
 Business truth & 80 & Idempotency or side-effect duplication & HLT-008 / release & Idempotency keys, replay tests, outbox/workflow proofs, double-charge negative cases. & Hard \\
 Security & 80 & Plausible insecure generated code & HLT-009 / security & SAST/SCA, secure-code rules, threat-model checklist, negative tests. & Hard \\
 Security & 80 & Secrets and identity sprawl & HLT-010 / security & Push protection, local/CI secret scans, redacted logs, credential inventory, transcript/artifact scan. & Hard \\
@@ -35,7 +35,7 @@ Verification & 64 & False-green tests & HLT-008 / fast & Reviewer-owned acceptan
 Context/setup & 64 & Context retrieval failure & HLT-015 / fast & Short root router, owner/test maps, local rules, symbol search, command-output filtering. & Soft \\
 Contracts/data & 60 & Contract and DTO drift & HLT-007 / contract & Generated clients only, contract drift lane, generated-zone lock, compatibility tests. & Hard \\
 Contracts/data & 60 & Wrong-layer persistence & HLT-006 / db & DB access policy, adapters-only SQL, migration and constraint tests, forbidden imports. & Hard \\
-Contracts/data & 60 & Destructive migration or data-loss hazard & HLT-006 / db & Rollback/down plan, staged backfill, lock timeout, constraint proof, production rehearsal. & Hard \\
+Contracts/data & 60 & Destructive migration or data-loss hazard & HLT-021 / db & Rollback/down plan, staged backfill, lock timeout, constraint proof, production rehearsal. & Hard \\
 Context/setup & 48 & Environment/setup hallucination & HLT-015 / fast & One-command setup, pinned toolchain, devcontainer where useful, setup proof lane. & Hard \\
 Verification & 48 & Pixel/UI regression & HLT-013 / web & Storybook states, Playwright screenshots, geometry rules, baseline governance, trace artifacts. & Hard \\
 Verification & 48 & Accessibility regression & HLT-014 / web & axe/ARIA checks, keyboard journeys, focus/target geometry, expert review for semantic gaps. & Hard \\

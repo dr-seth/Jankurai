@@ -1,0 +1,40 @@
+\section{Evaluation and Conformance Evidence}
+
+Jankurai is currently best understood as a standards proposal with an early reference implementation, not as a completed empirical benchmark. The evaluation claim in this edition is conformance-oriented: can a repository emit reproducible artifacts that make the merge decision auditable?
+
+\subsection{Current Implementation Evidence}
+
+The \texttt{jankurai} CLI audits this repository and emits JSON and Markdown reports. It validates rule coverage from \texttt{agent/vibe-coverage.toml}, tracks generated zones, owner routes, proof lanes, score history, and repair queues where those controls are implemented, and builds this paper from source. The paper, schemas, agent maps, generated-zone manifest, audit reports, and generated coverage outputs are repository-local artifacts rather than hosted service state.
+
+Current evidence remains limited. Some detectors are deterministic, such as secret-like content, generated-zone mutation, direct DB markers, destructive SQL heuristics, and dead-language markers. Other rows are policy-backed or advisory because they require project-specific fixtures, organization-level proof, or semantic tests that cannot be inferred from repository shape alone.
+
+\subsection{Seed Conformance Suite}
+
+This edition includes a seed conformance suite under \texttt{conformance/}. It is not a benchmark and does not claim detector completeness. Its purpose is narrower: keep the standard's rule IDs, expected decisions, and merge-witness outcomes concrete enough for the reference auditor to validate and for future implementations to copy. Kubernetes conformance is a useful precedent because certification rests on repeatable tests and submitted evidence rather than branding alone \cite{kubernetesConformance2026}.
+
+\begin{table}[t]
+\caption{Seed conformance-suite fixtures in this repository.}
+\label{tab:conformance-suite}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.2\columnwidth} Y}
+\toprule
+\textbf{Fixture class} & \textbf{Expected signal} \\
+\midrule
+HL3 pass & Known-good HL3 shape; expected audit and witness decision: pass. \\
+Ownerless path & \texttt{HLT-003} blocks an unmapped changed path. \\
+Unmapped proof & \texttt{HLT-004} blocks a path without a proof route. \\
+Generated drift & \texttt{HLT-002} blocks generated output changed without source proof. \\
+Secret sprawl & \texttt{HLT-010} blocks secret-like fixture content. \\
+Destructive migration & \texttt{HLT-021} blocks destructive SQL without rollback, backfill, lock, and DB proof evidence. \\
+Authz isolation & \texttt{HLT-022} requires owner/non-owner negative proof. \\
+Input boundary & \texttt{HLT-023} requires deterministic negative proof for unsafe rendering or input boundaries. \\
+Overbroad agency & \texttt{HLT-012} blocks tool or agent authority broader than the lane. \\
+Rendered UX gap & \texttt{HLT-013} requires screenshot, trace, geometry, or accessibility evidence for changed UI. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Research Metrics}
+
+The next empirical step is to measure whether the standard improves merge outcomes. Useful metrics include missing-evidence detection, false positives and false negatives, owner-route accuracy, proof-selection accuracy, review time, time-to-repair, CI runtime, regression prevention, security posture change, and token/context reduction. SetupBench and ContextBench show why environment bootstrap and context retrieval deserve direct measurement in agent workflows \cite{setupBench2025,contextBench2026}; Jankurai adds merge-evidence quality as the repository-local outcome to measure.

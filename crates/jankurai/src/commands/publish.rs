@@ -32,6 +32,11 @@ pub struct CertificationBadge {
     pub color: String,
     pub score: i32,
     pub conformance_level: String,
+    pub claimed_conformance_level: String,
+    pub observed_conformance_level: String,
+    pub conformance_decision: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub conformance_blockers: Vec<String>,
     pub standard_version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artifact: Option<String>,
@@ -76,6 +81,10 @@ pub struct PublicEvidenceBundle {
     pub publishable: bool,
     pub score: i32,
     pub conformance_level: String,
+    pub claimed_conformance_level: String,
+    pub observed_conformance_level: String,
+    pub conformance_decision: String,
+    pub conformance_blockers: Vec<String>,
     pub findings_summary: Value,
     pub benchmark_summary: Value,
     pub governance: Value,
@@ -316,6 +325,16 @@ pub fn build_public_evidence_bundle(
         .as_str()
         .unwrap_or("HL0")
         .to_string();
+    let claimed_conformance_level = certification_value["claimed_conformance_level"]
+        .as_str()
+        .unwrap_or(&conformance_level)
+        .to_string();
+    let observed_conformance_level = certification_value["observed_conformance_level"]
+        .as_str()
+        .unwrap_or(&conformance_level)
+        .to_string();
+    let conformance_decision = if publishable { "pass" } else { "block" }.to_string();
+    let conformance_blockers = blocking_reasons.clone();
     let badge_std = certification_value["standard_version"]
         .as_str()
         .unwrap_or("")
@@ -328,6 +347,10 @@ pub fn build_public_evidence_bundle(
         color: badge_color(publishable, &public_status),
         score: score_i,
         conformance_level: conformance_level.clone(),
+        claimed_conformance_level: claimed_conformance_level.clone(),
+        observed_conformance_level: observed_conformance_level.clone(),
+        conformance_decision: conformance_decision.clone(),
+        conformance_blockers: conformance_blockers.clone(),
         standard_version: badge_std,
         artifact: Some("target/jankurai/public/p12-public-evidence.json".to_string()),
     };
@@ -378,6 +401,10 @@ pub fn build_public_evidence_bundle(
         publishable,
         score: score_i,
         conformance_level,
+        claimed_conformance_level,
+        observed_conformance_level,
+        conformance_decision,
+        conformance_blockers,
         findings_summary: certification_value["findings_summary"].clone(),
         benchmark_summary: benchmark_value["summary"].clone(),
         governance: gov_summary,

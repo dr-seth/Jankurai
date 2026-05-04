@@ -5,10 +5,6 @@
       "command": "just score",
       "purpose": "verify root routing remains visible to the audit"
     },
-    "agent/MASTER_PLAN.md": {
-      "command": "just score",
-      "purpose": "verify master plan routing remains visible to the audit"
-    },
     "agent/": {
       "command": "just score",
       "purpose": "verify manifests remain parseable and authoritative"

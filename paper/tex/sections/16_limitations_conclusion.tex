@@ -1,6 +1,8 @@
 \section{Limitations and Research Agenda}
 
-The scoring weights need empirical calibration across real repositories. Agent-friendly exception patterns need comparative studies across Rust, TypeScript, and Python. The file-size limits should be tested against repair accuracy, not taste. Tool-specific instruction behavior changes quickly. Public benchmarks still struggle to measure long-running maintenance, security regressions, UI correctness, and production repair quality. Audit can reject many known failure classes, but it cannot prove every semantic property of a system. Alternate stacks can conform when they provide equivalent proof artifacts. Those gaps are a research agenda, not reasons to keep shipping ambiguous repos.
+Jankurai does not prove full semantic correctness. A merge witness can show that changed paths were routed to owners, required proof lanes ran, receipts exist, and missing evidence was handled; it cannot prove every business invariant or exclude malicious compiler, runtime, or organization-level compromise. Current evidence is conformance-oriented and repository-local. The reference implementation is young, some detectors are advisory or partial, and signed receipts, transparent evidence logs, cross-repo federation, and organizational trust remain future work.
+
+The scoring weights need empirical calibration across real repositories. Agent-friendly exception patterns need comparative studies across stacks. The file-size limits should be tested against repair accuracy, not taste. Tool-specific instruction behavior changes quickly. Public benchmarks still struggle to measure long-running maintenance, security regressions, UI correctness, and production repair quality. Alternate stacks can conform when they provide equivalent proof artifacts and merge witnesses.
 
 The maturity model should therefore be explicit. Draft rules need examples and fixtures. Candidate rules need implementation evidence across more than one repository. Stable rules need schema-backed output, documented repairs, and regression tests. Superseded or obsolete rules need migration notes so old receipts remain interpretable.
 
@@ -29,10 +31,10 @@ Reusable cell registry and certification & Cell manifests, install plans, proof 
 \end{tabularx}
 \end{table*}
 
-The strongest version of the criticism is useful: a standard can become ceremony, and a stack recommendation can become dogma. Jankurai should be judged by whether it improves repair locality, reduces unsafe merges, shortens review cycles, and produces better evidence. If a team can prove those outcomes with a different stack and a compatible control plane, the exception should be documented and studied.
+The strongest version of the criticism is useful: a standard can become ceremony, and a reference profile can become dogma. Jankurai should be judged by whether it improves repair locality, reduces unsafe merges, shortens review cycles, and produces better evidence. If a team can prove those outcomes with a different stack and a compatible control plane, the profile should be documented and studied.
 
 \section{Conclusion}
 
-Agent-native engineering is an adaptation problem. Teams that optimize for human comfort alone will get faster at creating ambiguity. Teams that optimize for verification will get faster at rejecting bad code, localizing mistakes, repairing real failures, and changing architecture without guessing.
+Agent-native engineering is an adaptation problem. Teams that optimize only for generation will get faster at creating ambiguity. Teams that optimize for verification will get faster at rejecting bad code, localizing mistakes, repairing real failures, and changing architecture without guessing.
 
-The winner is not the stack that flatters the author. The winner is the repo-and-stack system that makes invalid states hard to express, boundary drift hard to hide, security failures hard to merge, production behavior easy to trace, and repair work easy to assign. The default target is Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and bounded Python. The repo around it must become a verification interface. Anything less is just faster vibe coding.
+The durable contribution is not a stack ranking. It is the merge witness, the proof receipt, and the reproducible merge decision. Jankurai asks a repository to make conformance concrete: changed paths, owner route, required proof, observed evidence, score delta, missing-evidence decision, commit identity, and tool identity. The reference profile is one way to satisfy that standard. The standard itself is stack-neutral: no proof, no merge; no receipt, no trust.

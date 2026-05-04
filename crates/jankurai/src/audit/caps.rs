@@ -154,6 +154,30 @@ pub const CAP_SPECS: &[CapSpec] = &[
         hardness: "hard",
     },
     CapSpec {
+        key: "authz-or-data-isolation-gap",
+        max_score: 78,
+        rule_id: Some("HLT-022-AUTHZ-ISOLATION-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "input-boundary-gap",
+        max_score: 78,
+        rule_id: Some("HLT-023-INPUT-BOUNDARY-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "agent-tool-supply-chain-gap",
+        max_score: 78,
+        rule_id: Some("HLT-024-AGENT-TOOL-SUPPLY-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "release-readiness-gap",
+        max_score: 80,
+        rule_id: Some("HLT-025-RELEASE-READINESS-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
         key: "missing-rust-property-or-integration-tests",
         max_score: 82,
         rule_id: None,
@@ -204,6 +228,10 @@ pub const CAPS: &[(&str, i32)] = &[
     ("secret-like-content-detected", 60),
     ("false-green-test-risk", 76),
     ("destructive-migration-risk", 70),
+    ("authz-or-data-isolation-gap", 78),
+    ("input-boundary-gap", 78),
+    ("agent-tool-supply-chain-gap", 78),
+    ("release-readiness-gap", 80),
     ("missing-rust-property-or-integration-tests", 82),
     ("no-agent-friendly-exception-pattern", 76),
     ("missing-agent-readable-docs", 80),
@@ -287,6 +315,18 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     }
     if has_destructive_migration_sql {
         caps.push("destructive-migration-risk".into());
+    }
+    if !scan::authz_isolation_hits(ctx).is_empty() {
+        caps.push("authz-or-data-isolation-gap".into());
+    }
+    if !scan::input_boundary_hits(ctx).is_empty() {
+        caps.push("input-boundary-gap".into());
+    }
+    if !scan::agent_tool_supply_hits(ctx).is_empty() {
+        caps.push("agent-tool-supply-chain-gap".into());
+    }
+    if !scan::release_readiness_hits(ctx).is_empty() {
+        caps.push("release-readiness-gap".into());
     }
     if has_rust_surface(ctx) && (!has_rust_property_tests(ctx) || !has_rust_integration_tests(ctx))
     {

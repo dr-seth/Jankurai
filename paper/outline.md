@@ -2,7 +2,7 @@
 
 Status is tracked by TeX source file so the canonical paper can be reviewed without reopening the planning thread.
 
-Paper edition: `2026.05-ed3`
+Paper edition: `2026.05-ed7`
 
 ## Sections
 
@@ -15,16 +15,18 @@ Paper edition: `2026.05-ed3`
 | 4. Technical Promise Versus Standard Gravity | `paper/tex/sections/04_standard_gravity.tex` | done |
 | 5. Vibe-Coding Fault Taxonomy | `paper/tex/sections/05_fault_taxonomy.tex` | done |
 | 6. jankurai Standard and Conformance | `paper/tex/sections/06_jankurai_standard.tex` | done |
-| 7. A 100-Point Stack Rubric | `paper/tex/sections/07_stack_rubric.tex` | done |
-| 8. Stack Ranking, Sensitivity, and Exceptions | `paper/tex/sections/08_stack_ranking.tex` | done |
-| 9. Default Winner Architecture | `paper/tex/sections/09_winner_architecture.tex` | done |
-| 10. Agent Repository Controls and Tool Adapters | `paper/tex/sections/10_agent_controls.tex` | done |
-| 11. Continuous Proof, CI, and Test Explosion | `paper/tex/sections/11_continuous_proof.tex` | done |
-| 12. Rendered UX and Browser-Step QA | `paper/tex/sections/12_pixel_qa.tex` | done |
-| 13. Security, Supply Chain, and Permissions | `paper/tex/sections/13_security_permissions.tex` | done |
-| 14. Exceptions, Observability, and Repair Receipts | `paper/tex/sections/14_exceptions_repair.tex` | done |
-| 15. Migration, Versioning, and Governance | `paper/tex/sections/15_migration_governance.tex` | done |
-| 16. Limitations and Research Agenda / Conclusion | `paper/tex/sections/16_limitations_conclusion.tex` | done |
+| 7. Evaluation and Conformance Evidence | `paper/tex/sections/07_evaluation_and_conformance_suite.tex` | done |
+| 8. Non-Normative Reference Profile Scoring Model | `paper/tex/sections/07_stack_rubric.tex` | done |
+| 9. Reference Profile Comparison | `paper/tex/sections/08_stack_ranking.tex` | done |
+| 10. Reference Architecture Profile | `paper/tex/sections/09_winner_architecture.tex` | done |
+| 11. Agent Repository Controls and Tool Adapters | `paper/tex/sections/10_agent_controls.tex` | done |
+| 12. Continuous Proof, CI, and Test Explosion | `paper/tex/sections/11_continuous_proof.tex` | done |
+| 13. Rendered UX and Browser-Step QA | `paper/tex/sections/12_pixel_qa.tex` | done |
+| 14. Security, Supply Chain, and Permissions | `paper/tex/sections/13_security_permissions.tex` | done |
+| 15. Exceptions, Observability, and Repair Receipts | `paper/tex/sections/14_exceptions_repair.tex` | done |
+| 16. Migration, Versioning, and Governance | `paper/tex/sections/15_migration_governance.tex` | done |
+| 17. Related Work | `paper/tex/sections/15_related_work.tex` | done |
+| 18. Limitations and Research Agenda / Conclusion | `paper/tex/sections/16_limitations_conclusion.tex` | done |
 
 ## Appendices
 
