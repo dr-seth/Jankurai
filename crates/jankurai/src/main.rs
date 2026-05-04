@@ -14,7 +14,12 @@ use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Parser, Debug)]
-#[command(name = "jankurai", version, args_conflicts_with_subcommands = true)]
+#[command(
+    name = "jankurai",
+    version,
+    args_conflicts_with_subcommands = true,
+    subcommand_precedence_over_arg = true
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -231,7 +236,7 @@ struct UpdateArgs {
     apply: bool,
     #[arg(long)]
     yes: bool,
-    #[arg(long)]
+    #[arg(long = "self", alias = "self-update")]
     self_update: bool,
     #[arg(long, hide = true)]
     skip_self: bool,

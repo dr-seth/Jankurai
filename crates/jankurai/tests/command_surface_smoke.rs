@@ -417,3 +417,46 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
                 && e["status"] == "present"
         }));
 }
+
+#[test]
+fn update_subcommand_is_not_confused_with_repo_positional() {
+    let repo = tempdir().unwrap();
+    let status = Command::new(binary_path())
+        .arg("update")
+        .arg(repo.path())
+        .arg("--offline")
+        .arg("--quiet")
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/update-plan.json")
+        .exists());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/update-plan.md")
+        .exists());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/state.json")
+        .exists());
+}
+
+#[test]
+fn update_self_flag_alias_is_accepted() {
+    let repo = tempdir().unwrap();
+    let status = Command::new(binary_path())
+        .arg("update")
+        .arg(repo.path())
+        .arg("--self")
+        .arg("--offline")
+        .arg("--quiet")
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/update-plan.json")
+        .exists());
+}
