@@ -53,6 +53,30 @@
       "command": "just score",
       "purpose": "verify generated scaffold guidance remains audit-visible"
     },
+    "LICENSE": {
+      "command": "just score",
+      "purpose": "verify public license file remains routed and audit-visible"
+    },
+    "CONTRIBUTING.md": {
+      "command": "just score",
+      "purpose": "verify contributor workflow remains routed and audit-visible"
+    },
+    "SECURITY.md": {
+      "command": "just security",
+      "purpose": "verify public security reporting guidance stays aligned with the security lane"
+    },
+    "CODE_OF_CONDUCT.md": {
+      "command": "just score",
+      "purpose": "verify public conduct guidance remains routed and audit-visible"
+    },
+    "SUPPORT.md": {
+      "command": "just score",
+      "purpose": "verify public support guidance remains routed and audit-visible"
+    },
+    "CHANGELOG.md": {
+      "command": "just score",
+      "purpose": "verify public release notes remain routed and audit-visible"
+    },
     ".github/": {
       "command": "cargo run -p jankurai -- doctor --fail-on high",
       "purpose": "verify CI and GitHub instruction surfaces"
