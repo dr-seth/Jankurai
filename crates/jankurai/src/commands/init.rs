@@ -96,11 +96,12 @@ fn apply_templates(
             fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
         }
         if path.exists() {
-            if force_generated_adapters
-                && crate::init::adapters::is_adapter_path(&rel)
-                && fs::read_to_string(&path)
-                    .unwrap_or_default()
-                    .contains(crate::init::adapters::GENERATED_MARKER)
+            if crate::init::adapters::is_adapter_path(&rel)
+                && existing_generated_adapter_needs_write(
+                    &rel,
+                    &fs::read_to_string(&path).unwrap_or_default(),
+                    force_generated_adapters,
+                )
             {
                 fs::write(&path, body).with_context(|| format!("write {}", path.display()))?;
                 actions.push(InitAction {
@@ -176,6 +177,16 @@ fn apply_templates(
     }
     progress.finish("init complete");
     Ok(actions)
+}
+
+fn existing_generated_adapter_needs_write(
+    rel: &str,
+    existing_text: &str,
+    force_generated_adapters: bool,
+) -> bool {
+    existing_text.contains(crate::init::adapters::GENERATED_MARKER)
+        && (force_generated_adapters
+            || crate::init::adapters::needs_generated_skill_repair(rel, existing_text))
 }
 
 fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest, level: &str) {

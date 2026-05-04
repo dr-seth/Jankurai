@@ -845,6 +845,46 @@ fn init_generated_templates_are_external_repo_safe() {
     for recipe in ["fast:", "score:", "doctor:", "security:", "check:"] {
         assert!(justfile.contains(recipe), "missing {recipe}: {justfile}");
     }
+
+    for rel in [
+        ".agents/skills/jankurai/SKILL.md",
+        ".claude/skills/jankurai/SKILL.md",
+    ] {
+        let text = fs::read_to_string(dir.path().join(rel)).unwrap();
+        assert!(
+            text.starts_with("---\nname: jankurai\n"),
+            "{rel} must start with YAML skill frontmatter: {text}"
+        );
+        assert!(
+            text.contains("\ndescription: Jankurai workspace guidance")
+                && text.contains("\n---\n\n# jankurai"),
+            "{rel} must contain a complete skill frontmatter block: {text}"
+        );
+    }
+}
+
+#[test]
+fn init_repairs_generated_skill_adapters_missing_frontmatter() {
+    let dir = tempdir().unwrap();
+    let skill = dir.path().join(".agents/skills/jankurai/SKILL.md");
+    fs::create_dir_all(skill.parent().unwrap()).unwrap();
+    fs::write(
+        &skill,
+        "# jankurai\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\n",
+    )
+    .unwrap();
+
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    let text = fs::read_to_string(skill).unwrap();
+    assert!(
+        text.starts_with("---\nname: jankurai\n"),
+        "generated skill adapter should be repaired with frontmatter: {text}"
+    );
 }
 
 #[test]

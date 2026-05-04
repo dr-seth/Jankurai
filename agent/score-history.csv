@@ -1,3 +1,4 @@
 index,generated_at,branch,commit,dirty_worktree,score,raw_score,caps,finding_count,hard_findings,soft_findings,decision,minimum_score,scope,report_fingerprint
 1,1777884370,main,120808b,true,93,93,0,5,5,0,fail,85,full,sha256:85f3988228a7f8abc0b250cc3c8a58316acaba71bb2999df783e17c92ef0d4f0
 2,1777884434,main,120808b,true,93,93,0,5,5,0,fail,85,full,sha256:64a862a30d4d78a088a1af9a74f2c208cf5628ff2c9b8cb42100e6b60801fe4e
+3,1777885615,main,d491e36,true,93,93,0,5,5,0,fail,85,full,sha256:dadd3f455c78a4e15509cfa48c4650df7830bc9f75fa5d173135a886969e66b7

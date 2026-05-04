@@ -57,6 +57,24 @@ pub fn is_adapter_path(path: &str) -> bool {
     ADAPTER_PATHS.contains(&path)
 }
 
+pub fn is_skill_path(path: &str) -> bool {
+    matches!(
+        path,
+        ".agents/skills/jankurai/SKILL.md" | ".claude/skills/jankurai/SKILL.md"
+    )
+}
+
+pub fn has_skill_frontmatter(text: &str) -> bool {
+    text.starts_with("---\n")
+        && text.contains("\nname: jankurai\n")
+        && text.contains("\ndescription: Jankurai workspace guidance")
+        && text.contains("\n---\n\n# jankurai")
+}
+
+pub fn needs_generated_skill_repair(path: &str, text: &str) -> bool {
+    is_skill_path(path) && text.contains(GENERATED_MARKER) && !has_skill_frontmatter(text)
+}
+
 pub fn adapter_plan(repo: &Path, ide: &str) -> Vec<AdapterAction> {
     selected_adapter_paths(ide)
         .into_iter()
@@ -83,7 +101,9 @@ pub fn write_adapters(repo: &Path, ide: &str, force_generated: bool) -> Result<V
         }
         if path.exists() {
             let text = fs::read_to_string(&path).unwrap_or_default();
-            if force_generated && text.contains(GENERATED_MARKER) {
+            if text.contains(GENERATED_MARKER)
+                && (force_generated || needs_generated_skill_repair(template.path, &text))
+            {
                 fs::write(&path, template.body)
                     .with_context(|| format!("write {}", path.display()))?;
                 actions.push(AdapterAction {
@@ -146,6 +166,12 @@ pub fn verify_adapters(repo: &Path) -> Result<Vec<AdapterFailure>> {
                 path: (*path).into(),
                 problem: "adapter is too long; adapters must not duplicate the full standard"
                     .into(),
+            });
+        }
+        if is_skill_path(path) && !has_skill_frontmatter(&text) {
+            failures.push(AdapterFailure {
+                path: (*path).into(),
+                problem: "skill adapter is missing YAML frontmatter delimited by ---".into(),
             });
         }
     }
