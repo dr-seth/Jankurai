@@ -492,6 +492,119 @@ fn init_profile_file_rejects_invalid_manifest() {
 }
 
 #[test]
+fn init_profile_file_rejects_merge_policy_for_non_generated_path() {
+    let dir = tempdir().unwrap();
+    let bad = dir.path().join("bad-merge-policy-profile.json");
+    let manifest = serde_json::json!({
+        "id": "bad-merge-policy",
+        "displayName": "Bad merge policy",
+        "targetStackId": "test-stack",
+        "generatedPaths": ["contracts/README.md"],
+        "mergePolicy": {
+            "docs/not-generated.md": "merge-lines"
+        },
+        "requiredLanes": [],
+        "optionalLanes": [],
+        "agentAdapters": [],
+        "ciTemplates": [],
+        "docs": [],
+        "securityControls": [],
+        "uxControls": [],
+        "contractSystem": [],
+        "dbPolicy": [],
+        "validationCommands": []
+    });
+    fs::write(&bad, serde_json::to_string_pretty(&manifest).unwrap()).unwrap();
+
+    let err = init::run(init::InitArgs {
+        repo: dir.path().to_path_buf(),
+        apply: false,
+        dry_run: true,
+        yes: false,
+        profile: "rust-api".into(),
+        profile_file: Some(bad),
+        ide: "all".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: None,
+        force_generated_adapters: false,
+    })
+    .unwrap_err();
+    let msg = format!("{err:#}");
+    assert!(msg.contains("mergePolicy declares"), "{msg}");
+}
+
+#[test]
+fn init_profile_file_merge_policy_overrides_default_keep_existing() {
+    let dir = tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("contracts")).unwrap();
+    fs::write(
+        dir.path().join("contracts/README.md"),
+        "# Our contracts\nlegacy line\n",
+    )
+    .unwrap();
+
+    let profile_path = dir.path().join("merge-policy-profile.json");
+    let plan_path = dir.path().join("plan.json");
+    let manifest = serde_json::json!({
+        "id": "merge-policy-profile",
+        "displayName": "Merge policy profile",
+        "targetStackId": "test-stack",
+        "generatedPaths": ["contracts/README.md"],
+        "mergePolicy": {
+            "contracts/README.md": "merge-lines"
+        },
+        "requiredLanes": [],
+        "optionalLanes": [],
+        "agentAdapters": [],
+        "ciTemplates": [],
+        "docs": ["contracts/README.md"],
+        "securityControls": [],
+        "uxControls": [],
+        "contractSystem": ["contracts/README.md"],
+        "dbPolicy": [],
+        "validationCommands": []
+    });
+    fs::write(
+        &profile_path,
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+
+    init::run(init::InitArgs {
+        repo: dir.path().to_path_buf(),
+        apply: false,
+        dry_run: true,
+        yes: false,
+        profile: "ignored-because-profile-file-is-set".into(),
+        profile_file: Some(profile_path.clone()),
+        ide: "all".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: Some(plan_path.to_string_lossy().into_owned()),
+        force_generated_adapters: false,
+    })
+    .unwrap();
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
+    assert_eq!(value["actions"][0]["action"], "merge-lines");
+
+    let mut apply_args = greenfield_apply_args(dir.path().to_path_buf(), "ignored");
+    apply_args.profile_file = Some(profile_path);
+    init::run(apply_args).unwrap();
+
+    let text = fs::read_to_string(dir.path().join("contracts/README.md")).unwrap();
+    assert!(text.contains("legacy line"), "{text}");
+    assert!(text.contains("Put OpenAPI"), "{text}");
+}
+
+#[test]
 fn init_merges_existing_json() {
     let dir = tempdir().unwrap();
     let agent_dir = dir.path().join("agent");

@@ -26,13 +26,15 @@ jankurai ci install --github --mode ratchet --min-score 85
 jankurai agent verify
 ```
 
-`init --yes` creates missing paths from the profile and **merges** into some existing files instead of overwriting:
+`init --yes` creates missing paths from the profile and uses the profile manifest's optional `mergePolicy` for existing `generatedPaths`. Bundled profiles explicitly declare their mergeable paths. A custom `--profile-file` without `mergePolicy` keeps the legacy suffix-based behavior for compatibility.
 
-- **`.json`**: additive object/array merge (`merge-json`).
-- **`.toml`**: additive table/array merge (`merge-toml`).
-- **`Justfile`** or **`.gitignore`**: append lines from the template that are not already present (`merge-lines`).
-- **`AGENTS.md`** and **`agent/JANKURAI_STANDARD.md`**: append an HTML merge marker for manual review (`merge-marker`).
-- **Other paths** that already exist: left unchanged (`keep-existing`).
+Allowed `mergePolicy` actions:
+
+- **`merge-json`**: additive object/array merge.
+- **`merge-toml`**: additive table/array merge.
+- **`merge-lines`**: append template lines that are not already present.
+- **`merge-marker`**: append an HTML merge marker for manual review.
+- **`keep-existing`**: leave existing user-owned content unchanged.
 
 Run **`jankurai init ... --dry-run`** (or **`--plan-json`**) first; the printed plan lists the action for each `generatedPaths` entry.
 

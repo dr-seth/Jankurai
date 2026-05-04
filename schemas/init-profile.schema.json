@@ -33,6 +33,20 @@
     "uxControls": { "type": "array", "items": { "type": "string" } },
     "contractSystem": { "type": "array", "items": { "type": "string" } },
     "dbPolicy": { "type": "array", "items": { "type": "string" } },
-    "validationCommands": { "type": "array", "items": { "type": "string" } }
+    "validationCommands": { "type": "array", "items": { "type": "string" } },
+    "mergePolicy": {
+      "type": "object",
+      "description": "Optional brownfield behavior for existing generatedPaths. When present, unspecified existing paths are kept unchanged; when omitted, legacy suffix inference is used for profile-file compatibility.",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "merge-json",
+          "merge-toml",
+          "merge-lines",
+          "merge-marker",
+          "keep-existing"
+        ]
+      }
+    }
   }
 }

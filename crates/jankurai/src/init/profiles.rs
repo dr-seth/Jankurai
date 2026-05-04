@@ -1,6 +1,7 @@
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 const RUST_TS_POSTGRES_JSON: &str = include_str!("../../templates/profiles/rust-ts-postgres.json");
@@ -38,6 +39,42 @@ pub struct ProfileManifest {
     pub contract_system: Vec<String>,
     pub db_policy: Vec<String>,
     pub validation_commands: Vec<String>,
+    pub merge_policy: BTreeMap<String, MergePolicyAction>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MergePolicyAction {
+    MergeJson,
+    MergeToml,
+    MergeLines,
+    MergeMarker,
+    KeepExisting,
+}
+
+impl MergePolicyAction {
+    pub fn plan_action(self) -> &'static str {
+        match self {
+            Self::MergeJson => "merge-json",
+            Self::MergeToml => "merge-toml",
+            Self::MergeLines => "merge-lines",
+            Self::MergeMarker => "merge-marker",
+            Self::KeepExisting => "keep-existing",
+        }
+    }
+}
+
+impl ProfileManifest {
+    pub fn merge_policy_for_path(&self, path: &str) -> MergePolicyAction {
+        if self.merge_policy.is_empty() {
+            inferred_merge_policy(path)
+        } else {
+            self.merge_policy
+                .get(path)
+                .copied()
+                .unwrap_or(MergePolicyAction::KeepExisting)
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,6 +94,8 @@ struct ProfileManifestFile {
     contract_system: Vec<String>,
     db_policy: Vec<String>,
     validation_commands: Vec<String>,
+    #[serde(default)]
+    merge_policy: BTreeMap<String, MergePolicyAction>,
 }
 
 impl From<ProfileManifestFile> for ProfileManifest {
@@ -76,6 +115,7 @@ impl From<ProfileManifestFile> for ProfileManifest {
             contract_system: f.contract_system,
             db_policy: f.db_policy,
             validation_commands: f.validation_commands,
+            merge_policy: f.merge_policy,
         }
     }
 }
@@ -112,7 +152,40 @@ fn load_profile(repo: &Path, json_str: &str) -> Result<ProfileManifest> {
     let value: serde_json::Value = serde_json::from_str(json_str)?;
     validation::validate_value(repo, ArtifactSchema::InitProfile, &value)?;
     let file: ProfileManifestFile = serde_json::from_value(value)?;
-    Ok(file.into())
+    let manifest: ProfileManifest = file.into();
+    validate_merge_policy_paths(&manifest)?;
+    Ok(manifest)
+}
+
+fn validate_merge_policy_paths(manifest: &ProfileManifest) -> Result<()> {
+    let generated: BTreeSet<&str> = manifest
+        .generated_paths
+        .iter()
+        .map(String::as_str)
+        .collect();
+    for path in manifest.merge_policy.keys() {
+        if !generated.contains(path.as_str()) {
+            bail!(
+                "profile `{}` mergePolicy declares `{path}` but that path is not listed in generatedPaths",
+                manifest.id
+            );
+        }
+    }
+    Ok(())
+}
+
+fn inferred_merge_policy(path: &str) -> MergePolicyAction {
+    if path.ends_with(".json") {
+        MergePolicyAction::MergeJson
+    } else if path.ends_with(".toml") {
+        MergePolicyAction::MergeToml
+    } else if path.ends_with(".gitignore") || path.ends_with("Justfile") {
+        MergePolicyAction::MergeLines
+    } else if matches!(path, "AGENTS.md" | "agent/JANKURAI_STANDARD.md") {
+        MergePolicyAction::MergeMarker
+    } else {
+        MergePolicyAction::KeepExisting
+    }
 }
 
 /// Load and validate an init profile manifest from a JSON file (same schema as bundled profiles).
@@ -197,6 +270,30 @@ mod bundled_profile_contract {
                 *id,
                 "profile `{id}` JSON `id` field must match bundled key (tip: keep filename stem and id aligned)"
             );
+        }
+    }
+
+    #[test]
+    fn bundled_profiles_declare_all_non_keep_merge_policies() {
+        let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..");
+        for id in BUNDLED_PROFILE_IDS {
+            let manifest = resolve_profile(&repo, id).unwrap();
+            assert!(
+                !manifest.merge_policy.is_empty(),
+                "profile `{id}` must opt into manifest-driven merge policy"
+            );
+            for path in &manifest.generated_paths {
+                let inferred = inferred_merge_policy(path);
+                if inferred != MergePolicyAction::KeepExisting {
+                    assert_eq!(
+                        manifest.merge_policy.get(path).copied(),
+                        Some(inferred),
+                        "profile `{id}` should explicitly preserve legacy merge behavior for `{path}`"
+                    );
+                }
+            }
         }
     }
 }
