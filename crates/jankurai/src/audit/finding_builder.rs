@@ -1,8 +1,8 @@
 use super::helpers::*;
+use super::rule_analyzer::FindingDraft;
 use super::rules;
 use crate::model::*;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use sha2::{Digest, Sha256};
 
 pub struct FindingBuilder<'a> {
     ctx: &'a AuditContext,
@@ -135,6 +135,19 @@ impl<'a> FindingBuilder<'a> {
         })
     }
 
+    pub fn add_draft(&mut self, draft: FindingDraft) {
+        self.add_with_rule(
+            draft.rule_id,
+            &draft.path,
+            &draft.problem,
+            &draft.fix,
+            draft.evidence,
+            draft.line,
+            draft.matched_term,
+            draft.reason,
+        );
+    }
+
     pub fn has_any_finding(&self) -> bool {
         self.has_any_finding
     }
@@ -198,15 +211,19 @@ pub fn finding_fingerprint(
     problem: &str,
     evidence: &[String],
 ) -> String {
-    let mut hasher = DefaultHasher::new();
-    rule_id.hash(&mut hasher);
-    category.hash(&mut hasher);
-    path.hash(&mut hasher);
-    problem.hash(&mut hasher);
-    for item in evidence.iter().take(3) {
-        item.hash(&mut hasher);
+    let mut hasher = Sha256::new();
+    hasher.update(rule_id.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(category.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(path.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(problem.as_bytes());
+    for item in evidence {
+        hasher.update(b"\0");
+        hasher.update(item.as_bytes());
     }
-    format!("{:016x}", hasher.finish())
+    format!("sha256:{:x}", hasher.finalize())
 }
 
 pub fn tlr_for(category: &str) -> Option<&'static str> {
@@ -264,9 +281,16 @@ fn owner_for_path(ctx: &AuditContext, rel_path: &str) -> Option<String> {
 
     if let Ok(text) = std::fs::read_to_string(ctx.root.join("agent/owner-map.json")) {
         if let Ok(parsed) = serde_json::from_str::<OwnerMapFile>(&text) {
-            for (prefix, owner) in parsed.owners.iter() {
+            let mut entries: Vec<_> = parsed.owners.iter().collect();
+            entries.sort_by(|a, b| {
+                b.0.len()
+                    .cmp(&a.0.len())
+                    .then_with(|| a.0.cmp(b.0))
+                    .then_with(|| a.1.cmp(b.1))
+            });
+            for (prefix, owner) in entries {
                 if rel_path == prefix || rel_path.starts_with(prefix) {
-                    return Some(owner.clone());
+                    return Some((*owner).clone());
                 }
             }
         }
@@ -277,6 +301,115 @@ fn owner_for_path(ctx: &AuditContext, rel_path: &str) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::FileInfo;
+    use tempfile::tempdir;
+
+    fn ctx_with_owner_map(json: &str) -> AuditContext {
+        let dir = tempdir().unwrap();
+        let agent_dir = dir.path().join("agent");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        std::fs::write(agent_dir.join("owner-map.json"), json).unwrap();
+        let root = dir.keep();
+        AuditContext {
+            root,
+            all_files: vec![FileInfo {
+                rel_path: "README.md".into(),
+                name: "README.md".into(),
+                suffix: ".md".into(),
+                size: 0,
+                line_count: 1,
+                text: String::new(),
+                is_generated: false,
+                is_code: false,
+            }],
+            scope_files: vec![],
+            scope_paths: vec![],
+            self_audit: false,
+        }
+    }
+
+    #[test]
+    fn fingerprint_is_stable_for_identical_inputs() {
+        let a = finding_fingerprint(
+            "HLT-001-DEAD-MARKER",
+            "vibe",
+            "README.md",
+            "problem",
+            &["evidence-one".into(), "evidence-two".into()],
+        );
+        let b = finding_fingerprint(
+            "HLT-001-DEAD-MARKER",
+            "vibe",
+            "README.md",
+            "problem",
+            &["evidence-one".into(), "evidence-two".into()],
+        );
+        let c = finding_fingerprint(
+            "HLT-001-DEAD-MARKER",
+            "vibe",
+            "README.md",
+            "problem changed",
+            &["evidence-one".into(), "evidence-two".into()],
+        );
+
+        assert_eq!(a, b);
+        assert!(a.starts_with("sha256:"));
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn owner_routing_prefers_more_specific_prefixes() {
+        let ctx = ctx_with_owner_map(
+            r#"{"owners":{"crates/":"workspace","crates/domain/":"domain","README.md":"workspace"}}"#,
+        );
+        let mut builder = FindingBuilder::new(&ctx);
+        builder.add_with_rule(
+            "HLT-006-DIRECT-DB-WRONG-LAYER",
+            "crates/domain/src/lib.rs",
+            "problem",
+            "fix",
+            vec!["evidence".into()],
+            Some(12),
+            Some("sqlx::".into()),
+            Some("domain layer must not own DB access".into()),
+        );
+        let finding = builder.into_findings().pop().expect("one finding");
+        assert_eq!(finding.owner.as_deref(), Some("domain"));
+        assert_eq!(finding.matched_term.as_deref(), Some("sqlx::"));
+        assert!(finding.reason.as_deref().unwrap().contains("domain layer"));
+    }
+
+    #[test]
+    fn add_draft_preserves_semantic_evidence() {
+        let ctx = ctx_with_owner_map(r#"{"owners":{"README.md":"workspace"}}"#);
+        let mut builder = FindingBuilder::new(&ctx);
+        builder.add_draft(FindingDraft {
+            rule_id: "HLT-007-HANDWRITTEN-CONTRACT",
+            path: "README.md".into(),
+            problem: "handwritten mirror detected".into(),
+            fix: "regenerate the contract".into(),
+            evidence: vec!["import edge".into(), "generated contract absent".into()],
+            line: Some(4),
+            matched_term: Some("contracts/generated".into()),
+            reason: Some("manual mirror is drifting from generated source".into()),
+        });
+        let finding = builder.into_findings().pop().expect("one finding");
+        assert_eq!(
+            finding.rule_id.as_deref(),
+            Some("HLT-007-HANDWRITTEN-CONTRACT")
+        );
+        assert_eq!(finding.matched_term.as_deref(), Some("contracts/generated"));
+        assert_eq!(
+            finding.reason.as_deref(),
+            Some("manual mirror is drifting from generated source")
+        );
+        assert_eq!(finding.owner.as_deref(), Some("workspace"));
+    }
 }
 
 pub fn dimension_soft_route(

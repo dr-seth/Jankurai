@@ -6,6 +6,12 @@ use std::path::Path;
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct BoundaryManifest {
     pub stack: Option<Stack>,
+    #[serde(default)]
+    pub rust: Option<RustBoundary>,
+    #[serde(default)]
+    pub typescript: Option<TypeScriptBoundary>,
+    #[serde(default)]
+    pub python: Option<PythonBoundary>,
     pub queues: Option<QueueBoundary>,
     pub db: Option<DbBoundary>,
     #[serde(default)]
@@ -16,6 +22,30 @@ pub struct BoundaryManifest {
 pub struct Stack {
     pub id: String,
     pub version: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct RustBoundary {
+    #[serde(default)]
+    pub domain_paths: Vec<String>,
+    #[serde(default)]
+    pub forbidden_domain_imports: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct TypeScriptBoundary {
+    #[serde(default)]
+    pub web_paths: Vec<String>,
+    #[serde(default)]
+    pub forbidden_web_imports: Vec<String>,
+    #[serde(default)]
+    pub generated_contract_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct PythonBoundary {
+    #[serde(default)]
+    pub allowed_truth_paths: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -63,11 +93,23 @@ mod tests {
     use super::parse;
 
     #[test]
-    fn parses_queue_streaming_and_db_boundaries() {
+    fn parses_queue_streaming_db_and_language_boundaries() {
         let text = r#"
 [stack]
 id = "rust-ts-vite-react-postgres-bounded-python"
 version = "0.5.0"
+
+[rust]
+domain_paths = ["crates/domain", "crates/*/src/domain"]
+forbidden_domain_imports = ["std::fs", "std::env", "sqlx::"]
+
+[typescript]
+web_paths = ["apps/web", "packages/web", "packages/ui"]
+forbidden_web_imports = ["pg", "postgres", "better-sqlite3"]
+generated_contract_paths = ["contracts/generated"]
+
+[python]
+allowed_truth_paths = ["python/ai-service", "tools"]
 
 [queues]
 adapter_paths = ["crates/adapters/queues", "crates/adapters/src/queues"]
@@ -98,6 +140,32 @@ migration_path = "Keep Kafka behind queue adapters."
                 .as_ref()
                 .map(|queues| queues.adapter_paths.len()),
             Some(2)
+        );
+        assert_eq!(
+            manifest
+                .rust
+                .as_ref()
+                .map(|rust| rust.domain_paths.as_slice()),
+            Some(
+                &[
+                    "crates/domain".to_string(),
+                    "crates/*/src/domain".to_string()
+                ][..]
+            )
+        );
+        assert_eq!(
+            manifest
+                .typescript
+                .as_ref()
+                .map(|ts| ts.generated_contract_paths.as_slice()),
+            Some(&["contracts/generated".to_string()][..])
+        );
+        assert_eq!(
+            manifest
+                .python
+                .as_ref()
+                .map(|python| python.allowed_truth_paths.as_slice()),
+            Some(&["python/ai-service".to_string(), "tools".to_string()][..])
         );
         assert_eq!(
             manifest.db.as_ref().map(|db| db.root_paths.as_slice()),
