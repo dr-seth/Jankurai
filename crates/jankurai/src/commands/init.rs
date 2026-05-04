@@ -15,6 +15,7 @@ pub struct InitArgs {
     pub profile: String,
     /// When set, load profile manifest from this JSON file (`InitProfile` schema); `--profile` is ignored for resolution.
     pub profile_file: Option<PathBuf>,
+    pub level: String,
     pub ide: String,
     pub mode: String,
     pub diff: bool,
@@ -30,6 +31,7 @@ pub fn run(args: InitArgs) -> Result<()> {
         &args.repo,
         &args.profile,
         args.profile_file.as_deref(),
+        &args.level,
         &args.ide,
         &args.mode,
         &args.ci,
@@ -49,7 +51,7 @@ pub fn run(args: InitArgs) -> Result<()> {
     println!("{}", crate::init::plan::render_plan(&plan));
     if args.dry_run || args.diff {
         if args.diff {
-            print_diff(&args.repo, &plan.profile_manifest);
+            print_diff(&args.repo, &plan.profile_manifest, &plan.level);
         }
         return Ok(());
     }
@@ -59,6 +61,7 @@ pub fn run(args: InitArgs) -> Result<()> {
     let actions = apply_templates(
         &args.repo,
         &plan.profile_manifest,
+        &plan.level,
         args.force_generated_adapters,
     )?;
     write_receipt(&args.repo, "init", &actions)?;
@@ -68,6 +71,7 @@ pub fn run(args: InitArgs) -> Result<()> {
 fn apply_templates(
     repo: &Path,
     manifest: &crate::init::profiles::ProfileManifest,
+    level: &str,
     force_generated_adapters: bool,
 ) -> Result<Vec<InitAction>> {
     let mut paths = manifest.generated_paths.clone();
@@ -76,6 +80,7 @@ fn apply_templates(
     for rel in paths {
         let template = crate::init::templates::template_for_path(&rel)
             .with_context(|| format!("no template registered for profile path `{rel}`"))?;
+        let body = crate::init::templates::body_for_path(&rel, level).unwrap_or(template.body);
         let path = repo.join(&rel);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
@@ -87,8 +92,7 @@ fn apply_templates(
                     .unwrap_or_default()
                     .contains(crate::init::adapters::GENERATED_MARKER)
             {
-                fs::write(&path, template.body)
-                    .with_context(|| format!("write {}", path.display()))?;
+                fs::write(&path, body).with_context(|| format!("write {}", path.display()))?;
                 actions.push(InitAction {
                     path: rel,
                     action: "overwrote-generated-adapter".into(),
@@ -99,7 +103,7 @@ fn apply_templates(
 
             match manifest.merge_policy_for_path(&rel) {
                 MergePolicyAction::MergeJson => {
-                    let merged = crate::init::merge::merge_json(&existing_text, template.body)
+                    let merged = crate::init::merge::merge_json(&existing_text, body)
                         .with_context(|| format!("failed to merge JSON {}", rel))?;
                     if merged != existing_text {
                         fs::write(&path, merged)?;
@@ -110,7 +114,7 @@ fn apply_templates(
                     });
                 }
                 MergePolicyAction::MergeToml => {
-                    let merged = crate::init::merge::merge_toml(&existing_text, template.body)
+                    let merged = crate::init::merge::merge_toml(&existing_text, body)
                         .with_context(|| format!("failed to merge TOML {}", rel))?;
                     if merged != existing_text {
                         fs::write(&path, merged)?;
@@ -121,7 +125,7 @@ fn apply_templates(
                     });
                 }
                 MergePolicyAction::MergeLines => {
-                    let merged = crate::init::merge::merge_lines(&existing_text, template.body)
+                    let merged = crate::init::merge::merge_lines(&existing_text, body)
                         .with_context(|| format!("failed to merge lines {}", rel))?;
                     if merged != existing_text {
                         fs::write(&path, merged)?;
@@ -154,7 +158,7 @@ fn apply_templates(
             }
             continue;
         }
-        fs::write(&path, template.body).with_context(|| format!("write {}", path.display()))?;
+        fs::write(&path, body).with_context(|| format!("write {}", path.display()))?;
         actions.push(InitAction {
             path: rel,
             action: "created".into(),
@@ -163,7 +167,7 @@ fn apply_templates(
     Ok(actions)
 }
 
-fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
+fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest, level: &str) {
     let mut paths = manifest.generated_paths.clone();
     paths.sort();
     for rel in paths {
@@ -171,18 +175,19 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
             println!("--- {} missing template", rel);
             continue;
         };
+        let body = crate::init::templates::body_for_path(&rel, level).unwrap_or(template.body);
         let path_obj = repo.join(&rel);
         if path_obj.exists() {
             let existing = fs::read_to_string(&path_obj).unwrap_or_default();
             let merged = match manifest.merge_policy_for_path(&rel) {
                 MergePolicyAction::MergeJson => {
-                    crate::init::merge::merge_json(&existing, template.body).ok()
+                    crate::init::merge::merge_json(&existing, body).ok()
                 }
                 MergePolicyAction::MergeToml => {
-                    crate::init::merge::merge_toml(&existing, template.body).ok()
+                    crate::init::merge::merge_toml(&existing, body).ok()
                 }
                 MergePolicyAction::MergeLines => {
-                    crate::init::merge::merge_lines(&existing, template.body).ok()
+                    crate::init::merge::merge_lines(&existing, body).ok()
                 }
                 MergePolicyAction::MergeMarker if !is_jankurai_controlled(&existing) => {
                     let marker = crate::init::merge::merge_marker(&rel);
@@ -211,7 +216,7 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
         } else {
             println!("--- /dev/null");
             println!("+++ {}", rel);
-            for line in template.body.lines() {
+            for line in body.lines() {
                 println!("+{line}");
             }
         }

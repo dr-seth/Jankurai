@@ -20,6 +20,7 @@ fn dry_run_plan_args(
         yes: false,
         profile: profile.into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -39,6 +40,7 @@ fn greenfield_apply_args(repo: std::path::PathBuf, profile: &str) -> init::InitA
         yes: true,
         profile: profile.into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -48,6 +50,17 @@ fn greenfield_apply_args(repo: std::path::PathBuf, profile: &str) -> init::InitA
         plan_json: None,
         force_generated_adapters: false,
     }
+}
+
+fn plan_paths(value: &serde_json::Value) -> Vec<String> {
+    let mut paths: Vec<String> = value["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|action| action["path"].as_str().unwrap().to_string())
+        .collect();
+    paths.sort();
+    paths
 }
 
 #[test]
@@ -60,6 +73,7 @@ fn init_unknown_profile_errors() {
         yes: false,
         profile: "not-a-real-profile".into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -72,6 +86,129 @@ fn init_unknown_profile_errors() {
     .unwrap_err();
     let msg = format!("{err:#}");
     assert!(msg.contains("unknown init profile"), "{msg}");
+}
+
+#[test]
+fn init_level_agents_only_plans_agent_and_provider_guidance() {
+    let dir = tempdir().unwrap();
+    let plan_path = dir.path().join("init-agents.json");
+    let mut args = dry_run_plan_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+        Some(plan_path.to_string_lossy().into_owned()),
+    );
+    args.level = "agents".into();
+    init::run(args).unwrap();
+
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(plan_path).unwrap()).unwrap();
+    assert_eq!(value["level"], "agents");
+    let paths = plan_paths(&value);
+    assert!(paths.contains(&"AGENTS.md".to_string()));
+    assert!(paths.contains(&"agent/JANKURAI_STANDARD.md".to_string()));
+    assert!(paths.contains(&"agent/MASTER_PLAN.md".to_string()));
+    assert!(paths.contains(&"CLAUDE.md".to_string()));
+    assert!(paths.contains(&"GEMINI.md".to_string()));
+    assert!(paths.contains(&".cursor/rules/jankurai.mdc".to_string()));
+    assert!(paths.contains(&".github/copilot-instructions.md".to_string()));
+    assert!(paths.contains(&".agents/skills/jankurai/SKILL.md".to_string()));
+    assert!(!paths.contains(&"Justfile".to_string()));
+    assert!(!paths.contains(&"agent/owner-map.json".to_string()));
+    assert!(!paths.contains(&".github/workflows/jankurai.yml".to_string()));
+    assert!(!paths.iter().any(|path| path.starts_with("docs/")));
+    assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
+    assert!(!paths.iter().any(|path| path.starts_with("db/")));
+}
+
+#[test]
+fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
+    let dir = tempdir().unwrap();
+    let plan_path = dir.path().join("init-score.json");
+    let mut args = dry_run_plan_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+        Some(plan_path.to_string_lossy().into_owned()),
+    );
+    args.level = "score".into();
+    init::run(args).unwrap();
+
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(plan_path).unwrap()).unwrap();
+    assert_eq!(value["level"], "score");
+    let paths = plan_paths(&value);
+    for expected in [
+        "Justfile",
+        "agent/audit-policy.toml",
+        "agent/generated-zones.toml",
+        "agent/owner-map.json",
+        "agent/proof-lanes.toml",
+        "agent/standard-version.toml",
+        "agent/test-map.json",
+    ] {
+        assert!(paths.contains(&expected.to_string()), "missing {expected}");
+    }
+    assert!(!paths.contains(&".github/workflows/jankurai.yml".to_string()));
+    assert!(!paths.contains(&"agent/security-policy.toml".to_string()));
+    assert!(!paths.contains(&"tools/security-lane.sh".to_string()));
+    assert!(!paths.iter().any(|path| path.starts_with("docs/")));
+    assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
+    assert!(!paths.iter().any(|path| path.starts_with("db/")));
+
+    let rust_api_plan = dir.path().join("init-score-rust-api.json");
+    let mut rust_api_args = dry_run_plan_args(
+        dir.path().to_path_buf(),
+        "rust-api",
+        Some(rust_api_plan.to_string_lossy().into_owned()),
+    );
+    rust_api_args.level = "score".into();
+    init::run(rust_api_args).unwrap();
+    let rust_api: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(rust_api_plan).unwrap()).unwrap();
+    assert!(plan_paths(&rust_api).contains(&"Justfile".to_string()));
+}
+
+#[test]
+fn init_level_ci_adds_observe_workflow_and_preserves_existing_workflow() {
+    let dir = tempdir().unwrap();
+    let plan_path = dir.path().join("init-ci.json");
+    let mut args = dry_run_plan_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+        Some(plan_path.to_string_lossy().into_owned()),
+    );
+    args.level = "ci".into();
+    init::run(args).unwrap();
+
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
+    assert_eq!(value["level"], "ci");
+    let paths = plan_paths(&value);
+    assert!(paths.contains(&".github/workflows/jankurai.yml".to_string()));
+    assert!(paths.contains(&"agent/security-policy.toml".to_string()));
+    assert!(paths.contains(&"tools/security-lane.sh".to_string()));
+    assert!(!paths.iter().any(|path| path.starts_with("docs/")));
+    assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
+    assert!(!paths.iter().any(|path| path.starts_with("db/")));
+
+    let mut apply = greenfield_apply_args(dir.path().to_path_buf(), "rust-ts-postgres");
+    apply.level = "ci".into();
+    init::run(apply).unwrap();
+    let workflow = fs::read_to_string(dir.path().join(".github/workflows/jankurai.yml")).unwrap();
+    assert!(workflow.contains("jankurai audit . --mode advisory"));
+    assert!(!workflow.contains("Enforce score floor"));
+
+    let existing_dir = tempdir().unwrap();
+    let workflow_path = existing_dir.path().join(".github/workflows/jankurai.yml");
+    fs::create_dir_all(workflow_path.parent().unwrap()).unwrap();
+    fs::write(&workflow_path, "name: existing\n").unwrap();
+    let mut existing_apply =
+        greenfield_apply_args(existing_dir.path().to_path_buf(), "rust-ts-postgres");
+    existing_apply.level = "ci".into();
+    init::run(existing_apply).unwrap();
+    assert_eq!(
+        fs::read_to_string(workflow_path).unwrap(),
+        "name: existing\n"
+    );
 }
 
 #[test]
@@ -186,6 +323,7 @@ fn init_respects_existing_contracts_readme() {
         yes: true,
         profile: "rust-ts-postgres".into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -445,6 +583,7 @@ fn init_profile_file_loads_manifest_from_disk() {
         yes: false,
         profile: "this-value-is-ignored-when-profile-file-is-set".into(),
         profile_file: Some(profile_path),
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -474,6 +613,7 @@ fn init_profile_file_rejects_invalid_manifest() {
         yes: false,
         profile: "rust-api".into(),
         profile_file: Some(bad),
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -523,6 +663,7 @@ fn init_profile_file_rejects_merge_policy_for_non_generated_path() {
         yes: false,
         profile: "rust-api".into(),
         profile_file: Some(bad),
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -581,6 +722,7 @@ fn init_profile_file_merge_policy_overrides_default_keep_existing() {
         yes: false,
         profile: "ignored-because-profile-file-is-set".into(),
         profile_file: Some(profile_path.clone()),
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -666,9 +808,43 @@ fn init_merges_existing_lines_justfile() {
         "must retain existing Justfile content: {text}"
     );
     assert!(
-        text.contains("fast:") && text.contains("cargo test -p jankurai"),
+        text.contains("fast:") && text.contains("jankurai doctor --fail-on critical"),
         "must merge in scaffold recipes from template: {text}"
     );
+}
+
+#[test]
+fn init_generated_templates_are_external_repo_safe() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    for rel in [
+        "Justfile",
+        ".github/workflows/jankurai.yml",
+        "agent/MASTER_PLAN.md",
+        "agent/generated-zones.toml",
+        "agent/test-map.json",
+        "agent/proof-lanes.toml",
+    ] {
+        let text = fs::read_to_string(dir.path().join(rel)).unwrap();
+        assert!(
+            !text.contains("cargo run -p jankurai") && !text.contains("cargo test -p jankurai"),
+            "{rel} must not assume this source workspace: {text}"
+        );
+        assert!(
+            !text.contains("\"true\"") && !text.contains("command = \"true\""),
+            "{rel} must not use false-green noop proof lanes: {text}"
+        );
+    }
+
+    let justfile = fs::read_to_string(dir.path().join("Justfile")).unwrap();
+    for recipe in ["fast:", "score:", "doctor:", "security:", "check:"] {
+        assert!(justfile.contains(recipe), "missing {recipe}: {justfile}");
+    }
 }
 
 #[test]

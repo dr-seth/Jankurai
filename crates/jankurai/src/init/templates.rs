@@ -7,8 +7,16 @@ pub fn template_for_path(path: &str) -> Option<&'static Template> {
     TEMPLATES.iter().find(|t| t.path == path)
 }
 
+pub fn body_for_path(path: &str, level: &str) -> Option<&'static str> {
+    if path == "Justfile" && matches!(level, "agents" | "score") {
+        return Some(MINIMAL_JUSTFILE);
+    }
+    template_for_path(path).map(|template| template.body)
+}
+
 const ADAPTER_POINTER: &str = "<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n";
 const PROOF_ADAPTER_POINTER: &str = "# jankurai\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\n";
+const MINIMAL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md\n\ndoctor:\n\tjankurai doctor --fail-on high\n\ncheck: fast score\n";
 
 pub const TEMPLATES: &[Template] = &[
     Template {
@@ -29,7 +37,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "Justfile",
-        body: "# jankurai scaffold Justfile\n\nfast:\n\tcargo test -p jankurai\n",
+        body: "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md\n\ndoctor:\n\tjankurai doctor --fail-on high\n\nsecurity:\n\tjankurai security run . --out target/jankurai/security/evidence.json\n\ncheck: fast score security\n",
     },
     Template {
         path: ".github/copilot-instructions.md",
@@ -61,7 +69,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".agents/workflows/jankurai-audit.md",
-        body: "# jankurai audit\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md` for audit.\n",
+        body: "# jankurai audit\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun `jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md` for audit.\n",
     },
     Template {
         path: ".claude/skills/jankurai/SKILL.md",
@@ -73,7 +81,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "agent/MASTER_PLAN.md",
-        body: "# jankurai Master Plan\n\nRead `agent/JANKURAI_STANDARD.md`, then this file, before phase or audit work.\n\nFor phase work, read `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Pick the earliest incomplete phase whose dependencies can be advanced unless the user names a phase.\n\nWhen asked for planning, produce a worker-ready plan with objective, read-first files, ownership, current state, implementation steps, hard parts, validation, logging, and safe parallel work packets.\n\nAppend start, progress, and finish entries to `tips/phases/logs/<phase>.log`. Keep proof receipts and generated evidence under `target/jankurai/`.\n\nUse `agent/test-map.json` to choose the smallest credible proof lane. For audit, run `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md`.\n",
+        body: "# jankurai Master Plan\n\nRead `agent/JANKURAI_STANDARD.md`, then this file, before phase or audit work.\n\nFor phase work, read `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Pick the earliest incomplete phase whose dependencies can be advanced unless the user names a phase.\n\nWhen asked for planning, produce a worker-ready plan with objective, read-first files, ownership, current state, implementation steps, hard parts, validation, logging, and safe parallel work packets.\n\nAppend start, progress, and finish entries to `tips/phases/logs/<phase>.log`. Keep proof receipts and generated evidence under `target/jankurai/`.\n\nUse `agent/test-map.json` to choose the smallest credible proof lane. For audit, run `jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md`.\n",
     },
     Template {
         path: "agent/boundaries.toml",
@@ -225,7 +233,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "tools/security-lane.sh",
-        body: "#!/usr/bin/env bash\nset -euo pipefail\n# Scaffold stub: replace with real secret/dependency/SBOM checks (see jankurai `tools/security-lane.sh` in the standard repo).\necho \"security-lane scaffold: ok\"\n",
+        body: "#!/usr/bin/env bash\nset -euo pipefail\n# Scaffold stub: replace with real secret/dependency/SBOM checks before treating this lane as proof.\necho \"security-lane scaffold requires project-specific checks\" >&2\nexit 2\n",
     },
     Template {
         path: "agent/ux-qa.toml",
@@ -233,6 +241,6 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".github/workflows/jankurai.yml",
-        body: "name: jankurai\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - uses: actions/setup-node@v4\n        with:\n          node-version: \"22\"\n          cache: npm\n      - run: npm ci\n      - run: cargo run -p jankurai -- versions\n      - name: jankurai audit\n        run: cargo run -p jankurai -- audit . --mode ratchet --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl\n      - name: Enforce score floor\n        run: test \"$(jq -r '.score' agent/repo-score.json)\" -ge 85\n      - name: Security lane\n        run: bash tools/security-lane.sh\n      - uses: actions/upload-artifact@v4\n        with:\n          name: jankurai-score\n          path: |\n            agent/repo-score.json\n            agent/repo-score.md\n            target/jankurai/jankurai.sarif\n            target/jankurai/repair-queue.jsonl\n",
+        body: "name: jankurai\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Install jankurai\n        run: cargo install jankurai --locked\n      - run: jankurai --version\n      - name: jankurai audit\n        run: jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl\n      - uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: jankurai-adoption-evidence\n          path: |\n            target/jankurai/repo-score.json\n            target/jankurai/repo-score.md\n            target/jankurai/jankurai.sarif\n            target/jankurai/repair-queue.jsonl\n",
     },
 ];

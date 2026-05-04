@@ -16,6 +16,9 @@ The exit state is not every possible template. The exit state is a robust genera
 Existing implementation:
 
 - `jankurai init` supports `--profile`, **`--profile-file`** (validated `InitProfile` JSON; resolution ignores bundled `--profile` when set), `--ide`, `--mode`, `--ci`, `--issue-backend`, `--ux-qa`, `--dry-run`, `--diff`, `--plan-json`, `--yes`, and `--apply`.
+- Adopter templates are external-repo safe: generated workflows, proof lanes, generated-zone commands, profile validation commands, and scaffold `Justfile` recipes call the installed `jankurai` binary instead of `cargo run -p jankurai` or `cargo test -p jankurai`.
+- Generated scaffold proof lanes no longer use `true`/noop commands as false-green proof; advisory audit, doctor, score, security, and check recipes are present when referenced by generated maps.
+- `jankurai adopt` is the brownfield front door for no-tracked-write adoption planning; `jankurai ci install --github --mode observe --dry-run` previews non-blocking CI.
 - Init plan JSON field **`profile`** is always the manifest **`id`** (canonical bundled id or id read from `--profile-file`), not a CLI alias string.
 - **`rust-ts-postgres` profile** is loaded from bundled [`crates/jankurai/templates/profiles/rust-ts-postgres.json`](../../crates/jankurai/templates/profiles/rust-ts-postgres.json), validated with **`ArtifactSchema::InitProfile`** before use.
 - **Plan and apply** iterate **`generatedPaths`** from that manifest only (sorted); missing templates are a hard error at plan time.
@@ -28,6 +31,7 @@ Existing implementation:
 Gaps (follow-on):
 
 - Optional: manifest-driven merge policy (instead of hardcoded suffix rules), additional formats, or richer merges when product demand is clear.
+- Optional: package-manager/Homebrew/GitHub Action distribution; current public install docs still assume a Cargo-based binary install.
 
 Bundled profiles (2026-05-02): `rust-ts-postgres`, `rust-api`, `react-web`, `b2b-saas`, `ai-product`, `regulated-saas`, `migration-target`, plus aliases (`ai`, `regulated`, `migration`, and existing stack-name aliases for `rust-ts-postgres`).
 
@@ -223,7 +227,7 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: complete (bundled init profiles 2026-05-02; all seven profiles + golden tests)
+- Phase status: hardened for first-hour adoption (bundled init profiles 2026-05-02; all seven profiles + golden tests; external-repo-safe generated commands; no-write adoption plan; observe-mode CI)
 - Files changed: `crates/jankurai/src/init/profiles.rs`, `crates/jankurai/src/init/templates.rs`, `crates/jankurai/templates/profiles/ai-product.json`, `regulated-saas.json`, `migration-target.json`, `crates/jankurai/tests/init_golden.rs`, `crates/jankurai/src/commands/repair_apply.rs` (ProveArgs plan paths), `tips/phases/04-init-profiles-golden-repos.md`, `tips/phases/logs/04-init-profiles-golden-repos.log`
 - Schemas changed: `InitProfile` artifact validation hook (existing `init-profile.schema.json`)
 - Public interfaces changed: unknown init profiles error; init plan/actions match `generatedPaths` only

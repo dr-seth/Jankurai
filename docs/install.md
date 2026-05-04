@@ -1,5 +1,25 @@
 # Installing jankurai
 
+Jankurai adoption is no-write first, advisory by default, and ratcheted only
+after a baseline exists. Until public packaging lands, install from this source
+checkout:
+
+```bash
+cargo install --path crates/jankurai --locked
+jankurai versions
+```
+
+For any external repo, start with artifacts under `target/jankurai/`:
+
+```bash
+jankurai audit /path/to/repo --mode advisory \
+  --json /path/to/repo/target/jankurai/repo-score.json \
+  --md /path/to/repo/target/jankurai/repo-score.md
+jankurai adopt /path/to/repo --mode observe \
+  --out /path/to/repo/target/jankurai/adoption-plan.json \
+  --md /path/to/repo/target/jankurai/adoption-plan.md
+```
+
 ## Profiles
 
 Bundled init profiles are defined as JSON validated against `schemas/init-profile.schema.json`.
@@ -14,16 +34,20 @@ The canonical default manifest is `crates/jankurai/templates/profiles/rust-ts-po
 Dry-run first:
 
 ```bash
-jankurai init --profile rust-ts-vite-react-postgres --ide all --mode advisory --dry-run
+jankurai init /path/to/repo --profile rust-ts-vite-react-postgres \
+  --ide all --mode advisory --dry-run \
+  --plan-json /path/to/repo/target/jankurai/init-plan.json
 ```
 
 Apply when the plan looks right:
 
 ```bash
-jankurai init --profile rust-ts-vite-react-postgres --ide all --mode advisory --yes
-jankurai doctor --fail-on high
-jankurai ci install --github --mode ratchet --min-score 85
-jankurai agent verify
+jankurai init /path/to/repo --profile rust-ts-vite-react-postgres \
+  --ide all --mode advisory --yes
+jankurai doctor /path/to/repo --fail-on high
+jankurai ci install /path/to/repo --github --mode observe --dry-run
+jankurai ci install /path/to/repo --github --mode observe
+jankurai agent verify /path/to/repo
 ```
 
 `init --yes` creates missing paths from the profile and uses the profile manifest's optional `mergePolicy` for existing `generatedPaths`. Bundled profiles explicitly declare their mergeable paths. A custom `--profile-file` without `mergePolicy` keeps the legacy suffix-based behavior for compatibility.
@@ -43,4 +67,47 @@ For agent repair work, use the narrow packet commands:
 ```bash
 jankurai context-pack --task "repair agent context routing" --out target/jankurai/context-pack.json
 jankurai repair-plan --from agent/repo-score.json --out target/jankurai/repair-plan.json
+```
+
+## Greenfield Sequence
+
+Use `rust-ts-postgres` unless the product is clearly narrower:
+
+```bash
+mkdir my-product
+jankurai init my-product --profile rust-ts-postgres --dry-run \
+  --plan-json my-product/target/jankurai/init-plan.json
+jankurai init my-product --profile rust-ts-postgres --yes
+jankurai audit my-product --mode advisory \
+  --json my-product/target/jankurai/repo-score.json \
+  --md my-product/target/jankurai/repo-score.md
+```
+
+## Brownfield Sequence
+
+For an existing repo, do not install gates first:
+
+```bash
+jankurai adopt . --mode observe
+jankurai migrate . --analyze --out target/jankurai/migration-report.json \
+  --md target/jankurai/migration-report.md
+jankurai init . --profile migration-target --dry-run \
+  --plan-json target/jankurai/init-plan.json
+jankurai ci install . --github --mode observe --dry-run
+```
+
+Use `--profile rust-api`, `--profile react-web`, or `--profile rust-ts-postgres`
+only when the adoption plan recommends that profile. Use `migration-target`
+when the repo is far from the standard; that route produces containment and
+slice-planning docs without claiming full compliance.
+
+## Ratchet Sequence
+
+After the team accepts a baseline score, preserve it and then install ratchet
+mode:
+
+```bash
+cp target/jankurai/repo-score.json target/jankurai/baseline-score.json
+jankurai ci install . --github --mode ratchet \
+  --baseline target/jankurai/baseline-score.json --min-score 85
 ```

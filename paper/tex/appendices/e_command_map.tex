@@ -1,0 +1,97 @@
+\section{Command Examples for Adoption and Proof}
+
+The command map below is operational documentation for agents. It is not a claim that every repository should enable every lane on day one. The intended order is minimal guidance, advisory scoring, observe-mode CI, full scaffold where useful, and ratchet only after a reviewed baseline.
+
+\subsection{Adoption Levels}
+
+\begin{lstlisting}[style=codebox]
+jankurai init . --level agents --dry-run \
+  --plan-json target/jankurai/init-agents.json
+jankurai init . --level agents --yes
+
+jankurai init . --level score --yes
+jankurai audit . --mode advisory \
+  --json target/jankurai/repo-score.json \
+  --md target/jankurai/repo-score.md
+
+jankurai init . --level ci --yes
+jankurai ci install . --github --mode observe --dry-run
+jankurai ci install . --github --mode observe
+
+jankurai init . --level full --profile rust-ts-postgres \
+  --dry-run --plan-json target/jankurai/init-full.json
+jankurai init . --level full --profile rust-ts-postgres --yes
+
+jankurai ci install . --github --mode ratchet \
+  --baseline target/jankurai/baseline-score.json
+\end{lstlisting}
+
+\subsection{Scoring, CI, and Proof}
+
+\begin{lstlisting}[style=codebox]
+jankurai adopt . --mode observe \
+  --out target/jankurai/adoption-plan.json \
+  --md target/jankurai/adoption-plan.md
+
+jankurai doctor . --fail-on high \
+  --json target/jankurai/doctor.json \
+  --md target/jankurai/doctor.md
+
+jankurai lane . --changed README.md \
+  --out target/jankurai/proof-plan.json \
+  --md target/jankurai/proof-plan.md
+
+jankurai prove . --changed README.md \
+  --plan-out target/jankurai/proof-plan.json \
+  --plan-md target/jankurai/proof-plan.md
+
+jankurai proof-verify . \
+  --plan target/jankurai/proof-plan.json \
+  --evidence-index target/jankurai/evidence-index.json \
+  --out target/jankurai/proof-verify.json \
+  --md target/jankurai/proof-verify.md
+\end{lstlisting}
+
+\subsection{Repair, Migration, Cells, Security, and Publication}
+
+\begin{lstlisting}[style=codebox]
+jankurai repair-plan . --from target/jankurai/repo-score.json \
+  --out target/jankurai/repair-plan.json \
+  --md target/jankurai/repair-plan.md
+jankurai repair . --plan target/jankurai/repair-plan.json \
+  --dry-run --out target/jankurai/repair-run.json \
+  --md target/jankurai/repair-run.md
+
+jankurai migrate . --analyze \
+  --out target/jankurai/migration-report.json \
+  --md target/jankurai/migration-report.md
+
+jankurai registry . \
+  --out target/jankurai/cell-registry.json \
+  --md target/jankurai/cell-registry.md
+jankurai cell . --cell-id background-job --mode prove \
+  --out target/jankurai/background-job.json \
+  --md target/jankurai/background-job.md
+
+jankurai security run . \
+  --out target/jankurai/security/evidence.json
+jankurai exceptions expire . --strict \
+  --out target/jankurai/exceptions.json \
+  --md target/jankurai/exceptions.md
+
+jankurai certify . \
+  --out target/jankurai/certification.json \
+  --md target/jankurai/certification.md
+jankurai govern . \
+  --out target/jankurai/governance.json \
+  --md target/jankurai/governance.md
+jankurai bench . \
+  --out target/jankurai/benchmark.json \
+  --md target/jankurai/benchmark.md
+jankurai publish . \
+  --certification target/jankurai/certification.json \
+  --benchmark target/jankurai/benchmark.json \
+  --governance target/jankurai/governance.json \
+  --out target/jankurai/publication.json \
+  --md target/jankurai/publication.md
+\end{lstlisting}

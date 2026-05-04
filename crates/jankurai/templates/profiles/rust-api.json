@@ -84,7 +84,7 @@
   ],
   "dbPolicy": ["agent/boundaries.toml", "db/README.md", "db/migrations/README.md", "db/constraints/README.md"],
   "validationCommands": [
-    "cargo test -p jankurai",
-    "just fast"
+    "jankurai doctor --fail-on critical",
+    "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md"
   ]
 }

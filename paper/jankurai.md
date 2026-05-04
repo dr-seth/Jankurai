@@ -18,7 +18,7 @@ Naming policy: paper artifacts use the `jankurai.*` prefix. Do not create `main.
 
 AI coding moves the bottleneck from typing plausible code to trustworthy merge. Agent-native engineering treats the repository as a verification interface for generated code: ownership, proof lanes, generated zones, security gates, repair receipts, and versioned artifacts must be machine-readable.
 
-`Jankurai` is the control plane for repositories that claim conformance. It defines conformance levels, stable rule IDs, audit output, CI modes, version bindings, and repair queues. The default stack recommendation remains Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+`Jankurai` is the control plane for repositories that claim conformance. It defines progressive install levels, conformance levels, stable rule IDs, audit output, CI modes, version bindings, and repair queues. The default stack recommendation remains Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
 
 ## Section Map
 
@@ -46,11 +46,13 @@ Appendices:
 - Versioned Artifact Manifest
 - Exception and Repair Templates
 - Canonical File Tree Diagrams
+- Command Examples for Adoption and Proof
 
 ## Core Claims
 
 - The scarce act is trustworthy merge, not first-draft code generation.
 - A repository claiming jankurai conformance must expose auditable ownership, proof routing, generated-zone policy, version metadata, and repair evidence.
+- Adoption is progressive: `agents -> score -> ci -> full -> ratchet`. Minimal agent hooks shape tool behavior before a repository claims conformance.
 - Stack choice matters after the control plane exists. The default winner is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python.
 - Hard caps and score weights are versioned policy, not final empirical truth.
 - The TLR pie chart is computed from the visible taxonomy RPN rows; it is a policy-priority model, not an incident-frequency chart.
@@ -91,6 +93,39 @@ Appendices:
 | `docs/agent-native-standard.md` | Full coding standard | `standard_version` |
 | `agent/JANKURAI_STANDARD.md` | Short agent bootstrap | `standard_version` |
 | `agent/standard-version.toml` | Canonical version manifest | all versions |
+
+## Adoption Levels
+
+| Level | Purpose |
+| --- | --- |
+| `agents` | Install only `AGENTS.md`, `agent/JANKURAI_STANDARD.md`, `agent/MASTER_PLAN.md`, and provider adapters. |
+| `score` | Add owner/test/generated-zone/proof/audit/version manifests and minimal local recipes. |
+| `ci` | Add observe-mode workflow, security policy, and stub evidence path without a score gate. |
+| `full` | Preserve the selected profile's full scaffold behavior. |
+| `ratchet` | Explicit CI mode after a reviewed baseline; blocks regression. |
+
+## Command Map
+
+```bash
+jankurai init . --level agents --dry-run --plan-json target/jankurai/init-agents.json
+jankurai init . --level agents --yes
+jankurai init . --level score --yes
+jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+jankurai init . --level ci --yes
+jankurai ci install . --github --mode observe --dry-run
+jankurai ci install . --github --mode ratchet --baseline target/jankurai/baseline-score.json
+```
+
+```bash
+jankurai adopt . --mode observe --out target/jankurai/adoption-plan.json --md target/jankurai/adoption-plan.md
+jankurai lane . --changed README.md --out target/jankurai/proof-plan.json --md target/jankurai/proof-plan.md
+jankurai prove . --changed README.md --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
+jankurai repair-plan . --from target/jankurai/repo-score.json --out target/jankurai/repair-plan.json --md target/jankurai/repair-plan.md
+jankurai migrate . --analyze --out target/jankurai/migration-report.json --md target/jankurai/migration-report.md
+jankurai cell . --cell-id background-job --mode prove --out target/jankurai/background-job.json --md target/jankurai/background-job.md
+jankurai security run . --out target/jankurai/security/evidence.json
+jankurai publish . --certification target/jankurai/certification.json --benchmark target/jankurai/benchmark.json --governance target/jankurai/governance.json --out target/jankurai/publication.json --md target/jankurai/publication.md
+```
 
 ## Build and Validation
 

@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ArtifactSchema {
+    AdoptionPlan,
     RepoScore,
     ProofPlan,
     ProofReceipt,
@@ -51,6 +52,7 @@ impl ArtifactSchema {
     pub fn rel_path(self) -> &'static str {
         match self {
             Self::RepoScore => "repo-score.schema.json",
+            Self::AdoptionPlan => "adoption-plan.schema.json",
             Self::ProofPlan => "proof-plan.schema.json",
             Self::ProofReceipt => "proof-receipt.schema.json",
             Self::EvidenceIndex => "evidence-index.schema.json",

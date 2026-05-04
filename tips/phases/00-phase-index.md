@@ -94,14 +94,14 @@ This router change does not require owner-map or test-map edits because the touc
 | 01 | hardened | standard stabilized and verification envelopes added |
 | 02 | hardened | canonical policy contract and rule mapping added |
 | 03 | hardened | proof router, evidence ledger, and verification envelope in place |
-| 04 | complete | init profiles and golden repos in place |
+| 04 | hardened | init profiles, golden repos, external-repo-safe templates, no-write adopt planning, and observe-mode CI in place |
 | 05 | complete | UX proof platform in place |
 | 06 | complete | security supply chain and compliance evidence in place |
 | 07 | hardened | contracts/DB/generated boundaries hardened; all residual gaps closed |
 | 08 | complete | agent context and repair scaffolding in place |
 | 09 | complete | reference product platform in place |
-| 10 | hardened | six certified cells (audit-log, crud-resource, rbac, auth-session, organization-team, background-job); mutating/provider-backed installs remain deferred; next cell is webhook receiver |
-| 11 | hardened | structured inventory, 8-dimension liability scoring, fixture-backed detection tests, slice risk levels |
+| 10 | hardened | six certified cells (audit-log, crud-resource, rbac, auth-session, organization-team, background-job); cells remain dry-run/prove evidence surfaces; mutating/provider-backed installs remain deferred; next cell is webhook receiver |
+| 11 | hardened | structured inventory, 8-dimension liability scoring, fixture-backed detection tests, slice risk levels; adoption auto-routes far repos to migration-target |
 | 12 | hardened | Phase 12 public bundle: `jankurai publish`, badge JSON/SVG, `public-evidence-bundle` schema; CI + `just phase12`; GitHub attest / Sigstore / dashboards remain optional |
 | 13 | hardened | dry-run repair, fixture apply, gated real-apply, rollback, draft PR creation, optimize, and exception expiry are live; live GitHub draft PR creation still depends on network access and gh auth; auto-merge intentionally deferred |
 

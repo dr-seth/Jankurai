@@ -1,3 +1,4 @@
+pub mod adopt;
 pub mod agent;
 pub mod bench;
 pub mod cell;

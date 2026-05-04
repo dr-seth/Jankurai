@@ -1,12 +1,7 @@
 [[lane]]
-name = "noop"
-command = "true"
-purpose = "scaffold placeholder; replace with real proof"
-
-[[lane]]
 name = "fast"
 command = "just fast"
-purpose = "deterministic local proof"
+purpose = "deterministic local health proof"
 
 [[lane]]
 name = "audit"

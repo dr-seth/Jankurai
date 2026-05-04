@@ -14,39 +14,43 @@
       "purpose": "verify manifests remain parseable and authoritative"
     },
     "contracts/": {
-      "command": "true",
-      "purpose": "scaffold: replace with contract drift checks when OpenAPI exists"
+      "command": "jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
+      "purpose": "advisory contract drift scan until project-specific contract checks exist"
     },
     "db/migrations/": {
-      "command": "true",
-      "purpose": "scaffold: add migration tests before production"
+      "command": "jankurai doctor --fail-on critical",
+      "purpose": "advisory control-plane health check until migration tests exist"
     },
     "db/": {
-      "command": "true",
-      "purpose": "scaffold database docs"
+      "command": "jankurai doctor --fail-on critical",
+      "purpose": "advisory database boundary health check"
     },
     "db/constraints/": {
-      "command": "true",
-      "purpose": "scaffold: add constraint checks before production"
+      "command": "jankurai doctor --fail-on critical",
+      "purpose": "advisory constraint-lane health check until DB proof exists"
     },
     "docs/architecture/": {
-      "command": "true",
-      "purpose": "scaffold architecture docs only"
+      "command": "jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
+      "purpose": "verify architecture docs remain visible to the audit"
     },
     "docs/decisions/": {
-      "command": "true",
-      "purpose": "scaffold ADR slot only"
+      "command": "jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
+      "purpose": "verify decision records remain visible to the audit"
     },
     "README-jankurai-scaffold.md": {
-      "command": "true",
-      "purpose": "scaffold marker file"
+      "command": "jankurai doctor --fail-on critical",
+      "purpose": "verify scaffold marker does not hide missing control-plane files"
     },
-    "tools/": {
-      "command": "true",
-      "purpose": "verify tooling stubs"
-    },
+"tools/": {
+    "command": "just fast",
+    "purpose": "verify Rust behavior and audit checks"
+  },
+  "examples/perfect-web-api-db/backend/src/background_job.rs": {
+    "command": "just fast",
+    "purpose": "run proofs for background‑job cell"
+  },
     "crates/": {
-      "command": "cargo test",
+      "command": "just fast",
       "purpose": "verify Rust behavior and audit checks"
     },
     "docs/": {

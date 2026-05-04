@@ -44,6 +44,16 @@ Jankurai is the control plane for that workflow. It does not replace taste, prod
 - A temporary exception can exist, but it must carry an owner and an expiry path.
 - Repeated patterns should collapse into reusable cells, templates, or generated primitives.
 
+## Adoption Promise
+
+First-hour adoption must be safe for both new and large existing repos:
+
+- no-write first: scan, adopt, and init dry-run write only requested artifacts under `target/jankurai/`
+- advisory by default: observe-mode CI uploads reports without enforcing score 85
+- ratchet after baseline: score gates start only after the team accepts a baseline
+- migration route: repos far from the target stack use `migration-target` and Phase 11 slice planning
+- reusable cells: Phase 10 cells remain evidence and dry-run/prove surfaces until mutating installs are separately designed
+
 ## Success Criteria
 
 If the moonshot is working, a fresh agent can open the repo, find the owner, choose the proof lane, run the checks, and leave evidence without learning the whole codebase first. Wrong code becomes easier to reject than to rationalize.

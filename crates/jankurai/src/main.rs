@@ -2,8 +2,8 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
-    agent, bench, cell, certify, context_pack, doctor, exceptions, govern, init, migrate, optimize,
-    proof, publish, registry, repair, repair_plan, security,
+    adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, init, migrate,
+    optimize, proof, publish, registry, repair, repair_plan, security,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -25,6 +25,7 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     Audit(AuditArgs),
+    Adopt(AdoptArgs),
     Init(InitArgs),
     Doctor(DoctorArgs),
     ContextPack(ContextPackArgs),
@@ -155,6 +156,8 @@ struct InitArgs {
     /// Init profile manifest JSON (`schemas/init-profile.schema.json`). When set, bundled `--profile` is not used to resolve the manifest.
     #[arg(long, value_name = "PATH")]
     profile_file: Option<PathBuf>,
+    #[arg(long, default_value = "full", value_parser = ["agents", "score", "ci", "full"])]
+    level: String,
     #[arg(long, default_value = "all")]
     ide: String,
     #[arg(long, default_value = "advisory")]
@@ -171,6 +174,29 @@ struct InitArgs {
     plan_json: Option<String>,
     #[arg(long)]
     force_generated_adapters: bool,
+}
+
+#[derive(Args, Debug)]
+struct AdoptArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, default_value = "auto", value_parser = [
+        "auto",
+        "migration-target",
+        "rust-api",
+        "react-web",
+        "rust-ts-postgres",
+        "b2b-saas",
+        "ai-product",
+        "regulated-saas"
+    ])]
+    profile: String,
+    #[arg(long, default_value = "observe", value_parser = ["observe", "advisory", "ratchet"])]
+    mode: String,
+    #[arg(long, value_name = "PATH", default_value = adopt::DEFAULT_OUT)]
+    out: String,
+    #[arg(long, value_name = "PATH", default_value = adopt::DEFAULT_MD)]
+    md: String,
 }
 
 #[derive(Args, Debug)]
@@ -472,10 +498,14 @@ struct CiInstallArgs {
     repo: PathBuf,
     #[arg(long)]
     github: bool,
-    #[arg(long, default_value = "ratchet")]
+    #[arg(long, default_value = "observe", value_parser = ["observe", "advisory", "ratchet"])]
     mode: String,
     #[arg(long, default_value_t = 85)]
     min_score: i32,
+    #[arg(long, value_name = "PATH")]
+    baseline: Option<String>,
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Args, Debug)]
@@ -538,6 +568,15 @@ fn main() -> anyhow::Result<()> {
         Some(Commands::Audit(args)) => {
             run_audit_and_write(args)?;
         }
+        Some(Commands::Adopt(args)) => {
+            adopt::run(adopt::AdoptArgs {
+                repo: args.repo,
+                profile: args.profile,
+                mode: args.mode,
+                out: args.out,
+                md: args.md,
+            })?;
+        }
         Some(Commands::Init(args)) => {
             init::run(init::InitArgs {
                 repo: args.repo,
@@ -546,6 +585,7 @@ fn main() -> anyhow::Result<()> {
                 yes: args.yes,
                 profile: args.profile,
                 profile_file: args.profile_file,
+                level: args.level,
                 ide: args.ide,
                 mode: args.mode,
                 diff: args.diff,
@@ -742,6 +782,8 @@ fn main() -> anyhow::Result<()> {
                     github: args.github,
                     mode: args.mode,
                     min_score: args.min_score,
+                    baseline: args.baseline,
+                    dry_run: args.dry_run,
                 })?;
             }
         },

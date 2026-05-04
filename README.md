@@ -2,80 +2,134 @@
 
 # Jankurai
 
-Jankurai is the control plane for agent-native repositories. It makes ownership, proof, generated zones, and repair evidence machine-readable so wrong code is easier to reject than to merge.
+Jankurai is a control plane for agent-native repositories. It makes agent guidance, ownership, proof lanes, generated zones, scoring, CI evidence, and repair queues machine-readable so generated code is easier to reject, route, and repair.
 
-The moonshot is simple:
+The adoption ladder is progressive:
 
 ```text
-intent -> bounded agents -> proof lanes -> evidence -> expired exceptions -> reusable primitives
+agents -> score -> ci -> full -> ratchet
 ```
 
-That is the operating loop behind the repo, the paper, and the audit CLI. Humans set intent and risk tolerance. Jankurai routes the change, proves the result, records the evidence, and forces temporary exceptions to age out instead of becoming architecture.
+Start with agent/provider hooks, add local scoring when ready, run CI in observe mode before enforcing anything, install the full scaffold only when the repository wants the whole control plane, and ratchet only after accepting a baseline.
 
-## What Lives Here
+## Install
 
-- `crates/jankurai/` - Rust audit CLI and proof/router logic
-- `packages/ux-qa/` - rendered-UX geometry and accessibility checks
-- `agent/` - owner map, test map, generated-zone manifest, proof lanes, version bindings
-- `docs/` - mission, standard, release, testing, and architecture notes
-- `paper/` - the paper source and generated PDF
-- `tips/` - phase notes and source material
-- `reference/` - read-only source material
-
-## Fast Start
+While public packaging is being prepared, install from this source checkout:
 
 ```bash
 cargo install --path crates/jankurai --locked
-jankurai audit . --json agent/repo-score.json --md agent/repo-score.md
+jankurai --version
 ```
 
-From source:
+## Minimal Agent Install
+
+Preview the smallest install. It writes nothing during dry run and emits a machine-readable plan:
 
 ```bash
-just fast
-just score
-just paper
+jankurai init . --level agents --dry-run --plan-json target/jankurai/init-agents.json
 ```
 
-The canonical audit lane is:
+Apply only root/provider guidance:
 
 ```bash
-cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
+jankurai init . --level agents --yes
+jankurai adapters verify .
 ```
 
-## Certified Reuse Cells
+This level installs `AGENTS.md`, `agent/JANKURAI_STANDARD.md`, `agent/MASTER_PLAN.md`, and thin provider adapters for Codex-style, Cursor, Copilot, Claude, Gemini, and other agent surfaces present in the selected profile.
 
-Jankurai ships an evidence-bound reuse registry so common agent-built primitives
-do not become copy-paste folklore. The built-in certified cells currently cover
-audit logging, CRUD resources, RBAC, auth/session, organization/team, and
-background jobs.
+## Add Scoring
+
+Install local scoring manifests without CI or full scaffold docs:
 
 ```bash
+jankurai init . --level score --yes
+jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+```
+
+Score level adds the owner map, test map, generated-zone manifest, proof lanes, audit policy, standard version, and minimal `Justfile` recipes. It is meant for ad hoc scoring, not conformance claims.
+
+## Observe CI
+
+Install observe-mode CI after local scoring is useful:
+
+```bash
+jankurai init . --level ci --yes
+jankurai ci install . --github --mode observe --dry-run
+jankurai ci install . --github --mode observe
+```
+
+Observe CI uploads score artifacts and repair queues but does not enforce score 85. Existing workflow files are left unchanged.
+
+## Full Scaffold
+
+Full remains the default for backward compatibility:
+
+```bash
+jankurai init . --profile rust-ts-postgres --dry-run --plan-json target/jankurai/init-full.json
+jankurai init . --profile rust-ts-postgres --yes
+```
+
+Use `--profile-file path/to/profile.json` for a custom manifest. Existing files are preserved or merged according to the profile merge policy; generated artifacts should be changed through their source templates or generators.
+
+## Ratchet After Baseline
+
+Only ratchet after the team accepts a baseline score:
+
+```bash
+jankurai audit . --mode advisory --json target/jankurai/baseline-score.json --md target/jankurai/baseline-score.md
+jankurai ci install . --github --mode ratchet --baseline target/jankurai/baseline-score.json
+```
+
+Ratchet mode blocks regression against the baseline. It is intentionally separate from `init --level ci`.
+
+## Common Commands
+
+```bash
+jankurai adopt . --mode observe --out target/jankurai/adoption-plan.json --md target/jankurai/adoption-plan.md
+jankurai doctor . --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md
+jankurai lane . --changed README.md --out target/jankurai/proof-plan.json --md target/jankurai/proof-plan.md
+jankurai prove . --changed README.md --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
+jankurai proof-verify . --plan target/jankurai/proof-plan.json --evidence-index target/jankurai/evidence-index.json --out target/jankurai/proof-verify.json --md target/jankurai/proof-verify.md
+jankurai repair-plan . --from target/jankurai/repo-score.json --out target/jankurai/repair-plan.json --md target/jankurai/repair-plan.md
+jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --out target/jankurai/repair-run.json --md target/jankurai/repair-run.md
+```
+
+More surfaces:
+
+```bash
+jankurai context-pack . --task "tighten README install docs" --changed README.md --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
 jankurai registry . --out target/jankurai/cell-registry.json --md target/jankurai/cell-registry.md
-jankurai cell . --cell-id background-job --mode prove \
-  --out target/jankurai/background-job-prove.json \
-  --md target/jankurai/background-job-prove.md
+jankurai cell . --cell-id background-job --mode prove --out target/jankurai/background-job.json --md target/jankurai/background-job.md
+jankurai migrate . --analyze --out target/jankurai/migration-report.json --md target/jankurai/migration-report.md
+jankurai security run . --out target/jankurai/security/evidence.json
+jankurai exceptions expire . --strict --out target/jankurai/exceptions.json --md target/jankurai/exceptions.md
+jankurai certify . --out target/jankurai/certification.json --md target/jankurai/certification.md
+jankurai govern . --out target/jankurai/governance.json --md target/jankurai/governance.md
+jankurai bench . --out target/jankurai/benchmark.json --md target/jankurai/benchmark.md
+jankurai publish . --certification target/jankurai/certification.json --benchmark target/jankurai/benchmark.json --governance target/jankurai/governance.json --out target/jankurai/publication.json --md target/jankurai/publication.md
 ```
 
-Cell install output is dry-run only with a `never-overwrite` conflict policy;
-prove mode emits machine-readable evidence and proof commands without executing
-destructive changes.
+Adapter and UX helpers:
 
-## Standard Files
+```bash
+jankurai adapters sync . --ide all --dry-run
+jankurai adapters verify .
+jankurai agent verify .
+jankurai ux --help
+```
 
-These files define the control plane and should stay in sync:
+## What Lives Here
 
-- `AGENTS.md`
-- `agent/JANKURAI_STANDARD.md`
-- `agent/owner-map.json`
-- `agent/test-map.json`
-- `agent/generated-zones.toml`
-- `agent/proof-lanes.toml`
-- `agent/standard-version.toml`
+- `crates/jankurai/` - Rust audit CLI, init, proof, repair, migration, and publication logic
+- `packages/ux-qa/` - rendered-UX geometry and accessibility checks
+- `agent/` - owner map, test map, generated-zone manifest, proof lanes, version bindings
+- `docs/` - mission, standard, release, testing, install, and architecture notes
+- `paper/` - canonical paper source and generated PDF
+- `tips/` - phase notes and source material
+- `reference/` - read-only source material
 
-## Validation
-
-The usual local checks are:
+## Source Workspace Validation
 
 ```bash
 just fast

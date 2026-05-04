@@ -4,6 +4,26 @@ Jankurai is the control plane. It is not a general-purpose claim that all AI rep
 
 The adoption loop is itself part of the standard: `jankurai init` installs the control plane, `jankurai doctor` reports drift, and `jankurai audit` produces the proof ledger. A repository that only mentions the standard but does not install or execute it is not conformant.
 
+Adoption is progressive rather than binary. The install ladder is \texttt{agents} \(\rightarrow\) \texttt{score} \(\rightarrow\) \texttt{ci} \(\rightarrow\) \texttt{full} \(\rightarrow\) \texttt{ratchet}. \texttt{jankurai init --level agents} installs only the root router, the short standard, the master plan, and thin provider adapters. This is the smallest useful change because agent behavior is shaped before the repository claims anything about conformance. \texttt{--level score} adds local scoring manifests: owner map, test map, generated zones, proof lanes, audit policy, standard version, and minimal command recipes. \texttt{--level ci} adds observe-mode CI plus security policy stubs and evidence paths; it must not enforce score 85 by default. \texttt{--level full} preserves the profile-driven scaffold for teams that want docs, contracts, database placeholders, UX QA policy, security controls, and profile-specific structure in one step. Ratchet enforcement remains a separate CI operation after a baseline has been reviewed.
+
+\begin{table}[t]
+\caption{Progressive jankurai install levels.}
+\label{tab:install-levels}
+\centering
+\small
+\begin{tabularx}{\columnwidth}{L{0.18\columnwidth} Y}
+\toprule
+\textbf{Level} & \textbf{Installed surface} \\
+\midrule
+\texttt{agents} & Root instructions, standard brief, master plan, and provider adapters. No score claim. \\
+\texttt{score} & Agents plus owner, proof, generated-zone, audit, version, and local recipe files for advisory scoring. \\
+\texttt{ci} & Score plus observe-mode workflow, security policy, and stub evidence path. No default score gate. \\
+\texttt{full} & Selected profile unchanged: docs, contracts, DB placeholders, UX, security, and CI where declared. \\
+\texttt{ratchet} & Explicit CI install mode that compares against an accepted baseline and blocks regression. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \begin{table}[t]
 \caption{Jankurai conformance levels.}
 \label{tab:conformance}

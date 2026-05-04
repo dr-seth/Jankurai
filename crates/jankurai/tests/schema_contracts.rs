@@ -10,6 +10,47 @@ fn repo_root() -> PathBuf {
 }
 
 #[test]
+fn adoption_plan_schema_parses_and_fixture_validates() {
+    let repo = repo_root();
+    let schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/adoption-plan.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        schema["$id"],
+        "https://jankurai.dev/schemas/adoption-plan.schema.json"
+    );
+    assert!(schema["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|key| key == "recommended_profile"));
+
+    let fixture = serde_json::json!({
+        "schema_version": "1.0.0",
+        "command": "jankurai adopt",
+        "status": "complete",
+        "generated_at": "0",
+        "source_root": ".",
+        "mode": "observe",
+        "requested_profile": "auto",
+        "recommended_profile": "migration-target",
+        "risk_tier": "medium",
+        "detected_surfaces": ["node"],
+        "source_stack": "typescript/express",
+        "target_stack": "rust-ts-postgres",
+        "liability_score": 48,
+        "audit_score": null,
+        "safe_commands": ["jankurai audit . --mode advisory"],
+        "stop_conditions": ["stop if workflow enforces a score gate"],
+        "next_milestones": ["review plan"],
+        "artifacts": ["target/jankurai/adoption-plan.json"],
+        "warnings": []
+    });
+    validation::validate_value(&repo, ArtifactSchema::AdoptionPlan, &fixture).unwrap();
+}
+
+#[test]
 fn cell_registry_and_manifest_schemas_parse() {
     let repo = repo_root();
     let manifest: serde_json::Value = serde_json::from_str(

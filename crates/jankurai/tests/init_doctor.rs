@@ -13,6 +13,7 @@ fn init_dry_run_writes_nothing() {
         yes: false,
         profile: "rust-ts-vite-react-postgres".into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -41,6 +42,7 @@ fn init_yes_is_idempotent_for_existing_root_guidance() {
             yes: true,
             profile: "rust-ts-vite-react-postgres".into(),
             profile_file: None,
+            level: "full".into(),
             ide: "all".into(),
             mode: "advisory".into(),
             diff: false,
@@ -88,6 +90,7 @@ fn init_dry_run_plan_json_is_machine_readable() {
         yes: false,
         profile: "rust-ts-vite-react-postgres-bounded-python".into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -122,6 +125,7 @@ fn init_dry_run_profile_manifest_is_included() {
         yes: false,
         profile: "rust-ts-postgres".into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -150,7 +154,7 @@ fn init_dry_run_profile_manifest_is_included() {
         .as_array()
         .unwrap()
         .iter()
-        .any(|cmd| cmd == "just fast"));
+        .any(|cmd| cmd == "jankurai doctor --fail-on critical"));
 }
 
 #[test]
@@ -169,6 +173,7 @@ fn init_yes_keeps_existing_jankurai_guidance_without_marker() {
         yes: true,
         profile: "rust-ts-vite-react-postgres".into(),
         profile_file: None,
+        level: "full".into(),
         ide: "all".into(),
         mode: "advisory".into(),
         diff: false,
@@ -335,8 +340,9 @@ standard_version = "0.0.0"
     let workflow =
         fs::read_to_string(ci_dir.path().join(".github/workflows/jankurai.yml")).unwrap();
     assert!(workflow.contains("Enforce score floor"));
-    assert!(workflow.contains("security run"));
-    assert!(workflow.contains("target/jankurai/security/evidence.json"));
+    assert!(workflow.contains("cargo install jankurai --locked"));
+    assert!(workflow.contains("jankurai audit . --mode ratchet"));
+    assert!(!workflow.contains("cargo run -p jankurai"));
 
     assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
         .arg("explain")

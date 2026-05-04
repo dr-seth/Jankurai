@@ -22,6 +22,7 @@ Existing pieces:
 - Audit already detects non-optimal product languages, Python product truth, wrong-layer DB access, missing proof lanes, generated drift, and other vibe-coding risks.
 - `docs/mission.md`, `docs/release-plan.md`, and `docs/moonshot.md` define migration intent.
 - The `jankurai migrate` command now emits a migration plan from live repo inventory and proof routing.
+- `jankurai adopt --profile auto` routes repos far from the target stack to the `migration-target` profile instead of implying full standard compliance on first contact.
 
 ## Dependencies
 
@@ -39,6 +40,7 @@ Benefits from Phase 10 cells for target replacements.
 Implemented command surface:
 
 ```bash
+jankurai adopt ./legacy --mode observe
 jankurai migrate analyze ./legacy
 jankurai migrate plan --target rust-ts-postgres
 jankurai migrate slice billing-tax

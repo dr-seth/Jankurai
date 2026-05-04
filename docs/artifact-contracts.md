@@ -10,6 +10,7 @@ Every durable or generated machine-readable surface should either validate again
 | `target/jankurai/jankurai.junit.xml` (or path passed to `--junit`) | Semantic: `report_compatibility_guard` | JUnit-style XML |
 | `target/jankurai/summary.md` | Semantic: `report_compatibility_guard` | GitHub step summary |
 | `jankurai issues export --format jsonl` | `schemas/finding.schema.json` per line; `report_compatibility_guard` | Same `Finding` shape as `repo-score` `findings[]` |
+| `target/jankurai/adoption-plan.json` | `schemas/adoption-plan.schema.json`; `adoption_ux`, `schema_contracts` | No-write first-hour adoption plan emitted by `jankurai adopt` |
 | `agent/owner-map.json` | `schemas/owner-map.schema.json`; `schema_contracts`, `doctor` | |
 | `agent/test-map.json` | `schemas/test-map.schema.json`; `schema_contracts`, `doctor` | |
 | `agent/generated-zones.toml` | `schemas/generated-zones.schema.json`; `schema_contracts`, `doctor` | |
