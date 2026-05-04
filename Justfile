@@ -18,7 +18,7 @@ ux-qa:
 
 check:
     cargo run -p jankurai -- versions
-    cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
+    cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv
     latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex
 
 validate: check
@@ -27,7 +27,7 @@ paper:
     latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex
 
 score:
-    cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
+    cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv
 
 compat:
     cargo test -p jankurai --test report_compatibility_guard

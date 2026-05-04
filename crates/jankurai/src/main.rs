@@ -139,6 +139,16 @@ struct AuditArgs {
     fail_under: Option<i32>,
     #[arg(long, value_delimiter = ',')]
     fail_on: Vec<String>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/score-history.jsonl"
+    )]
+    score_history: String,
+    #[arg(long, value_name = "PATH")]
+    score_history_csv: Option<String>,
+    #[arg(long)]
+    no_score_history: bool,
 }
 
 #[derive(Args, Debug)]
@@ -174,6 +184,11 @@ struct InitArgs {
     plan_json: Option<String>,
     #[arg(long)]
     force_generated_adapters: bool,
+    /// Full-send adoption: apply the full scaffold, install observe CI, score, append tracked history, stage everything, and commit.
+    #[arg(long)]
+    yolo: bool,
+    #[arg(long, default_value = "Adopt Jankurai control plane")]
+    yolo_message: String,
 }
 
 #[derive(Args, Debug)]
@@ -578,6 +593,10 @@ fn main() -> anyhow::Result<()> {
             })?;
         }
         Some(Commands::Init(args)) => {
+            if args.yolo {
+                run_init_yolo(args)?;
+                return Ok(());
+            }
             init::run(init::InitArgs {
                 repo: args.repo,
                 apply: args.apply,
@@ -824,6 +843,173 @@ fn parse_repo_arg(value: &str) -> Result<PathBuf, String> {
     }
 }
 
+fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
+    if args.dry_run || args.diff {
+        anyhow::bail!("--yolo commits changes; omit --dry-run/--diff or run normal init first");
+    }
+    if !args.yes {
+        eprintln!(
+            "{}",
+            jankurai::ui::epaint(
+                jankurai::ui::Style::Warn,
+                "--yolo implies --yes, --level full, observe CI, score history, git add -A, and git commit"
+            )
+        );
+    }
+
+    ensure_git_repo(&args.repo)?;
+    let repo = args.repo.clone();
+    let adoption_json = repo.join("agent/adoption-plan.json");
+    let adoption_md = repo.join("agent/adoption-plan.md");
+    let score_json = repo.join("agent/repo-score.json");
+    let score_md = repo.join("agent/repo-score.md");
+    let history_jsonl = repo.join("agent/score-history.jsonl");
+    let history_csv = repo.join("agent/score-history.csv");
+    let doctor_json = repo.join("target/jankurai/doctor.json");
+    let doctor_md = repo.join("target/jankurai/doctor.md");
+
+    adopt::run(adopt::AdoptArgs {
+        repo: repo.clone(),
+        profile: args.profile.clone(),
+        mode: "observe".into(),
+        out: adoption_json.display().to_string(),
+        md: adoption_md.display().to_string(),
+    })?;
+
+    init::run(init::InitArgs {
+        repo: repo.clone(),
+        apply: false,
+        dry_run: false,
+        yes: true,
+        profile: args.profile,
+        profile_file: args.profile_file,
+        level: "full".into(),
+        ide: args.ide,
+        mode: args.mode,
+        diff: false,
+        ci: args.ci,
+        issue_backend: args.issue_backend,
+        ux_qa: args.ux_qa,
+        plan_json: args.plan_json,
+        force_generated_adapters: args.force_generated_adapters,
+    })?;
+
+    jankurai::commands::ci::install(jankurai::commands::ci::CiInstallArgs {
+        repo: repo.clone(),
+        github: true,
+        mode: "observe".into(),
+        min_score: 85,
+        baseline: None,
+        dry_run: false,
+    })?;
+
+    run_audit_and_write(AuditArgs {
+        repo: repo.clone(),
+        json: score_json.display().to_string(),
+        md: score_md.display().to_string(),
+        changed: vec![],
+        changed_from: None,
+        mode: "advisory".into(),
+        sarif: None,
+        junit: None,
+        github_step_summary: None,
+        repair_queue_jsonl: None,
+        proof_receipts: None,
+        proof_evidence: None,
+        baseline: None,
+        policy: None,
+        self_audit: false,
+        fail_under: None,
+        fail_on: vec![],
+        score_history: history_jsonl.display().to_string(),
+        score_history_csv: Some(history_csv.display().to_string()),
+        no_score_history: false,
+    })?;
+
+    doctor::run(doctor::DoctorArgs {
+        repo: repo.clone(),
+        fail_on: "critical".into(),
+        json: Some(doctor_json.display().to_string()),
+        md: Some(doctor_md.display().to_string()),
+    })?;
+
+    run_git(&repo, &["add", "-A"])?;
+    let staged = Command::new("git")
+        .args(["diff", "--cached", "--quiet"])
+        .current_dir(&repo)
+        .status()?;
+    if staged.success() {
+        println!("--yolo found no staged changes to commit");
+        return Ok(());
+    }
+    run_git(&repo, &["commit", "-m", &args.yolo_message])?;
+    if let Some(commit) = git_stdout(&repo, &["rev-parse", "--short", "HEAD"])? {
+        println!(
+            "{}",
+            jankurai::ui::paint(
+                jankurai::ui::Style::Good,
+                format!("--yolo committed {commit}"),
+                jankurai::ui::stdout_color_enabled()
+            )
+        );
+    }
+    print_yolo_next_steps(&repo);
+    Ok(())
+}
+
+fn print_yolo_next_steps(repo: &std::path::Path) {
+    let color = jankurai::ui::stdout_color_enabled();
+    println!(
+        "{}",
+        jankurai::ui::paint(jankurai::ui::Style::Heading, "YOLO complete. Next:", color)
+    );
+    println!("  1. Push the adoption commit when ready: `git push -u origin HEAD`.");
+    println!(
+        "  2. Start Codex, OpenCode, Claude, Cursor, or another agent from `{}`.",
+        repo.display()
+    );
+    println!(
+        "  3. Tell it: `{}`",
+        jankurai::ui::paint(
+            jankurai::ui::Style::Accent,
+            "Read AGENTS.md, follow the jankurai standard, improve the score, commit small steps, and run jankurai audit after each commit.",
+            color
+        )
+    );
+    println!(
+        "- score history: `{}` and `{}`",
+        repo.join("agent/score-history.jsonl").display(),
+        repo.join("agent/score-history.csv").display()
+    );
+}
+
+fn ensure_git_repo(repo: &std::path::Path) -> anyhow::Result<()> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--is-inside-work-tree"])
+        .current_dir(repo)
+        .output()?;
+    if !output.status.success() {
+        anyhow::bail!("--yolo requires an existing git repository");
+    }
+    Ok(())
+}
+
+fn run_git(repo: &std::path::Path, args: &[&str]) -> anyhow::Result<()> {
+    let status = Command::new("git").args(args).current_dir(repo).status()?;
+    if !status.success() {
+        anyhow::bail!("git {} failed with status {}", args.join(" "), status);
+    }
+    Ok(())
+}
+
+fn git_stdout(repo: &std::path::Path, args: &[&str]) -> anyhow::Result<Option<String>> {
+    let output = Command::new("git").args(args).current_dir(repo).output()?;
+    if !output.status.success() {
+        return Ok(None);
+    }
+    Ok(Some(String::from_utf8_lossy(&output.stdout).trim().to_string()).filter(|s| !s.is_empty()))
+}
+
 fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     if args.json == "-" && args.md == "-" {
         anyhow::bail!("use at most one stdout target; JSON and Markdown may not share stdout");
@@ -906,6 +1092,17 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     }
     if let Some(path) = args.repair_queue_jsonl.as_deref() {
         write_json(path, &jankurai::report::issues::repair_queue_jsonl(&report))?;
+    }
+    if !args.no_score_history {
+        let history_path = jankurai::score_history::append_score_history(
+            &args.repo,
+            &report,
+            &args.json,
+            &args.md,
+            &args.score_history,
+            args.score_history_csv.as_deref(),
+        )?;
+        eprintln!("score history appended {}", history_path.display());
     }
     progress.finish(format!(
         "score {} raw {} findings {}",

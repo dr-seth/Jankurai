@@ -268,7 +268,7 @@ pub fn render_next_steps(
         );
         let _ = writeln!(
             out,
-            "  3. Start Codex, Cursor, Claude, or another agent from {repo_label} and say: `{agent_prompt}`"
+            "  3. Start Codex, OpenCode, Claude, Cursor, or another agent from {repo_label} and say: `{agent_prompt}`"
         );
     } else {
         let _ = writeln!(out, "  1. Run `{doctor}` for local health.");
@@ -278,7 +278,7 @@ pub fn render_next_steps(
         );
         let _ = writeln!(
             out,
-            "  3. Start Codex, Cursor, Claude, or another agent from {repo_label} and say: `{agent_prompt}`"
+            "  3. Start Codex, OpenCode, Claude, Cursor, or another agent from {repo_label} and say: `{agent_prompt}`"
         );
     }
 

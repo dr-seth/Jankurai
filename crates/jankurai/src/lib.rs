@@ -5,6 +5,7 @@ pub mod init;
 pub mod model;
 pub mod render;
 pub mod report;
+pub mod score_history;
 pub mod ui;
 pub mod validation;
 pub mod versions;
