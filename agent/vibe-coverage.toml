@@ -1,6 +1,6 @@
 schema_version = "1.4.1"
 release = "0.6.1"
-paper_edition = "2026.05-ed5"
+paper_edition = "2026.05-ed6"
 source_count = 260
 
 [[issues]]

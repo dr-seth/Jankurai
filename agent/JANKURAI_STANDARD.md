@@ -4,7 +4,8 @@ Standard version: `0.6.1`
 Published: `2026-05-04`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
-Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
+Paper: `Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge`
+Public thesis line: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 
 ## Prime Directive
 

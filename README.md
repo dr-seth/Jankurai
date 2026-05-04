@@ -155,7 +155,7 @@ The loop is intentionally ordinary: changed paths map to owners and proof lanes,
 
 ## Project Status
 
-Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Humans Were the Bug: From Vibe Coding to Agent-Native Engineering*.
+Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge*.
 
 Compatibility posture:
 
@@ -207,7 +207,9 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 ## Citation And Paper
 
-This repository is the working source for the paper *Humans Were the Bug: From Vibe Coding to Agent-Native Engineering*.
+This repository is the working source for the paper *Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge*.
+
+Public thesis line: *Humans Were the Bug: From Vibe Coding to Agent-Native Engineering*.
 
 - Paper source: [paper/jankurai.tex](paper/jankurai.tex)
 - Agent-readable companion: [paper/jankurai.md](paper/jankurai.md)

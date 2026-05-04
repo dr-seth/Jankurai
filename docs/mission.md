@@ -1,8 +1,10 @@
-# Mission: Humans Were the Bug
+# Mission: Jankurai
 
-Paper title: "Humans Were the Bug: From Vibe Coding to Agent-Native Engineering"
+Paper title: "Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge"
 
-Jankurai exists to make agent-native engineering concrete. The claim is deliberately sharp: most repositories were shaped around human comfort, human memory, human navigation, and human tolerance for ambiguity. That design target is now wrong. Agents can generate code quickly, but they still fail when a repo hides ownership, accepts duplicate truth, lacks deterministic proof lanes, or forces the model to infer architecture from scattered convention.
+Public thesis line: "Humans Were the Bug: From Vibe Coding to Agent-Native Engineering"
+
+Jankurai exists to make agent-native engineering concrete as a versioned, auditable repository standard. The public thesis line is deliberately sharp: most repositories were shaped around human comfort, human memory, human navigation, and human tolerance for ambiguity. That design target is now wrong. Agents can generate code quickly, but they still fail when a repo hides ownership, accepts duplicate truth, lacks deterministic proof lanes, or forces the model to infer architecture from scattered convention.
 
 The new standard is not "make coding pleasant." The new standard is "make wrong code easy to reject, localize, prove, audit, and repair."
 

@@ -20,7 +20,7 @@ Use separate versions because the paper, rules, and tooling will move at differe
 
 | Version | Format | Example | Rule |
 | --- | --- | --- | --- |
-| Paper edition | date plus edition | `2026.05-ed5` | changes when the argument or evidence changes |
+| Paper edition | date plus edition | `2026.05-ed6` | changes when the argument or evidence changes |
 | Standard version | SemVer | `0.6.1` | breaking compliance rule means major bump |
 | Audit version | SemVer | `0.6.1` | implementation release of the scanner |
 | Output schema | SemVer | `1.4.1` | breaking JSON/Markdown contract means major bump |
@@ -33,7 +33,7 @@ Every audit output should include:
   "standard_version": "0.6.1",
   "auditor_version": "0.6.1",
   "schema_version": "1.4.1",
-  "paper_edition": "2026.05-ed5",
+  "paper_edition": "2026.05-ed6",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
 }
@@ -296,6 +296,10 @@ Publish the paper with a clear thesis:
 > Codebases optimized for human comfort are misaligned with agent maintenance. The winning stack is the one that rejects wrong generated code fastest.
 
 The title should be used consistently:
+
+> Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge
+
+The public thesis line remains:
 
 > Humans Were the Bug: From Vibe Coding to Agent-Native Engineering
 

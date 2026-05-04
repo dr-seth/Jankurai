@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 pub const STANDARD_VERSION: &str = "0.6.1";
 pub const AUDITOR_VERSION: &str = "0.6.1";
 pub const SCHEMA_VERSION: &str = "1.4.1";
-pub const PAPER_EDITION: &str = "2026.05-ed5";
+pub const PAPER_EDITION: &str = "2026.05-ed6";
 pub const TARGET_STACK_ID: &str = "rust-ts-vite-react-postgres-bounded-python";
 pub const TARGET_STACK: &str = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service";
 

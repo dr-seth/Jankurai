@@ -4,7 +4,7 @@ advisory_on = ["medium", "low"]
 standard_version = "0.6.1"
 auditor_version = "0.6.1"
 schema_version = "1.4.1"
-paper_edition = "2026.05-ed5"
+paper_edition = "2026.05-ed6"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 
 [caps]

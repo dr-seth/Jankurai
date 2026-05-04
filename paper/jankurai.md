@@ -1,12 +1,14 @@
-# Trustworthy Merge
+# Jankurai
 
-Public banner: **Humans Were the Bug**
+Title: **Jankurai: A Versioned Agent-Native Repository Standard for Trustworthy Merge**
 
-Subtitle: **From Vibe Coding to Agent-Native Engineering**
+Public thesis line: **Humans Were the Bug: From Vibe Coding to Agent-Native Engineering**
 
-Paper edition: `2026.05-ed5`
+Paper edition: `2026.05-ed6`
 
 Standard version: `0.6.1`
+
+Schema version: `1.4.1`
 
 Canonical source: `paper/jankurai.tex` plus `paper/tex/`
 
@@ -18,9 +20,17 @@ Naming policy: paper artifacts use the `jankurai.*` prefix. Do not create `main.
 
 ## Executive Abstract
 
-AI coding moves the bottleneck from typing plausible code to trustworthy merge. Agent-native engineering treats the repository as a verification interface for all code entering a governed repo, whether the first draft came from a person or a model. Ownership, proof lanes, generated zones, security gates, proof ledgers, repair queues, receipts, and versioned artifacts must be machine-readable.
+AI coding moves the bottleneck from typing plausible code to trustworthy merge. Jankurai is a versioned, auditable agent-native repository standard for making that merge decision reproducible. Agent-native engineering treats the repository as a verification interface for all code entering a governed repo, whether the first draft came from a person or a model.
 
-`Jankurai` is the control plane for repositories that claim conformance. It defines progressive install levels, conformance levels, stable rule IDs, continuous local/PR/CI audit, merge witnesses, rolling score, proof verification, security evidence, CI modes, version bindings, and governed repair. The default reference profile remains Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+The paper's three contributions are: an agent-native repository standard, a conformance/audit mechanism, and a default reference profile. `Jankurai` defines progressive install levels, HL0-HL5 conformance levels, stable rule IDs, continuous local/PR/CI audit, merge witnesses, rolling score, proof verification, security evidence, CI modes, version bindings, and governed repair. The default reference profile remains Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+
+The operating loop is:
+
+```text
+intent -> bounded authority -> proof lanes -> evidence -> repair or exception expiry -> reusable primitives
+```
+
+That loop is the product, the standard, and the paper thesis. Jankurai borrows proven standards mechanics from BCP 14, SemVer, SPDX, OpenAPI, W3C process, Kubernetes conformance, and OpenSSF Scorecard without claiming equivalent institutional standing.
 
 ## Section Map
 
@@ -55,9 +65,10 @@ Appendices:
 - The scarce act is trustworthy merge, not first-draft code generation.
 - Public rule: no proof, no merge; no receipt, no trust.
 - A repository claiming jankurai conformance must expose auditable ownership, proof routing, generated-zone policy, version metadata, proof ledgers, and repair evidence.
+- Conformance is not prose: a repo that mentions Jankurai but cannot emit current audit/proof artifacts is not conformant.
 - Human-authored code and agent-authored code should meet the same merge-time controls in a governed repo.
 - Adoption is progressive: `agents -> score -> ci -> full -> ratchet`. Minimal agent hooks shape tool behavior before a repository claims conformance.
-- The operating loop is changed path -> owner/test route -> context pack -> proof plan -> receipts/evidence index -> proof verification -> audit report -> merge witness -> repair queue.
+- The operating loop is intent -> bounded authority -> proof lanes -> evidence -> repair or exception expiry -> reusable primitives.
 - Stack choice matters after the control plane exists. The default winner is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python.
 - Hard caps and score weights are versioned policy, not final empirical truth.
 - The TLR pie chart is computed from the visible taxonomy RPN rows; it is a policy-priority model, not an incident-frequency chart.
@@ -113,6 +124,18 @@ Appendices:
 | `paper/tex/generated/vibe_coverage_table.tex` | Generated paper appendix coverage table | `paper_edition` |
 | `target/jankurai/evidence-index.json` | Proof evidence index from `jankurai prove` | proof schema |
 | `target/jankurai/security/evidence.json` | Normalized security lane evidence from `jankurai security run` | security evidence schema |
+
+## Standards Mechanics
+
+Jankurai's standard method borrows:
+
+- BCP 14-style normative `MUST`/`SHOULD`/`MAY` language.
+- SemVer-style compatibility signaling for standard, auditor, schema, and paper artifacts.
+- SPDX-style current/previous release visibility.
+- OpenAPI-style separation between normative specification text and schema artifacts.
+- W3C-style maturity states: draft, candidate, implementation evidence, superseded, obsolete.
+- Kubernetes-style conformance through runnable tests and reproducible evidence.
+- OpenSSF Scorecard-style automated open-source posture scoring.
 
 ## Adoption Levels
 

@@ -1,8 +1,35 @@
 \section{Limitations and Research Agenda}
 
-The scoring weights need empirical calibration across real repositories. Agent-friendly exception patterns need comparative studies across Rust, TypeScript, and Python. The file-size limits should be tested against repair accuracy, not taste. Tool-specific instruction behavior changes quickly. Public benchmarks still struggle to measure long-running maintenance, security regressions, UI correctness, and production repair quality. Those gaps are a research agenda, not reasons to keep shipping ambiguous repos.
+The scoring weights need empirical calibration across real repositories. Agent-friendly exception patterns need comparative studies across Rust, TypeScript, and Python. The file-size limits should be tested against repair accuracy, not taste. Tool-specific instruction behavior changes quickly. Public benchmarks still struggle to measure long-running maintenance, security regressions, UI correctness, and production repair quality. Audit can reject many known failure classes, but it cannot prove every semantic property of a system. Alternate stacks can conform when they provide equivalent proof artifacts. Those gaps are a research agenda, not reasons to keep shipping ambiguous repos.
 
-The strongest version of the criticism is useful: a standard can become ceremony, and a stack recommendation can become dogma. jankurai should be judged by whether it improves repair locality, reduces unsafe merges, shortens review cycles, and produces better evidence. If a team can prove those outcomes with a different stack and a compatible control plane, the exception should be documented and studied.
+The maturity model should therefore be explicit. Draft rules need examples and fixtures. Candidate rules need implementation evidence across more than one repository. Stable rules need schema-backed output, documented repairs, and regression tests. Superseded or obsolete rules need migration notes so old receipts remain interpretable.
+
+\begin{table*}[t]
+\caption{Concrete future work for Jankurai.}
+\label{tab:future-work}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.22\textwidth} Y}
+\toprule
+\textbf{Lane} & \textbf{Expected artifact} \\
+\midrule
+Public conformance suite & Runnable tests, fixtures, expected JSON/Markdown reports, and versioned pass criteria. \\
+Hosted or static evidence registry & Immutable evidence bundles, badges, score history, and current/previous standard metadata. \\
+Signed proof receipts and attestations & Artifact digests, command receipts, provenance, and verification command. \\
+Benchmark corpus for repair locality & Repos, patches, route plans, expected lanes, repair time, and escaped-defect labels. \\
+Token-budget optimizer & Short root routers, path-scoped policy packs, symbol/repo maps, filtered command receipts, generated context packs, evidence indexes, stale-doc pruning, and deterministic proof routing. \\
+Context-pack minimizer & Trust-labeled packs with measured token cost, recall, and false-exclusion rates. \\
+Cross-agent adapter conformance tests & Codex, Claude, Cursor, Copilot, terminal-agent, hook, and MCP adapter fixtures. \\
+UI geometry oracle hardening & Viewport matrices, screenshot crops, ARIA snapshots, layout rules, and false-positive corpus. \\
+Semantic rule detector expansion & Fixtures and negative tests for authz, input boundaries, cost controls, release readiness, and human-review evidence. \\
+Exception libraries & Rust, TypeScript, Python, PostgreSQL, and HTTP problem-detail templates with docs links and repair hints. \\
+Cost-budget and kill-switch tooling & Spend limits, quotas, stop conditions, alerts, and receipt-backed emergency controls. \\
+Reusable cell registry and certification & Cell manifests, install plans, proof lanes, benchmark receipts, and certification policy. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The strongest version of the criticism is useful: a standard can become ceremony, and a stack recommendation can become dogma. Jankurai should be judged by whether it improves repair locality, reduces unsafe merges, shortens review cycles, and produces better evidence. If a team can prove those outcomes with a different stack and a compatible control plane, the exception should be documented and studied.
 
 \section{Conclusion}
 

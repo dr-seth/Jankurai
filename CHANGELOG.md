@@ -8,6 +8,10 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ### Added
 
+### Changed
+
+- Reframed the paper around Jankurai as a versioned agent-native repository standard and bumped the paper edition to `2026.05-ed6`.
+
 ## 0.6.1 - 2026-05-04
 
 ### Changed
