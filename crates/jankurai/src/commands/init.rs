@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::validation::{self, ArtifactSchema};
 use crate::init::profiles::MergePolicyAction;
+use crate::validation::{self, ArtifactSchema};
 
 pub struct InitArgs {
     pub repo: PathBuf,
@@ -175,9 +175,15 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
         if path_obj.exists() {
             let existing = fs::read_to_string(&path_obj).unwrap_or_default();
             let merged = match manifest.merge_policy_for_path(&rel) {
-                MergePolicyAction::MergeJson => crate::init::merge::merge_json(&existing, template.body).ok(),
-                MergePolicyAction::MergeToml => crate::init::merge::merge_toml(&existing, template.body).ok(),
-                MergePolicyAction::MergeLines => crate::init::merge::merge_lines(&existing, template.body).ok(),
+                MergePolicyAction::MergeJson => {
+                    crate::init::merge::merge_json(&existing, template.body).ok()
+                }
+                MergePolicyAction::MergeToml => {
+                    crate::init::merge::merge_toml(&existing, template.body).ok()
+                }
+                MergePolicyAction::MergeLines => {
+                    crate::init::merge::merge_lines(&existing, template.body).ok()
+                }
                 MergePolicyAction::MergeMarker if !is_jankurai_controlled(&existing) => {
                     let marker = crate::init::merge::merge_marker(&rel);
                     if existing.contains("jankurai merge marker") {

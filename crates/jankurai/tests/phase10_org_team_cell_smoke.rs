@@ -65,7 +65,9 @@ fn organization_team_is_fifth_certified_dependency_bound_cell() {
 
     let evidence = org_team["certification_evidence"].as_array().unwrap();
     assert!(evidence.iter().any(|item| {
-        item["kind"] == "dependency" && item["path"] == "auth-session" && item["status"] == "present"
+        item["kind"] == "dependency"
+            && item["path"] == "auth-session"
+            && item["status"] == "present"
     }));
     assert!(evidence.iter().any(|item| {
         item["kind"] == "content-marker"

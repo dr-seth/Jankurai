@@ -48,7 +48,10 @@ pub fn build_plan(
             bail!("profile declares `{path}` but no init template is registered (see init/templates.rs)");
         }
         let action = if repo.join(path).exists() {
-            profile_manifest.merge_policy_for_path(path).plan_action().into()
+            profile_manifest
+                .merge_policy_for_path(path)
+                .plan_action()
+                .into()
         } else {
             "create".into()
         };
