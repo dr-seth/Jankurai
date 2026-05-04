@@ -46,7 +46,9 @@
     "docs/orgs/README.md",
     "docs/privacy/README.md",
     "docs/security/README.md",
-    "tools/security-lane.sh"
+    "tools/security-lane.sh",
+    "tools/jankurai-hooks/pre-commit",
+    "tools/jankurai-hooks/prepare-commit-msg"
   ],
   "mergePolicy": {
     "AGENTS.md": "merge-marker",

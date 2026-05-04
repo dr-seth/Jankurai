@@ -2,8 +2,8 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
-    adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, init, migrate,
-    optimize, proof, publish, registry, repair, repair_plan, security,
+    adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
+    migrate, optimize, proof, publish, registry, repair, repair_plan, security,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -59,6 +59,10 @@ enum Commands {
         #[command(subcommand)]
         command: CiCommand,
     },
+    Hooks {
+        #[command(subcommand)]
+        command: HooksCommand,
+    },
     Issues {
         #[command(subcommand)]
         command: IssuesCommand,
@@ -81,6 +85,11 @@ enum AdapterCommand {
 #[derive(Subcommand, Debug)]
 enum CiCommand {
     Install(CiInstallArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum HooksCommand {
+    Install(HooksInstallArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -524,6 +533,18 @@ struct CiInstallArgs {
 }
 
 #[derive(Args, Debug)]
+struct HooksInstallArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long)]
+    yes: bool,
+    #[arg(long)]
+    dry_run: bool,
+    #[arg(long)]
+    force: bool,
+}
+
+#[derive(Args, Debug)]
 struct AdapterVerifyArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -806,6 +827,14 @@ fn main() -> anyhow::Result<()> {
                 })?;
             }
         },
+        Some(Commands::Hooks { command }) => match command {
+            HooksCommand::Install(args) => hooks::install(hooks::HooksInstallArgs {
+                repo: args.repo,
+                yes: args.yes,
+                dry_run: args.dry_run,
+                force: args.force,
+            })?,
+        },
         Some(Commands::Explain(args)) => run_explain(&args.rule_id)?,
         Some(Commands::Ux(_args)) => run_ux_passthrough()?,
         Some(Commands::Security { command }) => match command {
@@ -852,7 +881,7 @@ fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
             "{}",
             jankurai::ui::epaint(
                 jankurai::ui::Style::Warn,
-                "--yolo implies --yes, --level full, observe CI, score history, git add -A, and git commit"
+                "--yolo implies --yes, --level full, observe CI, local hooks, score history, score trailers, git add -A, and git commit"
             )
         );
     }
@@ -903,6 +932,13 @@ fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
         dry_run: false,
     })?;
 
+    hooks::install(hooks::HooksInstallArgs {
+        repo: repo.clone(),
+        yes: true,
+        dry_run: false,
+        force: false,
+    })?;
+
     run_audit_and_write(AuditArgs {
         repo: repo.clone(),
         json: score_json.display().to_string(),
@@ -925,6 +961,7 @@ fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
         score_history_csv: Some(history_csv.display().to_string()),
         no_score_history: false,
     })?;
+    let score_trailers = score_trailers_from_report(&repo, &score_json)?;
 
     doctor::run(doctor::DoctorArgs {
         repo: repo.clone(),
@@ -942,7 +979,11 @@ fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
         println!("--yolo found no staged changes to commit");
         return Ok(());
     }
-    run_git(&repo, &["commit", "-m", &args.yolo_message])?;
+    run_git_env(
+        &repo,
+        &["commit", "-m", &args.yolo_message, "-m", &score_trailers],
+        &[("JANKURAI_SKIP_HOOKS", "1")],
+    )?;
     if let Some(commit) = git_stdout(&repo, &["rev-parse", "--short", "HEAD"])? {
         println!(
             "{}",
@@ -972,7 +1013,7 @@ fn print_yolo_next_steps(repo: &std::path::Path) {
         "  3. Tell it: `{}`",
         jankurai::ui::paint(
             jankurai::ui::Style::Accent,
-            "Read AGENTS.md, follow the jankurai standard, improve the score, commit small steps, and run jankurai audit after each commit.",
+            "Read AGENTS.md, follow the jankurai standard, improve the score, and commit small steps. Local hooks now auto-score each commit.",
             color
         )
     );
@@ -1002,12 +1043,65 @@ fn run_git(repo: &std::path::Path, args: &[&str]) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn run_git_env(repo: &std::path::Path, args: &[&str], envs: &[(&str, &str)]) -> anyhow::Result<()> {
+    let mut command = Command::new("git");
+    command.args(args).current_dir(repo);
+    for (key, value) in envs {
+        command.env(key, value);
+    }
+    let status = command.status()?;
+    if !status.success() {
+        anyhow::bail!("git {} failed with status {}", args.join(" "), status);
+    }
+    Ok(())
+}
+
 fn git_stdout(repo: &std::path::Path, args: &[&str]) -> anyhow::Result<Option<String>> {
     let output = Command::new("git").args(args).current_dir(repo).output()?;
     if !output.status.success() {
         return Ok(None);
     }
     Ok(Some(String::from_utf8_lossy(&output.stdout).trim().to_string()).filter(|s| !s.is_empty()))
+}
+
+fn score_trailers_from_report(
+    repo: &std::path::Path,
+    score_json: &std::path::Path,
+) -> anyhow::Result<String> {
+    let text = std::fs::read_to_string(score_json)?;
+    let value: serde_json::Value = serde_json::from_str(&text)?;
+    let score = value.get("score").and_then(|v| v.as_i64()).unwrap_or(0);
+    let raw_score = value
+        .get("raw_score")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(score);
+    let finding_count = value
+        .get("findings")
+        .and_then(|v| v.as_array())
+        .map(|v| v.len())
+        .unwrap_or(0);
+    let decision = value.get("decision");
+    let hard_findings = decision
+        .and_then(|v| v.get("hard_findings"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    let minimum_score = decision
+        .and_then(|v| v.get("minimum_score"))
+        .and_then(|v| v.as_i64())
+        .unwrap_or(85);
+    let status = if hard_findings > 0 || score < minimum_score {
+        "fail"
+    } else {
+        "pass"
+    };
+    let report = score_json
+        .strip_prefix(repo)
+        .unwrap_or(score_json)
+        .to_string_lossy()
+        .replace('\\', "/");
+    Ok(format!(
+        "Jankurai-Score: {score}\nJankurai-Raw-Score: {raw_score}\nJankurai-Findings: {finding_count}\nJankurai-Hard-Findings: {hard_findings}\nJankurai-Decision: {status}\nJankurai-Report: {report}"
+    ))
 }
 
 fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {

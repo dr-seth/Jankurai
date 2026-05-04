@@ -10,6 +10,7 @@ pub mod context_pack;
 pub mod doctor;
 pub mod exceptions;
 pub mod govern;
+pub mod hooks;
 pub mod init;
 pub mod migrate;
 pub mod optimize;

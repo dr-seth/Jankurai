@@ -17,6 +17,129 @@ pub fn body_for_path(path: &str, level: &str) -> Option<&'static str> {
 const ADAPTER_POINTER: &str = "<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n";
 const PROOF_ADAPTER_POINTER: &str = "---\nname: jankurai\ndescription: Jankurai workspace guidance for Codex. Read repo instructions, standard, and phase files before planning or editing.\n---\n\n# jankurai\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\n";
 const MINIMAL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\ncheck: fast score\n";
+pub const PRE_COMMIT_HOOK: &str = r#"#!/usr/bin/env bash
+# JANKURAI MANAGED HOOK: pre-commit
+set -euo pipefail
+
+if [ "${JANKURAI_SKIP_HOOKS:-}" = "1" ]; then
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+git_dir="$(git rev-parse --git-dir 2>/dev/null || printf '%s/.git' "$repo_root")"
+case "$git_dir" in
+  /*) ;;
+  *) git_dir="$repo_root/$git_dir" ;;
+esac
+jankurai_dir="$git_dir/jankurai"
+mkdir -p "$jankurai_dir"
+
+env_file="$jankurai_dir/env"
+if [ -f "$env_file" ]; then
+  # shellcheck disable=SC1090
+  . "$env_file"
+fi
+
+if [ -n "${JANKURAI_PRE_COMMIT_CHAIN:-}" ] && [ -x "$JANKURAI_PRE_COMMIT_CHAIN" ] && [ -z "${JANKURAI_CHAINED_HOOK:-}" ]; then
+  JANKURAI_CHAINED_HOOK=1 "$JANKURAI_PRE_COMMIT_CHAIN" "$@"
+fi
+
+if [ -n "${JANKURAI_BIN:-}" ] && [ -x "$JANKURAI_BIN" ]; then
+  jankurai_cmd="$JANKURAI_BIN"
+else
+  jankurai_cmd="${JANKURAI_FALLBACK_BIN:-jankurai}"
+fi
+
+cd "$repo_root"
+
+if ! "$jankurai_cmd" audit . --mode advisory \
+  --json agent/repo-score.json \
+  --md agent/repo-score.md \
+  --score-history agent/score-history.jsonl \
+  --score-history-csv agent/score-history.csv; then
+  echo "jankurai pre-commit audit failed; set JANKURAI_SKIP_HOOKS=1 to bypass local hooks" >&2
+  exit 1
+fi
+
+git add -- agent/repo-score.json agent/repo-score.md agent/score-history.jsonl agent/score-history.csv 2>/dev/null || true
+
+report_path="agent/repo-score.json"
+json_int() {
+  sed -n "s/^[[:space:]]*\"$1\":[[:space:]]*\([-0-9][0-9]*\).*/\1/p" "$report_path" | head -n 1
+}
+score="$(json_int score)"
+raw_score="$(json_int raw_score)"
+minimum_score="$(json_int minimum_score)"
+hard_findings="$(json_int hard_findings)"
+finding_count="$(grep -c '^[[:space:]]*"check_id":' "$report_path" || true)"
+
+score="${score:-0}"
+raw_score="${raw_score:-$score}"
+minimum_score="${minimum_score:-85}"
+hard_findings="${hard_findings:-0}"
+decision="pass"
+if [ "$hard_findings" -gt 0 ] || [ "$score" -lt "$minimum_score" ]; then
+  decision="fail"
+fi
+
+cat > "$jankurai_dir/last-score.env" <<EOF
+JANKURAI_SCORE='$score'
+JANKURAI_RAW_SCORE='$raw_score'
+JANKURAI_FINDINGS='$finding_count'
+JANKURAI_HARD_FINDINGS='$hard_findings'
+JANKURAI_DECISION='$decision'
+JANKURAI_REPORT='agent/repo-score.json'
+EOF
+"#;
+pub const PREPARE_COMMIT_MSG_HOOK: &str = r#"#!/usr/bin/env bash
+# JANKURAI MANAGED HOOK: prepare-commit-msg
+set -euo pipefail
+
+if [ "${JANKURAI_SKIP_HOOKS:-}" = "1" ]; then
+  exit 0
+fi
+
+message_file="${1:?commit message file is required}"
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+git_dir="$(git rev-parse --git-dir 2>/dev/null || printf '%s/.git' "$repo_root")"
+case "$git_dir" in
+  /*) ;;
+  *) git_dir="$repo_root/$git_dir" ;;
+esac
+jankurai_dir="$git_dir/jankurai"
+
+env_file="$jankurai_dir/env"
+if [ -f "$env_file" ]; then
+  # shellcheck disable=SC1090
+  . "$env_file"
+fi
+
+if [ -n "${JANKURAI_PREPARE_COMMIT_MSG_CHAIN:-}" ] && [ -x "$JANKURAI_PREPARE_COMMIT_MSG_CHAIN" ] && [ -z "${JANKURAI_CHAINED_HOOK:-}" ]; then
+  JANKURAI_CHAINED_HOOK=1 "$JANKURAI_PREPARE_COMMIT_MSG_CHAIN" "$@"
+fi
+
+last_score="$jankurai_dir/last-score.env"
+if [ ! -f "$last_score" ]; then
+  exit 0
+fi
+
+# shellcheck disable=SC1090
+. "$last_score"
+
+if [ -z "${JANKURAI_SCORE:-}" ] || grep -q '^Jankurai-Score:' "$message_file"; then
+  exit 0
+fi
+
+{
+  printf '\n'
+  printf 'Jankurai-Score: %s\n' "$JANKURAI_SCORE"
+  printf 'Jankurai-Raw-Score: %s\n' "${JANKURAI_RAW_SCORE:-$JANKURAI_SCORE}"
+  printf 'Jankurai-Findings: %s\n' "${JANKURAI_FINDINGS:-0}"
+  printf 'Jankurai-Hard-Findings: %s\n' "${JANKURAI_HARD_FINDINGS:-0}"
+  printf 'Jankurai-Decision: %s\n' "${JANKURAI_DECISION:-unknown}"
+  printf 'Jankurai-Report: %s\n' "${JANKURAI_REPORT:-agent/repo-score.json}"
+} >> "$message_file"
+"#;
 
 pub const TEMPLATES: &[Template] = &[
     Template {
@@ -234,6 +357,14 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "tools/security-lane.sh",
         body: "#!/usr/bin/env bash\nset -euo pipefail\n# Scaffold stub: replace with real secret/dependency/SBOM checks before treating this lane as proof.\necho \"security-lane scaffold requires project-specific checks\" >&2\nexit 2\n",
+    },
+    Template {
+        path: "tools/jankurai-hooks/pre-commit",
+        body: PRE_COMMIT_HOOK,
+    },
+    Template {
+        path: "tools/jankurai-hooks/prepare-commit-msg",
+        body: PREPARE_COMMIT_MSG_HOOK,
     },
     Template {
         path: "agent/ux-qa.toml",

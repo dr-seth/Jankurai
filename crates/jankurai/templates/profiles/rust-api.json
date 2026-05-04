@@ -36,7 +36,9 @@
     "docs/exceptions/README.md",
     "docs/ide-integrations.md",
     "docs/install.md",
-    "tools/security-lane.sh"
+    "tools/security-lane.sh",
+    "tools/jankurai-hooks/pre-commit",
+    "tools/jankurai-hooks/prepare-commit-msg"
   ],
   "mergePolicy": {
     "AGENTS.md": "merge-marker",

@@ -212,10 +212,14 @@ jankurai init . \
 
 jankurai ci install . --github --mode observe --dry-run
 jankurai ci install . --github --mode observe
+
+jankurai hooks install . --dry-run
+jankurai hooks install . --yes
 ```
 
 Generate the tracked advisory score, run local checks, and commit the Jankurai
-adoption:
+adoption. The first adoption commit can skip hooks because it uses the score
+generated below:
 
 ```bash
 jankurai audit . \
@@ -236,12 +240,12 @@ git add -- \
   .agents .claude .cursor .github \
   agent contracts db docs tools
 git diff --staged --stat
-git commit -m "Adopt Jankurai control plane"
+JANKURAI_SKIP_HOOKS=1 git commit -m "Adopt Jankurai control plane"
 ```
 
 The fast path is the explicit YOLO command. It applies Level 3, installs
-observe-mode CI, writes `agent/repo-score.*`, appends score history, stages the
-worktree, and commits:
+observe-mode CI and local scoring hooks, writes `agent/repo-score.*`, appends
+score history, stages the worktree, and commits with score trailers:
 
 ```bash
 jankurai init . \
@@ -272,6 +276,8 @@ contracts/
 db/
 docs/
 tools/security-lane.sh
+tools/jankurai-hooks/pre-commit
+tools/jankurai-hooks/prepare-commit-msg
 README-jankurai-scaffold.md
 ```
 
@@ -280,6 +286,9 @@ What the commit means:
 - Agents now have a standard entrypoint, owner map, test map, proof lanes, and
   generated-zone policy.
 - CI runs in observe mode by default and reports evidence.
+- Local commits run advisory scoring, stage score artifacts, and append
+  `Jankurai-*` commit trailers. Use `JANKURAI_SKIP_HOOKS=1 git commit ...` only
+  when you need to bypass local hooks.
 - The repository has a reviewable scaffold commit instead of an invisible local
   setup step.
 - Score enforcement is still not enabled.

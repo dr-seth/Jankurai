@@ -52,6 +52,31 @@ fn greenfield_apply_args(repo: std::path::PathBuf, profile: &str) -> init::InitA
     }
 }
 
+fn git(repo: &std::path::Path, args: &[&str]) {
+    let status = Command::new("git")
+        .args(args)
+        .current_dir(repo)
+        .status()
+        .unwrap();
+    assert!(status.success(), "git {:?} failed", args);
+}
+
+fn git_stdout(repo: &std::path::Path, args: &[&str]) -> String {
+    let output = Command::new("git")
+        .args(args)
+        .current_dir(repo)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "git {:?} failed", args);
+    String::from_utf8_lossy(&output.stdout).to_string()
+}
+
+fn init_git_repo(repo: &std::path::Path) {
+    git(repo, &["init", "-q"]);
+    git(repo, &["config", "user.email", "jankurai@example.test"]);
+    git(repo, &["config", "user.name", "Jankurai Test"]);
+}
+
 fn plan_paths(value: &serde_json::Value) -> Vec<String> {
     let mut paths: Vec<String> = value["actions"]
         .as_array()
@@ -115,6 +140,8 @@ fn init_level_agents_only_plans_agent_and_provider_guidance() {
     assert!(!paths.contains(&"Justfile".to_string()));
     assert!(!paths.contains(&"agent/owner-map.json".to_string()));
     assert!(!paths.contains(&".github/workflows/jankurai.yml".to_string()));
+    assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
+    assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
     assert!(!paths.iter().any(|path| path.starts_with("docs/")));
     assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
     assert!(!paths.iter().any(|path| path.starts_with("db/")));
@@ -150,6 +177,8 @@ fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
     assert!(!paths.contains(&".github/workflows/jankurai.yml".to_string()));
     assert!(!paths.contains(&"agent/security-policy.toml".to_string()));
     assert!(!paths.contains(&"tools/security-lane.sh".to_string()));
+    assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
+    assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
     assert!(!paths.iter().any(|path| path.starts_with("docs/")));
     assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
     assert!(!paths.iter().any(|path| path.starts_with("db/")));
@@ -186,6 +215,8 @@ fn init_level_ci_adds_observe_workflow_and_preserves_existing_workflow() {
     assert!(paths.contains(&".github/workflows/jankurai.yml".to_string()));
     assert!(paths.contains(&"agent/security-policy.toml".to_string()));
     assert!(paths.contains(&"tools/security-lane.sh".to_string()));
+    assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
+    assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
     assert!(!paths.iter().any(|path| path.starts_with("docs/")));
     assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
     assert!(!paths.iter().any(|path| path.starts_with("db/")));
@@ -208,6 +239,149 @@ fn init_level_ci_adds_observe_workflow_and_preserves_existing_workflow() {
     assert_eq!(
         fs::read_to_string(workflow_path).unwrap(),
         "name: existing\n"
+    );
+}
+
+#[test]
+fn init_level_full_creates_tracked_hook_scripts() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    let pre_commit = dir.path().join("tools/jankurai-hooks/pre-commit");
+    let prepare = dir.path().join("tools/jankurai-hooks/prepare-commit-msg");
+    assert!(pre_commit.is_file());
+    assert!(prepare.is_file());
+    assert!(fs::read_to_string(pre_commit)
+        .unwrap()
+        .contains("--mode advisory"));
+    assert!(fs::read_to_string(prepare)
+        .unwrap()
+        .contains("Jankurai-Score:"));
+}
+
+#[test]
+fn hooks_install_dry_run_writes_nothing() {
+    let dir = tempdir().unwrap();
+    init_git_repo(dir.path());
+
+    let status = Command::new(binary_path())
+        .arg("hooks")
+        .arg("install")
+        .arg(dir.path())
+        .arg("--dry-run")
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(!dir.path().join(".git/jankurai/env").exists());
+    assert!(!dir.path().join(".git/hooks/pre-commit").exists());
+    assert!(!dir.path().join(".git/hooks/prepare-commit-msg").exists());
+}
+
+#[test]
+fn hooks_install_yes_installs_local_hooks() {
+    let dir = tempdir().unwrap();
+    init_git_repo(dir.path());
+
+    let status = Command::new(binary_path())
+        .arg("hooks")
+        .arg("install")
+        .arg(dir.path())
+        .arg("--yes")
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let pre_commit = dir.path().join(".git/hooks/pre-commit");
+    let prepare = dir.path().join(".git/hooks/prepare-commit-msg");
+    assert!(pre_commit.is_file());
+    assert!(prepare.is_file());
+    assert!(dir.path().join(".git/jankurai/env").is_file());
+    assert!(fs::read_to_string(pre_commit)
+        .unwrap()
+        .contains("JANKURAI MANAGED HOOK: pre-commit"));
+    assert!(fs::read_to_string(prepare)
+        .unwrap()
+        .contains("JANKURAI MANAGED HOOK: prepare-commit-msg"));
+}
+
+#[test]
+fn hooks_install_backs_up_and_chains_existing_hooks() {
+    let dir = tempdir().unwrap();
+    init_git_repo(dir.path());
+    let hook_path = dir.path().join(".git/hooks/pre-commit");
+    fs::write(&hook_path, "#!/usr/bin/env bash\necho user hook\n").unwrap();
+
+    let status = Command::new(binary_path())
+        .arg("hooks")
+        .arg("install")
+        .arg(dir.path())
+        .arg("--yes")
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let env = fs::read_to_string(dir.path().join(".git/jankurai/env")).unwrap();
+    assert!(env.contains("JANKURAI_PRE_COMMIT_CHAIN="), "{env}");
+    let backups = fs::read_dir(dir.path().join(".git/jankurai/hooks"))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(backups.len(), 1);
+    assert!(fs::read_to_string(backups[0].path())
+        .unwrap()
+        .contains("user hook"));
+}
+
+#[test]
+fn init_yolo_installs_hooks_and_commit_score_trailers() {
+    let dir = tempdir().unwrap();
+    init_git_repo(dir.path());
+
+    let status = Command::new(binary_path())
+        .arg("init")
+        .arg(dir.path())
+        .arg("--profile")
+        .arg("rust-api")
+        .arg("--yolo")
+        .arg("--yes")
+        .arg("--yolo-message")
+        .arg("Adopt test Jankurai")
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    assert!(dir.path().join(".git/hooks/pre-commit").is_file());
+    assert!(dir.path().join(".git/hooks/prepare-commit-msg").is_file());
+    let first_message = git_stdout(dir.path(), &["log", "-1", "--format=%B"]);
+    assert!(first_message.contains("Jankurai-Score:"), "{first_message}");
+    assert!(first_message.contains("Jankurai-Report: agent/repo-score.json"));
+
+    fs::write(
+        dir.path().join("docs/architecture/README.md"),
+        "# Architecture\n\nCommit hook proof.\n",
+    )
+    .unwrap();
+    git(dir.path(), &["add", "docs/architecture/README.md"]);
+    git(dir.path(), &["commit", "-m", "Touch architecture docs"]);
+
+    let second_message = git_stdout(dir.path(), &["log", "-1", "--format=%B"]);
+    assert!(
+        second_message.contains("Jankurai-Score:"),
+        "{second_message}"
+    );
+    assert!(dir.path().join(".git/jankurai/last-score.env").is_file());
+    let history = fs::read_to_string(dir.path().join("agent/score-history.jsonl")).unwrap();
+    assert!(
+        history
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .count()
+            >= 2,
+        "{history}"
     );
 }
 

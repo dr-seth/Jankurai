@@ -36,7 +36,9 @@
     "docs/migration/README.md",
     "docs/migration/boundary-map.md",
     "docs/migration/slices/README.md",
-    "tools/security-lane.sh"
+    "tools/security-lane.sh",
+    "tools/jankurai-hooks/pre-commit",
+    "tools/jankurai-hooks/prepare-commit-msg"
   ],
   "mergePolicy": {
     "AGENTS.md": "merge-marker",

@@ -24,6 +24,9 @@ const EXCLUDED_DIRS: &[&str] = &[
     ".witness",
 ];
 
+const EXCLUDED_AGENT_STATE_DIRS: &[&str] = &[".antigravity", "antigravity"];
+const CURSOR_ALLOWED_PREFIXES: &[&str] = &[".cursor/rules/"];
+
 const TEXT_BASENAMES: &[&str] = &[
     "AGENTS.md",
     "CODEOWNERS",
@@ -198,6 +201,16 @@ pub fn inventory_repo(root: &Path) -> Result<Vec<FileInfo>> {
 }
 
 fn should_skip(path: &Path) -> bool {
+    let rel = path.to_string_lossy().replace('\\', "/");
+    if rel.starts_with(".cursor/") && !CURSOR_ALLOWED_PREFIXES.iter().any(|p| rel.starts_with(p)) {
+        return true;
+    }
+    if EXCLUDED_AGENT_STATE_DIRS
+        .iter()
+        .any(|dir| rel == *dir || rel.starts_with(&format!("{dir}/")))
+    {
+        return true;
+    }
     path.components().any(|c| {
         let s = c.as_os_str().to_string_lossy();
         EXCLUDED_DIRS.contains(&s.as_ref())
