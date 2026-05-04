@@ -49,6 +49,7 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
         crud_resource_manifest(repo, catalog),
         rbac_manifest(repo, catalog),
         auth_session_manifest(repo, catalog),
+        organization_team_manifest(repo, catalog),
     ]
 }
 
@@ -377,6 +378,88 @@ fn auth_session_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
     )
 }
 
+fn organization_team_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/organization_team.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/organization-team.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/003_organization_team.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/003_organization_team.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/organization-team-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "organization-team".to_string(),
+            version: "0.1.0".to_string(),
+            category: "organization".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "rbac", "auth-session"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "organization membership changes require an active authenticated account plus RBAC manage_members authorization",
+                "team membership changes emit audit-log evidence and never bypass application-layer policy",
+                "tenant identifiers stay explicit on teams and memberships so cross-organization access is repairable",
+                "membership invitations and provider-backed directory sync remain deferred until proved by dedicated provider contracts",
+            ]),
+            observability_events: strings(&[
+                "organization.team.created",
+                "organization.team.archived",
+                "organization.team.member_added",
+                "organization.team.member_removed",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/organization-team-cell.md",
+                "examples/perfect-web-api-db/ops/organization-team-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&[
+                "add invitation and SCIM/provider sync only after identities and membership proof commands are explicit",
+                "extend organization-team.openapi.json before exposing new membership routes to the frontend",
+                "add tenant-isolation tests before allowing any cross-organization membership move",
+                "keep membership table changes behind db-migration-analyze and reviewed rollback notes",
+            ]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "archive teams before deleting membership data so audit history remains explainable",
+                "reverse membership table or role enum changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
 fn certified_manifest(
     repo: &Path,
     catalog: &RepoCatalog,
@@ -429,6 +512,23 @@ fn certified_manifest(
             },
         });
     }
+    if manifest.cell_id == "organization-team" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/organization_team.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("TeamMembershipPolicy");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-team-membership-policy".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
     manifest.proof_commands = proof_commands(catalog, &manifest.proof_lanes);
     let is_certified = evidence
         .iter()
@@ -447,7 +547,13 @@ fn certified_manifest(
 
 /// Returns the set of built-in certified cell IDs for dependency-bound checks.
 fn lazy_built_in_ids() -> Vec<&'static str> {
-    vec!["audit-log", "crud-resource", "rbac", "auth-session"]
+    vec![
+        "audit-log",
+        "crud-resource",
+        "rbac",
+        "auth-session",
+        "organization-team",
+    ]
 }
 
 fn fallback_manifest(catalog: &RepoCatalog, cell_id: &str) -> CellManifest {

@@ -22,6 +22,7 @@ Current certified cells:
 - `crud-resource`
 - `rbac` (depends on `crud-resource`; sources and proof lanes tied to `examples/perfect-web-api-db/` authorization surface)
 - `auth-session` (depends on `audit-log` and `rbac`; sources and proof lanes tied to `examples/perfect-web-api-db/` identity/session boundary)
+- `organization-team` (depends on `audit-log`, `rbac`, and `auth-session`; sources and proof lanes tied to tenant-scoped team membership, DB constraints, UX states, and security assumptions)
 
 The installer remains dry-run only and never overwrites user files. `cell
 --mode prove` emits certification evidence and proof commands, but does not
@@ -86,7 +87,7 @@ Build in this order:
 2. CRUD table/form
 3. RBAC — certified as registry cell `rbac` (depends on `crud-resource`)
 4. auth/session shell — certified as registry cell `auth-session` (depends on `audit-log` and `rbac`)
-5. organization/team shell
+5. organization/team shell — certified as registry cell `organization-team` (depends on `audit-log`, `rbac`, and `auth-session`)
 6. background job
 7. webhook receiver
 8. notification/email shell
@@ -235,7 +236,8 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: hardened; **four** certified cells (`audit-log`, `crud-resource`, `rbac`, `auth-session`)
+- Phase status: hardened; **five** certified cells (`audit-log`, `crud-resource`, `rbac`, `auth-session`, `organization-team`)
+- Files changed (organization/team hardening, 2026-05-04): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/phase10_org_team_cell_smoke.rs`, `examples/perfect-web-api-db/backend/src/organization_team.rs`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/contracts/organization-team.openapi.json`, `examples/perfect-web-api-db/db/migrations/003_organization_team.sql`, `examples/perfect-web-api-db/db/constraints/003_organization_team.sql`, `examples/perfect-web-api-db/docs/organization-team-cell.md`, `examples/perfect-web-api-db/ops/organization-team-security.md`, `examples/perfect-web-api-db/ux/organization-team-routes.md`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/00-phase-index.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Files changed (auth/session hardening, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/phase10_auth_session_cell_smoke.rs`, `examples/perfect-web-api-db/backend/src/auth_session.rs`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/contracts/auth-session.openapi.json`, `examples/perfect-web-api-db/db/migrations/002_auth_sessions.sql`, `examples/perfect-web-api-db/db/constraints/002_auth_sessions.sql`, `examples/perfect-web-api-db/docs/auth-session-cell.md`, `examples/perfect-web-api-db/ops/auth-session-security.md`, `examples/perfect-web-api-db/ux/auth-session-routes.md`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/00-phase-index.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
   * Files changed (rbac slice, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Files changed (registry foundation): `schemas/cell-manifest.schema.json`, `schemas/cell-registry.schema.json`, `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/registry.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/src/validation.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/schema_contracts.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
@@ -245,8 +247,8 @@ Leave:
 - Generated artifacts: registry, cell dry-run, prove evidence, upgrade plan, deprecation plan, lane, fast score, and repo score JSON/Markdown outputs
 - Routing maps changed: none beyond existing owner/test inputs
 - Validation commands: `cargo test -p jankurai`; `just fast`; `just score`
-- Results: auth/session hardening validation passed; `just fast` score 93, caps 0
+- Results: organization/team patch is PR-ready but validation is pending in CI because this chat session exposed read-only GitHub tools after repository inspection; previous auth/session hardening validation passed with `just fast` score 93, caps 0
 - Feedback closeout (2026-05-04): `tips/phases_feedback/10-phase/tip1`-`tip4` reconciled in `docs/phases-feedback-status.md`; accepted `auth-session`, dependency-bound evidence, and lifecycle proof modes; rejected mutating/provider-backed install and secret-dependent runtime expansion.
-- Skipped validation: mutating install execution remains bounded for later extension; auth/session provider-backed runtime mutation remains deferred
+- Skipped validation: local command execution in this session; mutating install execution remains bounded for later extension; auth/session and organization/team provider-backed runtime mutation remains deferred
 - Exceptions created: provider-backed and mutating cells deferred; auth/session is certified as a shell, not a provider-backed login implementation
-- Follow-up phases: next registry cell **organization/team shell** (Initial Cell Order item 5); phases 11–13 as before
+- Follow-up phases: next registry cell **background job** (Initial Cell Order item 6); phases 11–13 as before
