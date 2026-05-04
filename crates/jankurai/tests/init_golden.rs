@@ -245,6 +245,15 @@ fn init_level_ci_adds_observe_workflow_and_preserves_existing_workflow() {
 #[test]
 fn init_level_full_creates_tracked_hook_scripts() {
     let dir = tempdir().unwrap();
+    fs::write(
+        dir.path().join("Cargo.toml"),
+        r#"[package]
+name = "fixture-init"
+version = "0.1.0"
+edition = "2021"
+"#,
+    )
+    .unwrap();
     init::run(greenfield_apply_args(
         dir.path().to_path_buf(),
         "rust-ts-postgres",
@@ -261,6 +270,29 @@ fn init_level_full_creates_tracked_hook_scripts() {
     assert!(fs::read_to_string(prepare)
         .unwrap()
         .contains("Jankurai-Score:"));
+    let witness = dir.path().join("tools/jankurai-rust/witness.sh");
+    assert!(witness.is_file());
+    assert!(fs::read_to_string(dir.path().join("Justfile"))
+        .unwrap()
+        .contains("rust-map:"));
+    assert!(fs::read_to_string(dir.path().join("Justfile"))
+        .unwrap()
+        .contains("rust-diagnose:"));
+}
+
+#[test]
+fn init_level_full_without_cargo_skips_rust_foundation_templates() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    assert!(!dir.path().join("tools/jankurai-rust/witness.sh").exists());
+    let justfile = fs::read_to_string(dir.path().join("Justfile")).unwrap();
+    assert!(!justfile.contains("rust-map:"));
+    assert!(!justfile.contains("rust-diagnose:"));
 }
 
 #[test]
@@ -340,6 +372,15 @@ fn hooks_install_backs_up_and_chains_existing_hooks() {
 fn init_yolo_installs_hooks_and_commit_score_trailers() {
     let dir = tempdir().unwrap();
     init_git_repo(dir.path());
+    fs::write(
+        dir.path().join("Cargo.toml"),
+        r#"[package]
+name = "fixture-yolo"
+version = "0.1.0"
+edition = "2021"
+"#,
+    )
+    .unwrap();
 
     let status = Command::new(binary_path())
         .arg("init")
@@ -356,6 +397,10 @@ fn init_yolo_installs_hooks_and_commit_score_trailers() {
 
     assert!(dir.path().join(".git/hooks/pre-commit").is_file());
     assert!(dir.path().join(".git/hooks/prepare-commit-msg").is_file());
+    assert!(dir.path().join("tools/jankurai-rust/witness.sh").is_file());
+    let justfile = fs::read_to_string(dir.path().join("Justfile")).unwrap();
+    assert!(justfile.contains("rust-map:"));
+    assert!(justfile.contains("rust-witness:"));
     let first_message = git_stdout(dir.path(), &["log", "-1", "--format=%B"]);
     assert!(first_message.contains("Jankurai-Score:"), "{first_message}");
     assert!(first_message.contains("Jankurai-Report: agent/repo-score.json"));

@@ -3,7 +3,7 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
-    migrate, optimize, proof, publish, registry, repair, repair_plan, security,
+    migrate, optimize, proof, publish, registry, repair, repair_plan, rust, security,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -43,6 +43,10 @@ enum Commands {
     Publish(PublishArgs),
     Repair(RepairArgs),
     Optimize(OptimizeArgs),
+    Rust {
+        #[command(subcommand)]
+        command: RustCommand,
+    },
     Exceptions {
         #[command(subcommand)]
         command: ExceptionCommand,
@@ -100,6 +104,22 @@ enum IssuesCommand {
 #[derive(Subcommand, Debug)]
 enum SecurityCommand {
     Run(SecurityRunArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum RustCommand {
+    Map(RustMapArgs),
+    Witness {
+        #[command(subcommand)]
+        command: RustWitnessCommand,
+    },
+    Diagnose(RustDiagnoseArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum RustWitnessCommand {
+    Build(RustWitnessBuildArgs),
+    Diff(RustWitnessDiffArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -595,6 +615,44 @@ struct SecurityRunArgs {
     strict: bool,
 }
 
+#[derive(Args, Debug)]
+struct RustMapArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, default_value = "target/jankurai/rust")]
+    out_dir: String,
+}
+
+#[derive(Args, Debug)]
+struct RustWitnessBuildArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, default_value = "target/jankurai/rust/witness-graph.json")]
+    out: String,
+}
+
+#[derive(Args, Debug)]
+struct RustWitnessDiffArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "FILE")]
+    old: PathBuf,
+    #[arg(long, value_name = "FILE")]
+    new: PathBuf,
+    #[arg(long, default_value = "target/jankurai/rust/witness-diff.json")]
+    out: String,
+    #[arg(long, default_value = "target/jankurai/rust/witness-diff.md")]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct RustDiagnoseArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, default_value = "target/jankurai/rust/compile-packets.json")]
+    out: String,
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
@@ -792,6 +850,37 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::Rust { command }) => match command {
+            RustCommand::Map(args) => {
+                rust::run_map(rust::RustMapArgs {
+                    repo: args.repo,
+                    out_dir: args.out_dir,
+                })?;
+            }
+            RustCommand::Witness { command } => match command {
+                RustWitnessCommand::Build(args) => {
+                    rust::run_witness_build(rust::RustWitnessBuildArgs {
+                        repo: args.repo,
+                        out: args.out,
+                    })?;
+                }
+                RustWitnessCommand::Diff(args) => {
+                    rust::run_witness_diff(rust::RustWitnessDiffArgs {
+                        repo: args.repo,
+                        old: args.old,
+                        new: args.new,
+                        out: args.out,
+                        md: args.md,
+                    })?;
+                }
+            },
+            RustCommand::Diagnose(args) => {
+                rust::run_diagnose(rust::RustDiagnoseArgs {
+                    repo: args.repo,
+                    out: args.out,
+                })?;
+            }
+        },
         Some(Commands::Exceptions { command }) => match command {
             ExceptionCommand::Expire(args) => {
                 exceptions::run_expire(exceptions::ExceptionExpireArgs {

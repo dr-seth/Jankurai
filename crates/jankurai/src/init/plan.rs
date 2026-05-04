@@ -43,7 +43,11 @@ pub fn build_plan(
         Some(path) => super::profiles::load_profile_from_path(repo, path)?,
         None => super::profiles::resolve_profile(repo, profile)?,
     };
-    let profile_manifest = filter_profile_manifest(profile_manifest, selected_level);
+    let profile_manifest = augment_for_repo(
+        repo,
+        filter_profile_manifest(profile_manifest, selected_level),
+        selected_level,
+    );
     let profile = profile_manifest.id.clone();
     let mut paths = profile_manifest.generated_paths.clone();
     paths.sort();
@@ -384,6 +388,49 @@ fn filter_profile_manifest(
         .into_iter()
         .filter(|(path, _)| generated.contains(path.as_str()))
         .collect::<BTreeMap<_, _>>();
+    manifest
+}
+
+fn augment_for_repo(
+    repo: &Path,
+    mut manifest: super::profiles::ProfileManifest,
+    level: InitLevel,
+) -> super::profiles::ProfileManifest {
+    if level != InitLevel::Full || !repo.join("Cargo.toml").exists() {
+        return manifest;
+    }
+
+    for path in ["Justfile", "tools/jankurai-rust/witness.sh"] {
+        if !manifest
+            .generated_paths
+            .iter()
+            .any(|existing| existing == path)
+        {
+            manifest.generated_paths.push(path.into());
+        }
+    }
+    manifest.generated_paths.sort();
+    manifest.merge_policy.insert(
+        "Justfile".into(),
+        super::profiles::MergePolicyAction::MergeLines,
+    );
+    manifest.merge_policy.insert(
+        "tools/jankurai-rust/witness.sh".into(),
+        super::profiles::MergePolicyAction::KeepExisting,
+    );
+    for command in [
+        "jankurai rust map .",
+        "jankurai rust witness build .",
+        "jankurai rust diagnose .",
+    ] {
+        if !manifest
+            .validation_commands
+            .iter()
+            .any(|existing| existing == command)
+        {
+            manifest.validation_commands.push(command.into());
+        }
+    }
     manifest
 }
 

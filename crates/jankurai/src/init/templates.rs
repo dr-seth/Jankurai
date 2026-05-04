@@ -7,9 +7,14 @@ pub fn template_for_path(path: &str) -> Option<&'static Template> {
     TEMPLATES.iter().find(|t| t.path == path)
 }
 
-pub fn body_for_path(path: &str, level: &str) -> Option<&'static str> {
-    if path == "Justfile" && matches!(level, "agents" | "score") {
-        return Some(MINIMAL_JUSTFILE);
+pub fn body_for_path(path: &str, level: &str, cargo_repo: bool) -> Option<&'static str> {
+    if path == "Justfile" {
+        if cargo_repo && level == "full" {
+            return Some(RUST_FULL_JUSTFILE);
+        }
+        if matches!(level, "agents" | "score") {
+            return Some(MINIMAL_JUSTFILE);
+        }
     }
     template_for_path(path).map(|template| template.body)
 }
@@ -17,6 +22,7 @@ pub fn body_for_path(path: &str, level: &str) -> Option<&'static str> {
 const ADAPTER_POINTER: &str = "<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\n";
 const PROOF_ADAPTER_POINTER: &str = "---\nname: jankurai\ndescription: Jankurai workspace guidance for Codex. Read repo instructions, standard, and phase files before planning or editing.\n---\n\n# jankurai\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.\nFor planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\n";
 const MINIMAL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\ncheck: fast score\n";
+const RUST_FULL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\nsecurity:\n\tjankurai security run . --out target/jankurai/security/evidence.json\n\nrust-map:\n\tjankurai rust map .\n\nrust-witness:\n\tjankurai rust witness build .\n\nrust-diagnose:\n\tjankurai rust diagnose .\n\ncheck: fast score security rust-map rust-witness rust-diagnose\n";
 pub const PRE_COMMIT_HOOK: &str = r#"#!/usr/bin/env bash
 # JANKURAI MANAGED HOOK: pre-commit
 set -euo pipefail
@@ -240,7 +246,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "docs/install.md",
-        body: "# Install jankurai\n\nRun `jankurai init --profile rust-ts-postgres --ide all --mode advisory --dry-run`, review the plan, then rerun with `--yes`.\n",
+        body: "# Install jankurai\n\nRun `jankurai init --profile rust-ts-postgres --ide all --mode advisory --dry-run`, review the plan, then rerun with `--yes`.\n\nFor Rust services that want runtime repair packets, an optional `witness-rt` crate can emit packets that feed the Rust witness and diagnose flows.\n",
     },
     Template {
         path: "docs/agent-native-standard.md",
@@ -357,6 +363,10 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "tools/security-lane.sh",
         body: "#!/usr/bin/env bash\nset -euo pipefail\n# Scaffold stub: replace with real secret/dependency/SBOM checks before treating this lane as proof.\necho \"security-lane scaffold requires project-specific checks\" >&2\nexit 2\n",
+    },
+    Template {
+        path: "tools/jankurai-rust/witness.sh",
+        body: "#!/usr/bin/env bash\nset -euo pipefail\nrepo_root=\"${1:-.}\"\nexec jankurai rust witness build \"$repo_root\"\n",
     },
     Template {
         path: "tools/jankurai-hooks/pre-commit",

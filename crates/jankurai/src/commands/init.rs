@@ -82,6 +82,7 @@ fn apply_templates(
     level: &str,
     force_generated_adapters: bool,
 ) -> Result<Vec<InitAction>> {
+    let cargo_repo = repo.join("Cargo.toml").exists();
     let mut paths = manifest.generated_paths.clone();
     paths.sort();
     let mut actions = vec![];
@@ -90,7 +91,8 @@ fn apply_templates(
         progress.tick(format!("apply {rel}"));
         let template = crate::init::templates::template_for_path(&rel)
             .with_context(|| format!("no template registered for profile path `{rel}`"))?;
-        let body = crate::init::templates::body_for_path(&rel, level).unwrap_or(template.body);
+        let body =
+            crate::init::templates::body_for_path(&rel, level, cargo_repo).unwrap_or(template.body);
         let path = repo.join(&rel);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
@@ -190,6 +192,7 @@ fn existing_generated_adapter_needs_write(
 }
 
 fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest, level: &str) {
+    let cargo_repo = repo.join("Cargo.toml").exists();
     let mut paths = manifest.generated_paths.clone();
     paths.sort();
     for rel in paths {
@@ -197,7 +200,8 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest, le
             println!("--- {} missing template", rel);
             continue;
         };
-        let body = crate::init::templates::body_for_path(&rel, level).unwrap_or(template.body);
+        let body =
+            crate::init::templates::body_for_path(&rel, level, cargo_repo).unwrap_or(template.body);
         let path_obj = repo.join(&rel);
         if path_obj.exists() {
             let existing = fs::read_to_string(&path_obj).unwrap_or_default();
