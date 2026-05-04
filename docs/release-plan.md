@@ -21,18 +21,18 @@ Use separate versions because the paper, rules, and tooling will move at differe
 | Version | Format | Example | Rule |
 | --- | --- | --- | --- |
 | Paper edition | date plus edition | `2026.05-ed5` | changes when the argument or evidence changes |
-| Standard version | SemVer | `0.6.0` | breaking compliance rule means major bump |
-| Audit version | SemVer | `0.6.0` | implementation release of the scanner |
-| Output schema | SemVer | `1.4.0` | breaking JSON/Markdown contract means major bump |
-| Rule pack version | SemVer plus tool | `codex-0.6.0` | tracks standard version with tool-specific packaging |
+| Standard version | SemVer | `0.6.1` | breaking compliance rule means major bump |
+| Audit version | SemVer | `0.6.1` | implementation release of the scanner |
+| Output schema | SemVer | `1.4.1` | breaking JSON/Markdown contract means major bump |
+| Rule pack version | SemVer plus tool | `codex-0.6.1` | tracks standard version with tool-specific packaging |
 
 Every audit output should include:
 
 ```json
 {
-  "standard_version": "0.6.0",
-  "auditor_version": "0.6.0",
-  "schema_version": "1.4.0",
+  "standard_version": "0.6.1",
+  "auditor_version": "0.6.1",
+  "schema_version": "1.4.1",
   "paper_edition": "2026.05-ed5",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
@@ -43,8 +43,8 @@ Every adopted repo should pin:
 
 ```json
 {
-  "jankurai_standard": "0.6.0",
-  "audit_min_version": "0.6.0",
+  "jankurai_standard": "0.6.1",
+  "audit_min_version": "0.6.1",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
   "advisory_on": ["medium", "low"]
@@ -174,6 +174,21 @@ Exit criteria:
 - scanner detects undocumented or string-only errors in owned layers
 - generated exception catalog can route repairs to owners
 - examples exist for Rust, TypeScript, SQL, and Python service boundary
+
+### v0.6.1: Vibe Coverage Hardening
+
+Patch hardening for the v0.6 coverage release:
+
+- reviewed canonical groups and detector/evidence status for all 260 vibe-coding source rows
+- `0` unmapped, duplicate, unreviewed, or unjustified `none` rows
+- `absolute` coverage only when detector-backed audit/report evidence exists
+- semantic mapping fixtures and HLT-022 through HLT-027 detector fixtures
+- generated paper table uses short rule labels in cells and a separate rule legend
+
+Exit criteria:
+
+- version bindings align at standard/auditor `0.6.1`, schema `1.4.1`, and paper `2026.05-ed5`
+- `jankurai vibe validate` rejects missing rows, duplicate rows, title drift, unknown rule/tool/lane references, unreviewed rows, unjustified `none`, and unsupported `absolute`
 
 ### v0.6.0: Trustworthy Merge Release
 

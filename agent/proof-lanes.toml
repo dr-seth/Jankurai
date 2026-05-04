@@ -124,3 +124,8 @@ purpose = "verify versions"
 name = "ux-qa"
 command = "just ux-qa"
 purpose = "verify UX QA"
+
+[[lane]]
+name = "observability"
+command = "cargo run -p jankurai -- . --json target/jankurai/observability-score.json --md target/jankurai/observability-score.md"
+purpose = "verify telemetry and repair receipt surfaces"

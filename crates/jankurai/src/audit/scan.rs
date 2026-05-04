@@ -352,33 +352,45 @@ pub fn false_green_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 
 pub fn authz_isolation_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let product = product_code_files(ctx);
-    let has_authz_surface = product.iter().any(|file| {
-        let lower = file.text.to_ascii_lowercase();
-        AUTHZ_ISOLATION_PATTERNS
-            .iter()
-            .any(|pattern| lower.contains(pattern))
+    let authz_surface = product.iter().find_map(|file| {
+        file.text.lines().enumerate().find_map(|(idx, line)| {
+            let lower = line.to_ascii_lowercase();
+            AUTHZ_ISOLATION_PATTERNS
+                .iter()
+                .find(|pattern| lower.contains(**pattern))
+                .map(|pattern| {
+                    (
+                        file,
+                        idx + 1,
+                        line.trim().to_string(),
+                        (*pattern).to_string(),
+                    )
+                })
+        })
     });
-    if !has_authz_surface {
+    let Some((file, line, text, matched_term)) = authz_surface else {
         return vec![];
-    }
+    };
     let has_negative_tests = ctx.all_files.iter().any(|file| {
         let lower = file.text.to_ascii_lowercase();
         is_test_file(file)
             && (lower.contains("wrong user")
                 || lower.contains("other user")
                 || lower.contains("non-owner")
+                || lower.contains("non owner")
                 || lower.contains("forbidden")
                 || lower.contains("tenant isolation")
+                || lower.contains("owner/non-owner")
                 || lower.contains("rls"))
     });
     if has_negative_tests {
         vec![]
     } else {
         vec![FindingHit {
-            path: "agent/vibe-coverage.toml".into(),
-            line: None,
-            text: "authz or tenant markers found without matching negative isolation tests".into(),
-            matched_term: Some("authz isolation".into()),
+            path: file.rel_path.clone(),
+            line: Some(line),
+            text,
+            matched_term: Some(matched_term),
             agent_fix: "add owner/non-owner authorization tests or RLS evidence for the touched data boundary".into(),
             problem: "authorization or data-isolation surface lacks direct negative proof".into(),
         }]
@@ -386,25 +398,124 @@ pub fn authz_isolation_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 }
 
 pub fn input_boundary_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(&product_code_files(ctx), INPUT_BOUNDARY_PATTERNS)
+    let mut hits = Vec::new();
+    for file in product_code_files(ctx) {
+        for (idx, line) in file.text.lines().enumerate() {
+            let lower = line.to_ascii_lowercase();
+            let matched = if lower.contains("eval(") {
+                Some("eval(")
+            } else if lower.contains("exec(")
+                || lower.contains("child_process")
+                || lower.contains("command::new")
+                || lower.contains("shell=true")
+            {
+                Some("shell execution")
+            } else if lower.contains("dangerouslysetinnerhtml") || lower.contains("innerhtml") {
+                Some("unsafe html")
+            } else if (lower.contains("select ") || lower.contains("select * from"))
+                && (lower.contains("format!(")
+                    || lower.contains("+")
+                    || lower.contains("${")
+                    || lower.contains("concat"))
+            {
+                Some("string sql")
+            } else if lower.contains("fetch(")
+                && (lower.contains("req.query")
+                    || lower.contains("request.query")
+                    || lower.contains("user_url")
+                    || lower.contains("userurl")
+                    || lower.contains("url ="))
+            {
+                Some("ssrf fetch")
+            } else if (lower.contains("upload") || lower.contains("filename"))
+                && (lower.contains("../")
+                    || lower.contains("path.join")
+                    || lower.contains("originalname"))
+            {
+                Some("upload traversal")
+            } else {
+                None
+            };
+            if let Some(term) = matched {
+                if lower.contains("allowlist")
+                    || lower.contains("parameterized")
+                    || lower.contains("prepared")
+                    || lower.contains("sanitize")
+                    || lower.contains("safehtml")
+                    || lower.contains("safe_url")
+                {
+                    continue;
+                }
+                hits.push(FindingHit {
+                    path: file.rel_path.clone(),
+                    line: Some(idx + 1),
+                    text: line.trim().chars().take(160).collect(),
+                    matched_term: Some(term.into()),
+                    agent_fix: "replace unsafe sinks with typed schemas, parameterized APIs, allowlists, or sandboxed execution plus negative tests".into(),
+                    problem: line.trim().chars().take(160).collect(),
+                });
+            }
+        }
+    }
+    hits
 }
 
 pub fn agent_tool_supply_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(
-        &ctx.all_files
+    let files = ctx
+        .all_files
+        .iter()
+        .filter(|file| {
+            !file.is_generated
+                && (file.rel_path.starts_with("agent/")
+                    || file.rel_path.starts_with(".agents/")
+                    || file.rel_path.starts_with(".github/")
+                    || file.rel_path.starts_with(".cursor/")
+                    || file.rel_path == "AGENTS.md")
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let risky = [
+        "allow = \"all\"",
+        "allow = [\"all\"]",
+        "permissions = \"all\"",
+        "write-all",
+        "auto_run = true",
+        "auto-run = true",
+        "unrestricted",
+        "unpinned",
+        "latest",
+        "curl | sh",
+        "network = true",
+        "filesystem = true",
+        "danger-full-access",
+    ];
+    let mut hits = Vec::new();
+    for file in files {
+        let file_has_surface = AGENT_TOOL_SUPPLY_PATTERNS
             .iter()
-            .filter(|file| {
-                !file.is_generated
-                    && (file.rel_path.starts_with("agent/")
-                        || file.rel_path.starts_with(".agents/")
-                        || file.rel_path.starts_with(".github/")
-                        || file.rel_path.starts_with(".cursor/")
-                        || file.rel_path == "AGENTS.md")
-            })
-            .cloned()
-            .collect::<Vec<_>>(),
-        AGENT_TOOL_SUPPLY_PATTERNS,
-    )
+            .any(|pattern| file.text.to_ascii_lowercase().contains(pattern));
+        if !file_has_surface {
+            continue;
+        }
+        for (idx, line) in file.text.lines().enumerate() {
+            let lower = line.to_ascii_lowercase();
+            if lower.contains("hlt-") {
+                continue;
+            }
+            let has_risk = risky.iter().any(|pattern| lower.contains(pattern));
+            if has_risk {
+                hits.push(FindingHit {
+                    path: file.rel_path.clone(),
+                    line: Some(idx + 1),
+                    text: line.trim().chars().take(160).collect(),
+                    matched_term: Some("agent tool supply".into()),
+                    agent_fix: "pin and review agent tools, MCP servers, hooks, and rule files; keep untrusted tool output separate from trusted policy".into(),
+                    problem: line.trim().chars().take(160).collect(),
+                });
+            }
+        }
+    }
+    hits
 }
 
 pub fn release_readiness_hits(ctx: &AuditContext) -> Vec<FindingHit> {
@@ -417,10 +528,11 @@ pub fn release_readiness_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     });
     let has_release_lane = ctx.all_files.iter().any(|file| {
         let lower = file.text.to_ascii_lowercase();
-        lower.contains("just check")
-            && lower.contains("just score")
-            && lower.contains("just paper")
+        lower.contains("launch gate")
+            && lower.contains("backup")
             && lower.contains("rollback")
+            && lower.contains("monitoring")
+            && (lower.contains("rate limit") || lower.contains("abuse"))
     });
     if has_release_claim && !has_release_lane {
         vec![FindingHit {
@@ -438,14 +550,25 @@ pub fn release_readiness_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 
 pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let has_cost_surface = ctx.all_files.iter().any(|file| {
-        !file.is_generated
-            && COST_BUDGET_PATTERNS
-                .iter()
-                .any(|pattern| file.text.to_ascii_lowercase().contains(pattern))
+        !file.is_generated && {
+            let lower = file.text.to_ascii_lowercase();
+            lower.contains("openai")
+                || lower.contains("anthropic")
+                || lower.contains("stripe")
+                || lower.contains("paid api")
+                || lower.contains("api bill")
+                || lower.contains("token")
+                || COST_BUDGET_PATTERNS
+                    .iter()
+                    .any(|pattern| lower.contains(pattern))
+        }
     });
     let has_budget_policy = ctx.all_files.iter().any(|file| {
         let lower = file.text.to_ascii_lowercase();
-        lower.contains("budget") && lower.contains("stop condition")
+        lower.contains("budget")
+            && lower.contains("quota")
+            && (lower.contains("spend cap") || lower.contains("kill switch"))
+            && lower.contains("stop condition")
     });
     if has_cost_surface && !has_budget_policy {
         vec![FindingHit {
@@ -462,14 +585,38 @@ pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 }
 
 pub fn human_review_evidence_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(
-        &ctx.all_files
-            .iter()
-            .filter(|file| !file.is_generated && !file.rel_path.starts_with("reference/"))
-            .cloned()
-            .collect::<Vec<_>>(),
-        HUMAN_REVIEW_EVIDENCE_PATTERNS,
-    )
+    let mut hits = Vec::new();
+    let risky_claims = [
+        "accept all",
+        "lgtm",
+        "looks good",
+        "fabricated",
+        "trust me",
+        "tests passed (not run)",
+        "success without logs",
+    ];
+    for file in ctx.all_files.iter().filter(|file| {
+        !file.is_generated
+            && !file.rel_path.starts_with("reference/")
+            && !file.rel_path.starts_with("tips/")
+            && file.rel_path != "agent/vibe-coverage.toml"
+            && !file.rel_path.starts_with("crates/jankurai/")
+    }) {
+        for (idx, line) in file.text.lines().enumerate() {
+            let lower = line.to_ascii_lowercase();
+            if risky_claims.iter().any(|pattern| lower.contains(pattern)) {
+                hits.push(FindingHit {
+                    path: file.rel_path.clone(),
+                    line: Some(idx + 1),
+                    text: line.trim().chars().take(160).collect(),
+                    matched_term: Some("review evidence".into()),
+                    agent_fix: "attach raw CI logs, review receipts, and replayable commands instead of accepting claims or summaries".into(),
+                    problem: line.trim().chars().take(160).collect(),
+                });
+            }
+        }
+    }
+    hits
 }
 
 fn is_test_file(file: &FileInfo) -> bool {

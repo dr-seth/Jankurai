@@ -1,6 +1,6 @@
 # jankurai Audit Rubric
 
-Version: `0.6.0`
+Version: `0.6.1`
 
 Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + bounded Python AI/data service.
 

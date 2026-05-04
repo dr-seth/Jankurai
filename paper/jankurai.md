@@ -6,7 +6,7 @@ Subtitle: **From Vibe Coding to Agent-Native Engineering**
 
 Paper edition: `2026.05-ed5`
 
-Standard version: `0.6.0`
+Standard version: `0.6.1`
 
 Canonical source: `paper/jankurai.tex` plus `paper/tex/`
 
@@ -108,7 +108,7 @@ Appendices:
 | `agent/standard-version.toml` | Canonical version manifest | all versions |
 | `agent/repo-score.json` | Canonical audit report JSON | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
 | `agent/repo-score.md` | Human-readable audit and repair brief | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
-| `agent/vibe-coverage.toml` | Canonical mapping from 260 vibe-coding source rows to coverage controls | coverage schema `1.4.0` |
+| `agent/vibe-coverage.toml` | Canonical mapping from 260 vibe-coding source rows to coverage controls | coverage schema `1.4.1` |
 | `target/jankurai/vibe-coverage.json` | Emitted vibe coverage report | coverage report schema |
 | `paper/tex/generated/vibe_coverage_table.tex` | Generated paper appendix coverage table | `paper_edition` |
 | `target/jankurai/evidence-index.json` | Proof evidence index from `jankurai prove` | proof schema |

@@ -206,7 +206,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "agent/JANKURAI_STANDARD.md",
-        body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.5.0`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/tool-adoption.toml`, and `agent/boundaries.toml` before editing.\n",
+        body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.6.1`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/tool-adoption.toml`, and `agent/boundaries.toml` before editing.\n",
     },
     Template {
         path: "agent/MASTER_PLAN.md",

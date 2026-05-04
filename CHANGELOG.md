@@ -8,6 +8,16 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ### Added
 
+## 0.6.1 - 2026-05-04
+
+### Changed
+
+- Hardened vibe coverage taxonomy with reviewed canonical groups, detector/evidence status fields, and `0` uncovered source rows.
+- Downgraded broad `absolute` claims to `partial` unless backed by detector and audit evidence.
+- Strengthened `jankurai vibe validate` for title matching, duplicate/missing row checks, known rule/tool/lane references, reviewed rows, and absolute-evidence requirements.
+- Added semantic coverage fixtures and HLT-022 through HLT-027 detector fixtures.
+- Regenerated the paper coverage table with short rule labels and a separate legend.
+
 ## 0.6.0 - 2026-05-04
 
 ### Added

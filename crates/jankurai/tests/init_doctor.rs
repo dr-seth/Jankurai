@@ -1,4 +1,4 @@
-use jankurai::commands::init;
+use jankurai::{audit, commands::init};
 use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
@@ -27,6 +27,99 @@ fn init_dry_run_writes_nothing() {
 
     assert!(!dir.path().join("AGENTS.md").exists());
     assert!(!dir.path().join("target/jankurai/receipts").exists());
+}
+
+#[test]
+fn generated_adapters_are_protected_unless_force_refresh_is_requested() {
+    let dir = tempdir().unwrap();
+    let adapter = dir.path().join("CLAUDE.md");
+    fs::write(
+        &adapter,
+        "<!-- jankurai generated adapter -->\ncustom local edit\n",
+    )
+    .unwrap();
+
+    init::run(init::InitArgs {
+        repo: dir.path().to_path_buf(),
+        apply: false,
+        dry_run: false,
+        yes: true,
+        profile: "rust-ts-vite-react-postgres".into(),
+        profile_file: None,
+        level: "agents".into(),
+        ide: "claude".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: None,
+        force_generated_adapters: false,
+    })
+    .unwrap();
+    assert!(fs::read_to_string(&adapter)
+        .unwrap()
+        .contains("custom local edit"));
+
+    init::run(init::InitArgs {
+        repo: dir.path().to_path_buf(),
+        apply: false,
+        dry_run: false,
+        yes: true,
+        profile: "rust-ts-vite-react-postgres".into(),
+        profile_file: None,
+        level: "agents".into(),
+        ide: "claude".into(),
+        mode: "advisory".into(),
+        diff: false,
+        ci: "github".into(),
+        issue_backend: "jsonl".into(),
+        ux_qa: false,
+        plan_json: None,
+        force_generated_adapters: true,
+    })
+    .unwrap();
+    let refreshed = fs::read_to_string(&adapter).unwrap();
+    assert!(!refreshed.contains("custom local edit"));
+    assert!(refreshed.contains("explicit MASTER_PLAN/phase work only"));
+}
+
+#[test]
+fn init_v061_artifacts_are_idempotent() {
+    let dir = tempdir().unwrap();
+    for _ in 0..2 {
+        init::run(init::InitArgs {
+            repo: dir.path().to_path_buf(),
+            apply: false,
+            dry_run: false,
+            yes: true,
+            profile: "rust-ts-vite-react-postgres".into(),
+            profile_file: None,
+            level: "score".into(),
+            ide: "none".into(),
+            mode: "advisory".into(),
+            diff: false,
+            ci: "github".into(),
+            issue_backend: "jsonl".into(),
+            ux_qa: false,
+            plan_json: None,
+            force_generated_adapters: false,
+        })
+        .unwrap();
+    }
+
+    let standard = fs::read_to_string(dir.path().join("agent/standard-version.toml")).unwrap();
+    assert!(standard.contains("standard_version = \"0.6.1\""));
+    assert!(standard.contains("schema_version = \"1.4.1\""));
+    assert_eq!(standard.matches("standard_version").count(), 1);
+}
+
+#[test]
+fn audit_omits_vibe_coverage_when_source_is_absent() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# fixture\n").unwrap();
+    let report = audit::run_audit(dir.path(), &[]).unwrap();
+    assert!(report.vibe_coverage.is_none());
 }
 
 #[test]

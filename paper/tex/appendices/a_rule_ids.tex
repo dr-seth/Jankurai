@@ -46,11 +46,11 @@ The audit JSON should include the rule ID whenever a finding maps cleanly to one
 
 \subsection{Vibe-Coding Source Coverage}
 
-Jankurai 0.6.0 maps every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
+Jankurai 0.6.1 maps every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
 through \texttt{tip5.txt} into \texttt{agent/vibe-coverage.toml}. Coverage is
-green when a row has deterministic detector, proof-lane, and report evidence;
-yellow when Jankurai has a named control but still needs fixture-backed
-evidence; red when the issue is tracked but not yet controlled.
+green only when a row has detector-backed proof/report evidence; yellow when
+Jankurai has a reviewed control family but still needs issue-specific fixture,
+CI, or governance evidence. The v0.6.1 source has no red rows.
 
 \IfFileExists{paper/tex/generated/vibe_coverage_table.tex}{%
   \input{paper/tex/generated/vibe_coverage_table.tex}%
@@ -69,7 +69,7 @@ evidence; red when the issue is tracked but not yet controlled.
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.18\textwidth} L{0.16\textwidth} L{0.16\textwidth} Y}
 \toprule
-\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.6.0} \\
+\textbf{TLR} & \textbf{Rule family} & \textbf{Default lane} & \textbf{Detector status in jankurai 0.6.1} \\
 \midrule
 Security & HLT-009/010/011/012/016/020/023/024 & security & Partial: CI scan presence, secret-like content, prompt-injection markers, overbroad agency markers, input-boundary markers, agent-tool supply surfaces, generated-security gaps, CI hardening gaps. \\
 Business truth & HLT-005/008/022 & db, fast, release & Partial: Python truth, false-green markers, and authz/data-isolation evidence gaps; domain invariant quality remains evidence-driven. \\
@@ -85,9 +85,9 @@ Streaming & HLT-019 & contract, observability & Implemented for direct broker cl
 
 \begin{lstlisting}[style=codebox]
 {
-  "standard_version": "0.6.0",
-  "auditor_version": "0.6.0",
-  "schema_version": "1.4.0",
+  "standard_version": "0.6.1",
+  "auditor_version": "0.6.1",
+  "schema_version": "1.4.1",
   "paper_edition": "2026.05-ed5",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "agent_fix_queue": [

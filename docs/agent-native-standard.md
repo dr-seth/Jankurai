@@ -1,7 +1,7 @@
 # jankurai Agent-Native Repository Standard
 
-Standard version: `0.6.0`
-Published: `2026-05-02`
+Standard version: `0.6.1`
+Published: `2026-05-04`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
 

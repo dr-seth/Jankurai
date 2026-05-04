@@ -843,6 +843,39 @@ fn vibe_coverage_schemas_parse_and_source_validates() {
         report_schema["properties"]["issues"]["items"]["$ref"],
         "vibe-coverage-source.schema.json#/$defs/issue"
     );
+    assert_eq!(
+        source_schema["properties"]["schema_version"]["const"],
+        "1.4.1"
+    );
+    let issue_required = source_schema["$defs"]["issue"]["required"]
+        .as_array()
+        .unwrap();
+    for key in [
+        "canonical_group",
+        "source_issue_kind",
+        "detector_status",
+        "evidence_status",
+        "reviewed",
+    ] {
+        assert!(
+            issue_required.iter().any(|value| value == key),
+            "vibe coverage source issue must require `{key}`"
+        );
+    }
+    for key in [
+        "canonical_group_counts",
+        "detector_status_counts",
+        "evidence_status_counts",
+    ] {
+        assert!(
+            report_schema["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == key),
+            "vibe coverage report must require `{key}`"
+        );
+    }
 
     let source = fs::read_to_string(repo.join("agent/vibe-coverage.toml")).unwrap();
     let value = validation::validate_vibe_coverage_source_toml_text(&repo, &source).unwrap();

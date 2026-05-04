@@ -1,7 +1,7 @@
 # jankurai Standard Agent Bootstrap
 
-Standard version: `0.6.0`
-Published: `2026-05-02`
+Standard version: `0.6.1`
+Published: `2026-05-04`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`

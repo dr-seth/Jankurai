@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "release", "paper_edition", "source_count", "issues"],
   "properties": {
-    "schema_version": { "const": "1.4.0" },
+    "schema_version": { "const": "1.4.1" },
     "release": { "type": "string" },
     "paper_edition": { "type": "string" },
     "source_count": { "type": "integer", "minimum": 0 },
@@ -31,6 +31,11 @@
         "aliases",
         "tlr",
         "category",
+        "canonical_group",
+        "source_issue_kind",
+        "detector_status",
+        "evidence_status",
+        "reviewed",
         "description",
         "recommended_control",
         "source_refs",
@@ -51,6 +56,35 @@
         "aliases": { "$ref": "#/$defs/stringArray" },
         "tlr": { "type": "string", "minLength": 1 },
         "category": { "type": "string", "minLength": 1 },
+        "canonical_group": {
+          "type": "string",
+          "enum": [
+            "authz-data-isolation",
+            "input-boundary",
+            "secrets-privacy",
+            "dependency-supply-chain",
+            "agent-tool-supply",
+            "prod-destructive-release",
+            "cost-budget",
+            "test-verification",
+            "requirements-context",
+            "architecture-entropy",
+            "performance-concurrency",
+            "observability-repair",
+            "ux-a11y",
+            "human-review-governance"
+          ]
+        },
+        "source_issue_kind": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "detector_status": {
+          "type": "string",
+          "enum": ["detector-backed", "control-family", "governance-control"]
+        },
+        "evidence_status": {
+          "type": "string",
+          "enum": ["audit-evidence", "partial-evidence", "accepted-risk"]
+        },
+        "reviewed": { "const": true },
         "description": { "type": "string", "minLength": 1 },
         "recommended_control": { "type": "string", "minLength": 1 },
         "source_refs": {

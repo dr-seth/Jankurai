@@ -4,13 +4,13 @@ Vibe coding is not a mood. It is a fault class: shipping code whose correctness 
 
 Public evidence supports treating vibe coding as a high-risk production pattern rather than a harmless workflow style. Veracode reports that AI-generated samples introduced risky security flaws in 45\% of tests \cite{veracodeGenaiCodeSecurity2025}. GitGuardian reports accelerating hardcoded-secret exposure in public GitHub activity and AI-service leak growth \cite{gitguardianSecretsSprawl2026,gitguardianSecretsSprawl2026Blog}. Stack Overflow's 2025 survey reports that developers' largest AI frustration is output that is almost right but not quite, with time-consuming AI-code debugging close behind \cite{stackOverflowAISurvey2025}. OWASP's LLM Top 10 names prompt injection, sensitive information disclosure, supply-chain risk, improper output handling, and excessive agency as first-order AI application risks \cite{owaspLlmTopTen2025}. SetupBench and ContextBench add the operational failure modes: agents still struggle with environment bootstrap and useful context retrieval \cite{setupBench2025,contextBench2026}.
 
-The v0.6.0 coverage release turns the source material behind this taxonomy into
+The v0.6.1 coverage release turns the source material behind this taxonomy into
 a tracked registry. Every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
 through \texttt{tip5.txt} maps to exactly one canonical issue in
 \texttt{agent/vibe-coverage.toml}. Appendix~A renders the generated table:
-green means deterministic Jankurai control plus proof/report evidence, yellow
-means a named control exists but still needs fixture-backed evidence, and red
-means the issue is tracked but not yet controlled.
+green means detector-backed Jankurai control plus proof/report evidence, yellow
+means a reviewed control family exists but still needs issue-specific fixture,
+CI, or governance evidence. The v0.6.1 registry has no red rows.
 
 \begin{table*}[t]
 \caption{Ranked vibe-coding fault taxonomy. RPN is a jankurai policy priority, not an empirical frequency claim.}
