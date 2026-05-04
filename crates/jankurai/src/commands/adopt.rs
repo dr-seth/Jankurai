@@ -21,6 +21,16 @@ pub struct AdoptArgs {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ToolRolloutItem {
+    pub id: String,
+    pub category: String,
+    pub status: String,
+    pub score_priority: usize,
+    pub next_command: String,
+    pub artifact_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct AdoptionPlan {
     pub schema_version: String,
     pub command: String,
@@ -37,6 +47,7 @@ pub struct AdoptionPlan {
     pub liability_score: u32,
     pub audit_score: Option<i32>,
     pub safe_commands: Vec<String>,
+    pub tool_rollout: Vec<ToolRolloutItem>,
     pub stop_conditions: Vec<String>,
     pub next_milestones: Vec<String>,
     pub artifacts: Vec<String>,
@@ -65,8 +76,11 @@ pub fn build_adoption_plan(
     let migration_report = migrate::build_migration_report(repo, "rust-ts-postgres")?;
     let recommended_profile =
         recommend_profile(requested_profile, &detected_surfaces, &migration_report);
-    let audit_score = read_existing_audit_score(repo)
-        .or_else(|| run_audit(repo, &[]).ok().map(|report| report.score));
+    let audit_report = run_audit(repo, &[]).ok();
+    let audit_score = audit_report
+        .as_ref()
+        .map(|report| report.score)
+        .or_else(|| read_existing_audit_score(repo));
     let risk_tier = risk_tier(migration_report.liability_score);
     let mut warnings = Vec::new();
     if requested_profile != "auto" && requested_profile != recommended_profile {
@@ -86,6 +100,7 @@ pub fn build_adoption_plan(
         );
     }
     let safe_commands = safe_commands(mode, &recommended_profile);
+    let tool_rollout = tool_rollout(audit_report.as_ref().map(|report| &report.tool_adoption));
 
     Ok(AdoptionPlan {
         schema_version: "1.0.0".into(),
@@ -103,6 +118,7 @@ pub fn build_adoption_plan(
         liability_score: migration_report.liability_score,
         audit_score,
         safe_commands,
+        tool_rollout,
         stop_conditions: stop_conditions(mode),
         next_milestones: next_milestones(mode, risk_tier),
         artifacts: vec![DEFAULT_OUT.into(), DEFAULT_MD.into()],
@@ -162,6 +178,8 @@ fn safe_commands(mode: &str, recommended_profile: &str) -> Vec<String> {
         "jankurai adopt . --mode observe --out target/jankurai/adoption-plan.json --md target/jankurai/adoption-plan.md".into(),
         format!("jankurai init . --profile {recommended_profile} --dry-run --plan-json target/jankurai/init-plan.json"),
         "jankurai ci install . --github --mode observe --dry-run".into(),
+        "jankurai score trend --history agent/score-history.jsonl --out target/jankurai/score-trend.json --md target/jankurai/score-trend.md".into(),
+        "jankurai witness . --changed-from origin/main --baseline agent/repo-score.json --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md".into(),
     ];
     if mode == "ratchet" {
         commands.push(
@@ -200,6 +218,62 @@ fn next_milestones(mode: &str, risk_tier: &str) -> Vec<String> {
         milestones.push("stay advisory until the first accepted baseline exists".into());
     }
     milestones
+}
+
+fn tool_rollout(readiness: Option<&crate::model::ToolAdoptionReadiness>) -> Vec<ToolRolloutItem> {
+    let Some(readiness) = readiness else {
+        return vec![];
+    };
+
+    let mut items = readiness
+        .items
+        .iter()
+        .filter(|item| {
+            item.applicable && item.status != "artifact_verified" && item.status != "ci_evidence"
+        })
+        .map(|item| ToolRolloutItem {
+            id: item.id.clone(),
+            category: item.category.clone(),
+            status: item.status.clone(),
+            score_priority: rollout_priority(&item.id),
+            next_command: next_tool_command(&item.id),
+            artifact_paths: item.artifact_paths.clone(),
+        })
+        .collect::<Vec<_>>();
+    items.sort_by_key(|item| item.score_priority);
+    items
+}
+
+fn rollout_priority(id: &str) -> usize {
+    match id {
+        "audit-ci" => 0,
+        "security" => 1,
+        "ux-qa" => 2,
+        "db-migration-analyze" => 3,
+        "contract-drift" => 4,
+        "rust-witness" => 5,
+        "proof-routing" => 6,
+        _ => 99,
+    }
+}
+
+fn next_tool_command(id: &str) -> String {
+    match id {
+        "audit-ci" => "jankurai ci install . --github --mode observe".into(),
+        "proof-routing" => {
+            "cargo run -p jankurai -- audit . --mode ratchet --baseline agent/repo-score.json --json agent/repo-score.json --md agent/repo-score.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl".into()
+        }
+        "security" => "cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json".into(),
+        "ux-qa" => "jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json".into(),
+        "db-migration-analyze" => {
+            "cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json".into()
+        }
+        "contract-drift" => {
+            "cargo run -p jankurai -- audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md".into()
+        }
+        "rust-witness" => "cargo run -p jankurai -- rust witness build .".into(),
+        _ => "jankurai adopt".into(),
+    }
 }
 
 fn risk_tier(score: u32) -> &'static str {
@@ -243,6 +317,24 @@ fn render_markdown(plan: &AdoptionPlan) -> String {
     let _ = writeln!(out, "## Safe Commands");
     for command in &plan.safe_commands {
         let _ = writeln!(out, "- `{command}`");
+    }
+    if !plan.tool_rollout.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Tool Rollout");
+        let _ = writeln!(out, "| Tool | Status | Next Command | Artifacts |");
+        let _ = writeln!(out, "| --- | --- | --- | --- |");
+        for item in &plan.tool_rollout {
+            let artifacts = if item.artifact_paths.is_empty() {
+                "none".into()
+            } else {
+                item.artifact_paths.join(", ")
+            };
+            let _ = writeln!(
+                out,
+                "| `{}` | `{}` | `{}` | `{}` |",
+                item.id, item.status, item.next_command, artifacts
+            );
+        }
     }
     let _ = writeln!(out);
     let _ = writeln!(out, "## Stop Conditions");

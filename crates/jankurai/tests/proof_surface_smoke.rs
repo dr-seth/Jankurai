@@ -153,7 +153,7 @@ fn prove_rejects_unsigned_command_without_hatch() {
     let plan_path = work.join("proof-plan.json");
     let plan = serde_json::json!({
         "schema_version": "1.0.0",
-        "standard_version": "0.4.0",
+        "standard_version": "0.5.0",
         "repo_root": repo.path().display().to_string(),
         "git_head": "unknown",
         "changed_paths": ["docs/moonshot.md"],
@@ -204,7 +204,7 @@ fn prove_writes_receipts_and_logs() {
     let evidence_index = work.join("evidence-index.json");
     let plan = serde_json::json!({
         "schema_version": "1.0.0",
-        "standard_version": "0.4.0",
+        "standard_version": "0.5.0",
         "repo_root": repo.path().display().to_string(),
         "git_head": "unknown",
         "changed_paths": ["docs/moonshot.md"],
@@ -229,7 +229,7 @@ fn prove_writes_receipts_and_logs() {
     fs::write(&plan_path, serde_json::to_string_pretty(&plan).unwrap()).unwrap();
 
     fs::create_dir_all(work.join("security")).unwrap();
-    let ux_report = r#"{"reports":[{"schemaVersion":"1.4.0","toolVersion":"0.4.0","url":"about:blank","checkedAt":"2026-05-02T12:00:00.000Z","viewport":{"width":1280,"height":720},"metrics":{"scrollWidth":1280,"clientWidth":1280,"scrollHeight":720,"clientHeight":720},"elements":[],"violations":[],"artifacts":[],"summary":{"errors":0,"warnings":0,"byRule":{}},"decision":"pass"}]}"#;
+    let ux_report = r#"{"reports":[{"schemaVersion":"1.4.0","toolVersion":"0.5.0","url":"about:blank","checkedAt":"2026-05-02T12:00:00.000Z","viewport":{"width":1280,"height":720},"metrics":{"scrollWidth":1280,"clientWidth":1280,"scrollHeight":720,"clientHeight":720},"elements":[],"violations":[],"artifacts":[],"summary":{"errors":0,"warnings":0,"byRule":{}},"decision":"pass"}]}"#;
     fs::write(work.join("ux-qa.json"), ux_report).unwrap();
     fs::write(work.join("security/evidence.json"), "{}\n").unwrap();
     fs::write(repo.path().join("agent/repo-score.json"), "{\"score\":0}\n").unwrap();
@@ -327,7 +327,7 @@ fn prove_continues_with_failures_when_requested() {
     let evidence_index = work.join("evidence-index.json");
     let plan = serde_json::json!({
         "schema_version": "1.0.0",
-        "standard_version": "0.4.0",
+        "standard_version": "0.5.0",
         "repo_root": repo.path().display().to_string(),
         "git_head": "unknown",
         "changed_paths": ["docs/moonshot.md"],
@@ -745,7 +745,7 @@ fn prove_receipts_include_rules_for_named_lanes() {
     let evidence_index = work.join("security-evidence-index.json");
     let plan = serde_json::json!({
         "schema_version": "1.0.0",
-        "standard_version": "0.4.0",
+        "standard_version": "0.5.0",
         "repo_root": repo.path().display().to_string(),
         "git_head": "unknown",
         "changed_paths": ["fixtures/demo.txt"],

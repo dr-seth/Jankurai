@@ -103,7 +103,7 @@ The graph ranking should make the point visually: Rust/TypeScript/PostgreSQL win
 
 The jankurai audit is the enforcement layer for the paper.
 
-It must run in every CI pipeline. It must fail fast. It must produce two outputs: a machine-readable contract and a human-readable repair brief. The audit is not allowed to merely complain. Every finding must include:
+It must run locally, in pull requests, and in CI. It must fail fast when configured to block, and it must remain useful in advisory mode before a team accepts a baseline. It must produce at least two outputs: a machine-readable contract and a human-readable repair brief. Optional integration outputs such as SARIF, JUnit, GitHub step summaries, JSONL repair queues, issue exports, score history, proof receipts, and evidence indexes should carry the same truth into host tools. The audit is not allowed to merely complain. Every finding must include:
 
 | Field | Purpose |
 | --- | --- |
@@ -149,6 +149,8 @@ The audit should judge only the chosen stack. It is not a generic linter. It sho
 | Undocumented exceptions | teams relearn old failures | add exception catalog entries with fixes and docs |
 
 Hard line: if a pattern makes agent repair slower, less local, or less provable, it belongs in the audit.
+
+The current command surface should stay visible in the paper and public docs: `adopt/init/update/doctor` for adoption and drift, `context-pack/adapters/agent/hooks` for bounded authority, `lane/proof/prove/proof-verify` for proof routing and verification, `audit/issues export` for findings, `security run` and `ux` for evidence lanes, `repair-plan/repair/optimize/exceptions expire` for governed repair, and `registry/cell/bench/certify/govern/publish` for reusable and public evidence.
 
 ## Agent-Friendly Exceptions
 
@@ -222,6 +224,8 @@ Different agents load instructions differently. The standard should support them
 | Aider-style CLI agents | repo maps, symbol maps, token budgets, precise file ownership |
 
 Common rule: root instructions must route, not teach everything. Official Claude docs recommend concise project instructions and target under 200 lines per `CLAUDE.md`; GitHub Copilot docs say repository instructions should be short and broadly applicable; OpenAI Codex docs define hierarchical `AGENTS.md` loading and a default 32 KiB project-doc limit; Aider's repo map shows the value of compact symbolic context. These all point to the same standard: small root, local detail, generated maps, no contradiction.
+
+Jankurai should treat those instruction files as adapters over canonical repo policy. Provider files may summarize, but authority comes from owner maps, test maps, generated-zone manifests, proof lanes, security policy, version manifests, hooks, and CI install plans. `jankurai adapters verify` and `jankurai agent verify` should catch drift between prompt surfaces and policy; `jankurai context-pack` should provide task-specific context without broadening permissions.
 
 ## Token Economy
 

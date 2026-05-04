@@ -7,9 +7,9 @@
 [![jankurai CI](https://github.com/jeppsontaylor/Jankurai/actions/workflows/jankurai.yml/badge.svg)](https://github.com/jeppsontaylor/Jankurai/actions/workflows/jankurai.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Jankurai is an agent-native repository control-plane and audit CLI for teams that want AI coding agents to make narrow, provable, reviewable changes.
+Jankurai is a trustworthy-merge standard and local audit CLI for teams that want every human or AI-authored change to arrive with proof. Its public rule is simple: no proof, no merge; no receipt, no trust.
 
-- Turns ownership maps, proof lanes, generated zones, security boundaries, and repair queues into files agents and humans can both read.
+- Turns ownership maps, proof lanes, generated zones, security boundaries, rolling scores, merge witnesses, and repair queues into files agents and humans can both read.
 - Starts with read-only reports, then lets teams adopt guidance, CI, hooks, and ratchets only when they choose.
 - Leaves receipts: JSON/Markdown reports, score history, proof artifacts, and command evidence under predictable paths.
 
@@ -69,6 +69,17 @@ Expected artifacts:
 | Full | `jankurai init . --level full --dry-run` | Full scaffold after review and `--yes`. | You want owner maps, proof lanes, generated-zone policy, docs, contracts/db placeholders, CI, and hooks. |
 | Ratchet | `jankurai ci install . --github --mode ratchet --baseline <file>` | CI gate. | The team has accepted a baseline and wants to block regression. |
 
+Ratchet mode is impossible without an accepted baseline. Start in observe or advisory mode, commit `agent/repo-score.json` as the baseline when the team accepts it, then install ratchet CI with `--baseline`.
+
+## Daily Loop
+
+```bash
+jankurai context-pack . --changed <path> --max-tokens 6000 --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
+jankurai prove . --changed <path> --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
+jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+jankurai witness . --changed-from origin/main --baseline agent/repo-score.json --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
+```
+
 Preview before tracked writes:
 
 ```bash
@@ -126,6 +137,22 @@ Jankurai treats agent behavior as repository policy, not chat convention.
 
 The project does not send repository contents to a hosted Jankurai service. The CLI inspects local files and writes local artifacts. Any external tools you run through your coding agent remain governed by that agent and your environment.
 
+## Control-Plane Surfaces
+
+Jankurai works as a local control plane over a few repeatable surfaces:
+
+| Surface | Commands |
+| --- | --- |
+| Adoption and drift | `adopt`, `init`, `update`, `doctor` |
+| Bounded agent context | `context-pack`, `adapters verify`, `adapters sync`, `agent verify`, `hooks install` |
+| Proof and evidence | `lane`, `proof`, `prove`, `proof-verify` |
+| Audit and routing | `audit`, `witness`, `score diff`, `score trend`, `rules verify`, `issues export`, score history, repair queues |
+| Security and UX evidence | `security run`, `ux ...` |
+| Repair and expiry | `repair-plan`, `repair`, `optimize`, `exceptions expire` |
+| Reusable/public evidence | `registry`, `cell`, `bench`, `certify`, `govern`, `publish` |
+
+The loop is intentionally ordinary: changed paths map to owners and proof lanes, commands leave receipts, audit turns evidence into findings, and repair plans keep follow-up bounded.
+
 ## Project Status
 
 Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Humans Were the Bug: From Vibe Coding to Agent-Native Engineering*.
@@ -143,6 +170,8 @@ Compatibility posture:
 - [Agent-native standard](docs/agent-native-standard.md)
 - [Architecture](docs/architecture.md)
 - [Testing and proof lanes](docs/testing.md)
+- [Merge witness](docs/merge-witness.md)
+- [Rolling score](docs/rolling-score.md)
 - [Security tool matrix](docs/security-tool-matrix.md)
 - [Mission](docs/mission.md)
 

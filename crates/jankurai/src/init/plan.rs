@@ -468,6 +468,7 @@ fn level_allowed_paths(level: InitLevel) -> BTreeSet<&'static str> {
             "agent/jankurai-install.toml",
             "agent/owner-map.json",
             "agent/proof-lanes.toml",
+            "agent/tool-adoption.toml",
             "agent/standard-version.toml",
             "agent/test-map.json",
         ]);

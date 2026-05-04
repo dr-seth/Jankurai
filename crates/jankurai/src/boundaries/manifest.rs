@@ -67,7 +67,7 @@ mod tests {
         let text = r#"
 [stack]
 id = "rust-ts-vite-react-postgres-bounded-python"
-version = "0.4.0"
+version = "0.5.0"
 
 [queues]
 adapter_paths = ["crates/adapters/queues", "crates/adapters/src/queues"]

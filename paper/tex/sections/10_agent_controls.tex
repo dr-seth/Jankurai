@@ -2,6 +2,8 @@
 
 Public agent tooling converges on one lesson: instructions matter, but deterministic control surfaces matter more. Codex supports project guidance through \texttt{AGENTS.md} \cite{openaiCodexAgentsMd2026}. The community \texttt{AGENTS.md} specification frames the file as a plain Markdown companion for coding agents \cite{agentsMdSpec2026}. Claude Code loads project memory through \texttt{CLAUDE.md} and related hierarchy \cite{claudeCodeMemoryDocs2026}. Cursor uses project rules with scope metadata \cite{cursorRulesDocs2026}. GitHub Copilot supports repository and path-specific custom instructions \cite{githubCopilotInstructions2026}. These mechanisms should not become divergent manuals. They should be generated or mirrored from one canonical standard.
 
+The adapter problem is an authority problem, not a formatting problem. Jankurai treats prompt files as thin routers over machine-readable policy: \texttt{agent/owner-map.json} says who may own a path, \texttt{agent/test-map.json} says which lane proves it, \texttt{agent/generated-zones.toml} says which outputs are read-only unless regenerated from source, and \texttt{agent/standard-version.toml} binds the instruction surface to the standard and paper edition. \texttt{jankurai context-pack} turns a task and changed paths into bounded context; \texttt{jankurai adapters verify} and \texttt{jankurai agent verify} check that provider files still route to the same policy; \texttt{jankurai hooks install} and CI install commands make the same rules visible before commit and before merge. The result is not a larger prompt. It is a smaller grant of authority backed by files the repo can audit.
+
 \begin{table*}[t]
 \caption{Agent tool adapter matrix.}
 \label{tab:tool-adapters}
@@ -22,3 +24,5 @@ Terminal agents & CLI prompt files, repo maps, shell wrappers. & Root router, fi
 \end{table*}
 
 Token minimization is not a prompting trick; it is repository design. Large root instructions, duplicate architecture documents, and noisy command output waste context and invite contradiction. ContextBench and SWE-Effi support this direction by treating useful context and resource constraints as first-class bottlenecks \cite{contextBench2026,sweEffi2025}. RTK-style command filtering is one implementation of the larger principle: show the agent the evidence it needs, not every byte the tool can emit.
+
+The context-pack contract is now budgeted and trust-labeled. A pack carries \texttt{--max-tokens}, an estimated token count, included and excluded file lists, and source-trust labels: trusted policy, repo code, generated artifact, proof evidence, docs, and untrusted input. Raw tool output remains governed by policy: trusted policy and repo code are first-class context; untrusted inputs and generated artifacts are summarized or excluded when budget is tight.

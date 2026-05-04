@@ -9,7 +9,7 @@ fn thin_repo(dir: &std::path::Path) {
 fn minimal_valid_envelope() -> serde_json::Value {
     serde_json::json!({
         "schema_version": "1.0.0",
-        "standard_version": "0.4.0",
+        "standard_version": "0.5.0",
         "generated_at": "2026-05-02T12:00:00.000Z",
         "repo_root": "/tmp/x",
         "git_head": "abc123",

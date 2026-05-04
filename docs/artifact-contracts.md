@@ -4,13 +4,14 @@ Every durable or generated machine-readable surface should either validate again
 
 | Artifact / surface | Schema or guard | Notes |
 | --- | --- | --- |
-| `agent/repo-score.json` | `schemas/repo-score.schema.json`; `audit_smoke`, `report_compatibility_guard` | Canonical audit report JSON |
+| `agent/repo-score.json` | `schemas/repo-score.schema.json`; `audit_smoke`, `report_compatibility_guard` | Canonical audit report JSON, including `tool_adoption` readiness |
 | `agent/repo-score.md` | Semantic: `report_compatibility_guard` (title + stable `##` sections) | Human score; see `render.rs` |
 | `target/jankurai/jankurai.sarif` | Semantic: `report_compatibility_guard` | SARIF 2.1.0 envelope |
 | `target/jankurai/jankurai.junit.xml` (or path passed to `--junit`) | Semantic: `report_compatibility_guard` | JUnit-style XML |
 | `target/jankurai/summary.md` | Semantic: `report_compatibility_guard` | GitHub step summary |
 | `jankurai issues export --format jsonl` | `schemas/finding.schema.json` per line; `report_compatibility_guard` | Same `Finding` shape as `repo-score` `findings[]` |
 | `target/jankurai/adoption-plan.json` | `schemas/adoption-plan.schema.json`; `adoption_ux`, `schema_contracts` | No-write first-hour adoption plan emitted by `jankurai adopt` |
+| `agent/tool-adoption.toml` | `schemas/tool-adoption.schema.json`; `schema_contracts`, `doctor` | Tool rollout readiness and per-tool mode selection |
 | `agent/owner-map.json` | `schemas/owner-map.schema.json`; `schema_contracts`, `doctor` | |
 | `agent/test-map.json` | `schemas/test-map.schema.json`; `schema_contracts`, `doctor` | |
 | `agent/generated-zones.toml` | `schemas/generated-zones.schema.json`; `schema_contracts`, `doctor` | |
@@ -22,6 +23,11 @@ Every durable or generated machine-readable surface should either validate again
 | `agent/ux-qa.toml` | `schemas/ux-qa-policy.schema.json`; `doctor` | |
 | `target/jankurai/security/evidence.json` | `schemas/security-evidence.schema.json`; `security_evidence_smoke` | Written by `jankurai security run`. Optional multi-row **`commands[]`**: lines prefixed with **`jankurai-security-step=`** in the lane log (bundled script uses **`python3`** to emit JSON); otherwise one wrapper step. |
 | `target/jankurai/proof-verification.json` | `schemas/proof-verification.schema.json`; `proof_surface_smoke` | Tamper-evident proof verification envelope from `jankurai proof-verify`. |
+| `target/jankurai/merge-witness.json` | `schemas/merge-witness.schema.json`; `schema_contracts`, command smoke tests | PR merge witness with changed paths, route decisions, proof matrix, score delta, missing evidence, and merge decision. |
+| `target/jankurai/score-diff.json` | `schemas/score-diff.schema.json`; `schema_contracts`, command smoke tests | Baseline/head score, cap, and finding diff. |
+| `target/jankurai/score-trend.json` | `schemas/score-trend.schema.json`; `schema_contracts`, command smoke tests | Recent score-history window and trust-ledger trend summary. |
+| `target/jankurai/rule-registry.json` | `schemas/rule-registry.schema.json`; `rule_registry_smoke` | Exported Rust rule registry for docs/paper parity checks. |
+| `target/jankurai/rules-verify.json` | `schemas/rule-verify.schema.json`; `rule_registry_smoke` | Rule-reference drift report across paper, docs, proof lanes, and code. |
 | `target/jankurai/p12-benchmark-report.json` | `schemas/benchmark-report.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 benchmark artifact |
 | `target/jankurai/p12-certification.json` | `schemas/certification.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 certification artifact |
 | `target/jankurai/p12-governance-policy.json` | `schemas/governance-policy.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 governance artifact |

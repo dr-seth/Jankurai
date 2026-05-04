@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jankurai.dev/schemas/score-trend.schema.json",
+  "title": "jankurai score trend",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "command",
+    "history",
+    "window",
+    "sample_count",
+    "first_score",
+    "latest_score",
+    "score_delta",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "command": { "const": "jankurai score trend" },
+    "history": { "type": "string" },
+    "window": { "type": "integer", "minimum": 0 },
+    "sample_count": { "type": "integer", "minimum": 0 },
+    "first_score": { "type": ["integer", "null"] },
+    "latest_score": { "type": ["integer", "null"] },
+    "score_delta": { "type": ["integer", "null"] },
+    "best_score": { "type": ["integer", "null"] },
+    "worst_score": { "type": ["integer", "null"] },
+    "latest_decision": { "type": ["string", "null"] },
+    "high_or_critical_latest": { "type": "integer", "minimum": 0 },
+    "recurrence_counts": { "type": "array", "items": { "type": "object" } },
+    "decision": { "type": "string", "enum": ["pass", "review"] }
+  }
+}

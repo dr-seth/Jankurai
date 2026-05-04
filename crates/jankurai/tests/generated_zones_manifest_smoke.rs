@@ -89,3 +89,109 @@ read_only = true
         .iter()
         .any(|f| f.path == "agent/generated-zones.toml"));
 }
+
+#[test]
+fn audit_allows_repo_score_json_structured_generated_identity() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# thin\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/repo-score.json"),
+        r#"{
+  "schema_url": "schemas/repo-score.schema.json",
+  "generated_at": "0",
+  "standard_version": "0.5.0",
+  "auditor_version": "0.5.0",
+  "schema_version": "1.3.0"
+}
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "agent/repo-score.json"
+source = "crates/jankurai"
+command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
+"#,
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        !report.findings.iter().any(|f| {
+            f.path == "agent/repo-score.json"
+                && f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
+        }),
+        "{:?}",
+        report.findings
+    );
+}
+
+#[test]
+fn audit_allows_package_lock_json_native_lockfile_identity() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# thin\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("package-lock.json"),
+        r#"{
+  "name": "fixture",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "fixture"
+    }
+  }
+}
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "package-lock.json"
+source = "package.json"
+command = "npm install"
+"#,
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        !report.findings.iter().any(|f| {
+            f.path == "package-lock.json"
+                && f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
+        }),
+        "{:?}",
+        report.findings
+    );
+}
+
+#[test]
+fn audit_flags_arbitrary_json_generated_zone_without_identity() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# thin\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::create_dir_all(dir.path().join("out")).unwrap();
+    fs::write(dir.path().join("out/data.json"), r#"{"value":true}"#).unwrap();
+    fs::write(
+        dir.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "out/data.json"
+source = "contracts/data.schema.json"
+command = "cargo run -p jankurai -- generate"
+"#,
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        report.findings.iter().any(|f| {
+            f.path == "out/data.json" && f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
+        }),
+        "{:?}",
+        report.findings
+    );
+}

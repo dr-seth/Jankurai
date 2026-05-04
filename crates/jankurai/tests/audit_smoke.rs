@@ -27,13 +27,13 @@ fn audit_report_serializes_against_repo_score_schema() {
     fs::create_dir_all(dir.path().join("agent")).unwrap();
     fs::write(
         dir.path().join("agent/JANKURAI_STANDARD.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
     fs::create_dir_all(dir.path().join("docs")).unwrap();
     fs::write(
         dir.path().join("docs/agent-native-standard.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
 
@@ -58,19 +58,19 @@ fn audit_emits_report_and_markdown() {
     fs::create_dir_all(dir.path().join("agent")).unwrap();
     fs::write(
         dir.path().join("agent/JANKURAI_STANDARD.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
     fs::create_dir_all(dir.path().join("docs")).unwrap();
     fs::write(
         dir.path().join("docs/agent-native-standard.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
 
     let report = run_audit(dir.path(), &[]).unwrap();
     assert_eq!(report.standard, "jankurai");
-    assert_eq!(report.standard_version, "0.4.0");
+    assert_eq!(report.standard_version, "0.5.0");
     assert!(!render_markdown(&report).is_empty());
     assert!(report.raw_score >= report.score);
 }
@@ -296,6 +296,145 @@ fn audit_shared_security_lane_script_counts_as_security_lane() {
 }
 
 #[test]
+fn audit_tool_adoption_local_only_ux_qa_is_configured_not_replaced() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.path().join("apps/web/src")).unwrap();
+    fs::write(
+        dir.path().join("apps/web/src/main.tsx"),
+        "export const x = 1;\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/tool-adoption.toml"),
+        "schema_version = \"1.0.0\"\n\n[[tools]]\nid = \"ux-qa\"\nmode = \"auto\"\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let ux = report
+        .tool_adoption
+        .items
+        .iter()
+        .find(|item| item.id == "ux-qa")
+        .expect("ux-qa item");
+
+    assert_eq!(ux.status, "configured");
+    assert_eq!(report.tool_adoption.configured_count, 1);
+    assert_eq!(report.tool_adoption.ci_evidence_count, 0);
+    assert_eq!(report.tool_adoption.artifact_verified_count, 0);
+    assert!(!report
+        .caps_applied
+        .iter()
+        .any(|cap| cap == "jankurai-required-tool-ci-evidence-gap"));
+}
+
+#[test]
+fn audit_tool_adoption_ux_qa_counts_only_with_ci_command_and_artifact_upload() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.path().join("apps/web/src")).unwrap();
+    fs::write(
+        dir.path().join("apps/web/src/main.tsx"),
+        "export const x = 1;\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/tool-adoption.toml"),
+        "schema_version = \"1.0.0\"\n\n[[tools]]\nid = \"ux-qa\"\nmode = \"auto\"\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join(".github/workflows")).unwrap();
+    fs::write(
+        dir.path().join(".github/workflows/jankurai.yml"),
+        "name: ci\non: [push]\njobs:\n  ux:\n    runs-on: ubuntu-latest\n    steps:\n      - run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json\n      - uses: actions/upload-artifact@v4\n        with:\n          path: target/jankurai/ux-qa.json\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let ux = report
+        .tool_adoption
+        .items
+        .iter()
+        .find(|item| item.id == "ux-qa")
+        .expect("ux-qa item");
+
+    assert_eq!(ux.status, "artifact_verified");
+    assert_eq!(report.tool_adoption.ci_evidence_count, 1);
+    assert_eq!(report.tool_adoption.artifact_verified_count, 1);
+}
+
+#[test]
+fn audit_tool_adoption_non_web_repo_skips_ux_qa_pressure() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let ux = report
+        .tool_adoption
+        .items
+        .iter()
+        .find(|item| item.id == "ux-qa")
+        .expect("ux-qa item");
+
+    assert_eq!(ux.status, "not_applicable");
+    assert!(!report
+        .caps_applied
+        .iter()
+        .any(|cap| cap == "jankurai-required-tool-ci-evidence-gap"));
+}
+
+#[test]
+fn audit_tool_adoption_required_tool_missing_ci_evidence_triggers_soft_cap() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname='x'\nversion='0.1.0'\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/tool-adoption.toml"),
+        "schema_version = \"1.0.0\"\n\n[[tools]]\nid = \"security\"\nmode = \"required\"\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+
+    assert!(report
+        .caps_applied
+        .iter()
+        .any(|cap| cap == "jankurai-required-tool-ci-evidence-gap"));
+}
+
+#[test]
 fn audit_rejects_docs_only_web_surface() {
     let dir = tempdir().unwrap();
     fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
@@ -469,6 +608,25 @@ fn report_includes_attestation_fields() {
     assert!(report.report_fingerprint.starts_with("sha256:"));
     assert!(report.input_fingerprint.starts_with("sha256:"));
     assert_eq!(report.schema_url, "schemas/repo-score.schema.json");
+    assert!(report
+        .dimensions
+        .iter()
+        .any(|dim| dim.name == "Jankurai tool adoption and CI replacement"));
+    assert!(report.tool_adoption.evidence["applicable_tools"].is_array());
+}
+
+#[test]
+fn audit_repo_root_still_has_no_findings() {
+    let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let report = run_audit(&repo, &[]).unwrap();
+
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    assert!(report
+        .dimensions
+        .iter()
+        .any(|dim| dim.name == "Jankurai tool adoption and CI replacement"));
 }
 
 #[test]

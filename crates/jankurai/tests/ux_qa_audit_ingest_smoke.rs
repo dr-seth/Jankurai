@@ -10,7 +10,7 @@ fn one_report(decision: &str, summary: (u64, u64)) -> serde_json::Value {
     let (errors, warnings) = summary;
     serde_json::json!({
         "schemaVersion": "1.2.0",
-        "toolVersion": "0.4.0",
+        "toolVersion": "0.5.0",
         "url": "about:blank",
         "checkedAt": "2026-05-02T12:00:00.000Z",
         "viewport": { "width": 1280, "height": 720 },

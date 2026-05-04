@@ -163,6 +163,7 @@ fn no_orphan_caps() {
                     "fallback-soup-in-product-code",
                     "severe-duplication-in-product-code",
                     "missing-web-e2e-lane",
+                    "jankurai-required-tool-ci-evidence-gap",
                     "missing-rust-property-or-integration-tests",
                     "no-agent-friendly-exception-pattern",
                     "missing-agent-readable-docs"
@@ -206,5 +207,5 @@ fn rule_count_matches_expected() {
 
 #[test]
 fn cap_count_matches_expected() {
-    assert_eq!(caps::CAP_SPECS.len(), 27, "Expected exactly 27 caps");
+    assert_eq!(caps::CAP_SPECS.len(), 28, "Expected exactly 28 caps");
 }

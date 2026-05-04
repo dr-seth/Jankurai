@@ -5,7 +5,7 @@ Jankurai exists to make agent-native engineering boring in the right way. The re
 The operating loop is:
 
 ```text
-intent -> bounded agents -> proof lanes -> evidence -> expired exceptions -> reusable primitives
+intent -> bounded authority -> proof lanes -> evidence -> repair or exception expiry -> reusable primitives
 ```
 
 That loop is the product, the standard, and the paper thesis at the same time. It changes the center of gravity from "can a human keep all of this in their head?" to "can the repo prove the change with the smallest credible lane?"
@@ -14,9 +14,11 @@ That loop is the product, the standard, and the paper thesis at the same time. I
 
 - intent is explicit before code starts moving
 - agents get bounded authority, not blanket permission
+- human-authored changes and agent-authored changes face the same merge-time controls
 - every changed path maps to ownership and proof
 - generated outputs have declared sources and regeneration commands
 - evidence is durable, machine-readable, and easy to audit
+- repair queues turn findings into bounded next actions
 - exceptions are versioned, owned, and time-bounded
 - repeated fixes become reusable primitives instead of copy-paste folklore
 
@@ -36,11 +38,15 @@ Agent-generated code is cheap. Wrong code is also cheap. The new bottleneck is t
 
 Jankurai is the control plane for that workflow. It does not replace taste, product judgment, or human accountability. It gives those decisions a machine-readable boundary so agents can act quickly without turning the repo into a guessing game.
 
+The product is the operating loop, not a single scanner. `context-pack` bounds the task, owner and test maps route the change, `prove` writes receipts and an evidence index, `proof-verify` checks those receipts against the current repo, `audit` emits the repair queue, `repair-plan` keeps fixes narrow, `exceptions expire` prevents permanent waivers, and `registry`/`cell` turn repeated repairs into reusable primitives.
+
 ## Practical Consequences
 
 - Humans supply intent, constraints, and risk tolerance.
+- Jankurai turns that intent into bounded authority for the agent or reviewer.
 - Jankurai routes the change to the smallest proof lane that covers the risk.
 - The audit emits JSON and Markdown so humans and agents see the same truth.
+- Repair plans are dry-run first and real apply remains gated.
 - A temporary exception can exist, but it must carry an owner and an expiry path.
 - Repeated patterns should collapse into reusable cells, templates, or generated primitives.
 

@@ -174,6 +174,7 @@ fn repo_score_markdown_keeps_stable_sections() {
         "## Hard Rule Caps",
         "## Dimensions",
         "## Rendered UX QA",
+        "## Tool Adoption",
         "## Findings",
         "## Agent Fix Queue",
     ] {

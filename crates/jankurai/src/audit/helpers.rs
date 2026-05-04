@@ -1,15 +1,17 @@
 use crate::model::*;
-use std::collections::HashSet;
+use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 
 pub const WEIGHTS: &[(&str, u32)] = &[
-    ("Ownership and navigation surface", 14),
-    ("Contract and boundary integrity", 14),
-    ("Proof lanes and test routing", 14),
-    ("Security and supply-chain posture", 14),
+    ("Ownership and navigation surface", 13),
+    ("Contract and boundary integrity", 13),
+    ("Proof lanes and test routing", 12),
+    ("Security and supply-chain posture", 12),
     ("Code shape and semantic surface", 12),
     ("Data truth and workflow safety", 8),
     ("Observability and repair evidence", 8),
-    ("Context economy and agent instructions", 8),
+    ("Context economy and agent instructions", 7),
+    ("Jankurai tool adoption and CI replacement", 7),
     ("Python containment and polyglot hygiene", 4),
     ("Build speed signals", 4),
 ];
@@ -128,6 +130,221 @@ pub fn has_security_lane(ctx: &AuditContext) -> bool {
 
 pub fn has_jankurai_audit_ci_lane(ctx: &AuditContext) -> bool {
     real_command_surface_contains(ctx, &["cargo run -p jankurai", "repo-score"])
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ToolAdoptionCatalogEntry {
+    pub id: &'static str,
+    pub category: &'static str,
+    pub replaced_tools: &'static [&'static str],
+    pub local_command: &'static str,
+    pub ci_command: &'static str,
+    pub artifact_paths: &'static [&'static str],
+    pub applicability: fn(&AuditContext) -> bool,
+}
+
+pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
+    ToolAdoptionCatalogEntry {
+        id: "audit-ci",
+        category: "audit",
+        replaced_tools: &["manual repo scoring", "ad hoc score gates"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --baseline agent/repo-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_audit_ci_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "proof-routing",
+        category: "proof",
+        replaced_tools: &["ad hoc proof lane selection", "manual proof receipts"],
+        local_command: "jankurai proof . --changed-from origin/main --out target/jankurai/proof-plan.json --md target/jankurai/proof-plan.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode ratchet --baseline agent/repo-score.json --json agent/repo-score.json --md agent/repo-score.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md", "target/jankurai/repair-queue.jsonl"],
+        applicability: tool_proof_routing_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "security",
+        category: "security",
+        replaced_tools: &["gitleaks", "dependency review", "SBOM/provenance"],
+        local_command: "jankurai security run . --out target/jankurai/security/evidence.json",
+        ci_command: "cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json",
+        artifact_paths: &["target/jankurai/security/evidence.json"],
+        applicability: tool_security_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "ux-qa",
+        category: "ux",
+        replaced_tools: &["playwright", "axe-core", "visual baselines"],
+        local_command: "jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json",
+        ci_command: "jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json",
+        artifact_paths: &["target/jankurai/ux-qa.json"],
+        applicability: tool_ux_qa_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "db-migration-analyze",
+        category: "db",
+        replaced_tools: &["manual migration review"],
+        local_command: "jankurai migrate . --analyze --json target/jankurai/migration-report.json",
+        ci_command: "cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json",
+        artifact_paths: &["target/jankurai/migration-report.json"],
+        applicability: tool_db_migration_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "contract-drift",
+        category: "contract",
+        replaced_tools: &["handwritten contract drift checks", "openapi diff"],
+        local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "cargo run -p jankurai -- audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
+        artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
+        applicability: tool_contract_drift_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "rust-witness",
+        category: "rust",
+        replaced_tools: &["manual witness graphing"],
+        local_command: "jankurai rust witness build .",
+        ci_command: "cargo run -p jankurai -- rust witness build .",
+        artifact_paths: &["target/jankurai/rust/witness-graph.json"],
+        applicability: tool_rust_witness_applicable,
+    },
+];
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ToolAdoptionMode {
+    Auto,
+    Required,
+    Advisory,
+    Disabled,
+}
+
+impl ToolAdoptionMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Required => "required",
+            Self::Advisory => "advisory",
+            Self::Disabled => "disabled",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ToolAdoptionConfigItem {
+    pub id: String,
+    pub mode: ToolAdoptionMode,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ToolAdoptionConfigFile {
+    #[serde(default)]
+    pub schema_version: String,
+    #[serde(default)]
+    pub tools: Vec<ToolAdoptionConfigItem>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ToolAdoptionConfig {
+    pub present: bool,
+    pub modes: HashMap<String, ToolAdoptionMode>,
+}
+
+impl ToolAdoptionConfig {
+    pub fn mode_for(&self, id: &str) -> ToolAdoptionMode {
+        self.modes
+            .get(id)
+            .copied()
+            .unwrap_or(ToolAdoptionMode::Auto)
+    }
+
+    pub fn has_entry(&self, id: &str) -> bool {
+        self.modes.contains_key(id)
+    }
+}
+
+pub fn load_tool_adoption_config(root: &std::path::Path) -> ToolAdoptionConfig {
+    let path = root.join("agent/tool-adoption.toml");
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return ToolAdoptionConfig::default();
+    };
+    let Ok(parsed) = toml::from_str::<ToolAdoptionConfigFile>(&text) else {
+        return ToolAdoptionConfig::default();
+    };
+    ToolAdoptionConfig {
+        present: true,
+        modes: parsed
+            .tools
+            .into_iter()
+            .map(|item| (item.id, item.mode))
+            .collect(),
+    }
+}
+
+pub fn tool_adoption_control_plane_present(ctx: &AuditContext) -> bool {
+    has_root_agents(ctx)
+        || ctx
+            .all_files
+            .iter()
+            .any(|f| f.rel_path == "agent/test-map.json" || f.rel_path == "agent/proof-lanes.toml")
+}
+
+pub fn github_workflow_text(ctx: &AuditContext) -> String {
+    let mut text = String::new();
+    for file in ctx
+        .all_files
+        .iter()
+        .filter(|f| f.rel_path.starts_with(".github/workflows/"))
+    {
+        text.push('\n');
+        text.push_str(&file.text.to_ascii_lowercase());
+    }
+    text
+}
+
+pub fn tool_adoption_upload_text(ctx: &AuditContext) -> String {
+    github_workflow_text(ctx)
+}
+
+fn tool_audit_ci_applicable(ctx: &AuditContext) -> bool {
+    is_high_risk_repo(ctx)
+}
+
+fn tool_proof_routing_applicable(ctx: &AuditContext) -> bool {
+    tool_adoption_control_plane_present(ctx)
+}
+
+fn tool_security_applicable(ctx: &AuditContext) -> bool {
+    is_high_risk_repo(ctx)
+        || ctx.all_files.iter().any(|f| {
+            matches!(
+                f.name.as_str(),
+                "Cargo.toml" | "package.json" | "Cargo.lock" | "package-lock.json"
+            )
+        })
+}
+
+fn tool_ux_qa_applicable(ctx: &AuditContext) -> bool {
+    has_web_surface(ctx)
+}
+
+fn tool_db_migration_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|f| {
+        (f.rel_path.starts_with("db/migrations/") || f.rel_path.starts_with("migrations/"))
+            && f.suffix == ".sql"
+    })
+}
+
+fn tool_contract_drift_applicable(ctx: &AuditContext) -> bool {
+    has_contract_surface(ctx)
+        || has_generated_contracts(ctx)
+        || ctx
+            .all_files
+            .iter()
+            .any(|f| f.rel_path == "agent/generated-zones.toml")
+}
+
+fn tool_rust_witness_applicable(ctx: &AuditContext) -> bool {
+    has_rust_surface(ctx)
 }
 
 pub fn is_high_risk_repo(ctx: &AuditContext) -> bool {

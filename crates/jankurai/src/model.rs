@@ -1,10 +1,10 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-pub const STANDARD_VERSION: &str = "0.4.0";
-pub const AUDITOR_VERSION: &str = "0.4.0";
-pub const SCHEMA_VERSION: &str = "1.2.0";
-pub const PAPER_EDITION: &str = "2026.05-ed3";
+pub const STANDARD_VERSION: &str = "0.5.0";
+pub const AUDITOR_VERSION: &str = "0.5.0";
+pub const SCHEMA_VERSION: &str = "1.3.0";
+pub const PAPER_EDITION: &str = "2026.05-ed4";
 pub const TARGET_STACK_ID: &str = "rust-ts-vite-react-postgres-bounded-python";
 pub const TARGET_STACK: &str = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service";
 
@@ -206,6 +206,37 @@ pub struct UxQaReadiness {
     pub artifact: Option<UxQaReportArtifactSummary>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ToolAdoptionItem {
+    pub id: String,
+    pub category: String,
+    pub mode: String,
+    pub applicable: bool,
+    pub status: String,
+    pub replaced_tools: Vec<String>,
+    pub evidence: Vec<String>,
+    pub missing: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ci_command: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifact_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ToolAdoptionReadiness {
+    pub control_plane_present: bool,
+    pub applicable_count: usize,
+    pub configured_count: usize,
+    pub ci_evidence_count: usize,
+    pub artifact_verified_count: usize,
+    pub replaced_count: usize,
+    pub items: Vec<ToolAdoptionItem>,
+    pub evidence: serde_json::Value,
+    pub missing: Vec<String>,
+}
+
 /// Compact summary of validated `target/jankurai/security/evidence.json` for repo-score (audit-only).
 #[derive(Debug, Clone, Serialize)]
 pub struct SecurityEvidenceArtifactSummary {
@@ -290,6 +321,7 @@ pub struct Report {
     pub hard_rules: Vec<HardRule>,
     pub dimensions: Vec<DimensionResult>,
     pub ux_qa: UxQaReadiness,
+    pub tool_adoption: ToolAdoptionReadiness,
     pub security_evidence: SecurityEvidenceReadiness,
     pub boundaries: BoundariesReadiness,
     pub findings: Vec<Finding>,

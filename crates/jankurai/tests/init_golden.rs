@@ -170,6 +170,7 @@ fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
         "agent/owner-map.json",
         "agent/proof-lanes.toml",
         "agent/standard-version.toml",
+        "agent/tool-adoption.toml",
         "agent/test-map.json",
     ] {
         assert!(paths.contains(&expected.to_string()), "missing {expected}");
@@ -214,6 +215,7 @@ fn init_level_ci_adds_observe_workflow_and_preserves_existing_workflow() {
     let paths = plan_paths(&value);
     assert!(paths.contains(&".github/workflows/jankurai.yml".to_string()));
     assert!(paths.contains(&"agent/security-policy.toml".to_string()));
+    assert!(paths.contains(&"agent/tool-adoption.toml".to_string()));
     assert!(paths.contains(&"tools/security-lane.sh".to_string()));
     assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
     assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
@@ -260,6 +262,7 @@ edition = "2021"
     ))
     .unwrap();
 
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     let pre_commit = dir.path().join("tools/jankurai-hooks/pre-commit");
     let prepare = dir.path().join("tools/jankurai-hooks/prepare-commit-msg");
     assert!(pre_commit.is_file());
@@ -289,6 +292,7 @@ fn init_level_full_without_cargo_skips_rust_foundation_templates() {
     ))
     .unwrap();
 
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(!dir.path().join("tools/jankurai-rust/witness.sh").exists());
     let justfile = fs::read_to_string(dir.path().join("Justfile")).unwrap();
     assert!(!justfile.contains("rust-map:"));
@@ -369,13 +373,13 @@ fn hooks_install_backs_up_and_chains_existing_hooks() {
 }
 
 #[test]
-fn init_yolo_installs_hooks_and_commit_score_trailers() {
+fn init_bootstrap_commit_installs_hooks_and_commit_score_trailers() {
     let dir = tempdir().unwrap();
     init_git_repo(dir.path());
     fs::write(
         dir.path().join("Cargo.toml"),
         r#"[package]
-name = "fixture-yolo"
+name = "fixture-bootstrap"
 version = "0.1.0"
 edition = "2021"
 "#,
@@ -387,9 +391,9 @@ edition = "2021"
         .arg(dir.path())
         .arg("--profile")
         .arg("rust-api")
-        .arg("--yolo")
+        .arg("--bootstrap-commit")
         .arg("--yes")
-        .arg("--yolo-message")
+        .arg("--bootstrap-message")
         .arg("Adopt test Jankurai")
         .status()
         .unwrap();
@@ -427,6 +431,25 @@ edition = "2021"
             .count()
             >= 2,
         "{history}"
+    );
+}
+
+#[test]
+fn init_hidden_yolo_alias_is_still_parsed() {
+    let dir = tempdir().unwrap();
+    init_git_repo(dir.path());
+    let output = Command::new(binary_path())
+        .arg("init")
+        .arg(dir.path())
+        .arg("--yolo")
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--bootstrap-commit commits changes"),
+        "{stderr}"
     );
 }
 
@@ -500,6 +523,7 @@ fn init_greenfield_apply_then_audit_and_doctor() {
 
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("db/README.md").exists());
 
     let json = dir.path().join("agent/repo-score.json");
@@ -605,6 +629,7 @@ fn init_greenfield_apply_react_web_then_audit_and_doctor() {
 
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("agent/ux-qa.toml").exists());
     assert!(
         !dir.path().join("db/README.md").exists(),
@@ -687,6 +712,7 @@ fn init_greenfield_apply_ai_product_then_audit_and_doctor() {
     assert!(dir.path().join("contracts/README.md").exists());
     assert!(dir.path().join("python/ai-service/README.md").exists());
     assert!(dir.path().join("prompts/README.md").exists());
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(
         !dir.path().join("agent/ux-qa.toml").exists(),
         "ai-product omits web UX controls by default"
@@ -726,6 +752,7 @@ fn init_greenfield_apply_regulated_saas_then_audit_and_doctor() {
 
     assert!(dir.path().join("docs/privacy/README.md").exists());
     assert!(dir.path().join("docs/compliance/README.md").exists());
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("agent/ux-qa.toml").exists());
 
     let json = dir.path().join("agent/repo-score.json");
@@ -761,6 +788,7 @@ fn init_greenfield_apply_migration_target_then_audit_and_doctor() {
     .unwrap();
 
     assert!(dir.path().join("docs/migration/boundary-map.md").exists());
+    assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(
         !dir.path().join("db/README.md").exists(),
         "migration-target does not claim database ownership"

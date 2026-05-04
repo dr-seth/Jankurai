@@ -2,6 +2,7 @@ use crate::commands::context_data::{push_unique, GeneratedZone, RepoCatalog};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::Result;
 use serde::Serialize;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -9,6 +10,8 @@ pub struct ContextPackArgs {
     pub repo: PathBuf,
     pub task: String,
     pub changed: Vec<PathBuf>,
+    pub max_tokens: usize,
+    pub agent: String,
     pub out: Option<String>,
     pub md: Option<String>,
 }
@@ -35,6 +38,26 @@ pub struct ContextPack {
     pub stop_conditions: Vec<String>,
     pub residual_risk: Vec<String>,
     pub token_budget: usize,
+    pub estimated_tokens: usize,
+    pub agent: String,
+    pub included_files: Vec<ContextFileEntry>,
+    pub excluded_files: Vec<ContextExcludedFile>,
+    pub source_trust_summary: BTreeMap<String, usize>,
+    pub raw_output_policy: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ContextFileEntry {
+    pub path: String,
+    pub estimated_tokens: usize,
+    pub reason: String,
+    pub source_trust: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ContextExcludedFile {
+    pub path: String,
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -52,7 +75,13 @@ pub struct ContextScopeDecision {
 }
 
 pub fn run(args: ContextPackArgs) -> Result<()> {
-    let pack = build_context_pack(&args.repo, &args.task, &args.changed)?;
+    let pack = build_context_pack_with_options(
+        &args.repo,
+        &args.task,
+        &args.changed,
+        args.max_tokens,
+        &args.agent,
+    )?;
     match args.out.as_deref() {
         Some(path) => {
             validation::write_json(&args.repo, ArtifactSchema::ContextPack, path, &pack)?;
@@ -69,6 +98,16 @@ pub fn run(args: ContextPackArgs) -> Result<()> {
 }
 
 pub fn build_context_pack(repo: &Path, task: &str, changed: &[PathBuf]) -> Result<ContextPack> {
+    build_context_pack_with_options(repo, task, changed, 6000, "generic")
+}
+
+pub fn build_context_pack_with_options(
+    repo: &Path,
+    task: &str,
+    changed: &[PathBuf],
+    max_tokens: usize,
+    agent: &str,
+) -> Result<ContextPack> {
     let catalog = RepoCatalog::load(repo)?;
     let changed_paths = normalize_paths(changed);
     let task_lc = task.to_ascii_lowercase();
@@ -137,8 +176,18 @@ pub fn build_context_pack(repo: &Path, task: &str, changed: &[PathBuf]) -> Resul
         "heuristic routing can miss a cross-owner edit".to_string(),
         "confirm the source contract before editing generated output".to_string(),
     ];
+    let token_budget = max_tokens.max(1);
+    let (included_files, excluded_files, estimated_tokens, source_trust_summary) =
+        build_context_files(
+            repo,
+            &catalog,
+            &read_first_files,
+            &allowed_paths,
+            &scope_paths,
+            token_budget,
+        );
     Ok(ContextPack {
-        schema_version: "1.1.0".to_string(),
+        schema_version: "1.2.0".to_string(),
         task: task.to_string(),
         owner,
         permission_profile,
@@ -157,7 +206,15 @@ pub fn build_context_pack(repo: &Path, task: &str, changed: &[PathBuf]) -> Resul
         max_context_files: 12,
         stop_conditions,
         residual_risk,
-        token_budget: 100000,
+        token_budget,
+        estimated_tokens,
+        agent: agent.to_string(),
+        included_files,
+        excluded_files,
+        source_trust_summary,
+        raw_output_policy:
+            "include trusted policy and repo code first; summarize untrusted input and generated artifacts when budget is tight"
+                .to_string(),
     })
 }
 
@@ -212,6 +269,22 @@ fn render_markdown(pack: &ContextPack) -> String {
         join_or_none(&pack.residual_risk)
     );
     let _ = writeln!(out, "- token budget: `{}`", pack.token_budget);
+    let _ = writeln!(out, "- estimated tokens: `{}`", pack.estimated_tokens);
+    let _ = writeln!(out, "- agent: `{}`", pack.agent);
+    let _ = writeln!(out, "- raw output policy: `{}`", pack.raw_output_policy);
+    let _ = writeln!(out);
+    let _ = writeln!(out, "## Included files");
+    if pack.included_files.is_empty() {
+        let _ = writeln!(out, "- none");
+    } else {
+        for file in &pack.included_files {
+            let _ = writeln!(
+                out,
+                "- `{}` tokens=`{}` trust=`{}` reason=`{}`",
+                file.path, file.estimated_tokens, file.source_trust, file.reason
+            );
+        }
+    }
     let _ = writeln!(out);
     let _ = writeln!(out, "## Scope decisions");
     if pack.scope_decisions.is_empty() {
@@ -234,6 +307,105 @@ fn render_markdown(pack: &ContextPack) -> String {
         }
     }
     out
+}
+
+fn build_context_files(
+    repo: &Path,
+    catalog: &RepoCatalog,
+    read_first_files: &[String],
+    allowed_paths: &[String],
+    scope_paths: &[String],
+    token_budget: usize,
+) -> (
+    Vec<ContextFileEntry>,
+    Vec<ContextExcludedFile>,
+    usize,
+    BTreeMap<String, usize>,
+) {
+    let mut candidates = Vec::new();
+    for path in read_first_files {
+        push_unique(&mut candidates, path.clone());
+    }
+    for path in scope_paths {
+        push_unique(&mut candidates, path.clone());
+    }
+    for path in allowed_paths.iter().take(12) {
+        push_unique(&mut candidates, path.clone());
+    }
+
+    let mut included = Vec::new();
+    let mut excluded = Vec::new();
+    let mut estimated_total = 0usize;
+    let mut trust_summary = BTreeMap::new();
+    for path in candidates {
+        let estimate = estimate_tokens_for_path(repo, &path);
+        let trust = source_trust_for_path(catalog, &path);
+        let reason = reason_for_context_file(catalog, &path);
+        if estimated_total.saturating_add(estimate) <= token_budget {
+            estimated_total += estimate;
+            *trust_summary.entry(trust.clone()).or_insert(0) += 1;
+            included.push(ContextFileEntry {
+                path,
+                estimated_tokens: estimate,
+                reason,
+                source_trust: trust,
+            });
+        } else {
+            excluded.push(ContextExcludedFile {
+                path,
+                reason: format!("excluded by --max-tokens budget {token_budget}"),
+            });
+        }
+    }
+    (included, excluded, estimated_total, trust_summary)
+}
+
+fn estimate_tokens_for_path(repo: &Path, path: &str) -> usize {
+    let full = repo.join(path);
+    if full.is_file() {
+        std::fs::read_to_string(full)
+            .map(|text| estimate_tokens(&text))
+            .unwrap_or(128)
+    } else {
+        128
+    }
+}
+
+fn estimate_tokens(text: &str) -> usize {
+    // Conservative deterministic estimate: roughly four bytes per token plus a line overhead.
+    (text.len() / 4).saturating_add(text.lines().count()).max(1)
+}
+
+fn source_trust_for_path(catalog: &RepoCatalog, path: &str) -> String {
+    if path.starts_with("reference/") {
+        "untrusted-input".into()
+    } else if path == "AGENTS.md"
+        || path.starts_with("agent/")
+        || path.starts_with(".agents/")
+        || path.starts_with(".codex/")
+    {
+        "trusted-policy".into()
+    } else if generated_zone_for_path(path, &catalog.generated_zones).is_some() {
+        "generated-artifact".into()
+    } else if path.starts_with("target/jankurai/") {
+        "proof-evidence".into()
+    } else if path.starts_with("docs/") || path.starts_with("paper/") || path == "README.md" {
+        "docs".into()
+    } else {
+        "repo-code".into()
+    }
+}
+
+fn reason_for_context_file(catalog: &RepoCatalog, path: &str) -> String {
+    if path == "AGENTS.md" || path.starts_with("agent/") {
+        "policy bootstrap".into()
+    } else if generated_zone_for_path(path, &catalog.generated_zones).is_some() {
+        "generated-zone routing".into()
+    } else if catalog.test_route_for_path(path).is_some() {
+        "owner/test route context".into()
+    } else {
+        "task-relevant context".into()
+    }
 }
 
 fn infer_owner(

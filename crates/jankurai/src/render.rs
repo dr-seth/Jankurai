@@ -184,6 +184,54 @@ pub fn render_markdown(report: &Report) -> String {
             art.accessibility_pass_total
         );
     }
+    let _ = writeln!(out);
+    let _ = writeln!(out, "## Tool Adoption");
+    let _ = writeln!(out);
+    let ta = &report.tool_adoption;
+    let _ = writeln!(
+        out,
+        "- Control plane present: `{}`",
+        ta.control_plane_present
+    );
+    let _ = writeln!(out, "- Applicable tools: `{}`", ta.applicable_count);
+    let _ = writeln!(out, "- Configured: `{}`", ta.configured_count);
+    let _ = writeln!(out, "- CI evidence: `{}`", ta.ci_evidence_count);
+    let _ = writeln!(out, "- Artifact verified: `{}`", ta.artifact_verified_count);
+    let _ = writeln!(out, "- Replaced count: `{}`", ta.replaced_count);
+    let _ = writeln!(
+        out,
+        "- Missing CI evidence: `{}`",
+        if ta.missing.is_empty() {
+            "none".into()
+        } else {
+            ta.missing.join(", ")
+        }
+    );
+    if !ta.items.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(
+            out,
+            "| Tool | Category | Mode | Status | Replaced | Artifacts |"
+        );
+        let _ = writeln!(out, "| --- | --- | --- | --- | --- | --- |");
+        for item in &ta.items {
+            let artifacts = if item.artifact_paths.is_empty() {
+                "none".into()
+            } else {
+                item.artifact_paths.join(", ")
+            };
+            let replaced = if item.replaced_tools.is_empty() {
+                "none".into()
+            } else {
+                item.replaced_tools.join(", ")
+            };
+            let _ = writeln!(
+                out,
+                "| `{}` | `{}` | `{}` | `{}` | `{}` | `{}` |",
+                item.id, item.category, item.mode, item.status, replaced, artifacts
+            );
+        }
+    }
     if let Some(art) = &report.security_evidence.artifact {
         let _ = writeln!(out);
         let _ = writeln!(out, "## Security evidence (ingested)");

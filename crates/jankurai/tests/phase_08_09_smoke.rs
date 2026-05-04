@@ -16,7 +16,7 @@ fn context_pack_command_writes_pack_and_markdown() {
     fs::create_dir_all(dir.path().join("agent")).unwrap();
     fs::write(
         dir.path().join("agent/JANKURAI_STANDARD.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
     fs::create_dir_all(dir.path().join("docs")).unwrap();
@@ -56,7 +56,15 @@ fn context_pack_command_writes_pack_and_markdown() {
     let value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&json_out).unwrap()).unwrap();
     validation::validate_value(dir.path(), ArtifactSchema::ContextPack, &value).unwrap();
-    assert_eq!(value["schema_version"], "1.1.0");
+    assert_eq!(value["schema_version"], "1.2.0");
+    assert_eq!(value["token_budget"], 6000);
+    assert!(value["included_files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| {
+            item["source_trust"] == "trusted-policy" && item["path"] == "agent/JANKURAI_STANDARD.md"
+        }));
     assert_eq!(value["owner"], "agent");
     assert_eq!(value["permission_profile"], "code-edit");
     assert!(value["allowed_paths"]

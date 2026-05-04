@@ -3,7 +3,8 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
-    migrate, optimize, proof, publish, registry, repair, repair_plan, rust, security, update,
+    migrate, optimize, proof, publish, registry, repair, repair_plan, rules, rust, score, security,
+    update, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -35,6 +36,15 @@ enum Commands {
     Update(UpdateArgs),
     Doctor(DoctorArgs),
     ContextPack(ContextPackArgs),
+    Witness(WitnessArgs),
+    Score {
+        #[command(subcommand)]
+        command: ScoreCommand,
+    },
+    Rules {
+        #[command(subcommand)]
+        command: RulesCommand,
+    },
     RepairPlan(RepairPlanArgs),
     Lane(ProofPlanArgs),
     Proof(ProofPlanArgs),
@@ -110,6 +120,18 @@ enum IssuesCommand {
 #[derive(Subcommand, Debug)]
 enum SecurityCommand {
     Run(SecurityRunArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum ScoreCommand {
+    Diff(ScoreDiffArgs),
+    Trend(ScoreTrendArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum RulesCommand {
+    Export(RulesExportArgs),
+    Verify(RulesVerifyArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -219,10 +241,14 @@ struct InitArgs {
     plan_json: Option<String>,
     #[arg(long)]
     force_generated_adapters: bool,
-    /// Full-send adoption: apply the full scaffold, install observe CI, score, append tracked history, stage everything, and commit.
+    /// Bootstrap adoption commit: apply the full scaffold, install observe CI, score, append tracked history, stage everything, and commit.
     #[arg(long)]
-    yolo: bool,
+    bootstrap_commit: bool,
     #[arg(long, default_value = "Adopt Jankurai control plane")]
+    bootstrap_message: String,
+    #[arg(long, hide = true)]
+    yolo: bool,
+    #[arg(long, hide = true, default_value = "Adopt Jankurai control plane")]
     yolo_message: String,
 }
 
@@ -319,14 +345,48 @@ struct DoctorArgs {
 struct ContextPackArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
-    #[arg(long)]
+    #[arg(long, default_value = "merge")]
     task: String,
     #[arg(long, value_name = "PATH")]
     changed: Vec<PathBuf>,
+    #[arg(long, default_value_t = 6000)]
+    max_tokens: usize,
+    #[arg(long, default_value = "generic", value_parser = ["codex", "claude", "cursor", "generic"])]
+    agent: String,
     #[arg(long, value_name = "PATH")]
     out: Option<String>,
     #[arg(long, value_name = "PATH")]
     md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct WitnessArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "PATH")]
+    changed: Vec<PathBuf>,
+    #[arg(long, value_name = "REF")]
+    changed_from: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    baseline: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proof-receipts"
+    )]
+    proof_receipts: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/merge-witness.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/merge-witness.md"
+    )]
+    md: String,
 }
 
 #[derive(Args, Debug)]
@@ -613,6 +673,74 @@ struct CiInstallArgs {
 }
 
 #[derive(Args, Debug)]
+struct ScoreDiffArgs {
+    #[arg(long, value_name = "PATH")]
+    base: PathBuf,
+    #[arg(long, value_name = "PATH")]
+    head: PathBuf,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/score-diff.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/score-diff.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct ScoreTrendArgs {
+    #[arg(long, value_name = "PATH", default_value = "agent/score-history.jsonl")]
+    history: PathBuf,
+    #[arg(long, default_value_t = 30)]
+    window: usize,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/score-trend.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/score-trend.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct RulesExportArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/rule-registry.json"
+    )]
+    out: String,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct RulesVerifyArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/rules-verify.json"
+    )]
+    out: String,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
 struct HooksInstallArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -732,8 +860,8 @@ fn main() -> anyhow::Result<()> {
             })?;
         }
         Some(Commands::Init(args)) => {
-            if args.yolo {
-                run_init_yolo(args)?;
+            if args.bootstrap_commit || args.yolo {
+                run_init_bootstrap_commit(args)?;
                 return Ok(());
             }
             init::run(init::InitArgs {
@@ -790,10 +918,57 @@ fn main() -> anyhow::Result<()> {
                 repo: args.repo,
                 task: args.task,
                 changed: args.changed,
+                max_tokens: args.max_tokens,
+                agent: args.agent,
                 out: args.out,
                 md: args.md,
             })?;
         }
+        Some(Commands::Witness(args)) => {
+            witness::run(witness::WitnessArgs {
+                repo: args.repo,
+                changed: args.changed,
+                changed_from: args.changed_from,
+                baseline: args.baseline,
+                proof_receipts: Some(args.proof_receipts),
+                out: args.out,
+                md: args.md,
+            })?;
+        }
+        Some(Commands::Score { command }) => match command {
+            ScoreCommand::Diff(args) => {
+                score::run_diff(score::DiffArgs {
+                    base: args.base,
+                    head: args.head,
+                    out: args.out,
+                    md: args.md,
+                })?;
+            }
+            ScoreCommand::Trend(args) => {
+                score::run_trend(score::TrendArgs {
+                    history: args.history,
+                    window: args.window,
+                    out: args.out,
+                    md: args.md,
+                })?;
+            }
+        },
+        Some(Commands::Rules { command }) => match command {
+            RulesCommand::Export(args) => {
+                rules::run_export(rules::ExportArgs {
+                    repo: args.repo,
+                    out: args.out,
+                    md: args.md,
+                })?;
+            }
+            RulesCommand::Verify(args) => {
+                rules::run_verify(rules::VerifyArgs {
+                    repo: args.repo,
+                    out: args.out,
+                    md: args.md,
+                })?;
+            }
+        },
         Some(Commands::RepairPlan(args)) => {
             repair_plan::run(repair_plan::RepairPlanArgs {
                 repo: args.repo,
@@ -1061,16 +1236,27 @@ fn normalize_cli_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsString>
     normalized
 }
 
-fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
+fn run_init_bootstrap_commit(args: InitArgs) -> anyhow::Result<()> {
     if args.dry_run || args.diff {
-        anyhow::bail!("--yolo commits changes; omit --dry-run/--diff or run normal init first");
+        anyhow::bail!(
+            "--bootstrap-commit commits changes; omit --dry-run/--diff or run normal init first"
+        );
+    }
+    if args.yolo {
+        eprintln!(
+            "{}",
+            jankurai::ui::epaint(
+                jankurai::ui::Style::Warn,
+                "--yolo is deprecated; use --bootstrap-commit"
+            )
+        );
     }
     if !args.yes {
         eprintln!(
             "{}",
             jankurai::ui::epaint(
                 jankurai::ui::Style::Warn,
-                "--yolo implies --yes, --level full, observe CI, local hooks, score history, score trailers, git add -A, and git commit"
+                "--bootstrap-commit implies --yes, --level full, observe CI, local hooks, score history, score trailers, git add -A, and git commit"
             )
         );
     }
@@ -1165,12 +1351,17 @@ fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
         .current_dir(&repo)
         .status()?;
     if staged.success() {
-        println!("--yolo found no staged changes to commit");
+        println!("--bootstrap-commit found no staged changes to commit");
         return Ok(());
     }
+    let commit_message = if args.yolo && args.yolo_message != "Adopt Jankurai control plane" {
+        &args.yolo_message
+    } else {
+        &args.bootstrap_message
+    };
     run_git_env(
         &repo,
-        &["commit", "-m", &args.yolo_message, "-m", &score_trailers],
+        &["commit", "-m", commit_message, "-m", &score_trailers],
         &[("JANKURAI_SKIP_HOOKS", "1")],
     )?;
     if let Some(commit) = git_stdout(&repo, &["rev-parse", "--short", "HEAD"])? {
@@ -1178,20 +1369,24 @@ fn run_init_yolo(args: InitArgs) -> anyhow::Result<()> {
             "{}",
             jankurai::ui::paint(
                 jankurai::ui::Style::Good,
-                format!("--yolo committed {commit}"),
+                format!("--bootstrap-commit committed {commit}"),
                 jankurai::ui::stdout_color_enabled()
             )
         );
     }
-    print_yolo_next_steps(&repo);
+    print_bootstrap_commit_next_steps(&repo);
     Ok(())
 }
 
-fn print_yolo_next_steps(repo: &std::path::Path) {
+fn print_bootstrap_commit_next_steps(repo: &std::path::Path) {
     let color = jankurai::ui::stdout_color_enabled();
     println!(
         "{}",
-        jankurai::ui::paint(jankurai::ui::Style::Heading, "YOLO complete. Next:", color)
+        jankurai::ui::paint(
+            jankurai::ui::Style::Heading,
+            "Bootstrap commit complete. Next:",
+            color
+        )
     );
     println!("  1. Push the adoption commit when ready: `git push -u origin HEAD`.");
     println!(
@@ -1219,7 +1414,7 @@ fn ensure_git_repo(repo: &std::path::Path) -> anyhow::Result<()> {
         .current_dir(repo)
         .output()?;
     if !output.status.success() {
-        anyhow::bail!("--yolo requires an existing git repository");
+        anyhow::bail!("--bootstrap-commit requires an existing git repository");
     }
     Ok(())
 }
@@ -1306,6 +1501,11 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     };
     progress.tick("load audit mode");
     let mode = AuditMode::parse(&args.mode)?;
+    if matches!(mode, AuditMode::Ratchet) && args.baseline.is_none() {
+        anyhow::bail!(
+            "ratchet mode requires --baseline PATH; first run advisory mode and commit an accepted baseline"
+        );
+    }
     progress.tick("scan repository");
     let mut report = run_audit_with_options(
         &args.repo,

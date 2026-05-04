@@ -201,6 +201,45 @@ expires = "2027-12-31"
 }
 
 #[test]
+fn audit_allows_existing_event_contract_path() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# thin\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::create_dir_all(dir.path().join("contracts/events")).unwrap();
+    fs::write(
+        dir.path().join("agent/boundaries.toml"),
+        r#"[queues]
+adapter_paths = ["crates/adapters/queues"]
+event_contract_paths = ["contracts/events"]
+
+[[streaming_exception]]
+runtime = "kafka"
+owner = "team"
+reason = "brownfield"
+classification = "brownfield"
+migration_path = "migrate to tansu"
+expires = "2027-12-31"
+"#,
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        !report.findings.iter().any(|f| {
+            f.path == "agent/boundaries.toml"
+                && f.rule_id.as_deref() == Some("HLT-007-HANDWRITTEN-CONTRACT")
+                && f.evidence.iter().any(|e| e.contains("event contract path"))
+        }),
+        "{:?}",
+        report
+            .findings
+            .iter()
+            .map(|f| (&f.path, &f.rule_id, &f.evidence))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn sarif_rules_array_deduplicates_rule_metadata() {
     let dir = tempdir().unwrap();
     fs::write(dir.path().join("README.md"), "# thin\n").unwrap();

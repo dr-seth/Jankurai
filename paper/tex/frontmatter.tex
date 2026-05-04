@@ -31,7 +31,7 @@
   belowskip=2pt
 }
 
-\title{Humans Were the Bug: From Vibe Coding to Agent-Native Engineering}
+\title{Trustworthy Merge: From Vibe Coding to Agent-Native Engineering}
 \author{\IEEEauthorblockN{Jankurai Project}}
 
 \begin{document}
@@ -41,7 +41,7 @@
 \vspace*{0.15in}
 {\Huge\bfseries Humans Were the Bug \twemoji[height=0.82em]{bug}\par}
 \vspace{0.25em}
-{\Large\bfseries From Vibe Coding to Agent-Native Engineering\par}
+{\Large\bfseries Trustworthy Merge for Agent-Native Engineering\par}
 \vspace{0.6em}
 {\normalsize Jankurai Project \textbullet{} \href{https://github.com/jeppsontaylor/jankurai}{github.com/jeppsontaylor/jankurai}\par}
 \vspace{1.0em}
@@ -54,11 +54,11 @@
 
 \begin{minipage}{0.92\textwidth}
 \begin{abstract}
-AI coding changes the bottleneck in software engineering. The scarce act is no longer typing plausible code; agents can produce plausible code in many mainstream languages. The scarce act is trustworthy merge: the repository must reject wrong generated code quickly, localize the defect, prove the repair, preserve security posture, and teach the next agent what happened.
+AI coding changes the bottleneck in software engineering. The scarce act is no longer typing plausible code; agents can produce plausible code in many mainstream languages, and humans can still write plausible code that escapes review. The scarce act is trustworthy merge: no proof, no merge; no receipt, no trust. The repository must reject wrong code quickly, localize the defect, prove the repair, preserve security posture, and teach the next agent or reviewer what happened.
 
-This paper defines agent-native engineering as repositories designed as verification interfaces for generated code. It turns the earlier manifesto into an enforceable standard: conformance levels, stable rule identifiers, generated-zone policy, installable agent control planes, audit output, CI modes, repair queues, versioned artifacts, and a threat model for false plausibility, hostile context, tool overreach, secrets, dependency poisoning, and false-green tests.
+This paper defines agent-native engineering as repositories designed as verification interfaces for all code entering a governed repo, regardless of whether the first draft came from a person or a model. It turns the earlier manifesto into an enforceable standard: conformance levels, stable rule identifiers, generated-zone policy, installable agent control planes, continuous local/PR/CI audit, proof ledgers, repair queues, versioned artifacts, and a threat model for false plausibility, hostile context, tool overreach, secrets, dependency poisoning, and false-green tests.
 
-The stack recommendation remains sharp but narrower. Repositories do not need Jankurai merely because they use AI. Repositories claiming Jankurai conformance need a control plane strong enough to prove it. Under the rubric in this paper, the default winner for durable product engineering is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work. Exceptions are explicit, versioned, and auditable rather than hidden in taste or folklore.
+The stack recommendation remains sharp but narrower. Repositories do not need Jankurai merely because they use AI. Repositories claiming Jankurai conformance need a control plane strong enough to prove it at merge time. Under the rubric in this paper, the default winner for durable product engineering is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work. Exceptions are explicit, versioned, and auditable rather than hidden in taste or folklore.
 \end{abstract}
 
 \begin{IEEEkeywords}

@@ -21,6 +21,7 @@ agent/repo-score.json
 agent/repo-score.md
 *-score.json
 *-score.md
+!docs/rolling-score.md
 
 # Build directories
 target/

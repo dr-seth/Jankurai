@@ -12,7 +12,7 @@ fn minimal_ux_envelope() -> serde_json::Value {
     serde_json::json!({
         "reports": [{
             "schemaVersion": "1.4.0",
-            "toolVersion": "0.4.0",
+            "toolVersion": "0.5.0",
             "url": "about:blank",
             "checkedAt": "2026-05-02T12:00:00.000Z",
             "viewport": { "width": 1280, "height": 720 },
@@ -82,7 +82,7 @@ client_markers = ["m"]
 fn minimal_security_envelope() -> serde_json::Value {
     serde_json::json!({
         "schema_version": "1.0.0",
-        "standard_version": "0.4.0",
+        "standard_version": "0.5.0",
         "generated_at": "2026-05-02T12:00:00.000Z",
         "repo_root": "/tmp/x",
         "lane": "security",

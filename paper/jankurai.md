@@ -1,10 +1,12 @@
-# Humans Were the Bug
+# Trustworthy Merge
+
+Public banner: **Humans Were the Bug**
 
 Subtitle: **From Vibe Coding to Agent-Native Engineering**
 
-Paper edition: `2026.05-ed3`
+Paper edition: `2026.05-ed4`
 
-Standard version: `0.4.0`
+Standard version: `0.5.0`
 
 Canonical source: `paper/jankurai.tex` plus `paper/tex/`
 
@@ -16,9 +18,9 @@ Naming policy: paper artifacts use the `jankurai.*` prefix. Do not create `main.
 
 ## Executive Abstract
 
-AI coding moves the bottleneck from typing plausible code to trustworthy merge. Agent-native engineering treats the repository as a verification interface for generated code: ownership, proof lanes, generated zones, security gates, repair receipts, and versioned artifacts must be machine-readable.
+AI coding moves the bottleneck from typing plausible code to trustworthy merge. Agent-native engineering treats the repository as a verification interface for all code entering a governed repo, whether the first draft came from a person or a model. Ownership, proof lanes, generated zones, security gates, proof ledgers, repair queues, receipts, and versioned artifacts must be machine-readable.
 
-`Jankurai` is the control plane for repositories that claim conformance. It defines progressive install levels, conformance levels, stable rule IDs, audit output, CI modes, version bindings, and repair queues. The default stack recommendation remains Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
+`Jankurai` is the control plane for repositories that claim conformance. It defines progressive install levels, conformance levels, stable rule IDs, continuous local/PR/CI audit, merge witnesses, rolling score, proof verification, security evidence, CI modes, version bindings, and governed repair. The default reference profile remains Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python for AI/data service work.
 
 ## Section Map
 
@@ -51,8 +53,11 @@ Appendices:
 ## Core Claims
 
 - The scarce act is trustworthy merge, not first-draft code generation.
-- A repository claiming jankurai conformance must expose auditable ownership, proof routing, generated-zone policy, version metadata, and repair evidence.
+- Public rule: no proof, no merge; no receipt, no trust.
+- A repository claiming jankurai conformance must expose auditable ownership, proof routing, generated-zone policy, version metadata, proof ledgers, and repair evidence.
+- Human-authored code and agent-authored code should meet the same merge-time controls in a governed repo.
 - Adoption is progressive: `agents -> score -> ci -> full -> ratchet`. Minimal agent hooks shape tool behavior before a repository claims conformance.
+- The operating loop is changed path -> owner/test route -> context pack -> proof plan -> receipts/evidence index -> proof verification -> audit report -> merge witness -> repair queue.
 - Stack choice matters after the control plane exists. The default winner is Rust core, TypeScript/React/Vite, PostgreSQL, generated contracts, and bounded Python.
 - Hard caps and score weights are versioned policy, not final empirical truth.
 - The TLR pie chart is computed from the visible taxonomy RPN rows; it is a policy-priority model, not an incident-frequency chart.
@@ -80,6 +85,8 @@ Appendices:
 - `HLT-017-OPAQUE-OBSERVABILITY`: boundary failures need repairable telemetry.
 - `HLT-018-PERF-CONCURRENCY-DRIFT`: performance and concurrency risk needs proof.
 - `HLT-019-STREAMING-RUNTIME-DRIFT`: broker clients and Kafka stack identity must stay behind adapter boundaries or dated exceptions.
+- `HLT-020-CI-HARDENING-GAP`: CI workflow permissions, action pinning, and proof posture gaps need repair.
+- `HLT-021-DESTRUCTIVE-MIGRATION`: destructive SQL under migration paths needs documented rollback, backfill, staged deploy, lock, or explicit safety evidence.
 
 ## Artifact Map
 
@@ -93,6 +100,10 @@ Appendices:
 | `docs/agent-native-standard.md` | Full coding standard | `standard_version` |
 | `agent/JANKURAI_STANDARD.md` | Short agent bootstrap | `standard_version` |
 | `agent/standard-version.toml` | Canonical version manifest | all versions |
+| `agent/repo-score.json` | Canonical audit report JSON | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
+| `agent/repo-score.md` | Human-readable audit and repair brief | `standard_version`, `auditor_version`, `schema_version`, `paper_edition` |
+| `target/jankurai/evidence-index.json` | Proof evidence index from `jankurai prove` | proof schema |
+| `target/jankurai/security/evidence.json` | Normalized security lane evidence from `jankurai security run` | security evidence schema |
 
 ## Adoption Levels
 
@@ -107,24 +118,44 @@ Appendices:
 ## Command Map
 
 ```bash
+jankurai adopt . --profile auto --mode observe --out target/jankurai/adoption-plan.json --md target/jankurai/adoption-plan.md
 jankurai init . --level agents --dry-run --plan-json target/jankurai/init-agents.json
 jankurai init . --level agents --yes
 jankurai init . --level score --yes
 jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 jankurai init . --level ci --yes
+jankurai update . --check --out target/jankurai/update/update-plan.json --md target/jankurai/update/update-plan.md
+jankurai doctor . --fail-on high --json target/jankurai/doctor.json --md target/jankurai/doctor.md
+jankurai context-pack . --task "repair changed docs" --changed README.md --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
+jankurai adapters verify .
+jankurai adapters sync . --ide all --dry-run
+jankurai agent verify .
+jankurai hooks install . --dry-run
 jankurai ci install . --github --mode observe --dry-run
 jankurai ci install . --github --mode ratchet --baseline target/jankurai/baseline-score.json
 ```
 
 ```bash
-jankurai adopt . --mode observe --out target/jankurai/adoption-plan.json --md target/jankurai/adoption-plan.md
+jankurai issues export . --format jsonl --out target/jankurai/issues.jsonl
 jankurai lane . --changed README.md --out target/jankurai/proof-plan.json --md target/jankurai/proof-plan.md
+jankurai proof . --changed README.md --out target/jankurai/proof-plan.json --md target/jankurai/proof-plan.md
 jankurai prove . --changed README.md --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
+jankurai proof-verify . --plan target/jankurai/proof-plan.json --evidence-index target/jankurai/evidence-index.json --out target/jankurai/proof-verify.json --md target/jankurai/proof-verify.md
 jankurai repair-plan . --from target/jankurai/repo-score.json --out target/jankurai/repair-plan.json --md target/jankurai/repair-plan.md
+jankurai repair . --plan target/jankurai/repair-plan.json --dry-run --out target/jankurai/repair-run.json --md target/jankurai/repair-run.md
+jankurai optimize . --mode token --out target/jankurai/optimize.json --md target/jankurai/optimize.md
+jankurai exceptions expire . --strict --out target/jankurai/exceptions.json --md target/jankurai/exceptions.md
 jankurai migrate . --analyze --out target/jankurai/migration-report.json --md target/jankurai/migration-report.md
 jankurai cell . --cell-id background-job --mode prove --out target/jankurai/background-job.json --md target/jankurai/background-job.md
 jankurai security run . --out target/jankurai/security/evidence.json
-jankurai publish . --certification target/jankurai/certification.json --benchmark target/jankurai/benchmark.json --governance target/jankurai/governance.json --out target/jankurai/publication.json --md target/jankurai/publication.md
+jankurai rust map . --out-dir target/jankurai/rust
+jankurai rust witness build . --out target/jankurai/rust/witness-graph.json
+jankurai rust diagnose . --out target/jankurai/rust/compile-packets.json
+jankurai explain HLT-004-UNMAPPED-PROOF
+jankurai bench . --out target/jankurai/p12-benchmark-report.json --md target/jankurai/p12-benchmark-report.md
+jankurai certify . --out target/jankurai/p12-certification.json --md target/jankurai/p12-certification.md
+jankurai govern . --out target/jankurai/p12-governance-policy.json --md target/jankurai/p12-governance-policy.md
+jankurai publish . --certification target/jankurai/p12-certification.json --benchmark target/jankurai/p12-benchmark-report.json --governance target/jankurai/p12-governance-policy.json --out target/jankurai/public/p12-public-evidence.json --md target/jankurai/public/p12-public-evidence.md
 ```
 
 ## Build and Validation

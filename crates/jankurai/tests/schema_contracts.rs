@@ -42,6 +42,7 @@ fn adoption_plan_schema_parses_and_fixture_validates() {
         "liability_score": 48,
         "audit_score": null,
         "safe_commands": ["jankurai audit . --mode advisory"],
+        "tool_rollout": [],
         "stop_conditions": ["stop if workflow enforces a score gate"],
         "next_milestones": ["review plan"],
         "artifacts": ["target/jankurai/adoption-plan.json"],
@@ -322,6 +323,43 @@ fn cell_registry_and_manifest_schemas_parse() {
         context_pack["$id"],
         "https://jankurai.dev/schemas/context-pack.schema.json"
     );
+    assert!(context_pack["properties"].get("included_files").is_some());
+    assert!(context_pack["properties"]
+        .get("source_trust_summary")
+        .is_some());
+
+    for (file, id) in [
+        (
+            "merge-witness.schema.json",
+            "https://jankurai.dev/schemas/merge-witness.schema.json",
+        ),
+        (
+            "score-diff.schema.json",
+            "https://jankurai.dev/schemas/score-diff.schema.json",
+        ),
+        (
+            "score-trend.schema.json",
+            "https://jankurai.dev/schemas/score-trend.schema.json",
+        ),
+        (
+            "rule-registry.schema.json",
+            "https://jankurai.dev/schemas/rule-registry.schema.json",
+        ),
+        (
+            "rule-verify.schema.json",
+            "https://jankurai.dev/schemas/rule-verify.schema.json",
+        ),
+    ] {
+        let schema: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(repo.join("schemas").join(file)).unwrap())
+                .unwrap();
+        assert_eq!(schema["$id"], id);
+        assert!(schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|key| key == "schema_version"));
+    }
 
     let repair_plan: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/repair-plan.schema.json")).unwrap(),
@@ -667,6 +705,28 @@ fn cell_registry_and_manifest_schemas_parse() {
         .get("sha256")
         .is_some());
 
+    let tool_adoption_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/tool-adoption.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        tool_adoption_schema["$id"],
+        "https://jankurai.dev/schemas/tool-adoption.schema.json"
+    );
+    assert!(tool_adoption_schema["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|value| value == "tools"));
+    let tool_fixture = serde_json::json!({
+        "schema_version": "1.0.0",
+        "tools": [
+            { "id": "audit-ci", "mode": "auto" },
+            { "id": "security", "mode": "required" }
+        ]
+    });
+    validation::validate_value(&repo, ArtifactSchema::ToolAdoption, &tool_fixture).unwrap();
+
     let repo_score: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/repo-score.schema.json")).unwrap(),
     )
@@ -687,6 +747,7 @@ fn cell_registry_and_manifest_schemas_parse() {
         "decision",
         "git",
         "policy",
+        "tool_adoption",
     ] {
         assert!(
             rs_required.iter().any(|value| value == key),
@@ -703,6 +764,11 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert_eq!(
         repo_score["properties"]["ux_qa"]["$ref"],
         "#/$defs/uxQaReadiness"
+    );
+    assert!(repo_score["properties"].get("tool_adoption").is_some());
+    assert_eq!(
+        repo_score["properties"]["tool_adoption"]["$ref"],
+        "#/$defs/toolAdoptionReadiness"
     );
     let ux_ready = &repo_score["$defs"]["uxQaReadiness"];
     assert!(ux_ready["properties"].get("artifact").is_some());
@@ -724,6 +790,19 @@ fn cell_registry_and_manifest_schemas_parse() {
         .is_some());
     assert!(ux_art["properties"].get("visual_baseline_review").is_some());
     assert!(ux_art["properties"].get("visual_baseline_block").is_some());
+    let tool_ready = &repo_score["$defs"]["toolAdoptionReadiness"];
+    assert!(tool_ready["properties"].get("items").is_some());
+    assert!(tool_ready["properties"].get("missing").is_some());
+    assert_eq!(
+        repo_score["$defs"]["toolAdoptionItem"]["properties"]["status"]["enum"],
+        serde_json::json!([
+            "not_applicable",
+            "missing",
+            "configured",
+            "ci_evidence",
+            "artifact_verified"
+        ])
+    );
     assert!(repo_score["properties"].get("security_evidence").is_some());
     assert_eq!(
         repo_score["properties"]["security_evidence"]["$ref"],

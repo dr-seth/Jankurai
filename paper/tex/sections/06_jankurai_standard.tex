@@ -24,6 +24,27 @@ Adoption is progressive rather than binary. The install ladder is \texttt{agents
 \end{tabularx}
 \end{table}
 
+\begin{table*}[t]
+\caption{Current jankurai control-plane surfaces.}
+\label{tab:control-plane-surfaces}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.22\textwidth} L{0.24\textwidth} Y}
+\toprule
+\textbf{Surface} & \textbf{Commands} & \textbf{Control-plane role} \\
+\midrule
+Adoption and drift & \texttt{adopt}, \texttt{init}, \texttt{update}, \texttt{doctor} & Introduce the control plane without surprise writes, keep adapters and manifests current, and report stale or malformed evidence. \\
+Context and adapters & \texttt{context-pack}, \texttt{adapters verify/sync}, \texttt{agent verify}, \texttt{hooks install} & Turn prompt files and IDE rules into bounded authority tied to owner maps, test maps, generated zones, hooks, and CI entrypoints. \\
+Proof ledger & \texttt{lane}, \texttt{proof}, \texttt{prove}, \texttt{proof-verify} & Route changed paths, execute allowed proof commands, write receipts and evidence indexes, and verify proof artifacts against the current repo state. \\
+Audit, witness, and score ledger & \texttt{audit}, \texttt{witness}, \texttt{score diff/trend}, \texttt{rules verify}, \texttt{issues export} & Emit JSON/Markdown/SARIF/JUnit/summary evidence, merge witnesses, rolling score diffs, ordered repair queues, and machine-readable issue rows. \\
+Security and UX & \texttt{security run}, \texttt{ux ...} & Normalize secret, dependency, SBOM, workflow, and rendered-UX evidence under policy-controlled artifacts. \\
+Repair and expiry & \texttt{repair-plan}, \texttt{repair}, \texttt{optimize}, \texttt{exceptions expire} & Convert findings into bounded repair plans, dry-run or gated apply receipts, optimization proposals, and expiring exceptions. \\
+Cells and public evidence & \texttt{registry}, \texttt{cell}, \texttt{bench}, \texttt{certify}, \texttt{govern}, \texttt{publish} & Promote repeated fixes into reusable cells and publish benchmark, certification, governance, badge, and evidence-bundle artifacts. \\
+Rust proof aids & \texttt{rust map}, \texttt{rust witness}, \texttt{rust diagnose}, \texttt{explain} & Provide symbol maps, witness graphs/diffs, compile diagnostic packets, and local rule explanations for repair agents. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
 \begin{table}[t]
 \caption{Jankurai conformance levels.}
 \label{tab:conformance}
@@ -50,3 +71,9 @@ Stable rule identifiers make the standard repairable. The initial rule family co
 The audit loop is intentionally concrete. A failing repository might emit \texttt{HLT-010-SECRET-SPRAWL} for an exposed token in a fixture, \texttt{HLT-007-HANDWRITTEN-CONTRACT} for a handwritten web DTO, and \texttt{HLT-013-RENDERED-UX-GAP} for a checkout change without browser artifacts. The \texttt{agent\_fix\_queue} should order those by TLR priority, route them to \texttt{security}, \texttt{contract}, and \texttt{web} lanes, and require repair receipts: rotated credential and secret-scan output, regenerated client and drift check, screenshot/ARIA/geometry report for the changed viewport. Proof beats claims. A green score without those receipts is not conformance; it is merely an absence of local evidence.
 
 Centerline drift is the score delta between a repository's claimed standard and its observed behavior. Hard caps are versioned policy, not final empirical truth. The point is to make governance explicit: teams can argue about weights and caps in releases, not in scattered PR comments.
+
+The v0.5 public primitive is the merge witness. The trustworthy merge equation is:
+\[
+\mathrm{merge} = \mathrm{changed\ paths} + \mathrm{owner\ route} + \mathrm{proof\ receipts} + \mathrm{score\ delta} + \mathrm{missing\ evidence\ decision}.
+\]
+\texttt{jankurai witness} renders that equation as JSON and Markdown for a pull request. It records changed paths, generated-zone touches, required lanes, available receipts, baseline score, new/resolved/carried findings, caps, missing evidence, and a decision: pass, review, block, ratchet fail, or release fail. The slogan is operational rather than decorative: no proof, no merge; no receipt, no trust.

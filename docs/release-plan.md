@@ -20,20 +20,20 @@ Use separate versions because the paper, rules, and tooling will move at differe
 
 | Version | Format | Example | Rule |
 | --- | --- | --- | --- |
-| Paper edition | date plus edition | `2026.05-ed3` | changes when the argument or evidence changes |
-| Standard version | SemVer | `0.4.0` | breaking compliance rule means major bump |
-| Audit version | SemVer | `0.4.0` | implementation release of the scanner |
-| Output schema | SemVer | `1.2.0` | breaking JSON/Markdown contract means major bump |
-| Rule pack version | SemVer plus tool | `codex-0.4.0` | tracks standard version with tool-specific packaging |
+| Paper edition | date plus edition | `2026.05-ed4` | changes when the argument or evidence changes |
+| Standard version | SemVer | `0.5.0` | breaking compliance rule means major bump |
+| Audit version | SemVer | `0.5.0` | implementation release of the scanner |
+| Output schema | SemVer | `1.3.0` | breaking JSON/Markdown contract means major bump |
+| Rule pack version | SemVer plus tool | `codex-0.5.0` | tracks standard version with tool-specific packaging |
 
 Every audit output should include:
 
 ```json
 {
-  "standard_version": "0.4.0",
-  "auditor_version": "0.4.0",
-  "schema_version": "1.2.0",
-  "paper_edition": "2026.05-ed3",
+  "standard_version": "0.5.0",
+  "auditor_version": "0.5.0",
+  "schema_version": "1.3.0",
+  "paper_edition": "2026.05-ed4",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
 }
@@ -43,8 +43,8 @@ Every adopted repo should pin:
 
 ```json
 {
-  "jankurai_standard": "0.4.0",
-  "audit_min_version": "0.4.0",
+  "jankurai_standard": "0.5.0",
+  "audit_min_version": "0.5.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
   "advisory_on": ["medium", "low"]
@@ -175,7 +175,7 @@ Exit criteria:
 - generated exception catalog can route repairs to owners
 - examples exist for Rust, TypeScript, SQL, and Python service boundary
 
-### v0.4.0: Release Completion
+### v0.5.0: Trustworthy Merge Release
 
 Ship the release surface as one product:
 
@@ -184,7 +184,8 @@ Ship the release surface as one product:
 | Audit exports | JSON, Markdown, SARIF, JUnit, GitHub summary, repair queue JSONL, issue export |
 | Install | idempotent `init --profile --ide --mode --dry-run --yes --diff` |
 | Doctor | stale score, root artifact, path leak, echo-only proof, UX artifact, boundary, and paper-source checks |
-| CI | `jankurai ci install --github --mode ratchet --min-score 85` |
+| CI | `jankurai ci install --github --mode ratchet --baseline agent/repo-score.json --min-score 85` |
+| Merge witness | `jankurai witness . --changed-from origin/main --baseline agent/repo-score.json` |
 | Boundaries | authoritative streaming and queue manifest with Kafka brownfield exception shape |
 | UX QA | route-matrix and Storybook audit commands with artifact-backed proof |
 
@@ -193,7 +194,7 @@ Exit criteria:
 - every below-floor audit output includes routed repair work
 - canonical score artifacts remain under `agent/`
 - `paper/tex/` is the canonical paper source and Markdown sections are marked legacy-only
-- version bindings align at standard/auditor `0.4.0`, schema `1.2.0`, and paper `2026.05-ed3`
+- version bindings align at standard/auditor `0.5.0`, schema `1.3.0`, and paper `2026.05-ed4`
 
 ### v0.5.0: GitHub Action And Badges
 

@@ -18,6 +18,7 @@ pub enum ArtifactSchema {
     InitReceipt,
     InitProfile,
     SecurityPolicy,
+    ToolAdoption,
     SecurityEvidence,
     ContextPack,
     RepairPlan,
@@ -48,6 +49,11 @@ pub enum ArtifactSchema {
     UpdateReceipt,
     Finding,
     RepairQueueItem,
+    RuleRegistry,
+    RuleVerify,
+    MergeWitness,
+    ScoreDiff,
+    ScoreTrend,
 }
 
 impl ArtifactSchema {
@@ -63,6 +69,7 @@ impl ArtifactSchema {
             Self::InitReceipt => "init-receipt.schema.json",
             Self::InitProfile => "init-profile.schema.json",
             Self::SecurityPolicy => "security-policy.schema.json",
+            Self::ToolAdoption => "tool-adoption.schema.json",
             Self::SecurityEvidence => "security-evidence.schema.json",
             Self::ContextPack => "context-pack.schema.json",
             Self::RepairPlan => "repair-plan.schema.json",
@@ -93,6 +100,11 @@ impl ArtifactSchema {
             Self::UpdateReceipt => "update-receipt.schema.json",
             Self::Finding => "finding.schema.json",
             Self::RepairQueueItem => "repair-queue.schema.json",
+            Self::RuleRegistry => "rule-registry.schema.json",
+            Self::RuleVerify => "rule-verify.schema.json",
+            Self::MergeWitness => "merge-witness.schema.json",
+            Self::ScoreDiff => "score-diff.schema.json",
+            Self::ScoreTrend => "score-trend.schema.json",
         }
     }
 }
@@ -130,6 +142,15 @@ pub fn validate_security_policy_toml_text(repo: &Path, text: &str) -> Result<Val
     let json_value = serde_json::to_value(&toml_value)
         .context("convert security policy TOML to JSON for schema validation")?;
     validate_value(repo, ArtifactSchema::SecurityPolicy, &json_value)?;
+    Ok(json_value)
+}
+
+/// Parse `agent/tool-adoption.toml` as TOML and validate the JSON-shaped value against `tool-adoption.schema.json`.
+pub fn validate_tool_adoption_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value = toml::from_str(text).context("parse agent/tool-adoption.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert tool adoption TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::ToolAdoption, &json_value)?;
     Ok(json_value)
 }
 

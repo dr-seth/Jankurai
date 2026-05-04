@@ -332,6 +332,8 @@ standard_version = "0.0.0"
         .arg("--github")
         .arg("--mode")
         .arg("ratchet")
+        .arg("--baseline")
+        .arg("agent/repo-score.json")
         .arg("--min-score")
         .arg("85")
         .status()

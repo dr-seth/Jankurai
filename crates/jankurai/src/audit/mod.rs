@@ -76,6 +76,7 @@ pub fn run_audit_with_options(
         .fold(raw_score, |acc, cap| acc.min(cap));
     let policy = load_policy(root);
     let ux_qa = attach_ux_report_artifact(root, analyzers::ux_qa_status(&ctx));
+    let tool_adoption = analyzers::tool_adoption::status(&ctx);
     let findings = build_findings(
         &ctx,
         &dimensions,
@@ -134,6 +135,7 @@ pub fn run_audit_with_options(
             .collect(),
         dimensions,
         ux_qa,
+        tool_adoption,
         security_evidence: SecurityEvidenceReadiness {
             artifact: security_artifact::load_report_summary(root),
         },
@@ -725,6 +727,9 @@ fn build_findings(
     }
 
     for dimension in dimensions.iter().filter(|dimension| dimension.score < 85) {
+        if dimension.name == "Jankurai tool adoption and CI replacement" {
+            continue;
+        }
         let (category, path, rule_id, fix) = dimension_soft_route(&dimension.name);
         let evidence = if dimension.evidence.is_empty() && dimension.notes.is_empty() {
             vec![format!("{} scored {}", dimension.name, dimension.score)]

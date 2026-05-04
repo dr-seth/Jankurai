@@ -29,13 +29,13 @@ fn write_minimal_standard_repo(dir: &Path) {
     fs::write(dir.join("Justfile"), "check:\n    cargo test\n").unwrap();
     fs::write(
         dir.join("agent/JANKURAI_STANDARD.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
     fs::create_dir_all(dir.join("docs")).unwrap();
     fs::write(
         dir.join("docs/agent-native-standard.md"),
-        "Standard version: `0.4.0`\n",
+        "Standard version: `0.5.0`\n",
     )
     .unwrap();
 }

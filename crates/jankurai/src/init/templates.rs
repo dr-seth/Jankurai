@@ -206,7 +206,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "agent/JANKURAI_STANDARD.md",
-        body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.4.0`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, and `agent/boundaries.toml` before editing.\n",
+        body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.5.0`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/tool-adoption.toml`, and `agent/boundaries.toml` before editing.\n",
     },
     Template {
         path: "agent/MASTER_PLAN.md",
@@ -235,6 +235,10 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "agent/security-policy.toml",
         body: "schema_version = \"1.0.0\"\nenabled_tools = [\"gitleaks\", \"cargo audit\", \"npm audit\"]\nrequired_tools = []\nadvisory_tools = [\"gitleaks\", \"cargo audit\", \"npm audit\"]\n\n[severity_thresholds]\nfail_lane_on = \"high\"\n",
+    },
+    Template {
+        path: "agent/tool-adoption.toml",
+        body: "schema_version = \"1.0.0\"\n\n[[tools]]\nid = \"audit-ci\"\nmode = \"auto\"\n\n[[tools]]\nid = \"proof-routing\"\nmode = \"auto\"\n\n[[tools]]\nid = \"security\"\nmode = \"auto\"\n\n[[tools]]\nid = \"ux-qa\"\nmode = \"auto\"\n\n[[tools]]\nid = \"db-migration-analyze\"\nmode = \"auto\"\n\n[[tools]]\nid = \"contract-drift\"\nmode = \"auto\"\n\n[[tools]]\nid = \"rust-witness\"\nmode = \"auto\"\n",
     },
     Template {
         path: "agent/standard-version.toml",
@@ -386,6 +390,6 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".github/workflows/jankurai.yml",
-        body: "name: jankurai\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Install jankurai\n        run: cargo install jankurai --locked\n      - run: jankurai --version\n      - name: jankurai audit\n        run: jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl\n      - uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: jankurai-adoption-evidence\n          path: |\n            target/jankurai/repo-score.json\n            target/jankurai/repo-score.md\n            target/jankurai/jankurai.sarif\n            target/jankurai/repair-queue.jsonl\n",
+        body: "name: jankurai\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Install jankurai\n        run: cargo install jankurai --locked\n      - run: jankurai --version\n      - name: jankurai audit\n        run: jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl\n      - uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: jankurai-adoption-evidence\n          if-no-files-found: ignore\n          path: |\n            target/jankurai/repo-score.json\n            target/jankurai/repo-score.md\n            target/jankurai/jankurai.sarif\n            target/jankurai/repair-queue.jsonl\n            target/jankurai/security/evidence.json\n            target/jankurai/ux-qa.json\n            target/jankurai/migration-report.json\n            target/jankurai/rust/witness-graph.json\n",
     },
 ];

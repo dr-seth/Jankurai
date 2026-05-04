@@ -9,6 +9,7 @@ pub mod python;
 pub mod security;
 pub mod shape;
 pub mod speed;
+pub mod tool_adoption;
 
 use super::helpers::AuditContext;
 use crate::model::*;
@@ -23,6 +24,7 @@ pub fn all_dimensions(ctx: &AuditContext) -> Vec<DimensionResult> {
         data::analyze(ctx),
         observability::analyze(ctx),
         context::analyze(ctx),
+        tool_adoption::analyze(ctx),
         python::analyze(ctx),
         speed::analyze(ctx),
     ]

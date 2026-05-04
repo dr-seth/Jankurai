@@ -23,6 +23,9 @@ pub fn install(args: CiInstallArgs) -> Result<()> {
             args.mode
         );
     }
+    if args.mode == "ratchet" && args.baseline.is_none() {
+        bail!("ratchet CI requires --baseline PATH; install observe/advisory until an accepted baseline exists");
+    }
     progress.tick("render workflow");
     let path = args.repo.join(".github/workflows/jankurai.yml");
     let rendered = workflow(&args.mode, args.min_score, args.baseline.as_deref());
@@ -81,8 +84,13 @@ fn workflow(mode: &str, min_score: i32, baseline: Option<&str>) -> String {
     let gate = if mode == "ratchet" {
         format!(
             r#"
+      - name: jankurai merge witness
+        run: jankurai witness . --changed-from origin/main{baseline_arg} --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
+      - name: jankurai score diff
+        run: jankurai score diff --base {baseline} --head target/jankurai/repo-score.json --out target/jankurai/score-diff.json --md target/jankurai/score-diff.md
       - name: Enforce score floor
-        run: test "$(jq -r '.score' target/jankurai/repo-score.json)" -ge {min_score}"#
+        run: test "$(jq -r '.score' target/jankurai/repo-score.json)" -ge {min_score}"#,
+            baseline = baseline.unwrap_or("agent/repo-score.json")
         )
     } else {
         String::new()
@@ -112,11 +120,20 @@ jobs:
         if: always()
         with:
           name: jankurai-adoption-evidence
+          if-no-files-found: ignore
           path: |
             target/jankurai/repo-score.json
             target/jankurai/repo-score.md
             target/jankurai/jankurai.sarif
             target/jankurai/repair-queue.jsonl
+            target/jankurai/merge-witness.json
+            target/jankurai/merge-witness.md
+            target/jankurai/score-diff.json
+            target/jankurai/score-trend.json
+            target/jankurai/security/evidence.json
+            target/jankurai/ux-qa.json
+            target/jankurai/migration-report.json
+            target/jankurai/rust/witness-graph.json
 "#
     )
 }
@@ -127,9 +144,10 @@ mod tests {
 
     #[test]
     fn ratchet_workflow_uses_installed_jankurai_and_score_gate() {
-        let rendered = workflow("ratchet", 85, None);
+        let rendered = workflow("ratchet", 85, Some("agent/repo-score.json"));
         assert!(rendered.contains("cargo install jankurai --locked"));
         assert!(rendered.contains("--mode ratchet"));
+        assert!(rendered.contains("jankurai witness"));
         assert!(rendered.contains("-ge 85"));
     }
 

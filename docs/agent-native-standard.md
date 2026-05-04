@@ -1,6 +1,6 @@
 # jankurai Agent-Native Repository Standard
 
-Standard version: `0.4.0`
+Standard version: `0.5.0`
 Published: `2026-05-02`
 Paper: `Humans Were the Bug: From Vibe Coding to Agent-Native Engineering`
 Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
@@ -242,6 +242,14 @@ Source: <contract path>
 Command: <regen command>
 DO NOT EDIT BY HAND.
 ```
+
+Structured generated artifacts that cannot legally carry comment headers MUST
+carry equivalent generated identity in their native format. For example,
+`agent/repo-score.json` is valid when its schema URL, generated timestamp, and
+standard/auditor/schema version fields are present. Native lockfiles such as
+`package-lock.json` are valid when the package-manager lockfile shape validates.
+Arbitrary JSON without recognized generated identity is still treated as an
+unprotected generated-zone mutation.
 
 Required zones:
 

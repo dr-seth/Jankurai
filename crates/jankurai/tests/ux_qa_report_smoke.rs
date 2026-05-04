@@ -11,7 +11,7 @@ fn minimal_valid_envelope() -> serde_json::Value {
     serde_json::json!({
         "reports": [{
             "schemaVersion": "1.2.0",
-            "toolVersion": "0.4.0",
+            "toolVersion": "0.5.0",
             "url": "about:blank",
             "checkedAt": "2026-05-02T12:00:00.000Z",
             "viewport": { "width": 1280, "height": 720 },

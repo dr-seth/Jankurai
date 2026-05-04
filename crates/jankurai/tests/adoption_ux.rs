@@ -41,14 +41,30 @@ fn adopt_legacy_node_emits_migration_target_plan() {
     assert_eq!(plan["command"], "jankurai adopt");
     assert_eq!(plan["mode"], "observe");
     assert_eq!(plan["recommended_profile"], "migration-target");
+    assert!(plan["tool_rollout"].is_array());
+    if let Some(first) = plan["tool_rollout"]
+        .as_array()
+        .and_then(|items| items.first())
+    {
+        assert!(
+            first["next_command"]
+                .as_str()
+                .unwrap()
+                .starts_with("cargo run -p jankurai")
+                || first["next_command"]
+                    .as_str()
+                    .unwrap()
+                    .starts_with("jankurai ")
+        );
+    }
     assert!(plan["safe_commands"]
         .as_array()
         .unwrap()
         .iter()
         .all(|command| !command.as_str().unwrap().contains("cargo run -p jankurai")));
-    assert!(fs::read_to_string(md_path)
-        .unwrap()
-        .starts_with("# jankurai Adoption Plan"));
+    let md = fs::read_to_string(md_path).unwrap();
+    assert!(md.starts_with("# jankurai Adoption Plan"));
+    assert!(md.contains("## Tool Rollout"));
 }
 
 #[test]

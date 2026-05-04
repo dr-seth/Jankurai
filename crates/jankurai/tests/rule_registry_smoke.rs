@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 use jankurai::audit::{rule_registry, rules};
 
@@ -79,4 +80,49 @@ fn every_rule_id_is_documented_in_the_standard() {
             rule.id
         );
     }
+}
+
+#[test]
+fn rules_export_and_verify_emit_schema_valid_artifacts() {
+    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let out_dir = tempfile::tempdir().unwrap();
+    let registry = out_dir.path().join("rule-registry.json");
+    let verify = out_dir.path().join("rules-verify.json");
+    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("rules")
+        .arg("export")
+        .arg(&repo)
+        .arg("--out")
+        .arg(&registry)
+        .status()
+        .unwrap()
+        .success());
+    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("rules")
+        .arg("verify")
+        .arg(&repo)
+        .arg("--out")
+        .arg(&verify)
+        .status()
+        .unwrap()
+        .success());
+    let registry_value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(registry).unwrap()).unwrap();
+    let verify_value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(verify).unwrap()).unwrap();
+    jankurai::validation::validate_value(
+        &repo,
+        jankurai::validation::ArtifactSchema::RuleRegistry,
+        &registry_value,
+    )
+    .unwrap();
+    jankurai::validation::validate_value(
+        &repo,
+        jankurai::validation::ArtifactSchema::RuleVerify,
+        &verify_value,
+    )
+    .unwrap();
+    assert_eq!(verify_value["status"], "pass");
 }

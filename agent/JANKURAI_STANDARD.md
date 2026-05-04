@@ -1,6 +1,6 @@
 # jankurai Standard Agent Bootstrap
 
-Standard version: `0.4.0`
+Standard version: `0.5.0`
 Published: `2026-05-02`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
@@ -28,6 +28,7 @@ Before edits:
 - inspect `agent/test-map.json`
 - inspect `agent/generated-zones.toml`
 - inspect `agent/standard-version.toml` for versioned artifacts
+- inspect `agent/tool-adoption.toml` when rolling out new Jankurai-backed tool lanes
 - check target file length before adding behavior
 - search for existing owner and duplicate behavior
 
@@ -124,6 +125,12 @@ Command: <regen command>
 DO NOT EDIT BY HAND.
 ```
 
+Structured generated artifacts that cannot legally carry comments, including
+`agent/repo-score.json` and native lockfiles such as `package-lock.json`, must
+carry equivalent machine-readable identity in their native schema. Required
+identity includes generator/schema metadata and version fields for reports, or
+the package-manager lockfile shape for lockfiles.
+
 ## Proof Lanes
 
 Use `agent/test-map.json` to select the smallest credible lane.
@@ -141,6 +148,8 @@ Required lane names:
 - `audit`: jankurai JSON/Markdown report
 - `release`: all merge gates
 
+Tool replacement counts only when a Jankurai lane runs in CI and uploads the expected artifact evidence. Local config is readiness only; it does not count as replacement proof.
+
 ## Audit Output
 
 Every audit should produce JSON and Markdown with:
@@ -153,6 +162,7 @@ Every audit should produce JSON and Markdown with:
 - raw and final score
 - hard caps
 - dimension breakdown
+- tool adoption readiness and replacement evidence
 - findings with evidence
 - ordered `agent_fix_queue`
 
@@ -188,3 +198,15 @@ just score
 just paper
 just check
 ```
+
+## v0.5 Daily Merge Loop
+
+```bash
+jankurai context-pack . --changed <path> --max-tokens 6000 --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
+jankurai prove . --changed <path> --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
+jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+jankurai witness . --changed-from origin/main --baseline agent/repo-score.json --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
+```
+
+Ratchet mode requires an accepted baseline. Merge witness is the PR receipt:
+no proof, no merge; no receipt, no trust.

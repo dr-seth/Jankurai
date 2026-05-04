@@ -58,6 +58,12 @@ pub const CAP_SPECS: &[CapSpec] = &[
         hardness: "hard",
     },
     CapSpec {
+        key: "jankurai-required-tool-ci-evidence-gap",
+        max_score: 88,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
         key: "non-optimal-product-language-found",
         max_score: 74,
         rule_id: None,
@@ -182,6 +188,7 @@ pub const CAPS: &[(&str, i32)] = &[
     ("python-direct-product-truth-or-db-ownership", 72),
     ("no-secret-or-dependency-scanning-in-ci", 78),
     ("no-jankurai-audit-lane-in-ci", 82),
+    ("jankurai-required-tool-ci-evidence-gap", 88),
     ("non-optimal-product-language-found", 74),
     ("too-much-python-in-product-surface", 72),
     ("vibe-placeholders-in-product-code", 68),
@@ -230,6 +237,9 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     }
     if is_high_risk_repo(ctx) && !has_jankurai_audit_ci_lane(ctx) {
         caps.push("no-jankurai-audit-lane-in-ci".into());
+    }
+    if !crate::audit::analyzers::tool_adoption::missing_required_ci_tools(ctx).is_empty() {
+        caps.push("jankurai-required-tool-ci-evidence-gap".into());
     }
     if !non_optimal_language_hits(ctx).is_empty() {
         caps.push("non-optimal-product-language-found".into());

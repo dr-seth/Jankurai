@@ -32,6 +32,7 @@
     "hard_rules",
     "dimensions",
     "ux_qa",
+    "tool_adoption",
     "security_evidence",
     "boundaries",
     "findings",
@@ -92,6 +93,7 @@
     "findings": { "type": "array", "items": { "$ref": "finding.schema.json" } },
     "agent_fix_queue": { "type": "array", "items": { "$ref": "repair-queue.schema.json" } },
     "ux_qa": { "$ref": "#/$defs/uxQaReadiness" },
+    "tool_adoption": { "$ref": "#/$defs/toolAdoptionReadiness" },
     "security_evidence": { "$ref": "#/$defs/securityEvidenceReadiness" },
     "boundaries": { "$ref": "#/$defs/boundariesReadiness" }
   },
@@ -284,6 +286,90 @@
         },
         "evidence": true,
         "artifact": { "$ref": "#/$defs/uxQaReportArtifactSummary" }
+      },
+      "additionalProperties": false
+    },
+    "toolAdoptionItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "category",
+        "mode",
+        "applicable",
+        "status",
+        "replaced_tools",
+        "evidence",
+        "missing",
+        "artifact_paths"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "mode": {
+          "type": "string",
+          "enum": ["auto", "required", "advisory", "disabled"]
+        },
+        "applicable": { "type": "boolean" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_applicable",
+            "missing",
+            "configured",
+            "ci_evidence",
+            "artifact_verified"
+          ]
+        },
+        "replaced_tools": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "missing": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "local_command": { "type": ["string", "null"] },
+        "ci_command": { "type": ["string", "null"] },
+        "artifact_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "toolAdoptionReadiness": {
+      "type": "object",
+      "required": [
+        "control_plane_present",
+        "applicable_count",
+        "configured_count",
+        "ci_evidence_count",
+        "artifact_verified_count",
+        "replaced_count",
+        "items",
+        "evidence",
+        "missing"
+      ],
+      "properties": {
+        "control_plane_present": { "type": "boolean" },
+        "applicable_count": { "type": "integer", "minimum": 0 },
+        "configured_count": { "type": "integer", "minimum": 0 },
+        "ci_evidence_count": { "type": "integer", "minimum": 0 },
+        "artifact_verified_count": { "type": "integer", "minimum": 0 },
+        "replaced_count": { "type": "integer", "minimum": 0 },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/toolAdoptionItem" }
+        },
+        "evidence": true,
+        "missing": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
       },
       "additionalProperties": false
     },

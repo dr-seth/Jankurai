@@ -343,6 +343,12 @@ pub fn dimension_soft_route(
             "HLT-018-PERF-CONCURRENCY-DRIFT",
             "add fast deterministic build/test targets, caches, and narrow proof lanes for agent iteration",
         ),
+        "Jankurai tool adoption and CI replacement" => (
+            "audit",
+            "agent/tool-adoption.toml",
+            "HLT-020-CI-HARDENING-GAP",
+            "add the next highest-value Jankurai-backed CI lane and upload the expected artifact evidence",
+        ),
         _ => (
             "audit",
             "agent/audit-policy.toml",
