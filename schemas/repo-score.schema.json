@@ -95,7 +95,8 @@
     "ux_qa": { "$ref": "#/$defs/uxQaReadiness" },
     "tool_adoption": { "$ref": "#/$defs/toolAdoptionReadiness" },
     "security_evidence": { "$ref": "#/$defs/securityEvidenceReadiness" },
-    "boundaries": { "$ref": "#/$defs/boundariesReadiness" }
+    "boundaries": { "$ref": "#/$defs/boundariesReadiness" },
+    "vibe_coverage": { "$ref": "#/$defs/vibeCoverageSummary" }
   },
   "$defs": {
     "sha256": {
@@ -435,6 +436,54 @@
       "type": "object",
       "properties": {
         "artifact": { "$ref": "#/$defs/boundariesManifestSummary" }
+      },
+      "additionalProperties": false
+    },
+    "vibeCoverageSummary": {
+      "type": "object",
+      "required": [
+        "source_path",
+        "issue_count",
+        "source_ref_count",
+        "unmapped_source_rows",
+        "coverage_counts",
+        "tlr_counts",
+        "priority_counts",
+        "top_gaps"
+      ],
+      "properties": {
+        "source_path": { "type": "string" },
+        "issue_count": { "type": "integer", "minimum": 0 },
+        "source_ref_count": { "type": "integer", "minimum": 0 },
+        "unmapped_source_rows": { "type": "integer", "minimum": 0 },
+        "coverage_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "tlr_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "priority_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "top_gaps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "coverage", "priority", "gap", "next_action"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "coverage": { "type": "string" },
+              "priority": { "type": "string" },
+              "gap": { "type": "string" },
+              "next_action": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
       },
       "additionalProperties": false
     }

@@ -275,6 +275,45 @@ pub fn render_markdown(report: &Report) -> String {
         );
         let _ = writeln!(out, "- Content fingerprint: `{}`", art.content_fingerprint);
     }
+    if let Some(summary) = &report.vibe_coverage {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Vibe Coding Coverage");
+        let _ = writeln!(out);
+        let _ = writeln!(out, "- Source: `{}`", summary.source_path);
+        let _ = writeln!(out, "- Issues: `{}`", summary.issue_count);
+        let _ = writeln!(out, "- Source refs: `{}`", summary.source_ref_count);
+        let _ = writeln!(
+            out,
+            "- Unmapped source rows: `{}`",
+            summary.unmapped_source_rows
+        );
+        let _ = writeln!(
+            out,
+            "- Coverage: absolute=`{}` partial=`{}` none=`{}`",
+            summary
+                .coverage_counts
+                .get("absolute")
+                .copied()
+                .unwrap_or(0),
+            summary.coverage_counts.get("partial").copied().unwrap_or(0),
+            summary.coverage_counts.get("none").copied().unwrap_or(0)
+        );
+        if !summary.top_gaps.is_empty() {
+            let _ = writeln!(out);
+            let _ = writeln!(out, "| ID | Coverage | Priority | Next action |");
+            let _ = writeln!(out, "| --- | --- | --- | --- |");
+            for gap in &summary.top_gaps {
+                let _ = writeln!(
+                    out,
+                    "| `{}` | `{}` | `{}` | {} |",
+                    gap.id,
+                    gap.coverage,
+                    gap.priority,
+                    gap.next_action.replace('|', "\\|")
+                );
+            }
+        }
+    }
     let _ = writeln!(out);
     let _ = writeln!(out, "## Findings");
     let _ = writeln!(out);

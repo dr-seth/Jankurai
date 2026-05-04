@@ -54,6 +54,8 @@ pub enum ArtifactSchema {
     MergeWitness,
     ScoreDiff,
     ScoreTrend,
+    VibeCoverageSource,
+    VibeCoverageReport,
 }
 
 impl ArtifactSchema {
@@ -105,6 +107,8 @@ impl ArtifactSchema {
             Self::MergeWitness => "merge-witness.schema.json",
             Self::ScoreDiff => "score-diff.schema.json",
             Self::ScoreTrend => "score-trend.schema.json",
+            Self::VibeCoverageSource => "vibe-coverage-source.schema.json",
+            Self::VibeCoverageReport => "vibe-coverage-report.schema.json",
         }
     }
 }
@@ -198,6 +202,14 @@ pub fn validate_standard_version_toml_text(repo: &Path, text: &str) -> Result<Va
     let json_value = serde_json::to_value(&toml_value)
         .context("convert standard-version TOML to JSON for schema validation")?;
     validate_value(repo, ArtifactSchema::StandardVersion, &json_value)?;
+    Ok(json_value)
+}
+
+pub fn validate_vibe_coverage_source_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value = toml::from_str(text).context("parse agent/vibe-coverage.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert vibe coverage TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::VibeCoverageSource, &json_value)?;
     Ok(json_value)
 }
 

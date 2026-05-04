@@ -175,6 +175,7 @@ fn repo_score_markdown_keeps_stable_sections() {
         "## Dimensions",
         "## Rendered UX QA",
         "## Tool Adoption",
+        "## Vibe Coding Coverage",
         "## Findings",
         "## Agent Fix Queue",
     ] {

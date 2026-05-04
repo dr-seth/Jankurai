@@ -820,6 +820,36 @@ fn cell_registry_and_manifest_schemas_parse() {
 }
 
 #[test]
+fn vibe_coverage_schemas_parse_and_source_validates() {
+    let repo = repo_root();
+    let source_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/vibe-coverage-source.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let report_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/vibe-coverage-report.schema.json")).unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        source_schema["$id"],
+        "https://jankurai.dev/schemas/vibe-coverage-source.schema.json"
+    );
+    assert_eq!(
+        report_schema["$id"],
+        "https://jankurai.dev/schemas/vibe-coverage-report.schema.json"
+    );
+    assert_eq!(
+        report_schema["properties"]["issues"]["items"]["$ref"],
+        "vibe-coverage-source.schema.json#/$defs/issue"
+    );
+
+    let source = fs::read_to_string(repo.join("agent/vibe-coverage.toml")).unwrap();
+    let value = validation::validate_vibe_coverage_source_toml_text(&repo, &source).unwrap();
+    validation::validate_value(&repo, ArtifactSchema::VibeCoverageSource, &value).unwrap();
+}
+
+#[test]
 fn repair_run_schema_requires_execution_mode() {
     let repo = repo_root();
     let mut run: serde_json::Value = serde_json::json!({

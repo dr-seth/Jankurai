@@ -1,10 +1,10 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-pub const STANDARD_VERSION: &str = "0.5.0";
-pub const AUDITOR_VERSION: &str = "0.5.0";
-pub const SCHEMA_VERSION: &str = "1.3.0";
-pub const PAPER_EDITION: &str = "2026.05-ed4";
+pub const STANDARD_VERSION: &str = "0.6.0";
+pub const AUDITOR_VERSION: &str = "0.6.0";
+pub const SCHEMA_VERSION: &str = "1.4.0";
+pub const PAPER_EDITION: &str = "2026.05-ed5";
 pub const TARGET_STACK_ID: &str = "rust-ts-vite-react-postgres-bounded-python";
 pub const TARGET_STACK: &str = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service";
 
@@ -283,6 +283,28 @@ pub struct BoundariesReadiness {
     pub artifact: Option<BoundariesManifestSummary>,
 }
 
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+pub struct VibeCoverageGap {
+    pub id: String,
+    pub name: String,
+    pub coverage: String,
+    pub priority: String,
+    pub gap: String,
+    pub next_action: String,
+}
+
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+pub struct VibeCoverageSummary {
+    pub source_path: String,
+    pub issue_count: usize,
+    pub source_ref_count: usize,
+    pub unmapped_source_rows: usize,
+    pub coverage_counts: BTreeMap<String, usize>,
+    pub tlr_counts: BTreeMap<String, usize>,
+    pub priority_counts: BTreeMap<String, usize>,
+    pub top_gaps: Vec<VibeCoverageGap>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Report {
     pub report_fingerprint: String,
@@ -324,6 +346,8 @@ pub struct Report {
     pub tool_adoption: ToolAdoptionReadiness,
     pub security_evidence: SecurityEvidenceReadiness,
     pub boundaries: BoundariesReadiness,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vibe_coverage: Option<VibeCoverageSummary>,
     pub findings: Vec<Finding>,
     pub agent_fix_queue: Vec<AgentFix>,
 }

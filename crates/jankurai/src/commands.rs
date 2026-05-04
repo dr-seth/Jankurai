@@ -29,4 +29,5 @@ pub mod rust;
 pub mod score;
 pub mod security;
 pub mod update;
+pub mod vibe;
 pub mod witness;

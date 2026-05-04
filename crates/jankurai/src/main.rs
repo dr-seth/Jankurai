@@ -4,7 +4,7 @@ use jankurai::audit::{run_audit, run_audit_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
     migrate, optimize, proof, publish, registry, repair, repair_plan, rules, rust, score, security,
-    update, witness,
+    update, vibe, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -94,6 +94,10 @@ enum Commands {
         #[command(subcommand)]
         command: SecurityCommand,
     },
+    Vibe {
+        #[command(subcommand)]
+        command: VibeCommand,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -120,6 +124,12 @@ enum IssuesCommand {
 #[derive(Subcommand, Debug)]
 enum SecurityCommand {
     Run(SecurityRunArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum VibeCommand {
+    Coverage(VibeCoverageArgs),
+    Validate(VibeValidateArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -804,6 +814,32 @@ struct SecurityRunArgs {
 }
 
 #[derive(Args, Debug)]
+struct VibeCoverageArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "PATH", default_value = "agent/vibe-coverage.toml")]
+    source: String,
+    #[arg(long, value_name = "PATH", default_value = "tips/vibe_coding")]
+    tips: String,
+    #[arg(long, value_name = "PATH")]
+    json: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    tex: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct VibeValidateArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "PATH", default_value = "agent/vibe-coverage.toml")]
+    source: String,
+    #[arg(long, value_name = "PATH", default_value = "tips/vibe_coding")]
+    tips: String,
+}
+
+#[derive(Args, Debug)]
 struct RustMapArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -1191,6 +1227,25 @@ fn main() -> anyhow::Result<()> {
                     script: args.script,
                     out: args.out,
                     strict: args.strict,
+                })?;
+            }
+        },
+        Some(Commands::Vibe { command }) => match command {
+            VibeCommand::Coverage(args) => {
+                vibe::run_coverage(vibe::VibeCoverageArgs {
+                    repo: args.repo,
+                    source: args.source,
+                    tips: args.tips,
+                    json: args.json,
+                    md: args.md,
+                    tex: args.tex,
+                })?;
+            }
+            VibeCommand::Validate(args) => {
+                vibe::run_validate(vibe::VibeValidateArgs {
+                    repo: args.repo,
+                    source: args.source,
+                    tips: args.tips,
                 })?;
             }
         },
