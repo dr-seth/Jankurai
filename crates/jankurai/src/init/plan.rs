@@ -48,17 +48,7 @@ pub fn build_plan(
             bail!("profile declares `{path}` but no init template is registered (see init/templates.rs)");
         }
         let action = if repo.join(path).exists() {
-            if path.ends_with(".json") {
-                "merge-json".into()
-            } else if path.ends_with(".toml") {
-                "merge-toml".into()
-            } else if path.ends_with(".gitignore") || path.ends_with("Justfile") {
-                "merge-lines".into()
-            } else if matches!(path.as_str(), "AGENTS.md" | "agent/JANKURAI_STANDARD.md") {
-                "merge-marker".into()
-            } else {
-                "keep-existing".into()
-            }
+            profile_manifest.merge_policy_for_path(path).plan_action().into()
         } else {
             "create".into()
         };

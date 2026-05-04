@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::validation::{self, ArtifactSchema};
+use crate::init::profiles::MergePolicyAction;
 
 pub struct InitArgs {
     pub repo: PathBuf,
@@ -96,54 +97,60 @@ fn apply_templates(
             }
             let existing_text = fs::read_to_string(&path).unwrap_or_default();
 
-            if rel.ends_with(".json") {
-                let merged = crate::init::merge::merge_json(&existing_text, template.body)
-                    .with_context(|| format!("failed to merge JSON {}", rel))?;
-                if merged != existing_text {
-                    fs::write(&path, merged)?;
+            match manifest.merge_policy_for_path(&rel) {
+                MergePolicyAction::MergeJson => {
+                    let merged = crate::init::merge::merge_json(&existing_text, template.body)
+                        .with_context(|| format!("failed to merge JSON {}", rel))?;
+                    if merged != existing_text {
+                        fs::write(&path, merged)?;
+                    }
+                    actions.push(InitAction {
+                        path: rel,
+                        action: "merge-json".into(),
+                    });
                 }
-                actions.push(InitAction {
-                    path: rel,
-                    action: "merge-json".into(),
-                });
-            } else if rel.ends_with(".toml") {
-                let merged = crate::init::merge::merge_toml(&existing_text, template.body)
-                    .with_context(|| format!("failed to merge TOML {}", rel))?;
-                if merged != existing_text {
-                    fs::write(&path, merged)?;
+                MergePolicyAction::MergeToml => {
+                    let merged = crate::init::merge::merge_toml(&existing_text, template.body)
+                        .with_context(|| format!("failed to merge TOML {}", rel))?;
+                    if merged != existing_text {
+                        fs::write(&path, merged)?;
+                    }
+                    actions.push(InitAction {
+                        path: rel,
+                        action: "merge-toml".into(),
+                    });
                 }
-                actions.push(InitAction {
-                    path: rel,
-                    action: "merge-toml".into(),
-                });
-            } else if rel.ends_with(".gitignore") || rel.ends_with("Justfile") {
-                let merged = crate::init::merge::merge_lines(&existing_text, template.body)
-                    .with_context(|| format!("failed to merge lines {}", rel))?;
-                if merged != existing_text {
-                    fs::write(&path, merged)?;
+                MergePolicyAction::MergeLines => {
+                    let merged = crate::init::merge::merge_lines(&existing_text, template.body)
+                        .with_context(|| format!("failed to merge lines {}", rel))?;
+                    if merged != existing_text {
+                        fs::write(&path, merged)?;
+                    }
+                    actions.push(InitAction {
+                        path: rel,
+                        action: "merge-lines".into(),
+                    });
                 }
-                actions.push(InitAction {
-                    path: rel,
-                    action: "merge-lines".into(),
-                });
-            } else if should_mark_for_merge(&rel) {
-                if is_jankurai_controlled(&existing_text) {
+                MergePolicyAction::MergeMarker => {
+                    if is_jankurai_controlled(&existing_text) {
+                        actions.push(InitAction {
+                            path: rel,
+                            action: "kept-existing".into(),
+                        });
+                    } else {
+                        append_merge_marker(&path, &rel, &existing_text)?;
+                        actions.push(InitAction {
+                            path: rel,
+                            action: "merge-marker".into(),
+                        });
+                    }
+                }
+                MergePolicyAction::KeepExisting => {
                     actions.push(InitAction {
                         path: rel,
                         action: "kept-existing".into(),
                     });
-                } else {
-                    append_merge_marker(&path, &rel, &existing_text)?;
-                    actions.push(InitAction {
-                        path: rel,
-                        action: "merge-marker".into(),
-                    });
                 }
-            } else {
-                actions.push(InitAction {
-                    path: rel,
-                    action: "kept-existing".into(),
-                });
             }
             continue;
         }
@@ -167,19 +174,20 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
         let path_obj = repo.join(&rel);
         if path_obj.exists() {
             let existing = fs::read_to_string(&path_obj).unwrap_or_default();
-            let mut merged = None;
-            if rel.ends_with(".json") {
-                merged = crate::init::merge::merge_json(&existing, template.body).ok();
-            } else if rel.ends_with(".toml") {
-                merged = crate::init::merge::merge_toml(&existing, template.body).ok();
-            } else if rel.ends_with(".gitignore") || rel.ends_with("Justfile") {
-                merged = crate::init::merge::merge_lines(&existing, template.body).ok();
-            } else if should_mark_for_merge(&rel) && !is_jankurai_controlled(&existing) {
-                let marker = crate::init::merge::merge_marker(&rel);
-                if !existing.contains("jankurai merge marker") {
-                    merged = Some(format!("{existing}{marker}"));
+            let merged = match manifest.merge_policy_for_path(&rel) {
+                MergePolicyAction::MergeJson => crate::init::merge::merge_json(&existing, template.body).ok(),
+                MergePolicyAction::MergeToml => crate::init::merge::merge_toml(&existing, template.body).ok(),
+                MergePolicyAction::MergeLines => crate::init::merge::merge_lines(&existing, template.body).ok(),
+                MergePolicyAction::MergeMarker if !is_jankurai_controlled(&existing) => {
+                    let marker = crate::init::merge::merge_marker(&rel);
+                    if existing.contains("jankurai merge marker") {
+                        None
+                    } else {
+                        Some(format!("{existing}{marker}"))
+                    }
                 }
-            }
+                MergePolicyAction::MergeMarker | MergePolicyAction::KeepExisting => None,
+            };
 
             if let Some(m) = merged {
                 if m != existing {
@@ -202,10 +210,6 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest) {
             }
         }
     }
-}
-
-fn should_mark_for_merge(path: &str) -> bool {
-    matches!(path, "AGENTS.md" | "agent/JANKURAI_STANDARD.md")
 }
 
 fn is_jankurai_controlled(text: &str) -> bool {

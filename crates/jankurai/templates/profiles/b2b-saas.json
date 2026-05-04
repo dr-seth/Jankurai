@@ -43,6 +43,19 @@
     "docs/install.md",
     "tools/security-lane.sh"
   ],
+  "mergePolicy": {
+    "AGENTS.md": "merge-marker",
+    "agent/JANKURAI_STANDARD.md": "merge-marker",
+    "agent/audit-policy.toml": "merge-toml",
+    "agent/boundaries.toml": "merge-toml",
+    "agent/security-policy.toml": "merge-toml",
+    "agent/generated-zones.toml": "merge-toml",
+    "agent/owner-map.json": "merge-json",
+    "agent/proof-lanes.toml": "merge-toml",
+    "agent/standard-version.toml": "merge-toml",
+    "agent/test-map.json": "merge-json",
+    "agent/ux-qa.toml": "merge-toml"
+  },
   "requiredLanes": ["audit", "doctor", "ux", "security"],
   "optionalLanes": [],
   "agentAdapters": [
