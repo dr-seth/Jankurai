@@ -78,6 +78,63 @@ impl<'a> FindingBuilder<'a> {
         })
     }
 
+    pub fn add_with_rule(
+        &mut self,
+        rule_id: &str,
+        path: &str,
+        problem: &str,
+        fix: &str,
+        evidence: Vec<String>,
+        line: Option<usize>,
+        matched_term: Option<String>,
+        reason: Option<String>,
+    ) {
+        let rule = rules::lookup(rule_id).expect("rule_id must exist in registry");
+        if rule.category == "context" {
+            self.has_context_finding = true;
+        }
+        self.has_any_finding = true;
+
+        let owner = owner_for_path(self.ctx, path).or_else(|| {
+            if !rule.owner_hint.is_empty() {
+                Some(rule.owner_hint.to_string())
+            } else {
+                None
+            }
+        });
+
+        let fingerprint = finding_fingerprint(rule.id, rule.category, path, problem, &evidence);
+
+        let confidence = match rule.confidence_policy {
+            rules::ConfidencePolicy::High => 0.95,
+            rules::ConfidencePolicy::Medium => 0.88,
+            rules::ConfidencePolicy::Low => 0.62,
+        };
+
+        self.findings.push(Finding {
+            severity: rule.severity.into(),
+            category: rule.category.into(),
+            path: path.into(),
+            problem: problem.into(),
+            agent_fix: fix.into(),
+            evidence,
+            check_id: format!("{}:{}", rule.id, rule.category),
+            hardness: hardness_for_severity(rule.severity).into(),
+            confidence,
+            evidence_kind: rule.evidence_kind.into(),
+            rerun_command: rerun_command_for_lane(Some(rule.lane)).into(),
+            fingerprint,
+            rule_id: Some(rule.id.into()),
+            tlr: Some(rule.tlr.into()),
+            lane: Some(rule.lane.into()),
+            docs_url: Some(rule.docs_url.into()),
+            owner,
+            line,
+            matched_term,
+            reason,
+        })
+    }
+
     pub fn has_any_finding(&self) -> bool {
         self.has_any_finding
     }

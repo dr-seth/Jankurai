@@ -61,6 +61,10 @@ fn cell_registry_and_manifest_schemas_parse() {
         &fs::read_to_string(repo.join("schemas/proof-plan.schema.json")).unwrap(),
     )
     .unwrap();
+    let proof_verification: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/proof-verification.schema.json")).unwrap(),
+    )
+    .unwrap();
 
     assert_eq!(
         proof_receipt["$id"],
@@ -70,8 +74,20 @@ fn cell_registry_and_manifest_schemas_parse() {
         proof_plan["$id"],
         "https://jankurai.dev/schemas/proof-plan.schema.json"
     );
+    assert_eq!(
+        proof_verification["$id"],
+        "https://jankurai.dev/schemas/proof-verification.schema.json"
+    );
     assert_eq!(proof_receipt["properties"]["lane"]["type"], "string");
     assert_eq!(proof_plan["properties"]["changed_paths"]["type"], "array");
+    assert!(proof_plan["properties"].get("route_decisions").is_some());
+    assert!(proof_receipt["properties"].get("plan_digest").is_some());
+    assert!(proof_receipt["properties"]
+        .get("artifact_digests")
+        .is_some());
+    assert!(proof_verification["properties"]
+        .get("manifest_fingerprints")
+        .is_some());
 
     let benchmark_suite: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/benchmark-suite.schema.json")).unwrap(),
@@ -188,6 +204,23 @@ fn cell_registry_and_manifest_schemas_parse() {
             "companion path {key} must stay optional"
         );
     }
+    assert!(evidence_index["properties"].get("plan_digest").is_some());
+    assert!(evidence_index["properties"]
+        .get("manifest_fingerprints")
+        .is_some());
+    assert!(evidence_index["properties"]
+        .get("command_digests")
+        .is_some());
+    assert!(evidence_index["properties"].get("log_digests").is_some());
+    assert!(evidence_index["properties"]
+        .get("artifact_digests")
+        .is_some());
+    assert!(evidence_index["properties"]
+        .get("receipt_digests")
+        .is_some());
+    assert!(evidence_index["properties"]
+        .get("coverage_verdicts")
+        .is_some());
 
     let init_profile: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/init-profile.schema.json")).unwrap(),
@@ -207,6 +240,38 @@ fn cell_registry_and_manifest_schemas_parse() {
         "https://jankurai.dev/schemas/security-evidence.schema.json"
     );
     assert_eq!(security_evidence["properties"]["lane"]["const"], "security");
+    assert!(security_evidence["properties"].get("policy").is_some());
+    assert!(security_evidence["properties"].get("commands").is_some());
+
+    let proof_verification: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/proof-verification.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        proof_verification["$id"],
+        "https://jankurai.dev/schemas/proof-verification.schema.json"
+    );
+    assert!(proof_verification["properties"].get("verdict").is_some());
+    assert!(proof_verification["properties"]
+        .get("manifest_fingerprints")
+        .is_some());
+    assert!(proof_verification["properties"]
+        .get("coverage_verdicts")
+        .is_some());
+
+    let doctor_receipt: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/doctor-receipt.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        doctor_receipt["$id"],
+        "https://jankurai.dev/schemas/doctor-receipt.schema.json"
+    );
+    assert!(
+        doctor_receipt["properties"]["diagnostics"]["items"]["properties"]
+            .get("kind")
+            .is_some()
+    );
 
     let context_pack: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/context-pack.schema.json")).unwrap(),
@@ -810,6 +875,13 @@ fn agent_control_plane_schemas_parse_and_repo_fixtures_validate() {
     jankurai::validation::validate_generated_zones_toml_text(&repo, &zones).unwrap();
     let lanes = fs::read_to_string(repo.join("agent/proof-lanes.toml")).unwrap();
     jankurai::validation::validate_proof_lanes_toml_text(&repo, &lanes).unwrap();
+    let lanes_json: toml::Value = toml::from_str(&lanes).unwrap();
+    let first_lane = lanes_json["lane"].as_array().unwrap().first().unwrap();
+    assert!(first_lane.get("command_id").is_some());
+    assert!(first_lane.get("kind").is_some());
+    assert!(first_lane.get("cost").is_some());
+    assert!(first_lane.get("rules_covered").is_some());
+    assert!(first_lane.get("required_artifacts").is_some());
     let standard = fs::read_to_string(repo.join("agent/standard-version.toml")).unwrap();
     jankurai::validation::validate_standard_version_toml_text(&repo, &standard).unwrap();
     let audit = fs::read_to_string(repo.join("agent/audit-policy.toml")).unwrap();

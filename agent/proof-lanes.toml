@@ -4,11 +4,27 @@
 name = "fast"
 command = "just fast"
 purpose = "run the jankurai audit quickly with JSON and Markdown on stdout"
+command_id = "lane.fast"
+kind = "validation"
+cost = 5
+rules_covered = ["HLT-001-DEAD-MARKER", "HLT-003-OWNERLESS-PATH", "HLT-004-UNMAPPED-PROOF"]
+required_artifacts = ["agent/repo-score.json", "agent/repo-score.md"]
+timeout_seconds = 900
+requires_network = false
+destructive = false
 
 [[lane]]
 name = "audit"
 command = "just score"
 purpose = "write agent/repo-score.json and agent/repo-score.md"
+command_id = "lane.audit"
+kind = "audit"
+cost = 10
+rules_covered = ["HLT-001-DEAD-MARKER", "HLT-003-OWNERLESS-PATH", "HLT-004-UNMAPPED-PROOF", "HLT-008-FALSE-GREEN-RISK"]
+required_artifacts = ["agent/repo-score.json", "agent/repo-score.md"]
+timeout_seconds = 900
+requires_network = false
+destructive = false
 
 [[lane]]
 name = "paper"
@@ -19,11 +35,27 @@ purpose = "build paper/jankurai.pdf from paper/jankurai.tex and paper/tex/"
 name = "security"
 command = "just security"
 purpose = "document and later run secret, dependency, SBOM, and workflow checks"
+command_id = "lane.security"
+kind = "security"
+cost = 20
+rules_covered = ["HLT-009-GENERATED-SECURITY", "HLT-010-SECRET-SPRAWL", "HLT-011-PROMPT-INJECTION", "HLT-012-OVERBROAD-AGENCY", "HLT-016-SUPPLY-CHAIN-DRIFT", "HLT-020-CI-HARDENING-GAP"]
+required_artifacts = ["target/jankurai/security/evidence.json"]
+timeout_seconds = 1800
+requires_network = false
+destructive = false
 
 [[lane]]
 name = "full"
 command = "just check"
 purpose = "run audit and paper build"
+command_id = "lane.full"
+kind = "release"
+cost = 50
+supersedes = ["fast", "audit", "security"]
+required_artifacts = ["agent/repo-score.json", "agent/repo-score.md", "paper/jankurai.pdf"]
+timeout_seconds = 3600
+requires_network = false
+destructive = false
 
 [[lane]]
 name = "adapters"
@@ -64,6 +96,14 @@ purpose = "verify migration fixture"
 name = "db-migration-analyze"
 command = "cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json"
 purpose = "write migration liability report for DB and modernization evidence"
+command_id = "lane.db-migration-analyze"
+kind = "analysis"
+cost = 15
+rules_covered = ["HLT-006-DIRECT-DB-WRONG-LAYER", "HLT-021-DESTRUCTIVE-MIGRATION"]
+required_artifacts = ["target/jankurai/migration-report.json"]
+timeout_seconds = 1800
+requires_network = false
+destructive = false
 
 [[lane]]
 name = "build-schemas"

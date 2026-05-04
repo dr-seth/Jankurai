@@ -53,6 +53,24 @@ pub struct ProofLane {
     pub command: String,
     #[serde(default)]
     pub purpose: String,
+    #[serde(default)]
+    pub command_id: Option<String>,
+    #[serde(default)]
+    pub kind: Option<String>,
+    #[serde(default)]
+    pub cost: Option<u64>,
+    #[serde(default)]
+    pub supersedes: Vec<String>,
+    #[serde(default)]
+    pub rules_covered: Vec<String>,
+    #[serde(default)]
+    pub required_artifacts: Vec<String>,
+    #[serde(default)]
+    pub timeout_seconds: Option<u64>,
+    #[serde(default)]
+    pub requires_network: bool,
+    #[serde(default)]
+    pub destructive: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -92,17 +110,24 @@ impl RepoCatalog {
     pub fn owner_prefix_for_path(&self, path: &str) -> Option<String> {
         self.owners
             .keys()
-            .filter(|prefix| path_matches(path, prefix))
-            .max_by_key(|prefix| prefix.len())
-            .cloned()
+            .filter_map(|prefix| route_match(path, prefix).map(|route| (prefix.clone(), route)))
+            .max_by(|left, right| left.1.specificity.cmp(&right.1.specificity))
+            .map(|(prefix, _)| prefix)
     }
 
-    pub fn test_route_for_path(&self, path: &str) -> Option<(String, TestSpec)> {
+    pub fn owner_route_for_path(&self, path: &str) -> Option<RouteMatch> {
+        self.owners
+            .keys()
+            .filter_map(|prefix| route_match(path, prefix))
+            .max_by(|left, right| left.specificity.cmp(&right.specificity))
+    }
+
+    pub fn test_route_for_path(&self, path: &str) -> Option<(RouteMatch, TestSpec)> {
         self.tests
             .iter()
-            .filter(|(prefix, _)| path_matches(path, prefix))
-            .max_by_key(|(prefix, _)| prefix.len())
-            .map(|(prefix, spec)| (prefix.clone(), spec.clone()))
+            .filter_map(|(prefix, spec)| route_match(path, prefix).map(|route| (route, spec)))
+            .max_by(|left, right| left.0.specificity.cmp(&right.0.specificity))
+            .map(|(route, spec)| (route, spec.clone()))
     }
 
     pub fn prefixes_for_owner(&self, owner: &str) -> Vec<String> {
@@ -204,7 +229,46 @@ fn read_toml<T: DeserializeOwned>(path: &Path) -> Result<Option<T>> {
 }
 
 fn path_matches(path: &str, prefix: &str) -> bool {
-    path == prefix || path.starts_with(prefix) || prefix.starts_with(path)
+    route_match(path, prefix).is_some()
+}
+
+#[derive(Debug, Clone)]
+pub struct RouteMatch {
+    pub prefix: String,
+    pub match_kind: String,
+    pub specificity: usize,
+}
+
+fn route_match(path: &str, prefix: &str) -> Option<RouteMatch> {
+    let path = normalize_path(path);
+    let prefix = normalize_path(prefix);
+    if path.is_empty() || prefix.is_empty() {
+        return None;
+    }
+    if path == prefix {
+        return Some(RouteMatch {
+            specificity: prefix.split('/').count(),
+            prefix,
+            match_kind: "exact".into(),
+        });
+    }
+    let directory_prefix = format!("{prefix}/");
+    if path.starts_with(&directory_prefix) {
+        return Some(RouteMatch {
+            specificity: prefix.split('/').count(),
+            prefix,
+            match_kind: "directory".into(),
+        });
+    }
+    None
+}
+
+fn normalize_path(value: &str) -> String {
+    value
+        .trim()
+        .trim_start_matches("./")
+        .trim_matches('/')
+        .to_string()
 }
 
 pub fn push_unique(values: &mut Vec<String>, value: impl Into<String>) {

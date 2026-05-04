@@ -103,6 +103,8 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         "migration-plan-schema",
     );
 
+    let diagnostics = enrich_diagnostics(diagnostics);
+
     for diagnostic in &diagnostics {
         println!(
             "{}: {} - {}",
@@ -131,13 +133,29 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     Ok(())
 }
 
-fn render_markdown(diagnostics: &[Diagnostic]) -> String {
+fn render_markdown(diagnostics: &[DoctorDiagnostic]) -> String {
     let mut out = String::from("# jankurai doctor\n\n");
     for diagnostic in diagnostics {
         out.push_str(&format!(
-            "- **{}** `{}` `{}`: {}\n",
-            diagnostic.severity, diagnostic.check_id, diagnostic.path, diagnostic.message
+            "- **{}** `{}` `{}` [{}]: {}\n",
+            diagnostic.severity,
+            diagnostic.check_id,
+            diagnostic.path,
+            diagnostic.kind.as_str(),
+            diagnostic.message
         ));
+        if diagnostic.strictly_blocking {
+            out.push_str("  - blocking: yes\n");
+        }
+        if diagnostic.environment_sensitive {
+            out.push_str("  - environment sensitive\n");
+        }
+        if !diagnostic.common_fixes.is_empty() {
+            out.push_str("  - common fixes:\n");
+            for fix in &diagnostic.common_fixes {
+                out.push_str(&format!("    - {}\n", fix));
+            }
+        }
     }
     out
 }
@@ -147,12 +165,56 @@ fn _exists(path: &Path) -> bool {
     path.exists()
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 struct Diagnostic {
     check_id: String,
     severity: String,
     path: String,
     message: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorDiagnostic {
+    check_id: String,
+    severity: String,
+    path: String,
+    message: String,
+    kind: DiagnosticKind,
+    environment_sensitive: bool,
+    strictly_blocking: bool,
+    common_fixes: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum DiagnosticKind {
+    FileMissing,
+    Schema,
+    Policy,
+    Tool,
+    Freshness,
+    Receipt,
+    Workflow,
+    Lockfile,
+    Export,
+    Other,
+}
+
+impl DiagnosticKind {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::FileMissing => "file-missing",
+            Self::Schema => "schema",
+            Self::Policy => "policy",
+            Self::Tool => "tool",
+            Self::Freshness => "freshness",
+            Self::Receipt => "receipt",
+            Self::Workflow => "workflow",
+            Self::Lockfile => "lockfile",
+            Self::Export => "export",
+            Self::Other => "other",
+        }
+    }
 }
 
 fn push_file_check(repo: &Path, diagnostics: &mut Vec<Diagnostic>, rel: &str) {
@@ -767,6 +829,103 @@ fn ok(path: &str, message: &str) -> Diagnostic {
     }
 }
 
+fn enrich_diagnostics(diagnostics: Vec<Diagnostic>) -> Vec<DoctorDiagnostic> {
+    diagnostics.into_iter().map(enrich_diagnostic).collect()
+}
+
+fn enrich_diagnostic(diagnostic: Diagnostic) -> DoctorDiagnostic {
+    let kind = diagnostic_kind(&diagnostic);
+    let environment_sensitive = matches!(kind, DiagnosticKind::Tool | DiagnosticKind::Freshness);
+    let strictly_blocking = severity_rank(&diagnostic.severity) <= severity_rank("high")
+        && !matches!(kind, DiagnosticKind::Other | DiagnosticKind::Export);
+    let common_fixes = common_fixes(&diagnostic, &kind);
+    DoctorDiagnostic {
+        check_id: diagnostic.check_id,
+        severity: diagnostic.severity,
+        path: diagnostic.path,
+        message: diagnostic.message,
+        kind,
+        environment_sensitive,
+        strictly_blocking,
+        common_fixes,
+    }
+}
+
+fn diagnostic_kind(diagnostic: &Diagnostic) -> DiagnosticKind {
+    let check_id = diagnostic.check_id.as_str();
+    if check_id.starts_with("file:") {
+        return DiagnosticKind::FileMissing;
+    }
+    if check_id.contains("security-tool:") {
+        return DiagnosticKind::Tool;
+    }
+    if check_id.contains("stale") {
+        return DiagnosticKind::Freshness;
+    }
+    if check_id.contains("receipt") || check_id.contains("evidence") {
+        return DiagnosticKind::Receipt;
+    }
+    if check_id.contains("policy") {
+        return DiagnosticKind::Policy;
+    }
+    if check_id.contains("schema") {
+        return DiagnosticKind::Schema;
+    }
+    if check_id.contains("lockfile") {
+        return DiagnosticKind::Lockfile;
+    }
+    if check_id.contains("echo-proof") {
+        return DiagnosticKind::Workflow;
+    }
+    if check_id.contains("export") {
+        return DiagnosticKind::Export;
+    }
+    DiagnosticKind::Other
+}
+
+fn common_fixes(diagnostic: &Diagnostic, kind: &DiagnosticKind) -> Vec<String> {
+    match kind {
+        DiagnosticKind::FileMissing => vec![
+            format!(
+                "create `{}` or regenerate it from the source command",
+                diagnostic.path
+            ),
+            "re-run the owning lane and validate the receipt".into(),
+        ],
+        DiagnosticKind::Schema => vec![
+            "fix the JSON/TOML shape to match the schema".into(),
+            "re-run `cargo test -p jankurai`".into(),
+        ],
+        DiagnosticKind::Policy => vec![
+            "update the policy file so the runtime and schema agree".into(),
+            "re-run `doctor` after the edit".into(),
+        ],
+        DiagnosticKind::Tool => vec![
+            "install the missing tool or mark it advisory in policy".into(),
+            "re-run the security lane".into(),
+        ],
+        DiagnosticKind::Freshness => vec![
+            "regenerate the stale artifact from its source command".into(),
+            "re-run the proof or audit command that owns the file".into(),
+        ],
+        DiagnosticKind::Receipt => vec![
+            "regenerate the proof evidence with the current repo state".into(),
+            "re-run the proof command and compare digests".into(),
+        ],
+        DiagnosticKind::Workflow => vec![
+            "replace the echo-only step with the real command".into(),
+            "re-run the workflow or lane locally".into(),
+        ],
+        DiagnosticKind::Lockfile => {
+            vec!["commit the missing lockfile for the package manager in use".into()]
+        }
+        DiagnosticKind::Export => {
+            vec!["write the receipt or export under `target/jankurai/receipts/`".into()]
+        }
+        DiagnosticKind::Other => Vec::new(),
+    }
+}
+
 fn files_under(path: &Path) -> Vec<PathBuf> {
     if path.is_file() {
         return vec![path.to_path_buf()];
@@ -813,7 +972,7 @@ fn command_exists(tool: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn write_receipt(repo: &Path, action: &str, diagnostics: &[Diagnostic]) -> Result<()> {
+fn write_receipt(repo: &Path, action: &str, diagnostics: &[DoctorDiagnostic]) -> Result<()> {
     let dir = repo.join("target/jankurai/receipts");
     fs::create_dir_all(&dir)?;
     let now = SystemTime::now()

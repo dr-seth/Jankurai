@@ -1,5 +1,7 @@
 use crate::commands::context_data::{push_unique, RepoCatalog};
-use crate::model::{ProofReceipt, RuleCoverage, STANDARD_VERSION};
+use crate::model::{
+    ArtifactDigest, ManifestFingerprints, ProofReceipt, RuleCoverage, STANDARD_VERSION,
+};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -7,7 +9,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -35,6 +37,15 @@ pub struct ProveArgs {
     pub allow_unsigned_commands: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProofVerifyArgs {
+    pub repo: PathBuf,
+    pub plan: String,
+    pub evidence_index: String,
+    pub out: String,
+    pub md: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProofPlan {
     pub schema_version: String,
@@ -54,9 +65,30 @@ pub struct ProofPlan {
     pub risk_notes: Vec<String>,
     pub human_approval_requirements: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub route_decisions: Vec<RouteDecision>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub planned_runs: Vec<PlannedRun>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub skipped_lane_entries: Vec<SkippedLaneEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RouteDecision {
+    pub changed_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_route: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_route: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lane: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    pub match_kind: String,
+    pub specificity: usize,
+    pub decision: String,
+    pub reason: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub residual_risk: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,11 +117,23 @@ pub struct ProofEvidenceIndex {
     pub repo_root: String,
     pub git_head: String,
     pub plan_path: String,
+    pub plan_digest: String,
+    pub manifest_fingerprints: ManifestFingerprints,
     pub receipt_dir: String,
     pub log_dir: String,
     pub commands: Vec<String>,
     pub receipts: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub command_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub log_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifact_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub receipt_digests: Vec<ArtifactDigest>,
     pub logs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub coverage_verdicts: Vec<RuleCoverage>,
     pub failed_receipts: Vec<String>,
     pub skipped_lanes: Vec<String>,
     pub risk_notes: Vec<String>,
@@ -111,6 +155,31 @@ pub struct ProofEvidenceIndex {
     pub repair_queue_jsonl_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub boundaries_manifest_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProofVerification {
+    pub schema_version: String,
+    pub standard_version: String,
+    pub generated_at: String,
+    pub repo_root: String,
+    pub plan_path: String,
+    pub evidence_index_path: String,
+    pub plan_digest: String,
+    pub manifest_fingerprints: ManifestFingerprints,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub command_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub log_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub receipt_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifact_digests: Vec<ArtifactDigest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub coverage_verdicts: Vec<RuleCoverage>,
+    pub verdict: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub issues: Vec<String>,
 }
 
 pub fn run_lane(args: ProofPlanArgs) -> Result<()> {
@@ -154,6 +223,26 @@ pub fn run_prove(args: ProveArgs) -> Result<()> {
     execute_proof_plan(args, plan, plan_path_str)
 }
 
+pub fn run_proof_verify(args: ProofVerifyArgs) -> Result<()> {
+    let plan = load_proof_plan(&args.repo, &args.plan)?;
+    let evidence = load_proof_evidence_index(&args.repo, &args.evidence_index)?;
+    let verification =
+        verify_proof_evidence(&args.repo, &args.plan, &args.evidence_index, plan, evidence)?;
+    validation::write_json(
+        &args.repo,
+        ArtifactSchema::ProofVerification,
+        &args.out,
+        &verification,
+    )?;
+    if let Some(parent) = Path::new(&args.md).parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    crate::render::write_markdown(&args.md, &render_verification_markdown(&verification))?;
+    Ok(())
+}
+
 fn load_proof_plan(repo: &Path, plan_path: &str) -> Result<ProofPlan> {
     let plan_text =
         fs::read_to_string(plan_path).with_context(|| format!("read proof plan {plan_path}"))?;
@@ -161,6 +250,15 @@ fn load_proof_plan(repo: &Path, plan_path: &str) -> Result<ProofPlan> {
         .with_context(|| format!("parse proof plan {plan_path}"))?;
     validation::validate_value(repo, ArtifactSchema::ProofPlan, &plan_json)?;
     Ok(serde_json::from_value(plan_json)?)
+}
+
+fn load_proof_evidence_index(repo: &Path, evidence_path: &str) -> Result<ProofEvidenceIndex> {
+    let text = fs::read_to_string(evidence_path)
+        .with_context(|| format!("read proof evidence index {evidence_path}"))?;
+    let json: Value = serde_json::from_str(&text)
+        .with_context(|| format!("parse proof evidence index {evidence_path}"))?;
+    validation::validate_value(repo, ArtifactSchema::EvidenceIndex, &json)?;
+    Ok(serde_json::from_value(json)?)
 }
 
 fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -> Result<()> {
@@ -175,6 +273,8 @@ fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -
         }
     }
 
+    let plan_digest = sha256_file(Path::new(&plan_path_str))?;
+    let manifest_fingerprints = repo_manifest_fingerprints(&args.repo);
     let runs = if plan.planned_runs.is_empty() {
         fallback_runs_from_plan(&plan)
     } else {
@@ -185,10 +285,19 @@ fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -
 
     let mut receipts = Vec::new();
     let mut receipt_paths = Vec::new();
+    let mut command_digests = Vec::new();
+    let mut log_digests = Vec::new();
+    let mut artifact_digests = Vec::new();
+    let mut receipt_digests = Vec::new();
+    let mut coverage_verdicts = Vec::new();
     let mut failed_receipts = Vec::new();
     let mut failure: Option<anyhow::Error> = None;
 
     for (index, run) in runs.iter().enumerate() {
+        command_digests.push(ArtifactDigest {
+            path: format!("{}::{}", run.lane, run.command),
+            sha256: sha256_string(&run.command),
+        });
         let receipt = execute_run(
             &args.repo,
             &receipt_dir,
@@ -196,6 +305,7 @@ fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -
             index,
             run,
             plan_path_str.as_str(),
+            plan_digest.as_str(),
         )?;
         let receipt_name = receipt_file_name(index, &run.lane, &run.command);
         let receipt_path = receipt_dir.join(receipt_name);
@@ -206,6 +316,28 @@ fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -
             &receipt,
         )?;
         receipt_paths.push(display_relative(&args.repo, &receipt_path));
+        let receipt_sha256 = sha256_file(&receipt_path)?;
+        receipt_digests.push(ArtifactDigest {
+            path: display_relative(&args.repo, &receipt_path),
+            sha256: receipt_sha256,
+        });
+        if let Some(log_path) = receipt.log_path.clone() {
+            if let Some(log_digest) = receipt.log_sha256.clone() {
+                log_digests.push(ArtifactDigest {
+                    path: log_path.clone(),
+                    sha256: log_digest,
+                });
+                artifact_digests.push(ArtifactDigest {
+                    path: log_path,
+                    sha256: receipt.log_sha256.clone().unwrap_or_default(),
+                });
+            }
+        }
+        artifact_digests.push(ArtifactDigest {
+            path: display_relative(&args.repo, &receipt_path),
+            sha256: sha256_file(&receipt_path)?,
+        });
+        coverage_verdicts.extend(receipt.rules_covered.clone());
         if receipt.exit_code != 0 {
             failed_receipts.push(display_relative(&args.repo, receipt_path.as_path()));
             if args.continue_on_error {
@@ -230,14 +362,21 @@ fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -
         repo_root: args.repo.display().to_string(),
         git_head: git_head(&args.repo).unwrap_or_else(|_| "unknown".to_string()),
         plan_path: plan_path_str.clone(),
+        plan_digest,
+        manifest_fingerprints,
         receipt_dir: receipt_dir.display().to_string(),
         log_dir: log_dir.display().to_string(),
         commands: runs.iter().map(|run| run.command.clone()).collect(),
         receipts: receipt_paths,
+        command_digests,
+        log_digests,
+        artifact_digests,
+        receipt_digests,
         logs: receipts
             .iter()
             .filter_map(|receipt| receipt.log_path.clone())
             .collect(),
+        coverage_verdicts,
         failed_receipts,
         skipped_lanes: plan.skipped_lanes.clone(),
         risk_notes: plan.risk_notes.clone(),
@@ -305,24 +444,27 @@ pub fn build_proof_plan(
     let mut required_lanes = Vec::new();
     let mut optional_lanes = catalog.proof_lane_names();
     let mut skipped_lanes = BTreeSet::new();
+    let mut route_decisions = Vec::new();
     let mut planned_runs: BTreeMap<String, PlannedRun> = BTreeMap::new();
     let lane_names_by_command = lane_names_by_command(&catalog);
 
     for path in &changed_paths {
-        if let Some(prefix) = catalog.owner_prefix_for_path(path) {
-            push_unique(&mut matched_owner_map, prefix);
+        let owner_route = catalog.owner_route_for_path(path);
+        let test_route = catalog.test_route_for_path(path);
+        if let Some(route) = owner_route.as_ref() {
+            push_unique(&mut matched_owner_map, route.prefix.clone());
         } else {
             risk_notes.push(format!("path `{path}` has no owner-map route"));
             human_approval_requirements
                 .insert("review unmapped path coverage before merge".to_string());
             skipped_lanes.insert("full".to_string());
         }
-        if let Some((prefix, spec)) = catalog.test_route_for_path(path) {
-            push_unique(&mut matched_test_map, prefix.clone());
+        if let Some((route, spec)) = test_route.as_ref() {
+            push_unique(&mut matched_test_map, route.prefix.clone());
             let lane_label = lane_names_by_command
                 .get(&spec.command)
                 .cloned()
-                .unwrap_or_else(|| format!("test-map:{}", prefix));
+                .unwrap_or_else(|| format!("test-map:{}", route.prefix));
             if lane_names_by_command.contains_key(&spec.command) {
                 push_unique(&mut required_lanes, lane_label.clone());
             } else {
@@ -340,7 +482,7 @@ pub fn build_proof_plan(
             let entry = planned_runs
                 .entry(spec.command.clone())
                 .or_insert_with(|| PlannedRun {
-                    lane: lane_label,
+                    lane: lane_label.clone(),
                     command: spec.command.clone(),
                     owner: owner.clone(),
                     changed_paths: vec![path.clone()],
@@ -352,15 +494,70 @@ pub fn build_proof_plan(
                     skipped_reason: None,
                 });
             push_unique(&mut entry.changed_paths, path.clone());
-            push_unique(&mut entry.residual_risk, route_note);
+            push_unique(&mut entry.residual_risk, route_note.clone());
             if entry.owner.is_none() {
                 entry.owner = owner;
             }
+            route_decisions.push(RouteDecision {
+                changed_path: path.clone(),
+                owner_route: owner_route.as_ref().map(|route| route.prefix.clone()),
+                test_route: Some(route.prefix.clone()),
+                lane: Some(lane_label),
+                command: Some(spec.command.clone()),
+                match_kind: route.match_kind.clone(),
+                specificity: route.specificity,
+                decision: if owner_route.is_some()
+                    && lane_names_by_command.contains_key(&spec.command)
+                {
+                    "pass".to_string()
+                } else {
+                    "blocked".to_string()
+                },
+                reason: if owner_route.is_none() {
+                    format!(
+                        "test-map prefix `{}` matched but owner-map coverage is missing",
+                        route.prefix
+                    )
+                } else if lane_names_by_command.contains_key(&spec.command) {
+                    format!(
+                        "test-map prefix `{}` matched and is backed by a named proof lane",
+                        route.prefix
+                    )
+                } else {
+                    format!(
+                        "test-map prefix `{}` matched but command `{}` is not a named proof lane",
+                        route.prefix, spec.command
+                    )
+                },
+                residual_risk: vec![route_note],
+            });
             continue;
         }
         risk_notes.push(format!("path `{path}` has no test-map proof route"));
         human_approval_requirements.insert("approve proof coverage for unmapped paths".to_string());
         skipped_lanes.insert("full".to_string());
+        route_decisions.push(RouteDecision {
+            changed_path: path.clone(),
+            owner_route: owner_route.as_ref().map(|route| route.prefix.clone()),
+            test_route: None,
+            lane: None,
+            command: None,
+            match_kind: owner_route
+                .as_ref()
+                .map(|route| route.match_kind.clone())
+                .unwrap_or_else(|| "none".to_string()),
+            specificity: owner_route
+                .as_ref()
+                .map(|route| route.specificity)
+                .unwrap_or(0),
+            decision: "blocked".to_string(),
+            reason: if owner_route.is_some() {
+                "changed path has owner coverage but no test-map proof route".to_string()
+            } else {
+                "changed path lacks owner and test-map routes".to_string()
+            },
+            residual_risk: vec![route_risk_note(path)],
+        });
     }
 
     let used_real_lanes: BTreeSet<String> = required_lanes
@@ -421,6 +618,7 @@ pub fn build_proof_plan(
         expected_artifacts,
         risk_notes,
         human_approval_requirements: human_approval_requirements.into_iter().collect(),
+        route_decisions,
         planned_runs,
         skipped_lane_entries,
     })
@@ -518,6 +716,220 @@ fn write_evidence_index(repo: &Path, path: &Path, evidence: &ProofEvidenceIndex)
     Ok(())
 }
 
+fn verify_proof_evidence(
+    repo: &Path,
+    plan_path: &str,
+    evidence_path: &str,
+    plan: ProofPlan,
+    evidence: ProofEvidenceIndex,
+) -> Result<ProofVerification> {
+    let mut issues = Vec::new();
+    let current_plan_digest = sha256_file(Path::new(plan_path))?;
+    if evidence.plan_digest != current_plan_digest {
+        issues.push(format!(
+            "plan digest mismatch: evidence `{}` vs current `{}`",
+            evidence.plan_digest, current_plan_digest
+        ));
+    }
+    if evidence.changed_paths != plan.changed_paths {
+        issues.push("evidence changed_paths do not match plan changed_paths".to_string());
+    }
+
+    let current_manifest_fingerprints = repo_manifest_fingerprints(repo);
+    push_manifest_mismatch(
+        &mut issues,
+        "owner_map",
+        current_manifest_fingerprints.owner_map.as_deref(),
+        evidence.manifest_fingerprints.owner_map.as_deref(),
+    );
+    push_manifest_mismatch(
+        &mut issues,
+        "test_map",
+        current_manifest_fingerprints.test_map.as_deref(),
+        evidence.manifest_fingerprints.test_map.as_deref(),
+    );
+    push_manifest_mismatch(
+        &mut issues,
+        "generated_zones",
+        current_manifest_fingerprints.generated_zones.as_deref(),
+        evidence.manifest_fingerprints.generated_zones.as_deref(),
+    );
+    push_manifest_mismatch(
+        &mut issues,
+        "boundaries",
+        current_manifest_fingerprints.boundaries.as_deref(),
+        evidence.manifest_fingerprints.boundaries.as_deref(),
+    );
+    push_manifest_mismatch(
+        &mut issues,
+        "proof_lanes",
+        current_manifest_fingerprints.proof_lanes.as_deref(),
+        evidence.manifest_fingerprints.proof_lanes.as_deref(),
+    );
+    push_manifest_mismatch(
+        &mut issues,
+        "standard_version",
+        current_manifest_fingerprints.standard_version.as_deref(),
+        evidence.manifest_fingerprints.standard_version.as_deref(),
+    );
+
+    let receipt_digests = evidence.receipt_digests.clone();
+    let mut command_digests = Vec::new();
+    let mut log_digests = Vec::new();
+    let mut artifact_digests = Vec::new();
+    let mut coverage_verdicts = Vec::new();
+
+    for receipt_rel in &evidence.receipts {
+        let receipt_path = repo.join(receipt_rel);
+        if !receipt_path.is_file() {
+            issues.push(format!("missing proof receipt `{receipt_rel}`"));
+            continue;
+        }
+        let receipt_text = fs::read_to_string(&receipt_path)
+            .with_context(|| format!("read proof receipt {}", receipt_path.display()))?;
+        let receipt_json: Value = serde_json::from_str(&receipt_text)
+            .with_context(|| format!("parse proof receipt {}", receipt_path.display()))?;
+        validation::validate_value(repo, ArtifactSchema::ProofReceipt, &receipt_json)?;
+        let receipt: ProofReceipt = serde_json::from_value(receipt_json.clone())?;
+
+        let receipt_digest = sha256_file(&receipt_path)?;
+        artifact_digests.push(ArtifactDigest {
+            path: receipt_rel.clone(),
+            sha256: receipt_digest.clone(),
+        });
+        if let Some(expected) = receipt_digests
+            .iter()
+            .find(|digest| digest.path == *receipt_rel)
+        {
+            if expected.sha256 != receipt_digest {
+                issues.push(format!(
+                    "receipt digest mismatch for `{receipt_rel}`: evidence `{}` vs actual `{}`",
+                    expected.sha256, receipt_digest
+                ));
+            }
+        } else {
+            issues.push(format!("missing receipt digest entry for `{receipt_rel}`"));
+        }
+
+        let command_digest = sha256_string(&receipt.command);
+        command_digests.push(ArtifactDigest {
+            path: format!("{}::{}", receipt.lane, receipt.command),
+            sha256: command_digest.clone(),
+        });
+        if receipt.command_digest.as_deref() != Some(command_digest.as_str()) {
+            issues.push(format!("command digest mismatch for `{}`", receipt.lane));
+        }
+
+        if let Some(log_rel) = receipt.log_path.as_deref() {
+            let log_path = repo.join(log_rel);
+            if !log_path.is_file() {
+                issues.push(format!("missing proof log `{log_rel}`"));
+            } else {
+                let log_digest = sha256_file(&log_path)?;
+                log_digests.push(ArtifactDigest {
+                    path: log_rel.to_string(),
+                    sha256: log_digest.clone(),
+                });
+                artifact_digests.push(ArtifactDigest {
+                    path: log_rel.to_string(),
+                    sha256: log_digest.clone(),
+                });
+                if receipt.log_sha256.as_deref() != Some(log_digest.as_str()) {
+                    issues.push(format!("log digest mismatch for `{log_rel}`"));
+                }
+            }
+        } else {
+            issues.push(format!("receipt `{receipt_rel}` missing log path"));
+        }
+
+        coverage_verdicts.extend(receipt.rules_covered.clone());
+        if receipt.exit_code != 0 {
+            issues.push(format!(
+                "receipt `{receipt_rel}` exited with status {}",
+                receipt.exit_code
+            ));
+        }
+        if receipt.plan_digest.as_deref() != Some(current_plan_digest.as_str()) {
+            issues.push(format!("receipt `{receipt_rel}` plan digest mismatch"));
+        }
+    }
+
+    let verdict = classify_verdict(&issues);
+    Ok(ProofVerification {
+        schema_version: "1.0.0".to_string(),
+        standard_version: STANDARD_VERSION.to_string(),
+        generated_at: now_string(),
+        repo_root: repo.display().to_string(),
+        plan_path: plan_path.to_string(),
+        evidence_index_path: evidence_path.to_string(),
+        plan_digest: current_plan_digest,
+        manifest_fingerprints: current_manifest_fingerprints,
+        command_digests: if command_digests.is_empty() {
+            evidence.command_digests.clone()
+        } else {
+            command_digests
+        },
+        log_digests: if log_digests.is_empty() {
+            evidence.log_digests.clone()
+        } else {
+            log_digests
+        },
+        receipt_digests,
+        artifact_digests: if artifact_digests.is_empty() {
+            evidence.artifact_digests.clone()
+        } else {
+            artifact_digests
+        },
+        coverage_verdicts: if coverage_verdicts.is_empty() {
+            evidence.coverage_verdicts.clone()
+        } else {
+            coverage_verdicts
+        },
+        verdict,
+        issues,
+    })
+}
+
+fn push_manifest_mismatch(
+    issues: &mut Vec<String>,
+    name: &str,
+    current: Option<&str>,
+    evidence: Option<&str>,
+) {
+    if current != evidence {
+        issues.push(format!(
+            "manifest fingerprint mismatch for {name}: evidence `{}` vs current `{}`",
+            evidence.unwrap_or("missing"),
+            current.unwrap_or("missing")
+        ));
+    }
+}
+
+fn classify_verdict(issues: &[String]) -> String {
+    if issues.is_empty() {
+        return "pass".to_string();
+    }
+    if issues
+        .iter()
+        .any(|issue| issue.contains("missing") || issue.contains("missing required"))
+    {
+        return "blocked".to_string();
+    }
+    if issues
+        .iter()
+        .any(|issue| issue.contains("mismatch") || issue.contains("stale"))
+    {
+        return "stale".to_string();
+    }
+    if issues
+        .iter()
+        .any(|issue| issue.contains("exited with status"))
+    {
+        return "incomplete".to_string();
+    }
+    "advisory".to_string()
+}
+
 fn render_markdown(plan: &ProofPlan) -> String {
     use std::fmt::Write;
     let mut out = String::new();
@@ -572,6 +984,38 @@ fn render_markdown(plan: &ProofPlan) -> String {
         "- human approval: `{}`",
         join_or_none(&plan.human_approval_requirements)
     );
+    if !plan.route_decisions.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Route Decisions");
+        for decision in &plan.route_decisions {
+            let _ = writeln!(out, "- path: `{}`", decision.changed_path);
+            if let Some(owner_route) = &decision.owner_route {
+                let _ = writeln!(out, "  - owner route: `{}`", owner_route);
+            }
+            if let Some(test_route) = &decision.test_route {
+                let _ = writeln!(out, "  - test route: `{}`", test_route);
+            }
+            if let Some(lane) = &decision.lane {
+                let _ = writeln!(out, "  - lane: `{}`", lane);
+            }
+            if let Some(command) = &decision.command {
+                let _ = writeln!(out, "  - command: `{}`", command);
+            }
+            let _ = writeln!(
+                out,
+                "  - match: `{}` specificity `{}` decision `{}`",
+                decision.match_kind, decision.specificity, decision.decision
+            );
+            let _ = writeln!(out, "  - reason: `{}`", decision.reason);
+            if !decision.residual_risk.is_empty() {
+                let _ = writeln!(
+                    out,
+                    "  - residual risk: `{}`",
+                    join_or_none(&decision.residual_risk)
+                );
+            }
+        }
+    }
     for run in &plan.planned_runs {
         let _ = writeln!(out);
         let _ = writeln!(out, "## {}", run.lane);
@@ -590,6 +1034,77 @@ fn render_markdown(plan: &ProofPlan) -> String {
         );
         if let Some(reason) = &run.skipped_reason {
             let _ = writeln!(out, "- skipped reason: `{}`", reason);
+        }
+    }
+    out
+}
+
+fn render_verification_markdown(verification: &ProofVerification) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(out, "# jankurai Proof Verification");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "- verdict: `{}`", verification.verdict);
+    let _ = writeln!(out, "- plan: `{}`", verification.plan_path);
+    let _ = writeln!(
+        out,
+        "- evidence index: `{}`",
+        verification.evidence_index_path
+    );
+    let _ = writeln!(out, "- plan digest: `{}`", verification.plan_digest);
+    let _ = writeln!(
+        out,
+        "- manifest fingerprints: owner=`{}` test=`{}` generated=`{}` boundaries=`{}` proof-lanes=`{}` standard-version=`{}`",
+        verification
+            .manifest_fingerprints
+            .owner_map
+            .as_deref()
+            .unwrap_or("missing"),
+        verification
+            .manifest_fingerprints
+            .test_map
+            .as_deref()
+            .unwrap_or("missing"),
+        verification
+            .manifest_fingerprints
+            .generated_zones
+            .as_deref()
+            .unwrap_or("missing"),
+        verification
+            .manifest_fingerprints
+            .boundaries
+            .as_deref()
+            .unwrap_or("missing"),
+        verification
+            .manifest_fingerprints
+            .proof_lanes
+            .as_deref()
+            .unwrap_or("missing"),
+        verification
+            .manifest_fingerprints
+            .standard_version
+            .as_deref()
+            .unwrap_or("missing")
+    );
+    if !verification.issues.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Issues");
+        for issue in &verification.issues {
+            let _ = writeln!(out, "- {}", issue);
+        }
+    }
+    if !verification.coverage_verdicts.is_empty() {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Coverage");
+        for verdict in &verification.coverage_verdicts {
+            match verdict {
+                RuleCoverage::Rich { rule_id, status } => {
+                    let _ = writeln!(out, "- `{}`: `{}`", rule_id, status);
+                }
+                RuleCoverage::Simple(rule_id) => {
+                    let _ = writeln!(out, "- `{}`", rule_id);
+                }
+            }
         }
     }
     out
@@ -621,6 +1136,7 @@ fn execute_run(
     index: usize,
     run: &PlannedRun,
     plan_path: &str,
+    plan_digest: &str,
 ) -> Result<ProofReceipt> {
     let started = Instant::now();
     let started_secs = SystemTime::now()
@@ -652,6 +1168,7 @@ fn execute_run(
         }
     }
     fs::write(&log_file, log_text)?;
+    let log_sha256 = sha256_file(&log_file)?;
     let exit_code = command_output.status.code().unwrap_or(-1);
     let stdout_stderr_bytes = fs::metadata(&log_file).map(|m| m.len()).ok();
     let retryable = if exit_code != 0 { Some(true) } else { None };
@@ -675,6 +1192,13 @@ fn execute_run(
         git_head: git_head(repo).ok(),
         run_id: Some(run_id),
         plan_path: Some(plan_path.to_string()),
+        plan_digest: Some(plan_digest.to_string()),
+        command_digest: Some(sha256_string(&run.command)),
+        log_sha256: Some(log_sha256.clone()),
+        artifact_digests: vec![ArtifactDigest {
+            path: display_relative(repo, &log_file),
+            sha256: log_sha256,
+        }],
         rules_covered: rules_covered_for_run(run),
         retryable,
         stdout_stderr_bytes,
@@ -697,30 +1221,59 @@ fn normalize_changed_paths(
 ) -> Result<Vec<String>> {
     let mut paths = BTreeSet::new();
     for path in changed {
-        if let Some(rel) = normalize_changed_path(repo, path) {
-            insert_changed_path(&mut paths, rel, path)?;
-        }
+        let rel = normalize_changed_path(repo, path)?;
+        insert_changed_path(&mut paths, rel, path)?;
     }
     if let Some(base_ref) = changed_from {
         for path in crate::audit::changed_paths_from_git(repo, base_ref)? {
-            if let Some(rel) = normalize_changed_path(repo, &path) {
-                insert_changed_path(&mut paths, rel, path.as_path())?;
-            }
+            let rel = normalize_changed_path(repo, &path)?;
+            insert_changed_path(&mut paths, rel, path.as_path())?;
         }
     }
     Ok(paths.into_iter().collect())
 }
 
-fn normalize_changed_path(root: &Path, path: &Path) -> Option<String> {
-    let candidate = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        root.join(path)
-    };
-    candidate
-        .strip_prefix(root)
-        .ok()
-        .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+fn normalize_changed_path(root: &Path, path: &Path) -> Result<String> {
+    if path.is_absolute() {
+        if path
+            .components()
+            .any(|component| matches!(component, Component::ParentDir))
+            || !path.starts_with(root)
+        {
+            anyhow::bail!(
+                "changed path `{}` resolves outside repository root `{}`",
+                path.display(),
+                root.display()
+            );
+        }
+        let rel = path.strip_prefix(root).with_context(|| {
+            format!(
+                "changed path `{}` resolves outside repository root `{}`",
+                path.display(),
+                root.display()
+            )
+        })?;
+        return Ok(rel.to_string_lossy().replace('\\', "/"));
+    }
+    if path
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+    {
+        anyhow::bail!(
+            "changed path `{}` resolves outside repository root `{}`",
+            path.display(),
+            root.display()
+        );
+    }
+    let candidate = root.join(path);
+    let rel = candidate.strip_prefix(root).with_context(|| {
+        format!(
+            "changed path `{}` resolves outside repository root `{}`",
+            path.display(),
+            root.display()
+        )
+    })?;
+    Ok(rel.to_string_lossy().replace('\\', "/"))
 }
 
 fn insert_changed_path(paths: &mut BTreeSet<String>, rel: String, original: &Path) -> Result<()> {
@@ -860,6 +1413,26 @@ fn sha256_file_if_exists(repo: &Path, rel_posix: &str) -> Option<String> {
     let path = repo.join(rel_posix);
     let bytes = fs::read(&path).ok()?;
     Some(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
+fn sha256_file(path: &Path) -> Result<String> {
+    let bytes = fs::read(path).with_context(|| format!("read {}", path.display()))?;
+    Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
+fn sha256_string(value: &str) -> String {
+    format!("sha256:{:x}", Sha256::digest(value.as_bytes()))
+}
+
+fn repo_manifest_fingerprints(repo: &Path) -> ManifestFingerprints {
+    ManifestFingerprints {
+        owner_map: sha256_file_if_exists(repo, "agent/owner-map.json"),
+        test_map: sha256_file_if_exists(repo, "agent/test-map.json"),
+        generated_zones: sha256_file_if_exists(repo, "agent/generated-zones.toml"),
+        boundaries: sha256_file_if_exists(repo, "agent/boundaries.toml"),
+        proof_lanes: sha256_file_if_exists(repo, "agent/proof-lanes.toml"),
+        standard_version: sha256_file_if_exists(repo, "agent/standard-version.toml"),
+    }
 }
 
 fn route_risk_note(path: &str) -> String {

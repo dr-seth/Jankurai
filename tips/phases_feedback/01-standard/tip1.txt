@@ -1,1686 +1,1727 @@
-## Phase name: **Phase 01: Standard Stabilization**
-
-This is the right phase to finish because the moonshot demands explicit intent, bounded authority, routed ownership/proof, declared generated truth, durable machine-readable evidence, and expiring exceptions. Phase 01 is the foundation that makes those promises safe before later phases add rule-engine, proof-ledger, UX, security, contract DB, repair, migration, benchmark, and autonomous behavior. 
-
-My read of the repo is: `01-standard-stabilization.md` is marked complete, but it also says it is a docs-only execution plan and lists concrete implementation gaps that still need runtime, schema, report, doctor, security-lane, docs, and evidence work.  The phase log currently contains only a creation/pending entry, not a full closeout receipt with passing evidence.  So the best Phase 01 closeout is not “add more roadmap text.” It is to harden the public contract and evidence surfaces so Phase 02 and Phase 03 cannot build on soft promises.
-
-The highest-value gap is this: the standard requires every audit output to expose version and stack identity fields, proof routing, findings, caps, dimensions, and repair queue information, and the Rust model already emits those fields.   But `schemas/repo-score.schema.json` currently does not require the full Phase 01 public report contract, including `paper_edition`, `target_stack_id`, `target_stack`, `scope`, `caps_applied`, and `hard_rules`.  That is exactly the kind of silent contract drift Phase 01 is supposed to prevent.
-
-The second major gap is security-lane reality. The current `jankurai security run` wraps `tools/security-lane.sh` as one command, so the evidence cannot tell whether `gitleaks` was missing, `cargo audit` failed, `npm audit` found issues, or the wrapper itself broke.  The shell script also hard-codes tool behavior, while `agent/security-policy.toml` already declares enabled, required, and advisory tools.   The patch below makes the Rust runner policy-aware while keeping the shell script as a compatible fallback.
-
-The third gap is artifact schema coverage. `validation.rs` validates many emitted artifacts, but the Phase 01 router names the core agent artifacts too: owner map, test map, generated zones, proof lanes, audit policy, security policy, standard version, UX policy, boundaries, and release evidence.  The current `ArtifactSchema` enum does not cover several of those core control files.  The patch below adds those schemas and makes `doctor` validate them.
-
-Below is a **single copy-paste implementation block**. It creates the missing schemas, updates validation, makes security evidence policy-aware, strengthens doctor, tightens the repo-score contract, adds compatibility tests, updates CI/Justfile routing, and appends a Phase 01 finish log only after validation passes.
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Phase 01: Standard Stabilization closeout patch.
-# Apply from the Jankurai repository root.
-
-phase_log="tips/phases/logs/01-standard-stabilization.log"
-mkdir -p "$(dirname "$phase_log")" target/jankurai/phase-logs target/jankurai/security
-
-printf '%s | gpt-5.5-pro | 01 | start standard stabilization closeout | schemas/ crates/jankurai/ docs/ agent/ Justfile .github/workflows/jankurai.yml tools/security-lane.sh | pending | target/jankurai/phase-logs/phase01-standard-stabilization.txt | %s | validating Phase 01 implementation evidence\n' \
-  "$(date -u +%FT%TZ)" \
-  "$(git rev-parse HEAD 2>/dev/null || echo unknown)" >> "$phase_log"
-
-cat > target/jankurai/phase-logs/phase01-standard-stabilization.txt <<'EOF'
-Phase 01 standard stabilization closeout intent:
-
-- Stabilize repo-score public contract.
-- Add schema coverage for core agent artifacts.
-- Make doctor validate the full Phase 01 control surface.
-- Make security evidence distinguish missing tools from failed scans.
-- Route security through the Rust evidence writer by default.
-- Add compatibility tests so later phases cannot silently break v0.4 output shape.
-- Leave finish receipt only after validation passes.
-EOF
-
-mkdir -p schemas crates/jankurai/tests
-
-cat > schemas/owner-map.schema.json <<'EOF'
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jankurai.dev/schemas/owner-map.schema.json",
-  "title": "jankurai owner map",
-  "type": "object",
-  "required": ["workspace", "owners"],
-  "properties": {
-    "workspace": { "type": "string" },
-    "owners": {
-      "type": "object",
-      "additionalProperties": { "type": "string" }
-    }
-  },
-  "additionalProperties": false
-}
-EOF
-
-cat > schemas/test-map.schema.json <<'EOF'
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jankurai.dev/schemas/test-map.schema.json",
-  "title": "jankurai test map",
-  "type": "object",
-  "required": ["workspace", "tests"],
-  "properties": {
-    "workspace": { "type": "string" },
-    "tests": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["command"],
-        "properties": {
-          "command": { "type": "string" },
-          "purpose": { "type": "string" },
-          "lane": { "type": "string" }
-        },
-        "additionalProperties": true
-      }
-    }
-  },
-  "additionalProperties": false
-}
-EOF
-
-cat > schemas/generated-zones.schema.json <<'EOF'
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jankurai.dev/schemas/generated-zones.schema.json",
-  "title": "jankurai generated zones manifest",
-  "type": "object",
-  "required": ["zone"],
-  "properties": {
-    "zone": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["path", "source", "command", "read_only"],
-        "properties": {
-          "path": { "type": "string" },
-          "source": { "type": "string" },
-          "command": { "type": "string" },
-          "read_only": { "type": "boolean" }
-        },
-        "additionalProperties": false
-      }
-    }
-  },
-  "additionalProperties": false
-}
-EOF
-
-cat > schemas/proof-lanes.schema.json <<'EOF'
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jankurai.dev/schemas/proof-lanes.schema.json",
-  "title": "jankurai proof lanes manifest",
-  "type": "object",
-  "required": ["lane"],
-  "properties": {
-    "lane": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["name", "command", "purpose"],
-        "properties": {
-          "name": { "type": "string" },
-          "command": { "type": "string" },
-          "purpose": { "type": "string" }
-        },
-        "additionalProperties": false
-      }
-    }
-  },
-  "additionalProperties": false
-}
-EOF
-
-cat > schemas/standard-version.schema.json <<'EOF'
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jankurai.dev/schemas/standard-version.schema.json",
-  "title": "jankurai standard version manifest",
-  "type": "object",
-  "required": [
-    "standard",
-    "standard_version",
-    "paper_edition",
-    "auditor_version",
-    "schema_version",
-    "target_stack",
-    "published",
-    "artifact"
-  ],
-  "properties": {
-    "standard": { "const": "jankurai" },
-    "standard_version": { "type": "string" },
-    "paper_edition": { "type": "string" },
-    "auditor_version": { "type": "string" },
-    "schema_version": { "type": "string" },
-    "target_stack": { "type": "string" },
-    "published": { "type": "string" },
-    "artifact": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": [
-          "id",
-          "path",
-          "kind",
-          "version_field",
-          "version",
-          "source",
-          "command",
-          "generated"
-        ],
-        "properties": {
-          "id": { "type": "string" },
-          "path": { "type": "string" },
-          "kind": { "type": "string" },
-          "version_field": { "type": "string" },
-          "version": { "type": "string" },
-          "source": { "type": "string" },
-          "command": { "type": "string" },
-          "generated": { "type": "boolean" }
-        },
-        "additionalProperties": false
-      }
-    }
-  },
-  "additionalProperties": false
-}
-EOF
-
-cat > agent/security-policy.toml <<'EOF'
-schema_version = "1.0.0"
-
-enabled_tools = [
-  "gitleaks",
-  "cargo audit",
-  "npm audit",
-  "syft",
-  "zizmor"
-]
-
-required_tools = [
-  "gitleaks"
-]
-
-advisory_tools = [
-  "cargo audit",
-  "npm audit",
-  "syft",
-  "zizmor"
-]
-
-[severity_thresholds]
-fail_lane_on = "high"
-EOF
-
-cat > tools/security-lane.sh <<'EOF'
-#!/usr/bin/env bash
-set -uo pipefail
-
-strict="${JANKURAI_SECURITY_STRICT:-0}"
-status=0
-
-run_or_skip() {
-  local requirement="$1"
-  local tool="$2"
-  shift 2
-
-  if command -v "$tool" >/dev/null 2>&1; then
-    echo "run: $*"
-    "$@"
-    local code=$?
-    if [ "$code" -ne 0 ]; then
-      echo "fail: $tool exited $code" >&2
-      if [ "$requirement" = "required" ]; then
-        status="$code"
-      fi
-    fi
-    return 0
-  fi
-
-  echo "skip: $tool not installed; requirement=$requirement; advisory outside strict mode"
-  if [ "$requirement" = "required" ] && [ "$strict" = "1" ]; then
-    echo "missing required security tool: $tool" >&2
-    status=127
-  fi
-}
-
-run_or_skip required gitleaks gitleaks detect --source . --redact --no-banner
-run_or_skip advisory cargo cargo audit
-run_or_skip advisory npm npm audit --audit-level=high
-run_or_skip advisory syft syft . -o spdx-json=target/jankurai/security/sbom.spdx.json
-run_or_skip advisory zizmor zizmor .github/workflows
-
-exit "$status"
-EOF
-chmod +x tools/security-lane.sh
-
-python - <<'PY'
-from pathlib import Path
-import json
-
-def replace_once(path: str, old: str, new: str) -> None:
-    p = Path(path)
-    text = p.read_text()
-    if old not in text:
-        raise SystemExit(f"Expected text not found in {path}:\n{old}")
-    p.write_text(text.replace(old, new, 1))
-
-# ---------------------------------------------------------------------------
-# validation.rs: add schemas and TOML validators for Phase 01 control files.
-# ---------------------------------------------------------------------------
-p = Path("crates/jankurai/src/validation.rs")
-text = p.read_text()
-
-if "OwnerMap" not in text:
-    replace_once(
-        "crates/jankurai/src/validation.rs",
-        "    SecurityPolicy,\n    SecurityEvidence,\n    ContextPack,",
-        "    AuditPolicy,\n    SecurityPolicy,\n    SecurityEvidence,\n    OwnerMap,\n    TestMap,\n    GeneratedZones,\n    ProofLanes,\n    StandardVersion,\n    ContextPack,"
-    )
-
-if 'Self::OwnerMap => "owner-map.schema.json"' not in p.read_text():
-    replace_once(
-        "crates/jankurai/src/validation.rs",
-        "            Self::SecurityPolicy => \"security-policy.schema.json\",\n            Self::SecurityEvidence => \"security-evidence.schema.json\",\n            Self::ContextPack => \"context-pack.schema.json\",",
-        "            Self::AuditPolicy => \"audit-policy.schema.json\",\n            Self::SecurityPolicy => \"security-policy.schema.json\",\n            Self::SecurityEvidence => \"security-evidence.schema.json\",\n            Self::OwnerMap => \"owner-map.schema.json\",\n            Self::TestMap => \"test-map.schema.json\",\n            Self::GeneratedZones => \"generated-zones.schema.json\",\n            Self::ProofLanes => \"proof-lanes.schema.json\",\n            Self::StandardVersion => \"standard-version.schema.json\",\n            Self::ContextPack => \"context-pack.schema.json\","
-    )
-
-p = Path("crates/jankurai/src/validation.rs")
-text = p.read_text()
-if "validate_audit_policy_toml_text" not in text:
-    insert = r'''
-/// Parse `agent/audit-policy.toml` as TOML and validate the JSON-shaped value against `audit-policy.schema.json`.
-pub fn validate_audit_policy_toml_text(repo: &Path, text: &str) -> Result<Value> {
-    let toml_value: toml::Value = toml::from_str(text).context("parse agent/audit-policy.toml")?;
-    let json_value = serde_json::to_value(&toml_value)
-        .context("convert audit policy TOML to JSON for schema validation")?;
-    validate_value(repo, ArtifactSchema::AuditPolicy, &json_value)?;
-    Ok(json_value)
-}
-
-/// Parse `agent/generated-zones.toml` as TOML and validate the JSON-shaped value against `generated-zones.schema.json`.
-pub fn validate_generated_zones_toml_text(repo: &Path, text: &str) -> Result<Value> {
-    let toml_value: toml::Value =
-        toml::from_str(text).context("parse agent/generated-zones.toml")?;
-    let json_value = serde_json::to_value(&toml_value)
-        .context("convert generated zones TOML to JSON for schema validation")?;
-    validate_value(repo, ArtifactSchema::GeneratedZones, &json_value)?;
-    Ok(json_value)
-}
-
-/// Parse `agent/proof-lanes.toml` as TOML and validate the JSON-shaped value against `proof-lanes.schema.json`.
-pub fn validate_proof_lanes_toml_text(repo: &Path, text: &str) -> Result<Value> {
-    let toml_value: toml::Value =
-        toml::from_str(text).context("parse agent/proof-lanes.toml")?;
-    let json_value = serde_json::to_value(&toml_value)
-        .context("convert proof lanes TOML to JSON for schema validation")?;
-    validate_value(repo, ArtifactSchema::ProofLanes, &json_value)?;
-    Ok(json_value)
-}
-
-/// Parse `agent/standard-version.toml` as TOML and validate the JSON-shaped value against `standard-version.schema.json`.
-pub fn validate_standard_version_toml_text(repo: &Path, text: &str) -> Result<Value> {
-    let toml_value: toml::Value =
-        toml::from_str(text).context("parse agent/standard-version.toml")?;
-    let json_value = serde_json::to_value(&toml_value)
-        .context("convert standard version TOML to JSON for schema validation")?;
-    validate_value(repo, ArtifactSchema::StandardVersion, &json_value)?;
-    Ok(json_value)
-}
-
-'''
-    text = text.replace("pub fn validate_serializable<T: Serialize>(", insert + "pub fn validate_serializable<T: Serialize>(", 1)
-    p.write_text(text)
-
-# ---------------------------------------------------------------------------
-# doctor.rs: validate all Phase 01 control artifacts and make security tool
-# diagnostics policy-aware instead of hard-coded.
-# ---------------------------------------------------------------------------
-p = Path("crates/jankurai/src/commands/doctor.rs")
-text = p.read_text()
-
-if "use serde::{Deserialize, Serialize};" not in text:
-    text = text.replace("use serde::Serialize;", "use serde::{Deserialize, Serialize};", 1)
-if "use std::collections::BTreeSet;" not in text:
-    text = text.replace("use std::fs;", "use std::collections::BTreeSet;\nuse std::fs;", 1)
-if '"agent/audit-policy.toml",' not in text:
-    text = text.replace(
-        '        "agent/standard-version.toml",\n',
-        '        "agent/standard-version.toml",\n        "agent/audit-policy.toml",\n',
-        1,
-    )
-p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/doctor.rs")
-text = p.read_text()
-if "owner-map-schema" not in text:
-    checks = r'''
-    check_json_artifact(
-        &repo,
-        &mut diagnostics,
-        "agent/owner-map.json",
-        ArtifactSchema::OwnerMap,
-        "owner-map-read",
-        "owner-map-json",
-        "owner-map-schema",
-    );
-    check_json_artifact(
-        &repo,
-        &mut diagnostics,
-        "agent/test-map.json",
-        ArtifactSchema::TestMap,
-        "test-map-read",
-        "test-map-json",
-        "test-map-schema",
-    );
-    check_toml_artifact(
-        &repo,
-        &mut diagnostics,
-        "agent/audit-policy.toml",
-        "audit-policy-read",
-        "audit-policy-schema",
-        validation::validate_audit_policy_toml_text,
-    );
-    check_toml_artifact(
-        &repo,
-        &mut diagnostics,
-        "agent/generated-zones.toml",
-        "generated-zones-read",
-        "generated-zones-schema",
-        validation::validate_generated_zones_toml_text,
-    );
-    check_toml_artifact(
-        &repo,
-        &mut diagnostics,
-        "agent/proof-lanes.toml",
-        "proof-lanes-read",
-        "proof-lanes-schema",
-        validation::validate_proof_lanes_toml_text,
-    );
-    check_toml_artifact(
-        &repo,
-        &mut diagnostics,
-        "agent/standard-version.toml",
-        "standard-version-read",
-        "standard-version-schema",
-        validation::validate_standard_version_toml_text,
-    );
-'''
-    text = text.replace("    check_security_policy_schema(&repo, &mut diagnostics);\n", "    check_security_policy_schema(&repo, &mut diagnostics);\n" + checks, 1)
-    p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/doctor.rs")
-text = p.read_text()
-if "struct SecurityPolicyFile" not in text:
-    text = text.replace(
-        '''struct Diagnostic {
-    check_id: String,
-    severity: String,
-    path: String,
-    message: String,
-}
-''',
-        '''struct Diagnostic {
-    check_id: String,
-    severity: String,
-    path: String,
-    message: String,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct SecurityPolicyFile {
-    #[serde(default)]
-    enabled_tools: Vec<String>,
-    #[serde(default)]
-    required_tools: Vec<String>,
-    #[serde(default)]
-    advisory_tools: Vec<String>,
-}
-''',
-        1,
-    )
-    p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/doctor.rs")
-text = p.read_text()
-if "fn check_toml_artifact" not in text:
-    toml_helper = r'''
-fn check_toml_artifact(
-    repo: &Path,
-    diagnostics: &mut Vec<Diagnostic>,
-    rel_path: &str,
-    check_read: &str,
-    check_schema: &str,
-    validator: fn(&Path, &str) -> Result<serde_json::Value>,
-) {
-    let path = repo.join(rel_path);
-    if !path.is_file() {
-        return;
-    }
-    let rel = display_rel(repo, &path);
-    let Ok(text) = fs::read_to_string(&path) else {
-        diagnostics.push(Diagnostic {
-            check_id: check_read.into(),
-            severity: "medium".into(),
-            path: rel,
-            message: "could not read TOML".into(),
-        });
-        return;
-    };
-    if let Err(err) = validator(repo, &text) {
-        diagnostics.push(Diagnostic {
-            check_id: check_schema.into(),
-            severity: "medium".into(),
-            path: rel,
-            message: format!("failed schema validation: {err}"),
-        });
-    }
-}
-
-'''
-    text = text.replace("fn check_json_artifact(\n", toml_helper + "fn check_json_artifact(\n", 1)
-    p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/doctor.rs")
-text = p.read_text()
-old = '''fn check_security_tools(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
-    if !repo.join("Justfile").exists() && !repo.join(".github/workflows").exists() {
-        return;
-    }
-    for tool in ["gitleaks", "cargo-audit", "npm", "syft", "zizmor"] {
-        if command_exists(tool) {
-            continue;
-        }
-        diagnostics.push(Diagnostic {
-            check_id: format!("security-tool:{tool}"),
-            severity: "low".into(),
-            path: "Justfile".into(),
-            message: format!(
-                "security lane tool `{tool}` is not installed; treat it as advisory outside strict mode"
-            ),
-        });
-    }
-}
-'''
-new = r'''fn check_security_tools(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
-    if !repo.join("Justfile").exists()
-        && !repo.join(".github/workflows").exists()
-        && !repo.join("agent/security-policy.toml").exists()
-    {
-        return;
-    }
-
-    let policy = load_security_policy(repo).unwrap_or_else(default_security_policy);
-    for tool in collect_security_tools(&policy) {
-        let canonical = canonical_security_tool(&tool);
-        let required = contains_security_tool(&policy.required_tools, &canonical);
-        let advisory = contains_security_tool(&policy.advisory_tools, &canonical);
-
-        if security_tool_available(&canonical) {
-            diagnostics.push(Diagnostic {
-                check_id: format!("security-tool:{canonical}"),
-                severity: "ok".into(),
-                path: "agent/security-policy.toml".into(),
-                message: format!(
-                    "security lane tool `{canonical}` is available ({})",
-                    if required {
-                        "required"
-                    } else if advisory {
-                        "advisory"
-                    } else {
-                        "enabled"
-                    }
-                ),
-            });
-            continue;
-        }
-
-        diagnostics.push(Diagnostic {
-            check_id: format!("security-tool:{canonical}"),
-            severity: if required { "medium" } else { "low" }.into(),
-            path: "agent/security-policy.toml".into(),
-            message: if required {
-                format!(
-                    "required security lane tool `{canonical}` is not installed; non-strict runs record a skipped tool, strict runs fail before treating security proof as complete"
-                )
-            } else {
-                format!(
-                    "advisory security lane tool `{canonical}` is not installed; evidence will record it as skipped"
-                )
-            },
-        });
-    }
-}
-
-fn load_security_policy(repo: &Path) -> Option<SecurityPolicyFile> {
-    let text = fs::read_to_string(repo.join("agent/security-policy.toml")).ok()?;
-    toml::from_str::<SecurityPolicyFile>(&text).ok()
-}
-
-fn default_security_policy() -> SecurityPolicyFile {
-    SecurityPolicyFile {
-        enabled_tools: vec![
-            "gitleaks".into(),
-            "cargo audit".into(),
-            "npm audit".into(),
-            "syft".into(),
-            "zizmor".into(),
-        ],
-        required_tools: vec!["gitleaks".into()],
-        advisory_tools: vec![
-            "cargo audit".into(),
-            "npm audit".into(),
-            "syft".into(),
-            "zizmor".into(),
-        ],
-    }
-}
-
-fn collect_security_tools(policy: &SecurityPolicyFile) -> Vec<String> {
-    let mut tools = BTreeSet::new();
-    for tool in policy
-        .enabled_tools
-        .iter()
-        .chain(policy.required_tools.iter())
-        .chain(policy.advisory_tools.iter())
-    {
-        tools.insert(canonical_security_tool(tool));
-    }
-    if tools.is_empty() {
-        return collect_security_tools(&default_security_policy());
-    }
-    tools.into_iter().collect()
-}
-
-fn canonical_security_tool(tool: &str) -> String {
-    let lowered = tool.trim().to_ascii_lowercase().replace('_', "-");
-    match lowered.as_str() {
-        "cargo-audit" | "cargo audit" => "cargo audit".into(),
-        "npm" | "npm-audit" | "npm audit" => "npm audit".into(),
-        other => other.to_string(),
-    }
-}
-
-fn contains_security_tool(tools: &[String], candidate: &str) -> bool {
-    tools
-        .iter()
-        .any(|tool| canonical_security_tool(tool) == canonical_security_tool(candidate))
-}
-
-fn security_tool_available(tool: &str) -> bool {
-    match canonical_security_tool(tool).as_str() {
-        "cargo audit" => std::process::Command::new("cargo")
-            .args(["audit", "--version"])
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false),
-        "npm audit" => std::process::Command::new("npm")
-            .arg("--version")
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false),
-        other => {
-            let binary = other.split_whitespace().next().unwrap_or(other);
-            std::process::Command::new(binary)
-                .arg("--version")
-                .status()
-                .map(|status| status.success())
-                .unwrap_or(false)
-        }
-    }
-}
-'''
-if old in text:
-    text = text.replace(old, new, 1)
-else:
-    raise SystemExit("Could not find old check_security_tools block in doctor.rs")
-p.write_text(text)
-
-# ---------------------------------------------------------------------------
-# security.rs: keep legacy custom-script behavior, but make default
-# tools/security-lane.sh policy-aware and structured.
-# ---------------------------------------------------------------------------
-p = Path("crates/jankurai/src/commands/security.rs")
-text = p.read_text()
-if "use serde::{Deserialize, Serialize};" not in text:
-    text = text.replace("use serde::Serialize;", "use serde::{Deserialize, Serialize};", 1)
-if "use std::collections::BTreeSet;" not in text:
-    text = text.replace("use std::fs;", "use std::collections::BTreeSet;\nuse std::fs;", 1)
-p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/security.rs")
-text = p.read_text()
-if "struct SecurityPolicyFile" not in text:
-    text = text.replace(
-        "struct SecurityEvidence {\n",
-        "struct SecurityEvidence {\n",
-        1,
-    )
-    marker = "\npub fn run(args: SecurityRunArgs) -> Result<()> {"
-    insert = r'''
-#[derive(Debug, Deserialize, Default)]
-struct SecurityPolicyFile {
-    #[serde(default)]
-    enabled_tools: Vec<String>,
-    #[serde(default)]
-    required_tools: Vec<String>,
-    #[serde(default)]
-    advisory_tools: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-struct PolicySecurityStep {
-    label: String,
-    tool: String,
-    shell_command: String,
-    required: bool,
-}
-
-'''
-    text = text.replace(marker, "\n" + insert + marker.lstrip("\n"), 1)
-    p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/security.rs")
-text = p.read_text()
-start = text.index("pub fn run(args: SecurityRunArgs) -> Result<()> {")
-end = text.index("\nfn cap_excerpt", start)
-new_run = r'''pub fn run(args: SecurityRunArgs) -> Result<()> {
-    let repo = args.repo;
-    let script_rel = args.script.replace('\\', "/");
-    let script_path = repo.join(&script_rel);
-    if !script_path.is_file() {
-        anyhow::bail!(
-            "security lane script `{}` does not exist in {}",
-            script_rel,
-            repo.display()
-        );
-    }
-
-    if script_rel == "tools/security-lane.sh" && repo.join("agent/security-policy.toml").is_file() {
-        return run_policy_security_lane(repo, script_rel, args.out, args.strict);
-    }
-
-    run_legacy_wrapper(repo, script_rel, args.out, args.strict)
-}
-
-fn run_legacy_wrapper(repo: PathBuf, script_rel: String, out: String, strict: bool) -> Result<()> {
-    let security_dir = repo.join("target/jankurai/security");
-    fs::create_dir_all(&security_dir)?;
-
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    let log_name = format!(
-        "security-lane-{}-{:03}.log",
-        ts.as_secs(),
-        ts.subsec_millis()
-    );
-    let log_abs = security_dir.join(&log_name);
-    let log_rel = display_rel(&repo, &log_abs);
-
-    let shell_command = format!("bash {}", script_rel);
-    let started = Instant::now();
-
-    let mut cmd = Command::new("bash");
-    cmd.arg("-lc").arg(&shell_command).current_dir(&repo);
-    if strict {
-        cmd.env("JANKURAI_SECURITY_STRICT", "1");
-    } else {
-        cmd.env_remove("JANKURAI_SECURITY_STRICT");
-    }
-
-    let output = cmd
-        .output()
-        .with_context(|| format!("run `{shell_command}`"))?;
-
-    let exit_code = output.status.code().unwrap_or(-1);
-    let mut log_text = String::new();
-    log_text.push_str(&format!(
-        "command: {shell_command}\nstatus: {:?}\n\n",
-        output.status
-    ));
-    log_text.push_str(&String::from_utf8_lossy(&output.stdout));
-    if !output.stdout.is_empty() && !output.stdout.ends_with(b"\n") {
-        log_text.push('\n');
-    }
-    if !output.stderr.is_empty() {
-        log_text.push_str("\n[stderr]\n");
-        log_text.push_str(&String::from_utf8_lossy(&output.stderr));
-        if !output.stderr.ends_with(b"\n") {
-            log_text.push('\n');
-        }
-    }
-    fs::write(&log_abs, log_text)?;
-
-    let stderr_lossy = String::from_utf8_lossy(&output.stderr);
-    let stderr_excerpt = if exit_code != 0 && !output.stderr.is_empty() {
-        Some(cap_excerpt(&stderr_lossy, 500))
-    } else {
-        None
-    };
-
-    let step_status = if exit_code == 0 { "ran" } else { "failed" };
-    let generated_at = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-        .to_string();
-
-    let evidence = SecurityEvidence {
-        schema_version: "1.0.0".to_string(),
-        standard_version: STANDARD_VERSION.to_string(),
-        generated_at,
-        repo_root: repo.display().to_string(),
-        git_head: git_head(&repo),
-        lane: "security".to_string(),
-        wrapper: SecurityWrapper {
-            kind: "bash_script".to_string(),
-            path: script_rel.clone(),
-            strict,
-        },
-        exit_code,
-        elapsed_ms: started.elapsed().as_millis() as u64,
-        log_path: log_rel,
-        commands: vec![SecurityLaneStep {
-            label: "security-lane".to_string(),
-            shell_command,
-            tool: Some("bash".to_string()),
-            status: step_status.to_string(),
-            exit_code: Some(exit_code),
-            advisory: false,
-            stderr_excerpt,
-            finding_count: None,
-            highest_severity: Some(if exit_code == 0 { "ok" } else { "high" }.to_string()),
-            normalized_decision: Some(if exit_code == 0 { "pass" } else { "block" }.to_string()),
-        }],
-    };
-
-    validation::write_json(&repo, ArtifactSchema::SecurityEvidence, &out, &evidence)?;
-
-    if exit_code != 0 {
-        anyhow::bail!("security lane exited with status {exit_code}");
-    }
-
-    Ok(())
-}
-
-fn run_policy_security_lane(
-    repo: PathBuf,
-    script_rel: String,
-    out: String,
-    strict: bool,
-) -> Result<()> {
-    let policy = load_security_policy(&repo)?;
-    let steps = policy_steps(&policy);
-
-    let security_dir = repo.join("target/jankurai/security");
-    fs::create_dir_all(&security_dir)?;
-
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    let log_name = format!(
-        "security-lane-{}-{:03}.log",
-        ts.as_secs(),
-        ts.subsec_millis()
-    );
-    let log_abs = security_dir.join(&log_name);
-    let log_rel = display_rel(&repo, &log_abs);
-
-    let started = Instant::now();
-    let mut log_text = String::new();
-    log_text.push_str("jankurai security policy runner\n");
-    log_text.push_str(&format!("strict: {strict}\n"));
-    log_text.push_str(&format!("policy: agent/security-policy.toml\n"));
-    log_text.push_str(&format!("script compatibility path: {script_rel}\n\n"));
-
-    let mut commands = Vec::new();
-    let mut envelope_exit_code = 0i32;
-
-    for step in steps {
-        let available = security_tool_available(&step.tool);
-        if !available {
-            let blocking = step.required && strict;
-            let message = format!(
-                "missing {} security tool `{}`; {}",
-                if step.required { "required" } else { "advisory" },
-                step.tool,
-                if blocking {
-                    "strict mode blocks this lane"
-                } else {
-                    "recorded as skipped evidence"
-                }
-            );
-            log_text.push_str(&format!("[{}]\n{}\n\n", step.label, message));
-            if blocking && envelope_exit_code == 0 {
-                envelope_exit_code = 127;
-            }
-            commands.push(SecurityLaneStep {
-                label: step.label,
-                shell_command: step.shell_command,
-                tool: Some(step.tool),
-                status: "skipped".to_string(),
-                exit_code: Some(127),
-                advisory: !blocking,
-                stderr_excerpt: Some(cap_excerpt(&message, 500)),
-                finding_count: None,
-                highest_severity: Some(if blocking { "high" } else { "low" }.to_string()),
-                normalized_decision: Some(if blocking { "block" } else { "review" }.to_string()),
-            });
-            continue;
-        }
-
-        log_text.push_str(&format!("[{}]\n$ {}\n", step.label, step.shell_command));
-        let output = Command::new("bash")
-            .arg("-lc")
-            .arg(&step.shell_command)
-            .current_dir(&repo)
-            .output()
-            .with_context(|| format!("run `{}`", step.shell_command))?;
-
-        let code = output.status.code().unwrap_or(-1);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        if !stdout.is_empty() {
-            log_text.push_str("[stdout]\n");
-            log_text.push_str(&stdout);
-            if !output.stdout.ends_with(b"\n") {
-                log_text.push('\n');
-            }
-        }
-        if !stderr.is_empty() {
-            log_text.push_str("[stderr]\n");
-            log_text.push_str(&stderr);
-            if !output.stderr.ends_with(b"\n") {
-                log_text.push('\n');
-            }
-        }
-        log_text.push_str(&format!("exit_code: {code}\n\n"));
-
-        let passed = output.status.success();
-        if !passed && step.required && envelope_exit_code == 0 {
-            envelope_exit_code = if code == 0 { 1 } else { code };
-        }
-
-        commands.push(SecurityLaneStep {
-            label: step.label,
-            shell_command: step.shell_command,
-            tool: Some(step.tool),
-            status: if passed { "ran" } else { "failed" }.to_string(),
-            exit_code: Some(code),
-            advisory: !step.required,
-            stderr_excerpt: if passed || stderr.is_empty() {
-                None
-            } else {
-                Some(cap_excerpt(&stderr, 500))
-            },
-            finding_count: None,
-            highest_severity: Some(
-                if passed {
-                    "ok"
-                } else if step.required {
-                    "high"
-                } else {
-                    "medium"
-                }
-                .to_string(),
-            ),
-            normalized_decision: Some(
-                if passed {
-                    "pass"
-                } else if step.required {
-                    "block"
-                } else {
-                    "review"
-                }
-                .to_string(),
-            ),
-        });
-    }
-
-    if commands.is_empty() {
-        let message = "security policy did not define any enabled, required, or advisory tools";
-        log_text.push_str(message);
-        log_text.push('\n');
-        envelope_exit_code = 1;
-        commands.push(SecurityLaneStep {
-            label: "security-policy".to_string(),
-            shell_command: "agent/security-policy.toml".to_string(),
-            tool: None,
-            status: "failed".to_string(),
-            exit_code: Some(1),
-            advisory: false,
-            stderr_excerpt: Some(message.to_string()),
-            finding_count: None,
-            highest_severity: Some("high".to_string()),
-            normalized_decision: Some("block".to_string()),
-        });
-    }
-
-    fs::write(&log_abs, log_text)?;
-
-    let generated_at = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-        .to_string();
-
-    let evidence = SecurityEvidence {
-        schema_version: "1.0.0".to_string(),
-        standard_version: STANDARD_VERSION.to_string(),
-        generated_at,
-        repo_root: repo.display().to_string(),
-        git_head: git_head(&repo),
-        lane: "security".to_string(),
-        wrapper: SecurityWrapper {
-            kind: "bash_script".to_string(),
-            path: script_rel,
-            strict,
-        },
-        exit_code: envelope_exit_code,
-        elapsed_ms: started.elapsed().as_millis() as u64,
-        log_path: log_rel,
-        commands,
-    };
-
-    validation::write_json(&repo, ArtifactSchema::SecurityEvidence, &out, &evidence)?;
-
-    if envelope_exit_code != 0 {
-        anyhow::bail!("security lane exited with status {envelope_exit_code}");
-    }
-
-    Ok(())
-}
-
-fn load_security_policy(repo: &Path) -> Result<SecurityPolicyFile> {
-    let text = fs::read_to_string(repo.join("agent/security-policy.toml"))
-        .context("read agent/security-policy.toml")?;
-    let policy = toml::from_str::<SecurityPolicyFile>(&text)
-        .context("parse agent/security-policy.toml")?;
-    Ok(policy)
-}
-
-fn default_security_policy() -> SecurityPolicyFile {
-    SecurityPolicyFile {
-        enabled_tools: vec![
-            "gitleaks".into(),
-            "cargo audit".into(),
-            "npm audit".into(),
-            "syft".into(),
-            "zizmor".into(),
-        ],
-        required_tools: vec!["gitleaks".into()],
-        advisory_tools: vec![
-            "cargo audit".into(),
-            "npm audit".into(),
-            "syft".into(),
-            "zizmor".into(),
-        ],
-    }
-}
-
-fn policy_steps(policy: &SecurityPolicyFile) -> Vec<PolicySecurityStep> {
-    let mut tools = BTreeSet::new();
-    for tool in policy
-        .enabled_tools
-        .iter()
-        .chain(policy.required_tools.iter())
-        .chain(policy.advisory_tools.iter())
-    {
-        tools.insert(canonical_tool(tool));
-    }
-    if tools.is_empty() {
-        return policy_steps(&default_security_policy());
-    }
-
-    tools
-        .into_iter()
-        .map(|tool| {
-            let required = contains_tool(&policy.required_tools, &tool);
-            PolicySecurityStep {
-                label: tool.replace(' ', "-"),
-                shell_command: command_for_tool(&tool),
-                tool,
-                required,
-            }
-        })
-        .collect()
-}
-
-fn canonical_tool(tool: &str) -> String {
-    let lowered = tool.trim().to_ascii_lowercase().replace('_', "-");
-    match lowered.as_str() {
-        "cargo-audit" | "cargo audit" => "cargo audit".to_string(),
-        "npm" | "npm-audit" | "npm audit" => "npm audit".to_string(),
-        other => other.to_string(),
-    }
-}
-
-fn contains_tool(tools: &[String], candidate: &str) -> bool {
-    tools
-        .iter()
-        .any(|tool| canonical_tool(tool) == canonical_tool(candidate))
-}
-
-fn command_for_tool(tool: &str) -> String {
-    match canonical_tool(tool).as_str() {
-        "gitleaks" => "gitleaks detect --source . --redact --no-banner".to_string(),
-        "cargo audit" => "cargo audit".to_string(),
-        "npm audit" => "npm audit --audit-level=high".to_string(),
-        "syft" => "syft . -o spdx-json=target/jankurai/security/sbom.spdx.json".to_string(),
-        "zizmor" => "zizmor .github/workflows".to_string(),
-        other => other.to_string(),
-    }
-}
-
-fn security_tool_available(tool: &str) -> bool {
-    match canonical_tool(tool).as_str() {
-        "cargo audit" => Command::new("cargo")
-            .args(["audit", "--version"])
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false),
-        "npm audit" => Command::new("npm")
-            .arg("--version")
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false),
-        other => {
-            let binary = other.split_whitespace().next().unwrap_or(other);
-            Command::new(binary)
-                .arg("--version")
-                .status()
-                .map(|status| status.success())
-                .unwrap_or(false)
-        }
-    }
-}
-'''
-p.write_text(text[:start] + new_run + text[end:])
-
-# ---------------------------------------------------------------------------
-# Audit helper: recognize the Rust security evidence runner as a live lane.
-# ---------------------------------------------------------------------------
-p = Path("crates/jankurai/src/audit/helpers.rs")
-text = p.read_text()
-if '"jankurai -- security run",' not in text:
-    text = text.replace(
-        '''        "tools/security-lane.sh",
-        "gitleaks detect",''',
-        '''        "tools/security-lane.sh",
-        "jankurai -- security run",
-        "jankurai security run",
-        "security run",
-        "gitleaks detect",''',
-        1,
-    )
-if '        "security run",\n        "gitleaks",' not in text:
-    text = text.replace(
-        '''        "tools/security-lane.sh",
-        "gitleaks",''',
-        '''        "tools/security-lane.sh",
-        "security run",
-        "jankurai -- security run",
-        "jankurai security run",
-        "gitleaks",''',
-        1,
-    )
-p.write_text(text)
-
-# ---------------------------------------------------------------------------
-# CI and command routing: make security evidence the default.
-# ---------------------------------------------------------------------------
-p = Path("Justfile")
-text = p.read_text()
-text = text.replace(
-    "security:\n    bash tools/security-lane.sh\n",
-    "security:\n    cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json\n",
-    1,
-)
-p.write_text(text)
-
-p = Path(".github/workflows/jankurai.yml")
-text = p.read_text()
-text = text.replace(
-    "      - name: Security lane\n        run: bash tools/security-lane.sh\n",
-    "      - name: Security lane\n        run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json\n",
-    1,
-)
-text = text.replace(
-    "            target/jankurai/repair-queue.jsonl\n",
-    "            target/jankurai/repair-queue.jsonl\n            target/jankurai/security/evidence.json\n            target/jankurai/security/*.log\n",
-    1,
-)
-p.write_text(text)
-
-p = Path("crates/jankurai/src/commands/ci.rs")
-text = p.read_text()
-text = text.replace(
-    "      - name: Security lane\n        run: bash tools/security-lane.sh\n",
-    "      - name: Security lane\n        run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json\n",
-    1,
-)
-text = text.replace(
-    "            target/jankurai/repair-queue.jsonl\n",
-    "            target/jankurai/repair-queue.jsonl\n            target/jankurai/security/evidence.json\n            target/jankurai/security/*.log\n",
-    1,
-)
-text = text.replace(
-    "    fn workflow_uses_shared_security_lane_script() {",
-    "    fn workflow_uses_security_evidence_runner() {",
-    1,
-)
-text = text.replace(
-    '        assert!(rendered.contains("bash tools/security-lane.sh"));',
-    '        assert!(rendered.contains("cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json"));',
-    1,
-)
-p.write_text(text)
-
-# Add a specific proof route for the security-lane script instead of relying
-# only on the broad tools/ route.
-p = Path("agent/test-map.json")
-data = json.loads(p.read_text())
-data.setdefault("tests", {})["tools/security-lane.sh"] = {
-    "command": "cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json && cargo run -p jankurai -- doctor --fail-on high",
-    "purpose": "verify the security lane emits structured evidence and doctor can distinguish missing tools from broken repo state"
-}
-p.write_text(json.dumps(data, indent=2) + "\n")
-
-# ---------------------------------------------------------------------------
-# Tighten audit-policy and repo-score schemas.
-# ---------------------------------------------------------------------------
-p = Path("schemas/audit-policy.schema.json")
-schema = json.loads(p.read_text())
-required = schema.setdefault("required", [])
-for key in [
-    "minimum_score",
-    "fail_on",
-    "advisory_on",
-    "standard_version",
-    "auditor_version",
-    "schema_version",
-    "paper_edition",
-    "target_stack",
-]:
-    if key not in required:
-        required.append(key)
-props = schema.setdefault("properties", {})
-props.setdefault("caps", {
-    "type": "object",
-    "additionalProperties": { "type": "integer" }
-})
-props.setdefault("limits", {
-    "type": "object",
-    "additionalProperties": { "type": "integer" }
-})
-p.write_text(json.dumps(schema, indent=2) + "\n")
-
-p = Path("schemas/repo-score.schema.json")
-schema = json.loads(p.read_text())
-required = schema.setdefault("required", [])
-for key in [
-    "paper_edition",
-    "target_stack_id",
-    "target_stack",
-    "repo",
-    "scope",
-    "caps_applied",
-    "hard_rules",
-]:
-    if key not in required:
-        required.append(key)
-
-props = schema.setdefault("properties", {})
-props.update({
-    "paper_edition": { "type": "string" },
-    "target_stack_id": { "type": "string" },
-    "target_stack": { "type": "string" },
-    "repo": { "type": "string" },
-    "run_id": { "type": "string" },
-    "started_at": { "type": "string" },
-    "elapsed_ms": { "type": "integer", "minimum": 0 },
-    "scope": { "$ref": "#/$defs/scope" },
-    "git": { "$ref": "#/$defs/gitSummary" },
-    "policy": { "$ref": "#/$defs/policySummary" },
-    "caps_applied": {
-        "type": "array",
-        "items": { "type": "string" }
-    },
-    "hard_rules": {
-        "type": "array",
-        "items": { "$ref": "#/$defs/hardRule" }
-    },
-    "dimensions": {
-        "type": "array",
-        "items": { "$ref": "#/$defs/dimension" }
-    }
-})
-defs = schema.setdefault("$defs", {})
-defs.update({
-    "scope": {
-        "type": "object",
-        "required": ["mode", "paths"],
-        "properties": {
-            "mode": { "enum": ["full", "changed"] },
-            "paths": {
-                "type": "array",
-                "items": { "type": "string" }
-            }
-        },
-        "additionalProperties": false
-    },
-    "gitSummary": {
-        "type": "object",
-        "required": ["changed_files", "mode"],
-        "properties": {
-            "head": { "type": "string" },
-            "base": { "type": "string" },
-            "changed_files": { "type": "integer", "minimum": 0 },
-            "mode": { "enum": ["full", "changed"] },
-            "dirty_worktree": { "type": "boolean" }
-        },
-        "additionalProperties": false
-    },
-    "policySummary": {
-        "type": "object",
-        "required": ["path", "minimum_score", "fail_on", "advisory_on"],
-        "properties": {
-            "path": { "type": "string" },
-            "minimum_score": { "type": "integer" },
-            "fail_on": {
-                "type": "array",
-                "items": { "type": "string" }
-            },
-            "advisory_on": {
-                "type": "array",
-                "items": { "type": "string" }
-            },
-            "mode": { "type": "string" },
-            "standard_version": { "type": "string" },
-            "auditor_version": { "type": "string" },
-            "schema_version": { "type": "string" },
-            "paper_edition": { "type": "string" },
-            "target_stack": { "type": "string" }
-        },
-        "additionalProperties": false
-    },
-    "dimension": {
-        "type": "object",
-        "required": ["name", "weight", "score", "weighted_points", "evidence", "notes"],
-        "properties": {
-            "name": { "type": "string" },
-            "weight": { "type": "integer" },
-            "score": { "type": "integer" },
-            "weighted_points": { "type": "number" },
-            "evidence": {
-                "type": "array",
-                "items": { "type": "string" }
-            },
-            "notes": {
-                "type": "array",
-                "items": { "type": "string" }
-            }
-        },
-        "additionalProperties": false
-    },
-    "hardRule": {
-        "type": "object",
-        "required": ["id", "max_score"],
-        "properties": {
-            "id": { "type": "string" },
-            "max_score": { "type": "integer" }
-        },
-        "additionalProperties": false
-    }
-})
-p.write_text(json.dumps(schema, indent=2) + "\n")
-PY
-
-cat > crates/jankurai/tests/agent_artifact_schema_guard.rs <<'EOF'
-use jankurai::validation::{self, ArtifactSchema};
-use std::fs;
-use std::path::PathBuf;
-
-fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-}
-
-#[test]
-fn canonical_agent_json_artifacts_validate_against_schemas() {
-    let repo = repo_root();
-    for (rel, schema) in [
-        ("agent/owner-map.json", ArtifactSchema::OwnerMap),
-        ("agent/test-map.json", ArtifactSchema::TestMap),
-    ] {
-        let text = fs::read_to_string(repo.join(rel)).unwrap();
-        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
-        validation::validate_value(&repo, schema, &value)
-            .unwrap_or_else(|err| panic!("{rel} failed schema validation: {err}"));
-    }
-}
-
-#[test]
-fn canonical_agent_toml_artifacts_validate_against_schemas() {
-    let repo = repo_root();
-
-    let audit_policy = fs::read_to_string(repo.join("agent/audit-policy.toml")).unwrap();
-    validation::validate_audit_policy_toml_text(&repo, &audit_policy).unwrap();
-
-    let security_policy = fs::read_to_string(repo.join("agent/security-policy.toml")).unwrap();
-    validation::validate_security_policy_toml_text(&repo, &security_policy).unwrap();
-
-    let generated_zones = fs::read_to_string(repo.join("agent/generated-zones.toml")).unwrap();
-    validation::validate_generated_zones_toml_text(&repo, &generated_zones).unwrap();
-
-    let proof_lanes = fs::read_to_string(repo.join("agent/proof-lanes.toml")).unwrap();
-    validation::validate_proof_lanes_toml_text(&repo, &proof_lanes).unwrap();
-
-    let standard_version = fs::read_to_string(repo.join("agent/standard-version.toml")).unwrap();
-    validation::validate_standard_version_toml_text(&repo, &standard_version).unwrap();
-
-    let boundaries = fs::read_to_string(repo.join("agent/boundaries.toml")).unwrap();
-    validation::validate_boundaries_toml_text(&repo, &boundaries).unwrap();
-
-    let ux_policy_path = repo.join("agent/ux-qa.toml");
-    if ux_policy_path.is_file() {
-        let ux_policy = fs::read_to_string(ux_policy_path).unwrap();
-        validation::validate_ux_qa_policy_toml_text(&repo, &ux_policy).unwrap();
-    }
-}
-
-#[test]
-fn repo_score_schema_requires_phase01_public_contract_fields() {
-    let repo = repo_root();
-    let schema: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(repo.join("schemas/repo-score.schema.json")).unwrap(),
-    )
-    .unwrap();
-
-    let required = schema["required"].as_array().unwrap();
-    for key in [
-        "standard_version",
-        "auditor_version",
-        "schema_version",
-        "paper_edition",
-        "target_stack_id",
-        "target_stack",
-        "scope",
-        "caps_applied",
-        "hard_rules",
-        "findings",
-        "agent_fix_queue",
-    ] {
-        assert!(
-            required.iter().any(|value| value == key),
-            "repo-score schema must require `{key}` for Phase 01 compatibility"
-        );
-    }
-}
-EOF
-
-cat > crates/jankurai/tests/report_compatibility_guard.rs <<'EOF'
-use jankurai::audit::run_audit;
-use jankurai::model::{AUDITOR_VERSION, PAPER_EDITION, SCHEMA_VERSION, STANDARD_VERSION, TARGET_STACK_ID};
-use jankurai::render::render_markdown;
-use jankurai::report::{issues, junit, sarif};
-use jankurai::validation::{self, ArtifactSchema};
-use std::fs;
-use tempfile::tempdir;
-
-#[test]
-fn report_json_contract_keeps_phase01_required_fields() {
-    let dir = tempdir().unwrap();
-    fs::write(dir.path().join("README.md"), "# thin repo\n").unwrap();
-
-    let report = run_audit(dir.path(), &[]).unwrap();
-    let value = serde_json::to_value(&report).unwrap();
-
-    validation::validate_value(dir.path(), ArtifactSchema::RepoScore, &value).unwrap();
-
-    for key in [
-        "report_fingerprint",
-        "input_fingerprint",
-        "policy_fingerprint",
-        "manifest_fingerprints",
-        "dirty_worktree",
-        "generated_at",
-        "schema_url",
-        "standard",
-        "standard_version",
-        "auditor_version",
-        "schema_version",
-        "paper_edition",
-        "target_stack_id",
-        "target_stack",
-        "repo",
-        "scope",
-        "score",
-        "raw_score",
-        "decision",
-        "caps_applied",
-        "hard_rules",
-        "dimensions",
-        "findings",
-        "agent_fix_queue",
-    ] {
-        assert!(value.get(key).is_some(), "missing public report field `{key}`");
-    }
-
-    assert_eq!(value["standard"], "jankurai");
-    assert_eq!(value["standard_version"], STANDARD_VERSION);
-    assert_eq!(value["auditor_version"], AUDITOR_VERSION);
-    assert_eq!(value["schema_version"], SCHEMA_VERSION);
-    assert_eq!(value["paper_edition"], PAPER_EDITION);
-    assert_eq!(value["target_stack_id"], TARGET_STACK_ID);
-    assert_eq!(value["scope"]["mode"], "full");
-    assert!(value["hard_rules"].as_array().unwrap().len() >= 10);
-    assert!(value["dimensions"].as_array().unwrap().len() >= 5);
-
-    let first_finding = value["findings"]
-        .as_array()
-        .unwrap()
-        .first()
-        .expect("thin repo should produce findings");
-    for key in [
-        "severity",
-        "category",
-        "path",
-        "problem",
-        "agent_fix",
-        "evidence",
-        "check_id",
-        "hardness",
-        "confidence",
-        "evidence_kind",
-        "rerun_command",
-        "fingerprint",
-    ] {
-        assert!(
-            first_finding.get(key).is_some(),
-            "missing public finding field `{key}`"
-        );
-    }
-}
-
-#[test]
-fn markdown_contract_keeps_phase01_sections() {
-    let dir = tempdir().unwrap();
-    fs::write(dir.path().join("README.md"), "# thin repo\n").unwrap();
-
-    let report = run_audit(dir.path(), &[]).unwrap();
-    let markdown = render_markdown(&report);
-
-    for needle in [
-        "# jankurai Repo Score",
-        "- Paper edition:",
-        "- Target stack ID:",
-        "- Scope:",
-        "## Hard Rule Caps",
-        "## Dimensions",
-        "## Findings",
-        "## Policy",
-        "## Agent Fix Queue",
-    ] {
-        assert!(markdown.contains(needle), "markdown missing `{needle}`");
-    }
-}
-
-#[test]
-fn secondary_exports_keep_expected_shapes() {
-    let dir = tempdir().unwrap();
-    fs::write(dir.path().join("README.md"), "# thin repo\n").unwrap();
-
-    let report = run_audit(dir.path(), &[]).unwrap();
-
-    let sarif_text = sarif::render_sarif(&report);
-    let sarif_json: serde_json::Value = serde_json::from_str(&sarif_text).unwrap();
-    assert_eq!(sarif_json["version"], "2.1.0");
-    assert!(sarif_json["runs"].as_array().unwrap().len() == 1);
-
-    let junit_text = junit::render_junit(&report);
-    assert!(junit_text.contains("<testsuite"));
-    assert!(junit_text.contains("<testcase"));
-
-    let repair_queue = issues::repair_queue_jsonl(&report);
-    assert!(repair_queue.contains("fingerprint"));
-    assert!(repair_queue.contains("agent_fix"));
-}
-EOF
-
-cat > crates/jankurai/tests/security_policy_run_smoke.rs <<'EOF'
-use std::fs;
-use std::process::Command;
-use tempfile::tempdir;
-
-fn binary_path() -> &'static str {
-    env!("CARGO_BIN_EXE_jankurai")
-}
-
-fn write_repo_with_missing_required_tool(repo: &std::path::Path) {
-    fs::create_dir_all(repo.join("tools")).unwrap();
-    fs::create_dir_all(repo.join("agent")).unwrap();
-    fs::write(
-        repo.join("tools/security-lane.sh"),
-        "#!/usr/bin/env bash\necho compatibility wrapper\n",
-    )
-    .unwrap();
-    fs::write(
-        repo.join("agent/security-policy.toml"),
-        r#"schema_version = "1.0.0"
-enabled_tools = ["definitely-not-installed-jankurai-tool"]
-required_tools = ["definitely-not-installed-jankurai-tool"]
-advisory_tools = []
-"#,
-    )
-    .unwrap();
-}
-
-#[test]
-fn security_run_records_missing_required_tool_as_skipped_in_non_strict_mode() {
-    let repo = tempdir().unwrap();
-    write_repo_with_missing_required_tool(repo.path());
-
-    let evidence_path = repo.path().join("target/jankurai/security/evidence.json");
-    let status = Command::new(binary_path())
-        .arg("security")
-        .arg("run")
-        .arg(repo.path())
-        .arg("--out")
-        .arg(&evidence_path)
-        .status()
-        .unwrap();
-
-    assert!(
-        status.success(),
-        "non-strict mode records missing tools without pretending they ran"
-    );
-
-    let value: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(&evidence_path).unwrap()).unwrap();
-
-    assert_eq!(value["exit_code"], 0);
-    assert_eq!(value["commands"][0]["status"], "skipped");
-    assert_eq!(value["commands"][0]["advisory"], true);
-    assert_eq!(value["commands"][0]["normalized_decision"], "review");
-    assert_eq!(
-        value["commands"][0]["tool"],
-        "definitely-not-installed-jankurai-tool"
-    );
-}
-
-#[test]
-fn security_run_fails_strict_when_required_tool_is_missing() {
-    let repo = tempdir().unwrap();
-    write_repo_with_missing_required_tool(repo.path());
-
-    let evidence_path = repo.path().join("target/jankurai/security/evidence.json");
-    let status = Command::new(binary_path())
-        .arg("security")
-        .arg("run")
-        .arg(repo.path())
-        .arg("--out")
-        .arg(&evidence_path)
-        .arg("--strict")
-        .status()
-        .unwrap();
-
-    assert!(!status.success(), "strict mode must block missing required tools");
-
-    let value: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(&evidence_path).unwrap()).unwrap();
-
-    assert_ne!(value["exit_code"], 0);
-    assert_eq!(value["commands"][0]["status"], "skipped");
-    assert_eq!(value["commands"][0]["advisory"], false);
-    assert_eq!(value["commands"][0]["normalized_decision"], "block");
-}
-EOF
-
-# Run the Phase 01 validation set. The finish log is written only if these pass.
-cargo test -p jankurai
-just fast
-just security
-cargo run -p jankurai -- doctor --fail-on high
-just score
-
-git_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
-printf '%s | gpt-5.5-pro | 01 | finish standard stabilization closeout | schemas/ crates/jankurai/ agent/ Justfile .github/workflows/jankurai.yml tools/security-lane.sh tips/phases/logs/01-standard-stabilization.log | cargo test -p jankurai=passed; just fast=passed; just security=passed; doctor --fail-on high=passed; just score=passed | agent/repo-score.json; agent/repo-score.md; target/jankurai/security/evidence.json; target/jankurai/security/*.log | %s | none\n' \
-  "$(date -u +%FT%TZ)" \
-  "$git_sha" >> "$phase_log"
-
-echo "Phase 01 standard stabilization closeout patch applied and validated."
+I inspected the repo surfaces that matter for Phase 01. My verdict: **Phase 01 is functionally complete, but not yet “100% hardened.”** The right move is not to rebuild it. The right move is a targeted **Phase 01 Hardening Pass** that turns the standard from “documented and mostly guarded” into a **self-verifying contract**: standard text, brief, rule catalog, schemas, report output, version manifest, doctor/security evidence, CI, and phase receipts all fail fast when they drift.
+
+The key reason this matters: Phase 03 Proof Router and Phase 02 Rule Engine both depend on Phase 01 being immovable. If the standard is even slightly inconsistent, proof routing can select the wrong lane, rules can emit findings that docs do not define, repair agents can trust stale schemas, and downstream “hardened” phases become built on sand.
+
+---
+
+## Current Phase 01 state
+
+Phase 01 is currently marked **complete**, not hardened. The Phase 00 ledger says Phase 01 is complete, while its status taxonomy reserves **hardened** for “complete plus an additional validated production-quality slice.” 
+
+The Phase 01 plan already captures the correct intent: stabilize v0.4 foundations, clarify schema and report contracts, add compatibility guard expectations, verify doctor/security lane reality, separate implemented behavior from moonshot roadmap docs, and define release evidence conventions. It also says Phase 01 can touch `crates/jankurai/`, `schemas/`, `docs/`, `agent/`, and `Justfile`, while avoiding `paper/`, `reference/`, generated hand-edits, new moonshot features, report-field renames without migration notes, and new mandatory external tools in `just fast`. 
+
+A lot is genuinely done. The Phase 01 log shows completed work for repo-score schema parity, control-plane schemas, report compatibility guards, security evidence wiring, Markdown section guards, finding schema coverage, and parsing of `jankurai-security-step=` security log rows. 
+
+So the hardening plan should be framed as:
+
+> **Upgrade Phase 01 from `complete` to `hardened` by making every Phase 01 contract machine-checked, drift-resistant, and release-evidence-backed.**
+
+---
+
+# Phase 01 Hardening Plan
+
+## Objective
+
+Finish Phase 01 to a hardened state by making the standard surface internally consistent, automatically verified, and release-ready.
+
+### Exact outcome
+
+At the end of this pass:
+
+1. `docs/agent-native-standard.md`, `agent/JANKURAI_STANDARD.md`, `agent/standard-version.toml`, `agent/audit-policy.toml`, `crates/jankurai/src/audit/rules.rs`, report schemas, artifact-contract docs, and emitted reports all agree.
+2. Every stable rule ID emitted by the auditor is documented in both the full standard and the agent brief, or explicitly listed as intentionally internal.
+3. Every machine-readable artifact is backed by a schema, semantic guard, or documented exemption.
+4. JSON Schema validation actually enforces the schema keywords the repo uses.
+5. Report exports are compatibility-guarded across JSON, Markdown, SARIF, JUnit, GitHub summary, issue JSONL, and repair queue JSONL.
+6. Doctor/security diagnostics clearly distinguish **repo defects** from **missing local tools/environment gaps**.
+7. Release evidence has a single reproducible receipt convention under `target/jankurai/`.
+8. Phase 01’s phase file, phase index, and append-only log are updated with evidence and moved to **hardened** only after validation passes.
+
+### Non-goals
+
+Do **not** implement new moonshot features. Do **not** change the paper. Do **not** touch `reference/`. Do **not** hand-edit generated files. Do **not** move canonical score artifacts away from `agent/repo-score.json` and `agent/repo-score.md`. Do **not** broaden `just fast` with external tools. These non-goals match the Phase 01 constraints already documented. 
+
+---
+
+# The most important gaps to close
+
+## P0 gap 1 — Standard/rule catalog drift
+
+This is the biggest Phase 01 hardening gap I found.
+
+`agent/JANKURAI_STANDARD.md` lists stable rules through `HLT-021-DESTRUCTIVE-MIGRATION`, including `HLT-020-CI-HARDENING-GAP` and `HLT-021-DESTRUCTIVE-MIGRATION`. 
+
+The Rust auditor’s canonical `RULES` table also includes `HLT-020-CI-HARDENING-GAP` and `HLT-021-DESTRUCTIVE-MIGRATION`. 
+
+But the full `docs/agent-native-standard.md` stable-rule table currently stops at `HLT-019-STREAMING-RUNTIME-DRIFT`. 
+
+That means the repo has a **real source-of-truth inconsistency**: the agent brief and auditor know about rules that the full standard’s stable table does not fully define. Phase 01 cannot be called hardened while that drift can exist.
+
+### Fix
+
+Add a machine guard that fails when any rule ID in `audit::rules::all()` is absent from:
+
+* `docs/agent-native-standard.md`
+* `agent/JANKURAI_STANDARD.md`
+* `docs/audit-rubric.md`
+* optionally `docs/testing.md` when the rule is proof-lane-specific
+
+Then reconcile the docs by adding `HLT-020` and `HLT-021` to the full standard’s stable-rule table and ensuring their category, lane, TLR, docs link, severity, and repair posture match the code.
+
+---
+
+## P0 gap 2 — Versions are checked, but still too hardcoded
+
+The version manifest is clearly intended to be canonical: `agent/standard-version.toml` pins `standard_version = "0.4.0"`, `auditor_version = "0.4.0"`, `schema_version = "1.2.0"`, `paper_edition = "2026.05-ed3"`, and the target stack ID. 
+
+But `crates/jankurai/src/model.rs` hardcodes the same constants, and the audit report is built from those constants. 
+
+There is already a `versions` check that compares manifest values to hardcoded constants and scans several docs/files for expected version strings. 
+
+That is good, but not fully hardened. A hardened Phase 01 should make the manifest the actual source used by report generation, or at minimum add stronger negative tests proving drift fails every relevant command.
+
+### Fix
+
+Prefer this design:
+
+* Add a `StandardVersions` struct.
+* Parse and validate `agent/standard-version.toml` at audit/report/security-evidence generation time.
+* Use the parsed manifest values in emitted reports.
+* Keep constants only as fallback defaults for non-repo contexts or compile-time package metadata.
+* Make `jankurai versions` fail if any of these drift:
+
+  * `VERSION`
+  * `crates/jankurai/Cargo.toml`
+  * `packages/ux-qa/package.json`
+  * `agent/standard-version.toml`
+  * `agent/audit-policy.toml`
+  * `docs/agent-native-standard.md`
+  * `agent/JANKURAI_STANDARD.md`
+  * emitted `repo-score.json`
+  * `security-evidence.json`
+
+Acceptance test: create a fixture with `standard-version.toml` changed to `0.4.1` and prove `versions` fails unless every bound surface also changes.
+
+---
+
+## P0 gap 3 — Schema validation is not yet strong enough
+
+The repo has a custom validator in `crates/jankurai/src/validation.rs`. It handles core pieces like `$ref`, `const`, `enum`, `pattern`, `type`, `required`, `properties`, `additionalProperties`, arrays, `allOf`, `anyOf`, and `oneOf`. 
+
+But the schemas use JSON Schema keywords such as `minimum`. For example, `repo-score.schema.json` uses `minimum: 0` for fields like `elapsed_ms`, counts, and other numeric summaries. 
+
+The custom validator shown does not enforce `minimum`, `maximum`, `maxLength`, `format`, `uniqueItems`, `patternProperties`, `propertyNames`, or other draft 2020-12 keywords. That means an artifact can “validate” even though it violates declared schema constraints. The current dependencies also do not include a full JSON Schema validator crate. 
+
+Phase 01 cannot be considered 100% hardened while schema validation is weaker than the schema language the repo claims to use.
+
+### Fix
+
+Adopt one of two approaches.
+
+The stronger path:
+
+* Add a real JSON Schema validator dependency.
+* Validate all `schemas/*.schema.json` using draft 2020-12 semantics.
+* Keep the current validator only as a lightweight fallback or remove it once the new validator is stable.
+
+The acceptable fallback path:
+
+* Keep the custom validator.
+* Add a `schema_keyword_coverage` test that scans every schema and fails if it finds a keyword not implemented by the validator.
+* Implement all currently used keywords, especially:
+
+  * `minimum`
+  * `maximum`
+  * `minLength`
+  * `maxLength`
+  * `uniqueItems`
+  * `format`
+  * `patternProperties`
+  * `propertyNames`
+  * nested `$defs`
+  * `additionalProperties` object forms
+  * `items` array/object forms
+
+Acceptance test: an object with `"elapsed_ms": -1` must fail against schemas that declare `"minimum": 0`.
+
+---
+
+## P0 gap 4 — Doctor receipt diagnostics are too thin
+
+`doctor.rs` already performs many valuable checks: required control files, manifest schemas, lockfiles, stale score, local path leaks, echo-only workflow proof, missing security tools, UX artifacts, proof receipts, evidence index, security evidence, and other JSON artifacts. 
+
+But the diagnostic shape is only:
+
+```text
+check_id
+severity
+path
+message
 ```
 
-### What this completes
+The doctor receipt schema matches that thin shape and forbids additional properties. 
 
-This closes the Phase 01 workstream gaps directly:
+That is not hardened enough for Phase 01’s stated gap: “doctor and security lane diagnostics need to distinguish missing tools from broken repo state.” 
 
-**Artifact Contract Audit:** owner map, test map, generated zones, proof lanes, audit policy, security policy, standard version, boundaries, UX policy, proof/evidence outputs, and repo score now have schema coverage or existing validators. The new tests validate the canonical agent artifacts instead of relying on documentation promises.
+Right now, a missing tool is mostly distinguished by message text and low severity. For a repair agent, that is not enough. It needs a structured diagnostic kind.
 
-**Report Compatibility Guard:** the repo-score schema now requires the Phase 01 public report fields the standard already promises. The new compatibility test serializes a real report, validates it against schema, verifies top-level report keys, verifies finding keys, checks Markdown sections, and checks SARIF/JUnit/repair queue shape.
+### Fix
 
-**Doctor and Security Lane Reality Check:** doctor now validates the full control plane and reads `agent/security-policy.toml` to distinguish required tools from advisory tools. `jankurai security run` now emits per-tool evidence for the default security lane, so missing tools are recorded as `skipped`, actual scan failures are `failed`, and strict mode blocks missing required tools.
+Extend doctor diagnostics to include:
 
-**Documentation Boundary and Release Evidence Convention:** this patch does not edit the paper or implement later moonshot behavior. It makes the current v0.4 surface more honest: security evidence is evidence, skipped tools are not proof, and Phase 01 closeout is represented by a phase log entry only after commands pass.
+```rust
+#[serde(rename_all = "kebab-case")]
+enum DiagnosticKind {
+    RepoDefect,
+    MissingTool,
+    MissingControlFile,
+    SchemaFailure,
+    StaleEvidence,
+    EnvironmentNotice,
+    GeneratedArtifactDrift,
+    SecurityEvidenceGap,
+}
+```
 
-**Routing Map and Generated Zone Hygiene:** the new durable schemas live under `schemas/`, already covered by owner/test maps. The one existing durable route that needed more precision, `tools/security-lane.sh`, gets a specific test-map command. Generated artifacts remain generated by commands, not hand-edited.
+Add fields:
 
-**Final Receipt and Handoff:** the script writes a start entry and only writes the finish entry after `cargo test -p jankurai`, `just fast`, `just security`, `doctor --fail-on high`, and `just score` pass. That keeps the receipt honest and usable for Phase 02 and Phase 03.
+```text
+kind
+environment_sensitive
+strictly_blocking
+common_fixes
+docs_url
+```
 
-I did not include any paper edits, reference edits, target-stack identity changes, score artifact moves, or new `just fast` external dependencies.
+Then update `schemas/doctor-receipt.schema.json`.
+
+Missing tools should emit:
+
+```json
+{
+  "kind": "missing-tool",
+  "severity": "low",
+  "environment_sensitive": true,
+  "strictly_blocking": false,
+  "common_fixes": [
+    "install the tool locally",
+    "rerun just security",
+    "use strict mode only in release validation"
+  ]
+}
+```
+
+Repo defects should emit:
+
+```json
+{
+  "kind": "repo-defect",
+  "severity": "high",
+  "environment_sensitive": false,
+  "strictly_blocking": true
+}
+```
+
+Acceptance test: missing `gitleaks` in normal mode is not treated as a repo defect; missing `AGENTS.md` is.
+
+---
+
+## P0 gap 5 — Security policy, shell lane, and evidence schema disagree on strictness
+
+The security shell script treats `gitleaks`, `cargo-audit`, and `npm` as required in its `required_tool_names`, and treats `syft` and `zizmor` as advisory. 
+
+But `agent/security-policy.toml` says only `gitleaks` is required, while `cargo audit` and `npm audit` are advisory. 
+
+The security evidence schema permits command statuses `ran`, `skipped`, and `failed`, but it does not encode whether a skipped command was missing-tool advisory, policy-optional, or release-blocking. 
+
+That creates a subtle but important Phase 01 issue: the **policy**, **runner**, and **evidence envelope** are not fully aligned.
+
+### Fix
+
+Make `agent/security-policy.toml` the source of truth for tool strictness.
+
+Concrete changes:
+
+1. `jankurai security run` loads `agent/security-policy.toml`.
+2. The runner passes required/advisory tool status into the script or replaces the hardcoded arrays in `tools/security-lane.sh`.
+3. `SecurityLaneStep.status` expands to:
+
+   * `ran`
+   * `skipped-missing-tool`
+   * `skipped-policy-optional`
+   * `failed`
+4. Add `required_by_policy: boolean`.
+5. Add `blocking: boolean`.
+6. Strict mode fails if any `required_by_policy && skipped/failed`.
+7. Normal mode records missing tools as environment-sensitive evidence, not as repo defects.
+
+Acceptance test: with `gitleaks` required and missing, `just security-strict` fails; with `cargo audit` advisory and missing, normal `just security` passes but records a skipped advisory step.
+
+---
+
+# Target hardened definition
+
+Phase 01 is **100% done and hardened** when all of the following are true.
+
+## Standard contract
+
+* Every stable rule ID in the Rust rule catalog appears in the full standard and brief.
+* No rule appears in docs without a code rule or explicit “roadmap-only” marker.
+* `HLT-020` and `HLT-021` are fully reconciled across docs, code, schemas, audit output, and testing docs.
+* The standard, brief, audit policy, version manifest, and report output agree on:
+
+  * standard version
+  * auditor version
+  * schema version
+  * paper edition
+  * target stack ID
+
+## Schema contract
+
+* Every schema file under `schemas/` is either:
+
+  * mapped to `ArtifactSchema`,
+  * tested through a command/integration guard,
+  * or explicitly exempted in `docs/artifact-contracts.md`.
+* The validator enforces every keyword used by those schemas.
+* Negative tests prove invalid values fail.
+* Every write path that emits JSON validates before writing.
+
+## Report contract
+
+* `repo-score.json` validates against `schemas/repo-score.schema.json`.
+* Report fields match `agent/standard-version.toml`.
+* Markdown report stable sections are preserved.
+* SARIF remains SARIF 2.1.0 with jankurai as the tool driver.
+* JUnit remains parseable and includes test cases.
+* GitHub step summary has stable score/decision/finding content.
+* Repair queue JSONL line count matches `agent_fix_queue`.
+* Issues JSONL validates as findings.
+
+The current compatibility guard already covers much of this, but should be expanded rather than left as a title/heading-level smoke test. 
+
+## Doctor/security contract
+
+* Doctor receipts distinguish environment/tool gaps from repo defects.
+* Missing tools are structured diagnostics, not only message text.
+* Security evidence records the full expected tool matrix.
+* Strict mode fails required missing tools.
+* Normal mode remains usable without punishing local machines for optional tool absence.
+* `target/jankurai/security/evidence.json` validates and includes command-level evidence.
+
+## Release-evidence contract
+
+* `target/jankurai/` remains the volatile proof root.
+* `agent/repo-score.json` and `agent/repo-score.md` remain canonical tracked score artifacts.
+* Doctor/init receipts live under `target/jankurai/receipts/<action>-<unix-seconds>.json`.
+* Phase closeouts cite exact receipt paths, not chat history.
+* `docs/release-plan.md`, `docs/testing.md`, and `docs/artifact-contracts.md` agree on these conventions.   
+
+## Phase ledger contract
+
+* `tips/phases/01-standard-stabilization.md` status becomes `hardened`.
+* `tips/phases/00-phase-index.md` Phase 01 ledger becomes `hardened`.
+* `tips/phases/logs/01-standard-stabilization.log` receives append-only start/progress/finish entries.
+* No historical log entries are rewritten.
+* The finish entry includes changed paths, validation commands, artifact paths, git SHA, and residual risk.
+
+---
+
+# Read First
+
+A worker agent should read these in this exact order.
+
+1. `agent/JANKURAI_STANDARD.md`
+2. `agent/MASTER_PLAN.md`
+3. `tips/phases/00-phase-index.md`
+4. `tips/phases/01-standard-stabilization.md`
+5. `tips/phases/logs/01-standard-stabilization.log`
+6. `docs/agent-native-standard.md`
+7. `docs/audit-rubric.md`
+8. `docs/testing.md`
+9. `docs/release-plan.md`
+10. `docs/artifact-contracts.md`
+11. `agent/standard-version.toml`
+12. `agent/audit-policy.toml`
+13. `agent/security-policy.toml`
+14. `agent/owner-map.json`
+15. `agent/test-map.json`
+16. `agent/proof-lanes.toml`
+17. `agent/generated-zones.toml`
+18. `schemas/repo-score.schema.json`
+19. `schemas/security-evidence.schema.json`
+20. `schemas/doctor-receipt.schema.json`
+21. `crates/jankurai/src/model.rs`
+22. `crates/jankurai/src/versions.rs`
+23. `crates/jankurai/src/validation.rs`
+24. `crates/jankurai/src/audit/rules.rs`
+25. `crates/jankurai/src/audit/mod.rs`
+26. `crates/jankurai/src/commands/doctor.rs`
+27. `crates/jankurai/src/commands/security.rs`
+28. `crates/jankurai/tests/report_compatibility_guard.rs`
+29. `crates/jankurai/tests/schema_contracts.rs`
+30. `tools/security-lane.sh`
+31. `.github/workflows/jankurai.yml`
+32. `Justfile`
+
+This read order matches the repo’s own planner protocol: the Master Plan requires plans to include Objective, Read First, Ownership, Current State, Implementation Steps, Hard Parts, Validation, Logging/Receipts, and Parallel Work Packets. 
+
+---
+
+# Ownership
+
+## Owned paths for this hardening pass
+
+Safe to edit:
+
+```text
+docs/agent-native-standard.md
+docs/audit-rubric.md
+docs/testing.md
+docs/release-plan.md
+docs/artifact-contracts.md
+docs/phases-feedback-status.md
+agent/JANKURAI_STANDARD.md
+agent/standard-version.toml
+agent/audit-policy.toml
+agent/security-policy.toml
+agent/proof-lanes.toml
+agent/generated-zones.toml
+schemas/*.schema.json
+crates/jankurai/src/model.rs
+crates/jankurai/src/versions.rs
+crates/jankurai/src/validation.rs
+crates/jankurai/src/audit/rules.rs
+crates/jankurai/src/audit/mod.rs
+crates/jankurai/src/commands/doctor.rs
+crates/jankurai/src/commands/security.rs
+crates/jankurai/tests/*.rs
+tools/security-lane.sh
+Justfile
+.github/workflows/jankurai.yml
+tips/phases/00-phase-index.md
+tips/phases/01-standard-stabilization.md
+tips/phases/logs/01-standard-stabilization.log
+```
+
+The owner map supports this split: `docs/`, `schemas/`, `contracts/`, and `db/` are owned by `standard`; `crates/jankurai/` and `tools/` are owned by `tools`; `agent/` is owned by `agent`; phase logs are owned by `agent`; `reference/` is read-only. 
+
+## Forbidden paths
+
+Do not edit:
+
+```text
+paper/
+reference/
+generated artifacts by hand
+agent/repo-score.json by hand
+agent/repo-score.md by hand
+package-lock.json by hand
+```
+
+Generated zones are declared in `agent/generated-zones.toml`; score artifacts and paper PDF have explicit generation commands and should not be manually patched. 
+
+---
+
+# Implementation Steps
+
+## Step 0 — Open the hardening work correctly
+
+Before editing, append a start entry to:
+
+```text
+tips/phases/logs/01-standard-stabilization.log
+```
+
+Format:
+
+```text
+<timestamp_utc> | agent | 01 | start Phase 01 hardening: standard/rule/schema/report/security evidence parity | pending | pending | pending | <git_sha> | residual: hardening in progress
+```
+
+Then run a preflight status:
+
+```bash
+rtk git status --short
+rtk cargo run -p jankurai -- versions
+rtk cargo test -p jankurai --test report_compatibility_guard
+rtk cargo test -p jankurai --test schema_contracts
+```
+
+Do not “clean up” unrelated dirty files. Treat them as project state.
+
+---
+
+## Step 1 — Add a standard surface guard
+
+Create:
+
+```text
+crates/jankurai/tests/standard_surface_guard.rs
+```
+
+Purpose: fail if standard text, brief text, rule catalog, version manifest, audit policy, and report model drift.
+
+Minimum assertions:
+
+```rust
+#[test]
+fn every_code_rule_is_documented_in_full_standard_and_brief() {
+    let repo = repo_root();
+    let full = read("docs/agent-native-standard.md");
+    let brief = read("agent/JANKURAI_STANDARD.md");
+    let audit_rubric = read("docs/audit-rubric.md");
+
+    for rule in jankurai::audit::rules::all() {
+        assert!(full.contains(rule.id), "full standard missing {}", rule.id);
+        assert!(brief.contains(rule.id), "brief standard missing {}", rule.id);
+        assert!(audit_rubric.contains(rule.id) || rule.docs_url != "docs/audit-rubric.md",
+            "audit rubric missing {}", rule.id);
+    }
+}
+```
+
+Add companion assertions:
+
+```rust
+#[test]
+fn no_documented_hlt_rule_is_orphaned() {
+    // Extract HLT-\d{3}-[A-Z0-9-]+ from full standard and brief.
+    // Any extracted ID must exist in audit::rules::all(), unless listed in a tiny explicit roadmap-only allowlist.
+}
+```
+
+```rust
+#[test]
+fn standard_versions_are_consistent_across_public_surfaces() {
+    // Load agent/standard-version.toml.
+    // Assert docs/agent-native-standard.md contains Standard version.
+    // Assert agent/JANKURAI_STANDARD.md contains Standard version.
+    // Assert audit-policy.toml fields match.
+    // Assert model constants or runtime report output match.
+}
+```
+
+Expected failure before doc reconciliation: `docs/agent-native-standard.md` should fail for `HLT-020` and `HLT-021`.
+
+---
+
+## Step 2 — Reconcile the full standard with the brief and code
+
+Update `docs/agent-native-standard.md`.
+
+Add stable-rule rows:
+
+```md
+| `HLT-020-CI-HARDENING-GAP` | CI workflow permissions, unpinned actions, or proof posture gaps |
+| `HLT-021-DESTRUCTIVE-MIGRATION` | destructive SQL under migration paths without documented safety evidence |
+```
+
+Then check all references:
+
+* Hard gates mention CI proof posture and destructive migration safety.
+* Test lanes mention `db-migration-analyze`.
+* Failure catalog includes destructive migration and CI hardening.
+* CI requirements mention workflow permissions, pinned actions, and proof artifacts.
+* Testing docs link destructive migration rule to `docs/testing.md`.
+* Agent brief remains short but synchronized.
+
+This explicitly closes the drift between the brief, full standard, and Rust rule table.   
+
+---
+
+## Step 3 — Harden version source-of-truth handling
+
+Current state:
+
+* `agent/standard-version.toml` is canonical by policy. 
+* `model.rs` hardcodes report constants. 
+* `versions.rs` compares manifest values to constants and file contents. 
+
+Hardening target: **the manifest should drive emitted artifacts, not merely be compared after the fact.**
+
+Add:
+
+```text
+crates/jankurai/src/standard_version.rs
+```
+
+Suggested shape:
+
+```rust
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct StandardVersions {
+    pub standard: String,
+    pub standard_version: String,
+    pub paper_edition: String,
+    pub auditor_version: String,
+    pub schema_version: String,
+    pub target_stack: String,
+    pub published: String,
+}
+
+pub fn load(repo: &Path) -> Result<StandardVersions> {
+    let text = fs::read_to_string(repo.join("agent/standard-version.toml"))?;
+    let value = validation::validate_standard_version_toml_text(repo, &text)?;
+    serde_json::from_value(value).context("decode standard-version manifest")
+}
+```
+
+Then update report generation:
+
+```rust
+let versions = standard_version::load(root).unwrap_or_else(|_| StandardVersions::compiled_defaults());
+```
+
+Use `versions.standard_version`, `versions.auditor_version`, `versions.schema_version`, `versions.paper_edition`, and `versions.target_stack` in `Report`.
+
+Also update `security.rs`, because `SecurityEvidence` currently uses `STANDARD_VERSION` from `model.rs`. 
+
+Add tests:
+
+```text
+crates/jankurai/tests/version_manifest_guard.rs
+```
+
+Cases:
+
+1. Current repo passes.
+2. Fixture with mismatched `agent/standard-version.toml` fails `versions`.
+3. Audit report’s version fields match the manifest.
+4. Security evidence’s `standard_version` matches the manifest.
+5. `agent/audit-policy.toml` version fields match manifest fields.
+
+---
+
+## Step 4 — Replace or harden JSON Schema validation
+
+The cleanest hardening move is to use a real JSON Schema validator for draft 2020-12. If adding that dependency is acceptable, do that.
+
+If avoiding a dependency, add a mandatory schema keyword coverage gate.
+
+Create:
+
+```text
+crates/jankurai/tests/schema_keyword_guard.rs
+```
+
+It should scan every `schemas/*.schema.json`, collect schema keywords, and compare them to an explicit supported keyword set.
+
+Minimum supported set must include:
+
+```text
+$schema
+$id
+$defs
+$ref
+title
+description
+type
+required
+properties
+additionalProperties
+items
+enum
+const
+pattern
+minimum
+maximum
+minLength
+maxLength
+minItems
+maxItems
+oneOf
+anyOf
+allOf
+```
+
+Then add negative validation tests:
+
+```rust
+#[test]
+fn repo_score_rejects_negative_elapsed_ms() {
+    let mut report = valid_report_fixture();
+    report["elapsed_ms"] = serde_json::json!(-1);
+    assert!(validation::validate_value(&repo, ArtifactSchema::RepoScore, &report).is_err());
+}
+```
+
+```rust
+#[test]
+fn security_evidence_rejects_empty_commands() {
+    let mut evidence = valid_security_evidence_fixture();
+    evidence["commands"] = serde_json::json!([]);
+    assert!(validation::validate_value(&repo, ArtifactSchema::SecurityEvidence, &evidence).is_err());
+}
+```
+
+```rust
+#[test]
+fn doctor_receipt_rejects_unknown_diagnostic_kind() {
+    // After diagnostic kind is added.
+}
+```
+
+This is a big hardening gain because schemas stop being aspirational.
+
+---
+
+## Step 5 — Add artifact inventory automation
+
+`docs/artifact-contracts.md` already says every durable or generated machine-readable surface should validate against a schema, be covered by an integration guard, or be explicitly exempt. 
+
+Make that enforceable.
+
+Create:
+
+```text
+crates/jankurai/tests/artifact_inventory_guard.rs
+```
+
+It should assert:
+
+1. Every `schemas/*.schema.json` has:
+
+   * `$schema`
+   * `$id`
+   * `title`
+   * `type` or documented reason
+2. Every `ArtifactSchema` enum variant maps to an existing schema file.
+3. Every schema file is either:
+
+   * referenced by `ArtifactSchema`,
+   * referenced by `docs/artifact-contracts.md`,
+   * or listed in a small explicit exemption table.
+4. Every agent control-plane file has schema coverage or documented exemption:
+
+   * `agent/owner-map.json`
+   * `agent/test-map.json`
+   * `agent/generated-zones.toml`
+   * `agent/proof-lanes.toml`
+   * `agent/standard-version.toml`
+   * `agent/audit-policy.toml`
+   * `agent/security-policy.toml`
+   * `agent/boundaries.toml`
+   * `agent/ux-qa.toml`
+5. Every artifact in `agent/standard-version.toml` has:
+
+   * an existing path, or
+   * a generated-zone entry, or
+   * a documented reason it is produced later.
+6. Every generated zone has:
+
+   * `path`
+   * `source`
+   * `command`
+   * `read_only`
+
+This replaces manual confidence with a hard guard.
+
+---
+
+## Step 6 — Expand report compatibility guard
+
+`report_compatibility_guard.rs` already verifies repo-score JSON, manifest version parity, SARIF shape, JUnit envelope, Markdown title, GitHub summary heading, findings schema, repair queue JSONL, and issues export JSONL. 
+
+Expand it into a deeper semantic guard.
+
+Add checks:
+
+### JSON report
+
+* `standard`, `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id` all exist.
+* `policy.minimum_score` equals `agent/audit-policy.toml`.
+* `manifest_fingerprints` includes owner map, test map, generated zones, proof lanes, standard version, and boundaries when present.
+* Every finding with `rule_id` has:
+
+  * `lane`
+  * `owner`
+  * `docs_url`
+  * `evidence_kind`
+  * `fingerprint`
+* Every `agent_fix_queue` item with a rule ID maps to a real rule.
+
+### Markdown report
+
+Current check only ensures headings exist. Expand to verify:
+
+* score line exists
+* decision line exists
+* hard caps section exists
+* dimensions section includes all dimension names
+* rendered UX QA section exists
+* security evidence section exists if artifact is present
+* agent fix queue section count matches report queue count or explicitly says empty
+
+### SARIF
+
+Verify:
+
+* `version = 2.1.0`
+* tool driver name is `jankurai`
+* every result with a rule ID has a matching rule entry
+* `helpUri` points to docs path for the rule
+* region line numbers exist when findings include `line`
+
+### JUnit
+
+Verify:
+
+* testsuite name is stable
+* testcase count equals findings count or documented mapping
+* failures map to high/critical findings
+
+### GitHub summary
+
+Verify:
+
+* score
+* decision
+* high/critical count
+* repair queue pointer
+* artifact paths
+
+### Repair queue JSONL
+
+Verify:
+
+* line count equals `agent_fix_queue.len()`
+* each line validates against `schemas/repair-queue.schema.json`
+* each queue item’s `lane` exists in `agent/proof-lanes.toml`
+
+---
+
+## Step 7 — Make doctor diagnostics agent-actionable
+
+Modify `Diagnostic` in `doctor.rs`.
+
+Current:
+
+```rust
+#[derive(Debug, Serialize)]
+struct Diagnostic {
+    check_id: String,
+    severity: String,
+    path: String,
+    message: String,
+}
+```
+
+Hardened:
+
+```rust
+#[derive(Debug, Serialize)]
+struct Diagnostic {
+    check_id: String,
+    severity: String,
+    kind: DiagnosticKind,
+    path: String,
+    message: String,
+    environment_sensitive: bool,
+    strictly_blocking: bool,
+    common_fixes: Vec<String>,
+    docs_url: String,
+}
+```
+
+Add helper constructors:
+
+```rust
+fn repo_defect(check_id: &str, path: &str, message: &str, fixes: &[&str]) -> Diagnostic
+fn missing_tool(tool: &str, lane: &str, strict: bool) -> Diagnostic
+fn schema_failure(check_id: &str, path: &str, err: &anyhow::Error) -> Diagnostic
+fn stale_evidence(path: &str, stored: &str, current: &str) -> Diagnostic
+fn ok(path: &str, message: &str) -> Diagnostic
+```
+
+Update `schemas/doctor-receipt.schema.json` to require the new fields.
+
+Add tests:
+
+```text
+crates/jankurai/tests/doctor_diagnostics_guard.rs
+```
+
+Test cases:
+
+1. Missing required control file emits `kind = "missing-control-file"`, `strictly_blocking = true`.
+2. Missing `gitleaks` emits `kind = "missing-tool"`, `environment_sensitive = true`.
+3. Schema failure emits `kind = "schema-failure"`.
+4. Stale security evidence emits `kind = "stale-evidence"`.
+5. Doctor receipt validates after new fields are added.
+
+---
+
+## Step 8 — Align security policy, runner, shell script, and schema
+
+Current security pieces:
+
+* `Justfile` exposes `security`, `security-strict`, and `security-bash`. 
+* `security.rs` wraps the shell script and emits `target/jankurai/security/evidence.json`. 
+* `tools/security-lane.sh` has its own required/advisory arrays. 
+* `agent/security-policy.toml` has a different required/advisory policy. 
+* `security-evidence.schema.json` permits command rows but does not fully encode policy/strictness semantics. 
+
+Harden it by making the policy authoritative.
+
+### Security policy model
+
+Add a parsed model:
+
+```rust
+struct SecurityPolicy {
+    enabled_tools: Vec<String>,
+    required_tools: Vec<String>,
+    advisory_tools: Vec<String>,
+    severity_thresholds: SecurityThresholds,
+}
+```
+
+### Evidence row
+
+Extend `SecurityLaneStep`:
+
+```rust
+struct SecurityLaneStep {
+    label: String,
+    shell_command: String,
+    tool: Option<String>,
+    status: String,
+    exit_code: Option<i32>,
+    advisory: bool,
+    required_by_policy: bool,
+    blocking: bool,
+    policy_source: String,
+    stderr_excerpt: Option<String>,
+    finding_count: Option<usize>,
+    highest_severity: Option<String>,
+    normalized_decision: Option<String>,
+}
+```
+
+### Script alignment
+
+Either:
+
+1. Generate the shell tool matrix from `agent/security-policy.toml`, or
+2. Keep shell arrays but add a test that fails if they diverge from `agent/security-policy.toml`.
+
+The stronger option is to have `security.rs` own policy interpretation and let the shell only execute tool commands.
+
+### Tests
+
+Add:
+
+```text
+crates/jankurai/tests/security_policy_guard.rs
+```
+
+Cases:
+
+1. `agent/security-policy.toml` validates.
+2. `tools/security-lane.sh` expected tools match policy or generated matrix.
+3. Missing required tool fails strict mode.
+4. Missing advisory tool passes normal mode with structured skipped row.
+5. `target/jankurai/security/evidence.json` validates and includes every enabled tool.
+
+---
+
+## Step 9 — Clarify current behavior versus roadmap
+
+Phase 01 explicitly requires a boundary between implemented behavior and moonshot roadmap docs. 
+
+Do a focused docs pass:
+
+### Update `docs/release-plan.md`
+
+Add a short “Current v0.4 implemented surface” section:
+
+```md
+## Current v0.4 Implemented Surface
+
+Implemented:
+- audit JSON/Markdown/SARIF/JUnit/GitHub summary/repair queue exports
+- init/doctor/security wrappers
+- artifact schemas and compatibility guards
+- proof-lane/test-map routing
+- UX QA package build/test
+- Phase 12/13 command surfaces as currently wired
+
+Roadmap/deferred:
+- public GitHub Action marketplace packaging
+- signed provenance/attestations
+- live auto-merge
+- optional dashboards
+- external benchmark publication
+```
+
+The release plan already has a “v0.4.0 Release Completion” section and future roadmap sections, so this should be a clarification rather than a rewrite. 
+
+### Update `docs/artifact-contracts.md`
+
+Add a “Hardened Phase 01 guard” paragraph:
+
+```md
+Phase 01 is hardened only when every row in this table is enforced by either:
+1. schema validation,
+2. semantic compatibility guard,
+3. doctor/security validation,
+4. or an explicit documented exemption.
+```
+
+### Update `docs/testing.md`
+
+Add the exact Phase 01 hardening lane and receipt artifacts. The testing doc already defines proof lanes, migration safety, `just fast`, `just score`, `jankurai doctor`, proof receipts, security evidence, and UX QA evidence. 
+
+---
+
+## Step 10 — Add a dedicated Phase 01 hardening command
+
+Add to `Justfile`:
+
+```make
+phase01-harden:
+    cargo run -p jankurai -- versions
+    cargo test -p jankurai --test standard_surface_guard
+    cargo test -p jankurai --test schema_contracts
+    cargo test -p jankurai --test schema_keyword_guard
+    cargo test -p jankurai --test artifact_inventory_guard
+    cargo test -p jankurai --test report_compatibility_guard
+    cargo test -p jankurai
+    cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md
+    cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
+    cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
+```
+
+Do **not** add this to `just fast`. Phase 01 explicitly says not to add new required external tools to `just fast`. 
+
+Then add to `agent/proof-lanes.toml`:
+
+```toml
+[[lane]]
+name = "phase01-harden"
+command = "just phase01-harden"
+purpose = "verify Phase 01 standard, schema, report, doctor, security, and release evidence contracts"
+```
+
+The proof-lanes file already contains the live lane vocabulary and commands such as `fast`, `audit`, `security`, `doctor`, `test-cli`, and `ux-qa`. 
+
+---
+
+## Step 11 — Update CI after local hardening passes
+
+Current CI runs versions, audit, security, Phase 12, Phase 13, uploads artifacts, and has separate UX and paper jobs. 
+
+Add a Phase 01 hardening or compatibility job, but keep it scoped:
+
+```yaml
+phase01-hardening:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: npm
+    - run: npm ci
+    - run: cargo run -p jankurai -- versions
+    - run: cargo test -p jankurai --test standard_surface_guard
+    - run: cargo test -p jankurai --test schema_contracts
+    - run: cargo test -p jankurai --test schema_keyword_guard
+    - run: cargo test -p jankurai --test artifact_inventory_guard
+    - run: cargo test -p jankurai --test report_compatibility_guard
+    - run: cargo test -p jankurai
+    - run: cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md
+    - uses: actions/upload-artifact@v4
+      with:
+        name: phase01-hardening
+        path: |
+          target/jankurai/phase01-doctor.json
+          target/jankurai/phase01-doctor.md
+```
+
+Do not make optional local security tools mandatory unless the workflow installs them. For the release contract, either install `gitleaks`, `cargo-audit`, `syft`, and `zizmor`, or run strict security only in a job that has those tools available.
+
+---
+
+## Step 12 — Run final proof routing
+
+Before broad validation, run lane routing for the changed surfaces.
+
+Example:
+
+```bash
+rtk cargo run -p jankurai -- lane . \
+  --changed docs/agent-native-standard.md \
+  --changed agent/JANKURAI_STANDARD.md \
+  --changed docs/artifact-contracts.md \
+  --changed docs/testing.md \
+  --changed docs/release-plan.md \
+  --changed crates/jankurai/src/validation.rs \
+  --changed crates/jankurai/src/commands/doctor.rs \
+  --changed crates/jankurai/src/commands/security.rs \
+  --changed schemas/doctor-receipt.schema.json \
+  --changed schemas/security-evidence.schema.json \
+  --out target/jankurai/phase01-harden-lane.json \
+  --md target/jankurai/phase01-harden-lane.md
+```
+
+Then run:
+
+```bash
+rtk just phase01-harden
+rtk just fast
+rtk just score
+```
+
+If `paper/` was not touched, `just paper` is not required for Phase 01. If CI or release closeout wants maximum confidence, run:
+
+```bash
+rtk just check
+```
+
+`just check` currently runs versions, audit, and paper build. 
+
+---
+
+# File-by-file change plan
+
+## `docs/agent-native-standard.md`
+
+Changes:
+
+* Add `HLT-020-CI-HARDENING-GAP`.
+* Add `HLT-021-DESTRUCTIVE-MIGRATION`.
+* Clarify stable-rule table is synchronized with `audit::rules::all()`.
+* Clarify current v0.4 implemented behavior versus roadmap-only behavior.
+* Fix any layout typo where `agent/repo-score.json` appears nested under `agent/agent/` if present in rendered layout.
+* Add a rule-catalog sync sentence:
+
+```md
+The stable rule table must remain in parity with `crates/jankurai/src/audit/rules.rs`; `standard_surface_guard` fails when code and docs drift.
+```
+
+## `agent/JANKURAI_STANDARD.md`
+
+Changes:
+
+* Only update if the full standard reconciliation changes wording.
+* Keep it short.
+* Ensure stable rule list matches `audit::rules::all()`.
+* Ensure proof lanes include `db-migration-analyze` if destructive migration is referenced.
+
+## `docs/audit-rubric.md`
+
+Changes:
+
+* Ensure every `HLT-*` rule has:
+
+  * detection target
+  * evidence kind
+  * severity
+  * repair guidance
+  * lane
+* Add explicit entries for `HLT-020` and `HLT-021`.
+* Make the wording match `RuleSpec` fields in `rules.rs`.
+
+## `docs/testing.md`
+
+Changes:
+
+* Add Phase 01 hardening lane and expected artifacts.
+* Clarify missing security tools vs repo defects.
+* Clarify strict security mode.
+* Clarify destructive migration proof already routed to `db-migration-analyze`.
+
+## `docs/artifact-contracts.md`
+
+Changes:
+
+* Add rows for any new artifacts/tests.
+* Add guard statement that every schema/ArtifactSchema must be indexed.
+* Document new doctor receipt diagnostic fields.
+* Document expanded security evidence fields.
+
+## `docs/release-plan.md`
+
+Changes:
+
+* Add current implemented surface.
+* Add Phase 01 hardening evidence requirements.
+* Keep roadmap sections explicitly marked future.
+
+## `agent/security-policy.toml`
+
+Changes:
+
+* Decide policy once:
+
+  * either `cargo audit` and `npm audit` are required,
+  * or they remain advisory.
+* Align shell script and evidence schema to that decision.
+* Add `schema_version` bump if shape changes.
+
+## `tools/security-lane.sh`
+
+Changes:
+
+* Remove hardcoded disagreement with `agent/security-policy.toml`, or add generated/passed-in matrix support.
+* Emit richer `jankurai-security-step=` rows:
+
+  * `required_by_policy`
+  * `blocking`
+  * `policy_source`
+  * richer status
+
+## `schemas/doctor-receipt.schema.json`
+
+Changes:
+
+* Require:
+
+  * `kind`
+  * `environment_sensitive`
+  * `strictly_blocking`
+  * `common_fixes`
+  * `docs_url`
+* Consider schema version field for doctor receipts.
+
+## `schemas/security-evidence.schema.json`
+
+Changes:
+
+* Add statuses:
+
+  * `ran`
+  * `skipped-missing-tool`
+  * `skipped-policy-optional`
+  * `failed`
+* Add:
+
+  * `required_by_policy`
+  * `blocking`
+  * `policy_source`
+* Set `additionalProperties` to `false` once all known fields are stable, or leave true only with a documented reason.
+
+## `crates/jankurai/src/validation.rs`
+
+Changes:
+
+* Use real JSON Schema validation, or implement/enforce all keywords currently used.
+* Add clear error messages with schema path and instance path.
+* Keep `write_json` validating before writing.
+
+## `crates/jankurai/src/model.rs`
+
+Changes:
+
+* Move version fields toward manifest-derived values.
+* Keep constants only as defaults or package metadata.
+* Ensure `Report` remains schema-compatible.
+
+## `crates/jankurai/src/versions.rs`
+
+Changes:
+
+* Validate `agent/standard-version.toml` against schema before comparing.
+* Add strict checks against:
+
+  * audit policy
+  * report output
+  * security evidence
+  * package versions
+  * docs strings
+* Improve error messages to name expected and actual values.
+
+## `crates/jankurai/src/commands/doctor.rs`
+
+Changes:
+
+* Add `DiagnosticKind`.
+* Add structured diagnostic metadata.
+* Update receipt writer.
+* Ensure missing tools are environmental, not repo-defect.
+* Add optional strict env/tool mode if desired.
+
+## `crates/jankurai/src/commands/security.rs`
+
+Changes:
+
+* Load security policy.
+* Record policy source.
+* Normalize command statuses.
+* Ensure strict mode semantics are policy-driven.
+* Use manifest standard version.
+
+## `crates/jankurai/tests/report_compatibility_guard.rs`
+
+Changes:
+
+* Expand semantic assertions for all sidecars.
+* Assert repair queue item lanes exist.
+* Assert rule IDs map to `rules::all()`.
+
+## New tests
+
+Add:
+
+```text
+crates/jankurai/tests/standard_surface_guard.rs
+crates/jankurai/tests/version_manifest_guard.rs
+crates/jankurai/tests/schema_keyword_guard.rs
+crates/jankurai/tests/artifact_inventory_guard.rs
+crates/jankurai/tests/doctor_diagnostics_guard.rs
+crates/jankurai/tests/security_policy_guard.rs
+```
+
+---
+
+# Hard parts and how to avoid mistakes
+
+## Hard part 1 — Do not create a new “source of truth” accidentally
+
+The repo already has several source-like surfaces:
+
+* full standard
+* agent brief
+* rule table
+* version manifest
+* audit policy
+* schemas
+* artifact-contract docs
+
+The hardening pass should not add yet another manual catalog unless it is generated or guarded.
+
+Best pattern:
+
+```text
+Code rule table -> tested against docs
+Standard version manifest -> used by emitted reports
+Schemas -> tested against artifacts
+Artifact contracts doc -> tested against schemas/ArtifactSchema
+```
+
+## Hard part 2 — JSON Schema migration can break many tests
+
+If you add a real validator, previously “valid” outputs may fail because the custom validator was permissive.
+
+Handle this safely:
+
+1. Add the validator.
+2. Run existing tests.
+3. Fix schemas or outputs, not the validator.
+4. Only relax schema constraints when the contract was truly over-specified.
+5. Add migration notes for any output shape change.
+
+## Hard part 3 — Security lane must remain useful locally
+
+Do not make normal `just security` impossible on machines without every tool.
+
+Correct posture:
+
+* normal mode: missing optional tools become structured advisory evidence
+* strict mode: missing required tools block
+* release CI: install required tools, then use strict mode
+
+## Hard part 4 — Phase logs are append-only
+
+Do not rewrite prior Phase 01 log entries. Add new entries only. The logs already show prior Phase 01 completions; the new work should be labeled hardening, not retroactive completion. 
+
+## Hard part 5 — Do not edit generated artifacts by hand
+
+If `agent/repo-score.json` or `agent/repo-score.md` changes, regenerate through:
+
+```bash
+cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
+```
+
+That is the generated-zone command already declared. 
+
+---
+
+# Validation plan
+
+## Minimum local hardening validation
+
+Run:
+
+```bash
+rtk cargo run -p jankurai -- versions
+rtk cargo test -p jankurai --test standard_surface_guard
+rtk cargo test -p jankurai --test version_manifest_guard
+rtk cargo test -p jankurai --test schema_contracts
+rtk cargo test -p jankurai --test schema_keyword_guard
+rtk cargo test -p jankurai --test artifact_inventory_guard
+rtk cargo test -p jankurai --test report_compatibility_guard
+rtk cargo test -p jankurai --test doctor_diagnostics_guard
+rtk cargo test -p jankurai --test security_policy_guard
+rtk cargo test -p jankurai
+```
+
+## Lane validation
+
+Run:
+
+```bash
+rtk cargo run -p jankurai -- lane . \
+  --changed docs/agent-native-standard.md \
+  --changed agent/JANKURAI_STANDARD.md \
+  --changed docs/testing.md \
+  --changed docs/release-plan.md \
+  --changed docs/artifact-contracts.md \
+  --changed crates/jankurai/src/validation.rs \
+  --changed crates/jankurai/src/commands/doctor.rs \
+  --changed crates/jankurai/src/commands/security.rs \
+  --changed schemas/doctor-receipt.schema.json \
+  --changed schemas/security-evidence.schema.json \
+  --out target/jankurai/phase01-harden-lane.json \
+  --md target/jankurai/phase01-harden-lane.md
+```
+
+## Evidence validation
+
+Run:
+
+```bash
+rtk cargo run -p jankurai -- doctor \
+  --fail-on high \
+  --json target/jankurai/phase01-doctor.json \
+  --md target/jankurai/phase01-doctor.md
+
+rtk cargo run -p jankurai -- security run . \
+  --out target/jankurai/security/evidence.json
+
+rtk cargo run -p jankurai -- audit . \
+  --json agent/repo-score.json \
+  --md agent/repo-score.md \
+  --sarif target/jankurai/jankurai.sarif \
+  --junit target/jankurai/jankurai.junit.xml \
+  --github-step-summary target/jankurai/summary.md \
+  --repair-queue-jsonl target/jankurai/repair-queue.jsonl
+```
+
+## Broad validation
+
+Run:
+
+```bash
+rtk just fast
+rtk just compat
+rtk just score
+```
+
+Optional release confidence:
+
+```bash
+rtk just check
+```
+
+Only run `just check` after confirming paper tooling is available, because it builds the paper PDF. 
+
+---
+
+# Expected artifacts
+
+```text
+target/jankurai/phase01-harden-lane.json
+target/jankurai/phase01-harden-lane.md
+target/jankurai/phase01-doctor.json
+target/jankurai/phase01-doctor.md
+target/jankurai/security/evidence.json
+target/jankurai/security/*.log
+target/jankurai/jankurai.sarif
+target/jankurai/jankurai.junit.xml
+target/jankurai/summary.md
+target/jankurai/repair-queue.jsonl
+target/jankurai/receipts/doctor-<unix>.json
+agent/repo-score.json
+agent/repo-score.md
+```
+
+---
+
+# Parallel work packets
+
+## Packet A — Standard/rule parity
+
+**Scope:** docs and rule surface.
+**Owned paths:**
+
+```text
+docs/agent-native-standard.md
+docs/audit-rubric.md
+docs/testing.md
+agent/JANKURAI_STANDARD.md
+crates/jankurai/tests/standard_surface_guard.rs
+```
+
+**Forbidden paths:**
+
+```text
+paper/
+reference/
+crates/jankurai/src/validation.rs
+crates/jankurai/src/commands/security.rs
+```
+
+**Output:** rule parity test passes; `HLT-020` and `HLT-021` reconciled.
+
+**Validation:**
+
+```bash
+rtk cargo test -p jankurai --test standard_surface_guard
+rtk cargo run -p jankurai -- versions
+```
+
+**Stop condition:** if a rule appears in code but its intended public status is unclear, stop and record it as a standard decision issue rather than guessing.
+
+---
+
+## Packet B — Schema validator and artifact inventory
+
+**Scope:** schema enforcement.
+**Owned paths:**
+
+```text
+crates/jankurai/src/validation.rs
+schemas/*.schema.json
+crates/jankurai/tests/schema_keyword_guard.rs
+crates/jankurai/tests/artifact_inventory_guard.rs
+crates/jankurai/tests/schema_contracts.rs
+docs/artifact-contracts.md
+```
+
+**Forbidden paths:**
+
+```text
+paper/
+reference/
+tools/security-lane.sh
+.github/workflows/jankurai.yml
+```
+
+**Output:** schema validation enforces every used keyword; artifact inventory is automatic.
+
+**Validation:**
+
+```bash
+rtk cargo test -p jankurai --test schema_keyword_guard
+rtk cargo test -p jankurai --test artifact_inventory_guard
+rtk cargo test -p jankurai --test schema_contracts
+```
+
+**Stop condition:** if adopting a full validator causes many current artifacts to fail, fix outputs/schemas one by one and do not weaken the validator globally.
+
+---
+
+## Packet C — Doctor/security evidence
+
+**Scope:** environment-vs-repo diagnostics and security proof.
+**Owned paths:**
+
+```text
+crates/jankurai/src/commands/doctor.rs
+crates/jankurai/src/commands/security.rs
+schemas/doctor-receipt.schema.json
+schemas/security-evidence.schema.json
+agent/security-policy.toml
+tools/security-lane.sh
+crates/jankurai/tests/doctor_diagnostics_guard.rs
+crates/jankurai/tests/security_policy_guard.rs
+docs/testing.md
+docs/artifact-contracts.md
+```
+
+**Forbidden paths:**
+
+```text
+paper/
+reference/
+docs/agent-native-standard.md unless Packet A coordinates
+```
+
+**Output:** doctor and security evidence are structured, policy-driven, and strict-mode capable.
+
+**Validation:**
+
+```bash
+rtk cargo test -p jankurai --test doctor_diagnostics_guard
+rtk cargo test -p jankurai --test security_policy_guard
+rtk cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md
+rtk just security
+```
+
+**Stop condition:** if local missing tools would make `just fast` or normal local work fail, back out the severity change and keep strictness scoped to `security-strict` or release CI.
+
+---
+
+## Packet D — Release evidence and CI
+
+**Scope:** closeout lane, CI, phase status.
+**Owned paths:**
+
+```text
+Justfile
+.github/workflows/jankurai.yml
+docs/release-plan.md
+docs/testing.md
+tips/phases/00-phase-index.md
+tips/phases/01-standard-stabilization.md
+tips/phases/logs/01-standard-stabilization.log
+```
+
+**Forbidden paths:**
+
+```text
+paper/
+reference/
+schemas/ unless Packet B has landed
+crates/jankurai/src/ unless Packet C has landed
+```
+
+**Output:** `phase01-harden` lane exists, CI runs it or equivalent, Phase 01 status moves to hardened after evidence.
+
+**Validation:**
+
+```bash
+rtk just phase01-harden
+rtk just fast
+rtk just score
+```
+
+**Stop condition:** do not mark Phase 01 hardened until Packets A, B, and C have landed and validation has passed.
+
+---
+
+# Merge order
+
+1. Packet A: standard/rule parity.
+2. Packet B: schema validator and artifact inventory.
+3. Packet C: doctor/security evidence.
+4. Packet D: release evidence, CI, and phase closeout.
+
+Do not merge CI/phase-status changes first. The repo should not claim hardened until the guards exist and pass.
+
+---
+
+# Final Phase 01 hardening receipt template
+
+When complete, append this to `tips/phases/01-standard-stabilization.md` as a new hardened receipt, not as a replacement for the existing completion receipt.
+
+```md
+## Phase 01 Hardening Receipt
+
+- Phase hardened: 01 standard stabilization
+- Hardened on: <UTC timestamp>
+- Files changed:
+  - `docs/agent-native-standard.md`
+  - `agent/JANKURAI_STANDARD.md`
+  - `docs/audit-rubric.md`
+  - `docs/testing.md`
+  - `docs/release-plan.md`
+  - `docs/artifact-contracts.md`
+  - `agent/security-policy.toml`
+  - `agent/proof-lanes.toml`
+  - `schemas/doctor-receipt.schema.json`
+  - `schemas/security-evidence.schema.json`
+  - `crates/jankurai/src/validation.rs`
+  - `crates/jankurai/src/versions.rs`
+  - `crates/jankurai/src/commands/doctor.rs`
+  - `crates/jankurai/src/commands/security.rs`
+  - `crates/jankurai/tests/standard_surface_guard.rs`
+  - `crates/jankurai/tests/version_manifest_guard.rs`
+  - `crates/jankurai/tests/schema_keyword_guard.rs`
+  - `crates/jankurai/tests/artifact_inventory_guard.rs`
+  - `crates/jankurai/tests/doctor_diagnostics_guard.rs`
+  - `crates/jankurai/tests/security_policy_guard.rs`
+  - `Justfile`
+  - `.github/workflows/jankurai.yml`
+  - `tips/phases/00-phase-index.md`
+  - `tips/phases/01-standard-stabilization.md`
+  - `tips/phases/logs/01-standard-stabilization.log`
+- Rule catalog parity: passed
+- Version manifest parity: passed
+- Schema keyword enforcement: passed
+- Artifact inventory guard: passed
+- Report compatibility guard: passed
+- Doctor/security diagnostic hardening: passed
+- Validation commands:
+  - `cargo run -p jankurai -- versions`
+  - `cargo test -p jankurai --test standard_surface_guard`
+  - `cargo test -p jankurai --test version_manifest_guard`
+  - `cargo test -p jankurai --test schema_contracts`
+  - `cargo test -p jankurai --test schema_keyword_guard`
+  - `cargo test -p jankurai --test artifact_inventory_guard`
+  - `cargo test -p jankurai --test report_compatibility_guard`
+  - `cargo test -p jankurai --test doctor_diagnostics_guard`
+  - `cargo test -p jankurai --test security_policy_guard`
+  - `cargo test -p jankurai`
+  - `cargo run -p jankurai -- doctor --fail-on high --json target/jankurai/phase01-doctor.json --md target/jankurai/phase01-doctor.md`
+  - `cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json`
+  - `cargo run -p jankurai -- audit . --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/jankurai.sarif --junit target/jankurai/jankurai.junit.xml --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl`
+  - `just fast`
+  - `just compat`
+  - `just score`
+- Proof artifacts:
+  - `target/jankurai/phase01-harden-lane.json`
+  - `target/jankurai/phase01-harden-lane.md`
+  - `target/jankurai/phase01-doctor.json`
+  - `target/jankurai/phase01-doctor.md`
+  - `target/jankurai/security/evidence.json`
+  - `target/jankurai/jankurai.sarif`
+  - `target/jankurai/jankurai.junit.xml`
+  - `target/jankurai/summary.md`
+  - `target/jankurai/repair-queue.jsonl`
+  - `agent/repo-score.json`
+  - `agent/repo-score.md`
+- Generated artifacts:
+  - `agent/repo-score.json`, regenerated by audit command
+  - `agent/repo-score.md`, regenerated by audit command
+- Skipped validation: none, or list exact reason
+- Exceptions created: none, or list exact docs/exceptions path
+- Residual risk:
+  - normal security lane may still mark missing local tools as environment-sensitive advisory evidence outside strict/release mode
+- Phase 02 impact: rule/catalog schema surfaces are now stronger
+- Phase 03 impact: proof-router inputs are now stronger
+```
+
+Append a matching finish row to the log:
+
+```text
+<timestamp_utc> | agent | 01 | finish Phase 01 hardening: standard/rule/schema/report/doctor/security parity | <changed_paths> | just phase01-harden; just fast; just compat; just score | target/jankurai/phase01-harden-lane.json; target/jankurai/phase01-doctor.json; target/jankurai/security/evidence.json; agent/repo-score.json | <git_sha> | residual: normal security lane remains advisory for missing optional local tools outside strict mode
+```
+
+---
+
+# Final acceptance checklist
+
+Phase 01 is truly finished when this checklist is green:
+
+```text
+[ ] Full standard and brief both contain every code rule ID.
+[ ] No orphan HLT rule appears in docs without code or roadmap-only marker.
+[ ] HLT-020 and HLT-021 are reconciled across docs, rules, testing docs, and reports.
+[ ] Version manifest drives or strictly guards every emitted version field.
+[ ] Audit report version fields match agent/standard-version.toml.
+[ ] Security evidence version field matches agent/standard-version.toml.
+[ ] JSON Schema validation enforces every keyword used by schemas.
+[ ] Negative schema tests fail invalid artifacts.
+[ ] Every schema file is indexed by ArtifactSchema, semantic guard, or documented exemption.
+[ ] Every agent control file has schema validation or documented exemption.
+[ ] Report JSON, Markdown, SARIF, JUnit, GitHub summary, issues JSONL, and repair queue JSONL have semantic guards.
+[ ] Doctor diagnostics include structured kind, environmental sensitivity, blocking status, fixes, and docs URL.
+[ ] Security evidence rows are policy-driven and distinguish required/advisory tools.
+[ ] Strict security mode blocks missing required tools.
+[ ] Normal security mode records missing optional tools without mislabeling repo defects.
+[ ] `phase01-harden` lane exists and passes.
+[ ] CI runs equivalent hardening/compatibility checks.
+[ ] `agent/repo-score.json` and `agent/repo-score.md` are regenerated, not hand-edited.
+[ ] `tips/phases/01-standard-stabilization.md` is updated from complete to hardened only after proof.
+[ ] `tips/phases/00-phase-index.md` ledger marks Phase 01 hardened.
+[ ] `tips/phases/logs/01-standard-stabilization.log` has append-only start/finish entries.
+[ ] No `paper/` or `reference/` edits were made.
+```
+
+That is the path to making Phase 01 genuinely “100% done”: not just documented, not just complete, but **self-verifying, drift-resistant, and hard enough to support Phase 03 Proof Router and Phase 02 Rule Engine without hidden ambiguity.**
 

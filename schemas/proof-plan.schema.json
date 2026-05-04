@@ -35,6 +35,32 @@
     "expected_artifacts": { "type": "array", "items": { "type": "string" } },
     "risk_notes": { "type": "array", "items": { "type": "string" } },
     "human_approval_requirements": { "type": "array", "items": { "type": "string" } },
+    "route_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "changed_path",
+          "match_kind",
+          "specificity",
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "changed_path": { "type": "string" },
+          "owner_route": { "type": "string" },
+          "test_route": { "type": "string" },
+          "lane": { "type": "string" },
+          "command": { "type": "string" },
+          "match_kind": { "type": "string" },
+          "specificity": { "type": "integer", "minimum": 0 },
+          "decision": { "type": "string" },
+          "reason": { "type": "string" },
+          "residual_risk": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
     "planned_runs": {
       "type": "array",
       "items": { "type": "object", "additionalProperties": true }

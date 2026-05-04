@@ -21,15 +21,36 @@
     "git_head": { "type": "string" },
     "run_id": { "type": "string" },
     "plan_path": { "type": "string" },
-    "rules_covered": {
+    "plan_digest": { "type": "string" },
+    "command_digest": { "type": "string" },
+    "log_sha256": { "type": "string" },
+    "artifact_digests": {
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["path", "sha256"],
         "properties": {
-          "rule_id": { "type": "string" },
-          "status": { "type": "string" }
+          "path": { "type": "string" },
+          "sha256": { "type": "string" }
         },
-        "required": ["rule_id", "status"]
+        "additionalProperties": false
+      }
+    },
+    "rules_covered": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "rule_id": { "type": "string" },
+              "status": { "type": "string" }
+            },
+            "required": ["rule_id", "status"],
+            "additionalProperties": false
+          },
+          { "type": "string" }
+        ]
       }
     },
     "retryable": { "type": "boolean" },

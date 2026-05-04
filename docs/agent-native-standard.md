@@ -82,6 +82,8 @@ Stable rule IDs:
 | `HLT-017-OPAQUE-OBSERVABILITY` | boundary failure lacks repairable telemetry |
 | `HLT-018-PERF-CONCURRENCY-DRIFT` | performance/concurrency risk lacks proof |
 | `HLT-019-STREAMING-RUNTIME-DRIFT` | broker client or Kafka stack identity escapes adapter boundaries |
+| `HLT-020-CI-HARDENING-GAP` | CI workflow permissions, unpinned actions, or proof posture gaps |
+| `HLT-021-DESTRUCTIVE-MIGRATION` | destructive SQL under migration paths without documented safety evidence |
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 

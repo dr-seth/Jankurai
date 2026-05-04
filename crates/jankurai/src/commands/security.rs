@@ -15,6 +15,30 @@ pub struct SecurityRunArgs {
     pub strict: bool,
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct SecurityPolicyFile {
+    #[serde(default)]
+    schema_version: String,
+    #[serde(default)]
+    enabled_tools: Vec<String>,
+    #[serde(default)]
+    required_tools: Vec<String>,
+    #[serde(default)]
+    advisory_tools: Vec<String>,
+    #[serde(default)]
+    severity_thresholds: SecuritySeverityThresholds,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct SecuritySeverityThresholds {
+    #[serde(default = "default_fail_lane_on")]
+    fail_lane_on: String,
+}
+
+fn default_fail_lane_on() -> String {
+    "high".into()
+}
+
 #[derive(Debug, Deserialize)]
 struct ParsedSecurityStep {
     label: String,
@@ -42,6 +66,8 @@ struct SecurityLaneStep {
     #[serde(skip_serializing_if = "Option::is_none")]
     tool: Option<String>,
     status: String,
+    required_by_policy: bool,
+    blocking: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     exit_code: Option<i32>,
     advisory: bool,
@@ -68,7 +94,17 @@ struct SecurityEvidence {
     exit_code: i32,
     elapsed_ms: u64,
     log_path: String,
+    policy: SecurityPolicySnapshot,
     commands: Vec<SecurityLaneStep>,
+}
+
+#[derive(Debug, Serialize)]
+struct SecurityPolicySnapshot {
+    schema_version: String,
+    enabled_tools: Vec<String>,
+    required_tools: Vec<String>,
+    advisory_tools: Vec<String>,
+    fail_lane_on: String,
 }
 
 pub fn run(args: SecurityRunArgs) -> Result<()> {
@@ -85,6 +121,7 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
 
     let security_dir = repo.join("target/jankurai/security");
     fs::create_dir_all(&security_dir)?;
+    let policy = load_policy(&repo)?;
 
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -148,12 +185,17 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
     let parsed_commands = parse_script_steps(&log_text);
     let commands = if !parsed_commands.is_empty() {
         parsed_commands
+            .into_iter()
+            .map(|step| enrich_step(step, &policy))
+            .collect()
     } else {
         vec![SecurityLaneStep {
             label: "security-lane".to_string(),
             shell_command,
             tool: Some("bash".to_string()),
             status: step_status.to_string(),
+            required_by_policy: true,
+            blocking: step_status != "ran",
             exit_code: Some(exit_code),
             advisory: false,
             stderr_excerpt,
@@ -178,6 +220,13 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
         exit_code,
         elapsed_ms: started.elapsed().as_millis() as u64,
         log_path: log_rel,
+        policy: SecurityPolicySnapshot {
+            schema_version: policy.schema_version,
+            enabled_tools: policy.enabled_tools,
+            required_tools: policy.required_tools,
+            advisory_tools: policy.advisory_tools,
+            fail_lane_on: policy.severity_thresholds.fail_lane_on,
+        },
         commands,
     };
 
@@ -195,7 +244,65 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
     Ok(())
 }
 
-fn parse_script_steps(log: &str) -> Vec<SecurityLaneStep> {
+fn load_policy(repo: &Path) -> Result<SecurityPolicyFile> {
+    let path = repo.join("agent/security-policy.toml");
+    if !path.is_file() {
+        return Ok(SecurityPolicyFile {
+            schema_version: "1.0.0".into(),
+            enabled_tools: vec![],
+            required_tools: vec![],
+            advisory_tools: vec![],
+            severity_thresholds: SecuritySeverityThresholds {
+                fail_lane_on: default_fail_lane_on(),
+            },
+        });
+    }
+    let text = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+    let mut policy: SecurityPolicyFile =
+        toml::from_str(&text).with_context(|| format!("parse {}", path.display()))?;
+    if policy.schema_version.is_empty() {
+        policy.schema_version = "1.0.0".into();
+    }
+    if policy.severity_thresholds.fail_lane_on.is_empty() {
+        policy.severity_thresholds.fail_lane_on = default_fail_lane_on();
+    }
+    Ok(policy)
+}
+
+fn enrich_step(step: ParsedSecurityStep, policy: &SecurityPolicyFile) -> SecurityLaneStep {
+    let required_by_policy = step
+        .tool
+        .as_deref()
+        .map(|tool| {
+            policy
+                .required_tools
+                .iter()
+                .any(|candidate| candidate == tool)
+                || (!policy
+                    .advisory_tools
+                    .iter()
+                    .any(|candidate| candidate == tool)
+                    && !step.advisory)
+        })
+        .unwrap_or(!step.advisory);
+    let blocking = required_by_policy && step.status != "ran";
+    SecurityLaneStep {
+        label: step.label,
+        shell_command: step.shell_command,
+        tool: step.tool,
+        status: step.status,
+        required_by_policy,
+        blocking,
+        exit_code: step.exit_code,
+        advisory: step.advisory,
+        stderr_excerpt: None,
+        finding_count: None,
+        highest_severity: None,
+        normalized_decision: None,
+    }
+}
+
+fn parse_script_steps(log: &str) -> Vec<ParsedSecurityStep> {
     let mut steps = Vec::new();
     for line in log.lines() {
         let rest = match line.trim_start().strip_prefix("jankurai-security-step=") {
@@ -205,17 +312,13 @@ fn parse_script_steps(log: &str) -> Vec<SecurityLaneStep> {
         let Ok(p) = serde_json::from_str::<ParsedSecurityStep>(rest) else {
             continue;
         };
-        steps.push(SecurityLaneStep {
+        steps.push(ParsedSecurityStep {
             label: p.label,
             shell_command: p.shell_command,
             tool: p.tool,
             status: p.status,
             exit_code: p.exit_code,
             advisory: p.advisory,
-            stderr_excerpt: None,
-            finding_count: None,
-            highest_severity: None,
-            normalized_decision: None,
         });
     }
     steps

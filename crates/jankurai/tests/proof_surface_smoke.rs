@@ -113,7 +113,7 @@ fn lane_and_proof_emit_same_plan_for_changed_path() {
     let proof = run_lane(repo.path(), "proof", "docs/moonshot.md");
 
     assert_eq!(lane["commands"], serde_json::json!(["just score"]));
-    assert_eq!(lane["matched_test_map"], serde_json::json!(["docs/"]));
+    assert_eq!(lane["matched_test_map"], serde_json::json!(["docs"]));
     assert_eq!(lane["required_lanes"], serde_json::json!(["audit"]));
     assert_eq!(lane["commands"], proof["commands"]);
     assert_eq!(lane["required_lanes"], proof["required_lanes"]);
@@ -467,9 +467,17 @@ fn prove_changed_builds_plan_runs_and_indexes_evidence() {
     );
     assert_eq!(plan["commands"], serde_json::json!(["true"]));
     assert_eq!(plan["planned_runs"][0]["lane"], "fixture");
+    assert_eq!(plan["route_decisions"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        plan["route_decisions"][0]["changed_path"],
+        "fixtures/demo.txt"
+    );
+    assert_eq!(plan["route_decisions"][0]["match_kind"], "directory");
+    assert_eq!(plan["route_decisions"][0]["decision"], "pass");
 
     let plan_md_text = fs::read_to_string(&plan_md).unwrap();
     assert!(plan_md_text.contains("# jankurai Proof Plan"));
+    assert!(plan_md_text.contains("## Route Decisions"));
 
     let receipts: Vec<_> = fs::read_dir(&receipt_dir)
         .unwrap()
@@ -502,6 +510,52 @@ fn prove_changed_builds_plan_runs_and_indexes_evidence() {
     assert_eq!(
         evidence_value["changed_paths"],
         serde_json::json!(["fixtures/demo.txt"])
+    );
+
+    let verification_path = work.join("proof-verification.json");
+    let verification_md = work.join("proof-verification.md");
+    let verify_output = Command::new(binary_path())
+        .arg("proof-verify")
+        .arg(repo.path())
+        .arg("--plan")
+        .arg(&plan_path)
+        .arg("--evidence-index")
+        .arg(&evidence_index)
+        .arg("--out")
+        .arg(&verification_path)
+        .arg("--md")
+        .arg(&verification_md)
+        .output()
+        .unwrap();
+    assert!(
+        verify_output.status.success(),
+        "proof-verify failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&verify_output.stdout),
+        String::from_utf8_lossy(&verify_output.stderr)
+    );
+    let verification: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&verification_path).unwrap()).unwrap();
+    validation::validate_value(
+        repo.path(),
+        ArtifactSchema::ProofVerification,
+        &verification,
+    )
+    .unwrap();
+    assert_eq!(verification["verdict"], "pass");
+    assert!(
+        verification
+            .get("issues")
+            .and_then(serde_json::Value::as_array)
+            .map(|issues| issues.is_empty())
+            .unwrap_or(true),
+        "{:?}",
+        verification["issues"]
+    );
+    assert_eq!(
+        fs::read_to_string(&verification_md)
+            .unwrap()
+            .contains("# jankurai Proof Verification"),
+        true
     );
 }
 

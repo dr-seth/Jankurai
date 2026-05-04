@@ -1,6 +1,178 @@
 use super::helpers::*;
 use super::scan;
 
+pub struct CapSpec {
+    pub key: &'static str,
+    pub max_score: i32,
+    pub rule_id: Option<&'static str>,
+    pub hardness: &'static str,
+}
+
+pub const CAP_SPECS: &[CapSpec] = &[
+    CapSpec {
+        key: "no-root-agent-instructions",
+        max_score: 75,
+        rule_id: Some("HLT-015-CONTEXT-SETUP-GAP"),
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "no-one-command-setup-or-validation",
+        max_score: 70,
+        rule_id: Some("HLT-004-UNMAPPED-PROOF"),
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "no-deterministic-fast-lane",
+        max_score: 65,
+        rule_id: Some("HLT-004-UNMAPPED-PROOF"),
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "no-security-lane-on-high-risk-repo",
+        max_score: 60,
+        rule_id: Some("HLT-009-GENERATED-SECURITY"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "generated-contracts-or-public-api-drift-untested",
+        max_score: 80,
+        rule_id: Some("HLT-007-HANDWRITTEN-CONTRACT"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "python-direct-product-truth-or-db-ownership",
+        max_score: 72,
+        rule_id: Some("HLT-005-PYTHON-PRODUCT-TRUTH"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "no-secret-or-dependency-scanning-in-ci",
+        max_score: 78,
+        rule_id: Some("HLT-016-SUPPLY-CHAIN-DRIFT"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "no-jankurai-audit-lane-in-ci",
+        max_score: 82,
+        rule_id: Some("HLT-020-CI-HARDENING-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "non-optimal-product-language-found",
+        max_score: 74,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "too-much-python-in-product-surface",
+        max_score: 72,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "vibe-placeholders-in-product-code",
+        max_score: 68,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "fallback-soup-in-product-code",
+        max_score: 70,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "future-hostile-dead-language-in-product-code",
+        max_score: 64,
+        rule_id: Some("HLT-001-DEAD-MARKER"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "severe-duplication-in-product-code",
+        max_score: 70,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "generated-zone-mutation-risk",
+        max_score: 76,
+        rule_id: Some("HLT-002-GENERATED-MUTATION"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "direct-db-access-from-wrong-layer",
+        max_score: 66,
+        rule_id: Some("HLT-006-DIRECT-DB-WRONG-LAYER"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "missing-web-e2e-lane",
+        max_score: 82,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "missing-rendered-ux-qa-lane",
+        max_score: 84,
+        rule_id: Some("HLT-013-RENDERED-UX-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "prompt-injection-risk",
+        max_score: 78,
+        rule_id: Some("HLT-011-PROMPT-INJECTION"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "overbroad-agent-agency",
+        max_score: 65,
+        rule_id: Some("HLT-012-OVERBROAD-AGENCY"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "secret-like-content-detected",
+        max_score: 60,
+        rule_id: Some("HLT-010-SECRET-SPRAWL"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "false-green-test-risk",
+        max_score: 76,
+        rule_id: Some("HLT-008-FALSE-GREEN-RISK"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "destructive-migration-risk",
+        max_score: 70,
+        rule_id: Some("HLT-021-DESTRUCTIVE-MIGRATION"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "missing-rust-property-or-integration-tests",
+        max_score: 82,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "no-agent-friendly-exception-pattern",
+        max_score: 76,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "missing-agent-readable-docs",
+        max_score: 80,
+        rule_id: None,
+        hardness: "soft",
+    },
+    CapSpec {
+        key: "streaming-runtime-drift",
+        max_score: 78,
+        rule_id: Some("HLT-019-STREAMING-RUNTIME-DRIFT"),
+        hardness: "hard",
+    },
+];
+
 pub const CAPS: &[(&str, i32)] = &[
     ("no-root-agent-instructions", 75),
     ("no-one-command-setup-or-validation", 70),

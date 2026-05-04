@@ -12,6 +12,7 @@ pub enum ArtifactSchema {
     ProofPlan,
     ProofReceipt,
     EvidenceIndex,
+    ProofVerification,
     DoctorReceipt,
     InitReceipt,
     InitProfile,
@@ -53,6 +54,7 @@ impl ArtifactSchema {
             Self::ProofPlan => "proof-plan.schema.json",
             Self::ProofReceipt => "proof-receipt.schema.json",
             Self::EvidenceIndex => "evidence-index.schema.json",
+            Self::ProofVerification => "proof-verification.schema.json",
             Self::DoctorReceipt => "doctor-receipt.schema.json",
             Self::InitReceipt => "init-receipt.schema.json",
             Self::InitProfile => "init-profile.schema.json",
@@ -213,6 +215,7 @@ impl Validator {
         let text = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
         let value: Value =
             serde_json::from_str(&text).with_context(|| format!("parse {}", path.display()))?;
+        validate_supported_schema_keywords(schema_rel, &value)?;
         self.cache.insert(schema_rel.to_string(), value.clone());
         Ok(value)
     }
@@ -351,6 +354,7 @@ impl Validator {
             "array" => self.validate_array(schema_rel, schema, instance, path),
             "string" => {
                 if instance.is_string() {
+                    self.validate_string_constraints(schema, instance, path)?;
                     Ok(())
                 } else {
                     bail!("{path}: expected string, found {instance}")
@@ -358,6 +362,7 @@ impl Validator {
             }
             "integer" => {
                 if is_integer(instance) {
+                    self.validate_numeric_constraints(schema, instance, path)?;
                     Ok(())
                 } else {
                     bail!("{path}: expected integer, found {instance}")
@@ -365,6 +370,7 @@ impl Validator {
             }
             "number" => {
                 if instance.is_number() {
+                    self.validate_numeric_constraints(schema, instance, path)?;
                     Ok(())
                 } else {
                     bail!("{path}: expected number, found {instance}")
@@ -500,6 +506,74 @@ impl Validator {
             }
         }
 
+        if schema
+            .get("uniqueItems")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            let mut seen = Vec::new();
+            for (idx, item) in items.iter().enumerate() {
+                let encoded = serde_json::to_string(item)
+                    .context("serialize array item for uniqueItems validation")?;
+                if seen.iter().any(|candidate| candidate == &encoded) {
+                    bail!("{path}[{idx}]: duplicate array item violates uniqueItems");
+                }
+                seen.push(encoded);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validate_string_constraints(
+        &self,
+        schema: &Value,
+        instance: &Value,
+        path: &str,
+    ) -> Result<()> {
+        let Some(text) = instance.as_str() else {
+            return Ok(());
+        };
+
+        if let Some(min_len) = schema.get("minLength").and_then(Value::as_u64) {
+            let len = text.chars().count() as u64;
+            if len < min_len {
+                bail!("{path}: string length {len} below minimum {min_len}");
+            }
+        }
+
+        if let Some(max_len) = schema.get("maxLength").and_then(Value::as_u64) {
+            let len = text.chars().count() as u64;
+            if len > max_len {
+                bail!("{path}: string length {len} above maximum {max_len}");
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validate_numeric_constraints(
+        &self,
+        schema: &Value,
+        instance: &Value,
+        path: &str,
+    ) -> Result<()> {
+        let Some(value) = instance.as_f64() else {
+            return Ok(());
+        };
+
+        if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64) {
+            if value < minimum {
+                bail!("{path}: value {value} below minimum {minimum}");
+            }
+        }
+
+        if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64) {
+            if value > maximum {
+                bail!("{path}: value {value} above maximum {maximum}");
+            }
+        }
+
         Ok(())
     }
 
@@ -555,6 +629,133 @@ fn resolve_fragment<'a>(schema: &'a Value, fragment: &str) -> Result<&'a Value> 
             .ok_or_else(|| anyhow::anyhow!("missing schema fragment `{fragment}`"))?;
     }
     Ok(current)
+}
+
+fn validate_supported_schema_keywords(schema_rel: &str, schema: &Value) -> Result<()> {
+    validate_supported_schema_keywords_at(schema_rel, schema, "$")
+}
+
+fn validate_supported_schema_keywords_at(
+    schema_rel: &str,
+    schema: &Value,
+    path: &str,
+) -> Result<()> {
+    let Some(object) = schema.as_object() else {
+        return Ok(());
+    };
+
+    for (key, value) in object {
+        match key.as_str() {
+            "$schema"
+            | "$id"
+            | "$ref"
+            | "$defs"
+            | "title"
+            | "description"
+            | "default"
+            | "examples"
+            | "type"
+            | "const"
+            | "enum"
+            | "required"
+            | "properties"
+            | "additionalProperties"
+            | "items"
+            | "minItems"
+            | "maxItems"
+            | "uniqueItems"
+            | "minimum"
+            | "maximum"
+            | "minLength"
+            | "maxLength"
+            | "pattern"
+            | "allOf"
+            | "anyOf"
+            | "oneOf" => {}
+            unsupported => {
+                bail!("{schema_rel}:{path}: unsupported schema keyword `{unsupported}`");
+            }
+        }
+
+        match key.as_str() {
+            "properties" | "$defs" => {
+                if let Some(children) = value.as_object() {
+                    for (child_key, child_schema) in children {
+                        validate_supported_schema_keywords_at(
+                            schema_rel,
+                            child_schema,
+                            &format!("{path}/{key}/{child_key}"),
+                        )?;
+                    }
+                }
+            }
+            "items" | "additionalProperties" => {
+                validate_nested_schema_value(schema_rel, value, &format!("{path}/{key}"))?;
+            }
+            "allOf" | "anyOf" | "oneOf" | "required" | "enum" => {
+                if let Some(children) = value.as_array() {
+                    for (idx, child) in children.iter().enumerate() {
+                        validate_nested_schema_value(
+                            schema_rel,
+                            child,
+                            &format!("{path}/{key}[{idx}]"),
+                        )?;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_nested_schema_value(schema_rel: &str, value: &Value, path: &str) -> Result<()> {
+    if value.is_object() {
+        validate_supported_schema_keywords_at(schema_rel, value, path)?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_supported_schema_keywords;
+    use serde_json::json;
+
+    #[test]
+    fn schema_keyword_coverage_rejects_unsupported_keywords() {
+        let schema = json!({
+            "type": "object",
+            "unsupportedKeyword": true
+        });
+        let err = validate_supported_schema_keywords("schemas/example.schema.json", &schema)
+            .expect_err("unsupported keywords must be rejected");
+        assert!(err.to_string().contains("unsupported schema keyword"));
+    }
+
+    #[test]
+    fn schema_keyword_coverage_allows_supported_keywords() {
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4,
+                    "pattern": "^[a-z]+$"
+                },
+                "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                }
+            },
+            "required": ["name", "count"],
+            "additionalProperties": false
+        });
+        validate_supported_schema_keywords("schemas/example.schema.json", &schema)
+            .expect("supported keywords should pass");
+    }
 }
 
 fn is_integer(value: &Value) -> bool {

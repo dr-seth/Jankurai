@@ -118,6 +118,12 @@ pub enum RuleCoverage {
 }
 
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
+pub struct ArtifactDigest {
+    pub path: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct ProofReceipt {
     pub lane: String,
     pub command: String,
@@ -146,6 +152,14 @@ pub struct ProofReceipt {
     pub run_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub log_sha256: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub artifact_digests: Vec<ArtifactDigest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rules_covered: Vec<RuleCoverage>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -282,7 +296,7 @@ pub struct Report {
     pub agent_fix_queue: Vec<AgentFix>,
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize, Default)]
 pub struct ManifestFingerprints {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner_map: Option<String>,

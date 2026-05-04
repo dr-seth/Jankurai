@@ -8,10 +8,28 @@ fn binary_path() -> &'static str {
     env!("CARGO_BIN_EXE_jankurai")
 }
 
+fn write_policy(repo: &std::path::Path) {
+    fs::create_dir_all(repo.join("agent")).unwrap();
+    fs::write(
+        repo.join("agent/security-policy.toml"),
+        r#"
+schema_version = "1.0.0"
+enabled_tools = ["gitleaks", "cargo audit"]
+required_tools = ["gitleaks"]
+advisory_tools = ["cargo audit"]
+
+[severity_thresholds]
+fail_lane_on = "high"
+"#,
+    )
+    .unwrap();
+}
+
 #[test]
 fn security_run_writes_valid_evidence_and_log() {
     let repo = tempdir().unwrap();
     fs::create_dir_all(repo.path().join("tools")).unwrap();
+    write_policy(repo.path());
     fs::write(
         repo.path().join("tools/security-lane.sh"),
         "#!/usr/bin/env bash\necho ok\nexit 0\n",
@@ -38,6 +56,11 @@ fn security_run_writes_valid_evidence_and_log() {
     assert_eq!(value["exit_code"], 0);
     assert_eq!(value["lane"], "security");
     assert_eq!(value["wrapper"]["strict"], false);
+    assert_eq!(value["policy"]["schema_version"], "1.0.0");
+    assert_eq!(
+        value["policy"]["required_tools"],
+        serde_json::json!(["gitleaks"])
+    );
 
     let log_rel = value["log_path"].as_str().unwrap();
     let log_abs = repo.path().join(log_rel);
@@ -56,6 +79,7 @@ fn security_run_writes_valid_evidence_and_log() {
 fn security_run_records_non_zero_exit_in_evidence() {
     let repo = tempdir().unwrap();
     fs::create_dir_all(repo.path().join("tools")).unwrap();
+    write_policy(repo.path());
     fs::write(
         repo.path().join("tools/security-lane.sh"),
         "#!/usr/bin/env bash\necho boom\nexit 7\n",
@@ -87,6 +111,7 @@ fn security_run_records_non_zero_exit_in_evidence() {
 fn security_run_collects_jankurai_security_step_lines() {
     let repo = tempdir().unwrap();
     fs::create_dir_all(repo.path().join("tools")).unwrap();
+    write_policy(repo.path());
     let script = r#"#!/usr/bin/env bash
 printf '%s\n' 'jankurai-security-step={"label":"step-a","tool":"t1","shell_command":"true","status":"ran","advisory":false,"exit_code":0}'
 printf '%s\n' 'jankurai-security-step={"label":"step-b","shell_command":"true","status":"skipped","advisory":true}'
@@ -115,7 +140,11 @@ exit 0
     assert_eq!(cmds.len(), 2, "{cmds:?}");
     assert_eq!(cmds[0]["label"], "step-a");
     assert_eq!(cmds[0]["status"], "ran");
+    assert_eq!(cmds[0]["required_by_policy"], true);
+    assert_eq!(cmds[0]["blocking"], false);
     assert_eq!(cmds[1]["label"], "step-b");
     assert_eq!(cmds[1]["status"], "skipped");
     assert_eq!(cmds[1]["advisory"], true);
+    assert_eq!(cmds[1]["required_by_policy"], false);
+    assert_eq!(cmds[1]["blocking"], false);
 }

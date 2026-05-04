@@ -20,6 +20,7 @@ Every durable or generated machine-readable surface should either validate again
 | `agent/security-policy.toml` | `schemas/security-policy.schema.json`; `doctor` | |
 | `agent/ux-qa.toml` | `schemas/ux-qa-policy.schema.json`; `doctor` | |
 | `target/jankurai/security/evidence.json` | `schemas/security-evidence.schema.json`; `security_evidence_smoke` | Written by `jankurai security run`. Optional multi-row **`commands[]`**: lines prefixed with **`jankurai-security-step=`** in the lane log (bundled script uses **`python3`** to emit JSON); otherwise one wrapper step. |
+| `target/jankurai/proof-verification.json` | `schemas/proof-verification.schema.json`; `proof_surface_smoke` | Tamper-evident proof verification envelope from `jankurai proof-verify`. |
 | `target/jankurai/p12-benchmark-report.json` | `schemas/benchmark-report.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 benchmark artifact |
 | `target/jankurai/p12-certification.json` | `schemas/certification.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 certification artifact |
 | `target/jankurai/p12-governance-policy.json` | `schemas/governance-policy.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 governance artifact |

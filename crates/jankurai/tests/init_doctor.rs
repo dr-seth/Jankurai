@@ -280,14 +280,30 @@ standard_version = "0.0.0"
     assert!(json.exists());
     assert!(md.exists());
 
+    let doctor_json = dir.path().join("doctor.json");
+    let doctor_md = dir.path().join("doctor.md");
     assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
         .arg("doctor")
         .arg(dir.path())
         .arg("--fail-on")
         .arg("high")
+        .arg("--json")
+        .arg(&doctor_json)
+        .arg("--md")
+        .arg(&doctor_md)
         .status()
         .unwrap()
         .success());
+    let doctor_value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&doctor_json).unwrap()).unwrap();
+    let first_diag = doctor_value.as_array().unwrap().first().unwrap();
+    assert!(first_diag.get("kind").is_some());
+    assert!(first_diag.get("environment_sensitive").is_some());
+    assert!(first_diag.get("strictly_blocking").is_some());
+    assert!(first_diag.get("common_fixes").is_some());
+    assert!(fs::read_to_string(&doctor_md)
+        .unwrap()
+        .contains("# jankurai doctor"));
 
     let issues = dir.path().join("issues.jsonl");
     assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
