@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/jankurai_header.png" alt="Jankurai: agent-native repository control plane" width="100%">
+  <img src="assets/jankurai_github_header_transparent.png" alt="Jankurai: agent-native repository control plane" width="100%">
 </p>
 
 # Jankurai
