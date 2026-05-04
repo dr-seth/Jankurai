@@ -50,6 +50,7 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
         rbac_manifest(repo, catalog),
         auth_session_manifest(repo, catalog),
         organization_team_manifest(repo, catalog),
+        background_job_manifest(repo, catalog),
     ]
 }
 
@@ -460,6 +461,91 @@ fn organization_team_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifes
     )
 }
 
+fn background_job_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/background_job.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/background-job.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/004_background_jobs.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/004_background_jobs.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/background-job-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "background-job".to_string(),
+            version: "0.1.0".to_string(),
+            category: "workflow".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "rbac", "auth-session", "organization-team"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "background work is claimed by authenticated service or admin principals before execution",
+                "payload bodies are referenced by opaque payload_ref values and are not embedded in source, logs, or proof artifacts",
+                "retry, exhaustion, and completion decisions are durable and observable through audit-log evidence",
+                "provider-specific queue backends, cron triggers, and webhook dispatch remain adapter concerns until separately certified",
+            ]),
+            observability_events: strings(&[
+                "background_job.enqueued",
+                "background_job.claimed",
+                "background_job.completed",
+                "background_job.failed",
+                "background_job.retried",
+                "background_job.exhausted",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/background-job-cell.md",
+                "examples/perfect-web-api-db/ops/background-job-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&[
+                "add provider-backed queue adapters only after idempotency keys, visibility timeout, and dead-letter behavior are proven",
+                "extend background-job.openapi.json before exposing queue operations to the frontend or external workers",
+                "add destructive retry/backfill proof before enabling mutating install behavior",
+                "keep queue storage changes behind db-migration-analyze and reviewed rollback notes",
+            ]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "pause workers before rolling back queue schema or retry policy changes",
+                "drain or dead-letter queued jobs before removing provider-specific queue adapters",
+                "reverse background job table changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
 fn certified_manifest(
     repo: &Path,
     catalog: &RepoCatalog,
@@ -529,6 +615,23 @@ fn certified_manifest(
             },
         });
     }
+    if manifest.cell_id == "background-job" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/background_job.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("BackgroundJobRetryPolicy");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-background-job-retry-policy".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
     manifest.proof_commands = proof_commands(catalog, &manifest.proof_lanes);
     let is_certified = evidence
         .iter()
@@ -553,6 +656,7 @@ fn lazy_built_in_ids() -> Vec<&'static str> {
         "rbac",
         "auth-session",
         "organization-team",
+        "background-job",
     ]
 }
 

@@ -393,4 +393,23 @@ fn certified_cells_are_schema_valid_and_evidence_bound() {
         auth_session_prove["manifest"]["certification_status"],
         "certified"
     );
+
+    // Background-job cell: sixth certified cell with retry policy marker evidence.
+    let background_job = cells
+        .iter()
+        .find(|cell| cell["cell_id"] == "background-job")
+        .expect("background-job cell");
+    assert_eq!(background_job["certification_status"], "certified");
+    assert_eq!(background_job["lifecycle"], "certified");
+    assert_eq!(background_job["category"], "workflow");
+    assert!(background_job["dependencies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d == "organization-team"));
+    assert!(background_job["certification_evidence"].as_array().unwrap().iter().any(|e| {
+        e["kind"] == "content-marker"
+            && e["path"] == "domain-background-job-retry-policy"
+            && e["status"] == "present"
+    }));
 }

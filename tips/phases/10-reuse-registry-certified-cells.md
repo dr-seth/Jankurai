@@ -23,6 +23,7 @@ Current certified cells:
 - `rbac` (depends on `crud-resource`; sources and proof lanes tied to `examples/perfect-web-api-db/` authorization surface)
 - `auth-session` (depends on `audit-log` and `rbac`; sources and proof lanes tied to `examples/perfect-web-api-db/` identity/session boundary)
 - `organization-team` (depends on `audit-log`, `rbac`, and `auth-session`; sources and proof lanes tied to tenant-scoped team membership, DB constraints, UX states, and security assumptions)
+- `background-job` (depends on `audit-log`, `rbac`, `auth-session`, and `organization-team`; sources and proof lanes tied to queue/retry policy, durable DB constraints, operator UX states, and security assumptions)
 
 The installer remains dry-run only and never overwrites user files. `cell
 --mode prove` emits certification evidence and proof commands, but does not
@@ -88,7 +89,7 @@ Build in this order:
 3. RBAC — certified as registry cell `rbac` (depends on `crud-resource`)
 4. auth/session shell — certified as registry cell `auth-session` (depends on `audit-log` and `rbac`)
 5. organization/team shell — certified as registry cell `organization-team` (depends on `audit-log`, `rbac`, and `auth-session`)
-6. background job
+6. background job — certified as registry cell `background-job` (depends on `audit-log`, `rbac`, `auth-session`, and `organization-team`)
 7. webhook receiver
 8. notification/email shell
 9. file upload shell
@@ -236,7 +237,9 @@ Leave:
 
 ## Phase Status Receipt
 
-- Phase status: hardened; **five** certified cells (`audit-log`, `crud-resource`, `rbac`, `auth-session`, `organization-team`)
+- Phase status: hardened; **six** certified cells (`audit-log`, `crud-resource`, `rbac`, `auth-session`, `organization-team`, `background-job`)
+- Files changed (background/job hardening, 2026-05-04): `README.md`, `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/phase10_background_job_cell_smoke.rs`, `examples/perfect-web-api-db/backend/src/background_job.rs`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/contracts/background-job.openapi.json`, `examples/perfect-web-api-db/db/migrations/004_background_jobs.sql`, `examples/perfect-web-api-db/db/constraints/004_background_jobs.sql`, `examples/perfect-web-api-db/docs/background-job-cell.md`, `examples/perfect-web-api-db/ops/background-job-security.md`, `examples/perfect-web-api-db/ux/background-job-routes.md`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/00-phase-index.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
+- Hardened additions: sixth certified cell `background-job`; deterministic `BackgroundJobRetryPolicy`; queue claim/complete/fail application shell; durable migration and constraints; operator UX proof states; provider-backed queue and mutating installer behavior remain deferred behind upgrade gates
 - Files changed (organization/team hardening, 2026-05-04): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/phase10_org_team_cell_smoke.rs`, `examples/perfect-web-api-db/backend/src/organization_team.rs`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/contracts/organization-team.openapi.json`, `examples/perfect-web-api-db/db/migrations/003_organization_team.sql`, `examples/perfect-web-api-db/db/constraints/003_organization_team.sql`, `examples/perfect-web-api-db/docs/organization-team-cell.md`, `examples/perfect-web-api-db/ops/organization-team-security.md`, `examples/perfect-web-api-db/ux/organization-team-routes.md`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/00-phase-index.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
 - Files changed (auth/session hardening, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/src/commands/cell.rs`, `crates/jankurai/src/main.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `crates/jankurai/tests/phase10_auth_session_cell_smoke.rs`, `examples/perfect-web-api-db/backend/src/auth_session.rs`, `examples/perfect-web-api-db/backend/src/lib.rs`, `examples/perfect-web-api-db/contracts/auth-session.openapi.json`, `examples/perfect-web-api-db/db/migrations/002_auth_sessions.sql`, `examples/perfect-web-api-db/db/constraints/002_auth_sessions.sql`, `examples/perfect-web-api-db/docs/auth-session-cell.md`, `examples/perfect-web-api-db/ops/auth-session-security.md`, `examples/perfect-web-api-db/ux/auth-session-routes.md`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/00-phase-index.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
   * Files changed (rbac slice, 2026-05-03): `crates/jankurai/src/commands/cell_catalog.rs`, `crates/jankurai/tests/command_surface_smoke.rs`, `tips/phases/10-reuse-registry-certified-cells.md`, `tips/phases/logs/10-reuse-registry-certified-cells.log`
@@ -249,6 +252,6 @@ Leave:
 - Validation commands: `cargo test -p jankurai`; `just fast`; `just score`
 - Results: organization/team patch is PR-ready but validation is pending in CI because this chat session exposed read-only GitHub tools after repository inspection; previous auth/session hardening validation passed with `just fast` score 93, caps 0
 - Feedback closeout (2026-05-04): `tips/phases_feedback/10-phase/tip1`-`tip4` reconciled in `docs/phases-feedback-status.md`; accepted `auth-session`, dependency-bound evidence, and lifecycle proof modes; rejected mutating/provider-backed install and secret-dependent runtime expansion.
-- Skipped validation: local command execution in this session; mutating install execution remains bounded for later extension; auth/session and organization/team provider-backed runtime mutation remains deferred
-- Exceptions created: provider-backed and mutating cells deferred; auth/session is certified as a shell, not a provider-backed login implementation
-- Follow-up phases: next registry cell **background job** (Initial Cell Order item 6); phases 11–13 as before
+- Skipped validation: local full-repo command execution in this session; mutating install execution remains bounded for later extension; auth/session, organization/team, and background-job provider-backed runtime mutation remains deferred
+- Exceptions created: provider-backed and mutating cells deferred; auth/session is certified as a shell, not a provider-backed login implementation; background-job is certified as a durable queue/retry shell, not a provider-backed worker runtime
+- Follow-up phases: next registry cell **webhook receiver** (Initial Cell Order item 7); phases 11–13 as before

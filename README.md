@@ -43,6 +43,24 @@ The canonical audit lane is:
 cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md
 ```
 
+## Certified Reuse Cells
+
+Jankurai ships an evidence-bound reuse registry so common agent-built primitives
+do not become copy-paste folklore. The built-in certified cells currently cover
+audit logging, CRUD resources, RBAC, auth/session, organization/team, and
+background jobs.
+
+```bash
+jankurai registry . --out target/jankurai/cell-registry.json --md target/jankurai/cell-registry.md
+jankurai cell . --cell-id background-job --mode prove \
+  --out target/jankurai/background-job-prove.json \
+  --md target/jankurai/background-job-prove.md
+```
+
+Cell install output is dry-run only with a `never-overwrite` conflict policy;
+prove mode emits machine-readable evidence and proof commands without executing
+destructive changes.
+
 ## Standard Files
 
 These files define the control plane and should stay in sync:

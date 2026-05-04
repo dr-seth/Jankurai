@@ -100,7 +100,7 @@ This router change does not require owner-map or test-map edits because the touc
 | 07 | hardened | contracts/DB/generated boundaries hardened; all residual gaps closed |
 | 08 | complete | agent context and repair scaffolding in place |
 | 09 | complete | reference product platform in place |
-| 10 | hardened | five certified cells (audit-log, crud-resource, rbac, auth-session, organization-team); mutating/provider-backed installs remain deferred |
+| 10 | hardened | six certified cells (audit-log, crud-resource, rbac, auth-session, organization-team, background-job); mutating/provider-backed installs remain deferred; next cell is webhook receiver |
 | 11 | hardened | structured inventory, 8-dimension liability scoring, fixture-backed detection tests, slice risk levels |
 | 12 | hardened | Phase 12 public bundle: `jankurai publish`, badge JSON/SVG, `public-evidence-bundle` schema; CI + `just phase12`; GitHub attest / Sigstore / dashboards remain optional |
 | 13 | hardened | dry-run repair, fixture apply, gated real-apply, rollback, draft PR creation, optimize, and exception expiry are live; live GitHub draft PR creation still depends on network access and gh auth; auto-merge intentionally deferred |
@@ -109,7 +109,7 @@ This router change does not require owner-map or test-map edits because the touc
 
 1. If the user names a phase, use it unless a hard dependency makes progress unsafe.
 2. Otherwise, choose the earliest `partial` phase; if none exists, choose the earliest `complete-with-residual` or `complete-with-deferred-work` slice that improves proof, boundaries, or mutation safety.
-3. Prefer work in this order when nothing is named: Phase 13 only for regressions in repair gating, rollback, or external GitHub PR receipts; then Phase 10 next certified cell (mutating installs / next reusable cell); Phase 12 is **hardened**—revisit only on public-evidence regressions or optional signing/dashboard follow-ons.
+3. Prefer work in this order when nothing is named: Phase 13 only for regressions in repair gating, rollback, or external GitHub PR receipts; then Phase 10 next certified cell (webhook receiver / mutating installs / next reusable cell); Phase 12 is **hardened**—revisit only on public-evidence regressions or optional signing/dashboard follow-ons.
 4. Before edits, append a `start` entry, run the smallest credible proof lane, then append a `finish` entry with changed paths, validation, artifacts, git SHA, and residual risk.
 5. Never hand-edit generated artifacts. Fix the source and regenerate.
 

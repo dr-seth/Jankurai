@@ -9,6 +9,7 @@
 pub mod adapters;
 pub mod application;
 pub mod auth_session;
+pub mod background_job;
 pub mod domain;
 pub mod organization_team;
 
