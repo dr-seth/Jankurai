@@ -8,7 +8,7 @@ pub const AGENT_REQUEST_VERSION: &str = "v1";
 pub const AGENT_REQUEST_MARKER: &str =
     "<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->";
 pub const STARTUP_UPDATE_REQUEST: &str =
-    "If jankurai is installed, run jankurai update --client-start --quiet before work; do not apply updates unless the user asks.";
+    "If jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.";
 
 pub const SUPPORTED_IDES: &[&str] = &[
     "cursor",

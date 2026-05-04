@@ -1,7 +1,10 @@
 # jankurai audit
 
 <!-- jankurai generated adapter -->
+<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->
 Read `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.
-For MASTER_PLAN work, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log phase work in `tips/phases/logs/`.
-For planning work, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.
-Run `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md` for audit.
+For explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.
+For explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.
+If jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.
+Run `jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md` for audit.
+If jankurai is installed, run `jankurai update --client-start --quiet before work; do not apply updates unless the user asks.
