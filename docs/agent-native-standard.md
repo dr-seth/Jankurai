@@ -462,6 +462,8 @@ Audit findings MUST include:
 
 Audit JSON MUST include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, raw score, final score, hard caps, dimension breakdown, findings, and ordered `agent_fix_queue`.
 
+Plotting integrations that want rolling score plots MUST use the bounded history export command; `jankurai score trend` remains the summary command. Do not scrape full audit JSON for trend plots.
+
 Operational receipts from `doctor`, `init`, and future phase closeouts should live under `target/jankurai/receipts/<action>-<unix-seconds>.json`. Keep them volatile and cite them in release notes or phase receipts instead of promoting them into tracked source.
 
 ## 14. Vibe-Coding Failure Catalog

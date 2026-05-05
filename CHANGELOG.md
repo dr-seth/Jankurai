@@ -8,8 +8,22 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ### Added
 
+- Added bounded score history commands: `jankurai history latest/export/compact/restore`, plus bounded audit retention and optional mirror sink support.
+
 ### Changed
 
+- Routed `jankurai score trend` through the shared score-history loader and added stable score-history entry/export schemas.
+
+## 0.8.0 - 2026-05-05
+
+### Added
+
+- Added the GitTools bad-behavior policy surface, research note, detector family, fixtures, and stable `HLT-036-GITTOOLS-BAD-BEHAVIOR` rule.
+- Added the `gittools-bad-behavior` hard cap for high-confidence hook-manager and Git tooling hazards.
+
+### Changed
+
+- Bumped the standard and auditor release to `0.8.0` and the paper edition to `2026.05-ed8`; report schema remains `1.5.0`.
 - Reframed the paper around Jankurai as a versioned agent-native repository standard and bumped the paper edition to `2026.05-ed6`.
 - Fixed generated adapter templates so every generated adapter satisfies the startup update marker verification and shows a valid client-start command.
 

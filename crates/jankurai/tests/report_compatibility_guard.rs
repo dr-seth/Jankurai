@@ -20,6 +20,8 @@ fn run_full_audit_export(repo: &Path, out_dir: &Path) -> Value {
     let junit = out_dir.join("jankurai.junit.xml");
     let summary = out_dir.join("summary.md");
     let repair_queue = out_dir.join("repair-queue.jsonl");
+    let score_history = out_dir.join("score-history.jsonl");
+    let score_history_csv = out_dir.join("score-history.csv");
 
     let output = Command::new(env!("CARGO_BIN_EXE_jankurai"))
         .arg("audit")
@@ -36,6 +38,10 @@ fn run_full_audit_export(repo: &Path, out_dir: &Path) -> Value {
         .arg(&summary)
         .arg("--repair-queue-jsonl")
         .arg(&repair_queue)
+        .arg("--score-history")
+        .arg(&score_history)
+        .arg("--score-history-csv")
+        .arg(&score_history_csv)
         .output()
         .expect("spawn jankurai audit");
 

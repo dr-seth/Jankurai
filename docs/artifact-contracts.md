@@ -30,6 +30,8 @@ Every durable or generated machine-readable surface should either validate again
 | `target/jankurai/merge-witness.json` | `schemas/merge-witness.schema.json`; `schema_contracts`, command smoke tests | PR merge witness with changed paths, route decisions, proof matrix, score delta, missing evidence, and merge decision. |
 | `target/jankurai/score-diff.json` | `schemas/score-diff.schema.json`; `schema_contracts`, command smoke tests | Baseline/head score, cap, and finding diff. |
 | `target/jankurai/score-trend.json` | `schemas/score-trend.schema.json`; `schema_contracts`, command smoke tests | Recent score-history window and trust-ledger trend summary. |
+| `agent/score-history.jsonl` | `schemas/score-history-entry.schema.json`; `score_history`, `audit_smoke`, `command_surface_smoke` | Bounded JSONL history rows with repo identity, score, finding counts, and artifact fingerprints. |
+| `target/jankurai/history-export.json` | `schemas/score-history-export.schema.json`; `command_surface_smoke` | Bounded history export with summary and latest rows. |
 | `target/jankurai/rule-registry.json` | `schemas/rule-registry.schema.json`; `rule_registry_smoke` | Exported Rust rule registry for docs/paper parity checks. |
 
 New artifact producers must be Rust-first. Agents must not add Python helpers for proof lanes, repository tools, product truth, product services, authorization, general backend glue, or PostgreSQL write paths. Python is allowed only for rare dated advanced-ML/data exceptions boxed under `python/ai-service`.

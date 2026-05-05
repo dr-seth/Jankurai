@@ -35,6 +35,9 @@ For this workspace:
 - `just ux-qa` builds and tests the optional Playwright geometry runtime.
 - `just fast` writes a deterministic audit snapshot under `target/jankurai/`.
 - `just score` writes `agent/repo-score.json` and `agent/repo-score.md`.
+- `just conformance` runs the observed seed fixture suite, validates the
+  conformance report schema through Rust tests, and regenerates
+  `paper/tex/generated/conformance_results_table.tex`.
 - `just paper` builds `paper/jankurai.pdf`.
 - `just check` runs version checks, audit, and paper build.
 - `jankurai doctor` and `jankurai init` write receipts under `target/jankurai/receipts/` for handoff evidence.
@@ -44,6 +47,7 @@ For this workspace:
 - `jankurai proofmark rust` writes `target/jankurai/proofmark/proofmark-receipt.json`, a standard proof receipt at `target/jankurai/proofmark/proof-receipt.json`, and `target/jankurai/proofmark/proofmark.md`. Coverage gaps stay review/advisory; do not fake hard proof when coverage or mutation evidence is unavailable.
 - For language bad-behavior audits, the same lane now anchors `HLT-029-RUST-BAD-BEHAVIOR` through `HLT-036-GITTOOLS-BAD-BEHAVIOR`. Use `cargo test -p jankurai language_bad_behavior` to exercise the focused detector pack before broader score reruns; the fixture corpus in `crates/jankurai/tests/fixtures/language_bad_behavior/` documents the `sql`, `typescript`, `docker`, `python`, `ci`, `git`, and `gittools` families alongside Rust.
 - `jankurai witness` writes a merge witness that checks changed-path routing, generated-zone touches, baseline score delta, current audit status, and proof receipt coverage. It may report proof freshness as unknown unless receipts carry git/file digests; it must not claim freshness without evidence.
+- `jankurai history latest`, `jankurai history export`, `jankurai history compact`, and `jankurai history restore` validate the bounded score ledger and the mirror recovery path.
 - `jankurai score diff` and `jankurai score trend` validate rolling score artifacts so regressions, new findings, caps, and high/critical counts are visible before ratchet gates.
 - `jankurai vibe validate --source agent/vibe-coverage.toml --tips tips/vibe_coding` proves every source row is mapped exactly once, matches the source title, is reviewed, references known rules/tools/lanes, has no unjustified `none`, and only claims `detector-backed` with deterministic audit evidence.
 - `jankurai vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md --tex paper/tex/generated/vibe_coverage_table.tex` emits the JSON, Markdown, and paper table coverage artifacts.

@@ -1,7 +1,7 @@
 # jankurai Standard Agent Bootstrap
 
-Standard version: `0.7.0`
-Published: `2026-05-04`
+Standard version: `0.8.0`
+Published: `2026-05-05`
 Full standard: `docs/agent-native-standard.md`
 Version manifest: `agent/standard-version.toml`
 Paper: `Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge`
@@ -43,6 +43,55 @@ Before edits:
 - search for existing owner and duplicate behavior
 
 Do not edit outside the requested ownership scope.
+
+## Central Operating Index
+
+This file is the short bootstrap every future agent must treat as the central
+router. Keep root `AGENTS.md` brief; put durable operational detail in this file
+or linked docs and keep executable truth in machine-readable manifests.
+
+Source-of-truth order:
+
+1. `AGENTS.md`: entrypoint and repository-specific constraints.
+2. `agent/JANKURAI_STANDARD.md`: central agent bootstrap, hard blocks, rule IDs,
+   proof rules, and command index.
+3. `docs/agent-native-standard.md`: full standard and target-stack doctrine.
+4. `agent/owner-map.json`: ownership routing for every changed path.
+5. `agent/test-map.json`: proof command routing for every changed path.
+6. `agent/proof-lanes.toml`: named proof lanes, covered rules, artifacts, and
+   command allowlist.
+7. `agent/generated-zones.toml`: generator-only outputs and regeneration
+   commands.
+8. `agent/tool-adoption.toml`: optional tool lanes and CI-backed replacement
+   evidence.
+9. `docs/testing.md`: detailed testing, UX, security, proofbind, proofmark,
+   migration, history, and conformance command behavior.
+10. `docs/artifact-contracts.md` and `schemas/`: JSON/TOML artifact contracts.
+
+Operational surfaces:
+
+- CLI surface: `cargo run -p jankurai -- --help` and
+  `crates/jankurai/src/main.rs`; implementation modules live under
+  `crates/jankurai/src/commands/`.
+- Canonical recipes: `Justfile`; prefer `just fast`, `just score`,
+  `just conformance`, `just paper`, and `just check` over ad hoc command
+  guesses.
+- Conformance evidence: `conformance/README.md`,
+  `conformance/fixtures/*/jankurai-fixture.toml`, and
+  `target/jankurai/conformance-results.{json,md}`. The generated paper table is
+  `paper/tex/generated/conformance_results_table.tex` and must be regenerated
+  by `just conformance`, not hand-edited.
+- Paper layout: canonical release source is `paper/jankurai.tex` plus
+  `paper/tex/`; generated paper tables live under `paper/tex/generated/`.
+  Companion Markdown is context, not the TeX generator source.
+- Receipts: write volatile proof artifacts under `target/jankurai/`; append
+  durable phase receipts under `tips/phases/logs/` only when the active plan
+  requires it.
+
+Interaction default: explain material scope changes, run the smallest credible
+lane from `agent/test-map.json`, then run broader lanes when the changed surface
+or user request needs them. Never rely on chat history as the only record of a
+tool, test, layout rule, or proof result.
 
 ## Conformance
 
@@ -123,8 +172,9 @@ Stop or fix first when any condition is true:
 | `HLT-033-PYTHON-BAD-BEHAVIOR` | Python code owns runtime behavior or unchecked data paths without an approved exception |
 | `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
+| `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-035` are detector-backed catalog IDs in the language bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-036` are detector-backed catalog IDs in the language bad-behavior family.
 
 ## Ownership Boundaries
 
@@ -207,6 +257,8 @@ For non-trivial fixes, leave enough evidence for the next agent:
 - remaining exception or follow-up
 
 Operational receipts from `doctor`, `init`, and phase closeouts belong under `target/jankurai/receipts/` and should be cited by path when they matter.
+
+Plotting integrations should use bounded history commands, such as `jankurai history export` or `jankurai score trend`, for score plots. Do not scrape full audit JSON when a bounded history command exists.
 
 ## User-Provided Plans
 

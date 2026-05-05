@@ -277,10 +277,7 @@ edition = "2021"
 
     let gitignore = fs::read_to_string(dir.path().join(".gitignore")).unwrap();
     let gitignore_lines: Vec<_> = gitignore.lines().map(str::trim).collect();
-    assert!(
-        gitignore_lines.contains(&"target/jankurai/"),
-        "{gitignore}"
-    );
+    assert!(gitignore_lines.contains(&"target/jankurai/"), "{gitignore}");
     assert!(gitignore_lines.contains(&".jankurai/"), "{gitignore}");
     assert!(!gitignore_lines.contains(&"target/"), "{gitignore}");
 
@@ -297,6 +294,22 @@ edition = "2021"
     );
     assert!(
         pre_commit_text.contains("JANKURAI_HOOK_STAGE_ARTIFACTS"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        pre_commit_text.contains("JANKURAI_HISTORY_MIRROR"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        pre_commit_text.contains("JANKURAI_HISTORY_MIRROR_REQUIRED"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        pre_commit_text.contains("JANKURAI_SCORE_HISTORY_MAX_ROWS"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        pre_commit_text.contains("JANKURAI_SCORE_HISTORY_MAX_BYTES"),
         "{pre_commit_text}"
     );
     assert!(
@@ -400,7 +413,10 @@ fn hooks_install_yes_installs_local_hooks() {
         pre_commit_text.contains("JANKURAI_HOOK_REPORT_DIR"),
         "{pre_commit_text}"
     );
-    assert!(pre_commit_text.contains("JANKURAI_HOOK_STAGE_ARTIFACTS"), "{pre_commit_text}");
+    assert!(
+        pre_commit_text.contains("JANKURAI_HOOK_STAGE_ARTIFACTS"),
+        "{pre_commit_text}"
+    );
     let prepare_text = fs::read_to_string(prepare).unwrap();
     assert!(prepare_text.contains("JANKURAI MANAGED HOOK: prepare-commit-msg"));
     assert!(
@@ -491,11 +507,19 @@ edition = "2021"
         "{second_message}"
     );
     assert!(dir.path().join(".git/jankurai/last-score.env").is_file());
-    assert!(dir.path().join("target/jankurai/hooks/pre-commit-score.json").is_file());
-    assert!(dir.path().join("target/jankurai/hooks/pre-commit-score.md").is_file());
-    let history =
-        fs::read_to_string(dir.path().join("target/jankurai/hooks/pre-commit-score-history.jsonl"))
-            .unwrap();
+    assert!(dir
+        .path()
+        .join("target/jankurai/hooks/pre-commit-score.json")
+        .is_file());
+    assert!(dir
+        .path()
+        .join("target/jankurai/hooks/pre-commit-score.md")
+        .is_file());
+    let history = fs::read_to_string(
+        dir.path()
+            .join("target/jankurai/hooks/pre-commit-score-history.jsonl"),
+    )
+    .unwrap();
     assert!(
         history
             .lines()

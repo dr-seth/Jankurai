@@ -1,3 +1,4 @@
+use crate::score_history::{self, HistorySource};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -50,6 +51,9 @@ pub struct ScoreTrendReport {
     pub command: String,
     pub history: String,
     pub window: usize,
+    pub source: HistorySource,
+    pub repo_id: Option<String>,
+    pub history_bytes: usize,
     pub sample_count: usize,
     pub first_score: Option<i32>,
     pub latest_score: Option<i32>,
@@ -57,6 +61,8 @@ pub struct ScoreTrendReport {
     pub best_score: Option<i32>,
     pub worst_score: Option<i32>,
     pub latest_decision: Option<String>,
+    pub latest_generated_at: Option<String>,
+    pub latest_commit: Option<String>,
     pub high_or_critical_latest: usize,
     pub recurrence_counts: Vec<RecurrenceCount>,
     pub decision: String,
@@ -76,13 +82,6 @@ pub struct FindingSummary {
 pub struct RecurrenceCount {
     pub key: String,
     pub count: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct HistoryEntry {
-    score: Option<i32>,
-    decision: Option<String>,
-    hard_findings: Option<usize>,
 }
 
 pub fn run_diff(args: DiffArgs) -> Result<()> {
@@ -176,63 +175,8 @@ pub fn build_diff_report(
 }
 
 pub fn build_trend_report(history: &Path, window: usize) -> Result<ScoreTrendReport> {
-    let text =
-        fs::read_to_string(history).with_context(|| format!("read {}", history.display()))?;
-    let mut entries = Vec::new();
-    for (index, line) in text
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .enumerate()
-    {
-        let value: Value = serde_json::from_str(line)
-            .with_context(|| format!("parse score history line {}", index + 1))?;
-        entries.push(value);
-    }
-    let keep = if window == 0 { entries.len() } else { window };
-    let selected: Vec<Value> = entries
-        .into_iter()
-        .rev()
-        .take(keep)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect();
-    let parsed: Vec<HistoryEntry> = selected
-        .iter()
-        .filter_map(|value| serde_json::from_value(value.clone()).ok())
-        .collect();
-    let scores: Vec<i32> = parsed.iter().filter_map(|entry| entry.score).collect();
-    let first_score = scores.first().copied();
-    let latest_score = scores.last().copied();
-    let score_delta = first_score
-        .zip(latest_score)
-        .map(|(first, latest)| latest - first);
-    let latest_decision = parsed.last().and_then(|entry| entry.decision.clone());
-    let high_or_critical_latest = parsed
-        .last()
-        .and_then(|entry| entry.hard_findings)
-        .unwrap_or(0);
-    let decision = if score_delta.unwrap_or(0) < 0 || high_or_critical_latest > 0 {
-        "review"
-    } else {
-        "pass"
-    };
-    Ok(ScoreTrendReport {
-        schema_version: "1.0.0".into(),
-        command: "jankurai score trend".into(),
-        history: history.display().to_string(),
-        window,
-        sample_count: parsed.len(),
-        first_score,
-        latest_score,
-        score_delta,
-        best_score: scores.iter().max().copied(),
-        worst_score: scores.iter().min().copied(),
-        latest_decision,
-        high_or_critical_latest,
-        recurrence_counts: vec![],
-        decision: decision.into(),
-    })
+    let report = score_history::build_trend_report(history, window)?;
+    Ok(report)
 }
 
 fn render_diff_markdown(report: &ScoreDiffReport) -> String {
@@ -271,25 +215,7 @@ fn render_diff_markdown(report: &ScoreDiffReport) -> String {
 }
 
 fn render_trend_markdown(report: &ScoreTrendReport) -> String {
-    use std::fmt::Write;
-    let mut out = String::new();
-    let _ = writeln!(out, "# jankurai Score Trend");
-    let _ = writeln!(out);
-    let _ = writeln!(out, "- decision: `{}`", report.decision);
-    let _ = writeln!(out, "- samples: `{}`", report.sample_count);
-    let _ = writeln!(
-        out,
-        "- score: `{}` -> `{}`",
-        opt_i32(report.first_score),
-        opt_i32(report.latest_score)
-    );
-    let _ = writeln!(out, "- delta: `{}`", opt_i32(report.score_delta));
-    let _ = writeln!(
-        out,
-        "- latest high/critical: `{}`",
-        report.high_or_critical_latest
-    );
-    out
+    score_history::render_history_trend_markdown(report)
 }
 
 fn load_json(path: &Path) -> Result<Value> {
@@ -371,10 +297,4 @@ fn join_or_none(values: &[String]) -> String {
     } else {
         values.join(", ")
     }
-}
-
-fn opt_i32(value: Option<i32>) -> String {
-    value
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "none".into())
 }

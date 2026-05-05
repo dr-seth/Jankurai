@@ -52,6 +52,88 @@ fn adoption_plan_schema_parses_and_fixture_validates() {
 }
 
 #[test]
+fn score_history_schemas_parse_and_fixture_validate() {
+    let repo = repo_root();
+    let entry_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/score-history-entry.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let export_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/score-history-export.schema.json")).unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        entry_schema["$id"],
+        "https://jankurai.dev/schemas/score-history-entry.schema.json"
+    );
+    assert_eq!(
+        export_schema["$id"],
+        "https://jankurai.dev/schemas/score-history-export.schema.json"
+    );
+
+    let entry = serde_json::json!({
+        "schema_version": "1.1.0",
+        "standard_version": "0.8.0",
+        "auditor_version": "0.8.0",
+        "generated_at": "2026-05-05T00:00:00Z",
+        "run_id": "run-1",
+        "repo_id": "sha256:repo",
+        "repo_remote": "https://example.com/org/repo.git",
+        "branch": "main",
+        "commit": "abc123",
+        "dirty_worktree": false,
+        "scope": "full",
+        "changed_paths": ["README.md"],
+        "score": 91,
+        "raw_score": 95,
+        "finding_count": 1,
+        "hard_findings": 0,
+        "soft_findings": 1,
+        "decision": "pass",
+        "minimum_score": 85,
+        "caps_applied": [],
+        "report_fingerprint": "sha256:report",
+        "input_fingerprint": "sha256:input",
+        "policy_fingerprint": "sha256:policy",
+        "repo_score_json_path": "agent/repo-score.json",
+        "repo_score_md_path": "agent/repo-score.md"
+    });
+    validation::validate_value(&repo, ArtifactSchema::ScoreHistoryEntry, &entry).unwrap();
+
+    let export = serde_json::json!({
+        "schema_version": "1.1.0",
+        "command": "jankurai history export",
+        "history": "agent/score-history.jsonl",
+        "window": 3,
+        "source": "auto",
+        "repo_id": "sha256:repo",
+        "history_bytes": 128,
+        "sample_count": 1,
+        "latest_generated_at": "2026-05-05T00:00:00Z",
+        "latest_commit": "abc123",
+        "rows": [entry],
+        "summary": {
+            "source": "auto",
+            "repo_id": "sha256:repo",
+            "history_bytes": 128,
+            "sample_count": 1,
+            "latest_generated_at": "2026-05-05T00:00:00Z",
+            "latest_commit": "abc123",
+            "first_score": 91,
+            "latest_score": 91,
+            "score_delta": 0,
+            "best_score": 91,
+            "worst_score": 91,
+            "latest_decision": "pass",
+            "high_or_critical_latest": 0,
+            "decision": "pass"
+        }
+    });
+    validation::validate_value(&repo, ArtifactSchema::ScoreHistoryExport, &export).unwrap();
+}
+
+#[test]
 fn cell_registry_and_manifest_schemas_parse() {
     let repo = repo_root();
     let manifest: serde_json::Value = serde_json::from_str(

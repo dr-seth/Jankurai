@@ -1,6 +1,6 @@
 # Rolling Score
 
-The rolling score is Jankurai's trust ledger. Each audit can append a JSONL row to `agent/score-history.jsonl` and a CSV companion. v0.5 adds first-class diff and trend commands over those receipts.
+The rolling score is Jankurai's trust ledger. Each audit can append a compact JSONL row to `agent/score-history.jsonl` and a CSV companion. The dedicated history interface is the stable surface for external tools and recovery workflows.
 
 Compare an accepted baseline to a candidate report:
 
@@ -22,4 +22,4 @@ jankurai score trend \
   --md target/jankurai/score-trend.md
 ```
 
-`score diff` compares final score, raw score, caps, and findings by fingerprint first, then by rule/path/problem fallback. `score trend` reports the latest window, score delta, best/worst score, latest decision, and high/critical count. Ratchet gates must use an explicit accepted baseline; no implicit current score can become the baseline.
+`jankurai history latest` returns the latest JSONL row, `history export` emits a bounded window with markdown, `history compact` rewrites the ledger in place, and `history restore` rebuilds local history from the mirror sink. `score diff` compares final score, raw score, caps, and findings by fingerprint first, then by rule/path/problem fallback. `score trend` reports the latest window, score delta, best/worst score, latest decision, and high/critical count. Ratchet gates must use an explicit accepted baseline; no implicit current score can become the baseline.

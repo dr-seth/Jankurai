@@ -40,11 +40,29 @@ report_md="$report_dir/pre-commit-score.md"
 report_history_jsonl="$report_dir/pre-commit-score-history.jsonl"
 report_history_csv="$report_dir/pre-commit-score-history.csv"
 
-if ! "$jankurai_cmd" audit . --mode advisory \
-  --json "$report_json" \
-  --md "$report_md" \
-  --score-history "$report_history_jsonl" \
-  --score-history-csv "$report_history_csv"; then
+audit_args=(
+  audit .
+  --mode advisory
+  --json "$report_json"
+  --md "$report_md"
+  --score-history "$report_history_jsonl"
+  --score-history-csv "$report_history_csv"
+)
+
+if [ -n "${JANKURAI_HISTORY_MIRROR:-}" ]; then
+  audit_args+=(--score-history-mirror "$JANKURAI_HISTORY_MIRROR")
+fi
+if [ "${JANKURAI_HISTORY_MIRROR_REQUIRED:-}" = "1" ]; then
+  audit_args+=(--score-history-mirror-required)
+fi
+if [ -n "${JANKURAI_SCORE_HISTORY_MAX_ROWS:-}" ]; then
+  audit_args+=(--score-history-max-rows "$JANKURAI_SCORE_HISTORY_MAX_ROWS")
+fi
+if [ -n "${JANKURAI_SCORE_HISTORY_MAX_BYTES:-}" ]; then
+  audit_args+=(--score-history-max-bytes "$JANKURAI_SCORE_HISTORY_MAX_BYTES")
+fi
+
+if ! "$jankurai_cmd" "${audit_args[@]}"; then
   echo "jankurai pre-commit audit failed; set JANKURAI_SKIP_HOOKS=1 to bypass local hooks" >&2
   exit 1
 fi
