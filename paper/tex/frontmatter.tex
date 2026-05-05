@@ -41,6 +41,22 @@
   pdfkeywords={vibe coding, vibe artifacts, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence}
 }
 
+\newsavebox{\JankuraiHeaderBox}
+\newlength{\JankuraiHeaderShift}
+\setlength{\JankuraiHeaderShift}{-0.055\textwidth}
+\newcommand{\JankuraiHeaderGraphic}{%
+  \IfFileExists{assets/jankurai_github_header_transparent.png}{%
+    \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio,trim=163bp 143bp 460bp 142bp,clip]{assets/jankurai_github_header_transparent.png}%
+  }{%
+    \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio,trim=163bp 143bp 460bp 142bp,clip]{../assets/jankurai_github_header_transparent.png}%
+  }%
+}
+\newcommand{\JankuraiPlacedHeader}{%
+  \sbox{\JankuraiHeaderBox}{\JankuraiHeaderGraphic}%
+  \makebox[\wd\JankuraiHeaderBox][c]{\hspace*{\JankuraiHeaderShift}\usebox{\JankuraiHeaderBox}}%
+  \par
+}
+
 \title{Jankurai: Anti-Vibe Coding Standard}
 \author{\IEEEauthorblockN{Jankurai Project}}
 
@@ -49,11 +65,7 @@
 \begin{titlepage}
 \centering
 \vspace*{0.05in}
-\IfFileExists{assets/jankurai_github_header_transparent.png}{%
-  \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio,trim=163bp 143bp 460bp 142bp,clip]{assets/jankurai_github_header_transparent.png}%
-}{%
-  \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio,trim=163bp 143bp 460bp 142bp,clip]{../assets/jankurai_github_header_transparent.png}%
-}
+\JankuraiPlacedHeader
 \vspace{0.6em}
 {\Large\bfseries Anti-Vibe Coding Standard\par}
 \vspace{0.25em}
