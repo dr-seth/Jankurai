@@ -2,9 +2,7 @@ use serde_json::{json, Map};
 use std::path::Path;
 
 use crate::shared::git_dirty;
-use crate::{
-    ProofMarkReceipt, RuleCoverage, StandardProofReceipt,
-};
+use crate::{ProofMarkReceipt, RuleCoverage, StandardProofReceipt};
 
 pub(crate) fn standard_proof_receipt(
     repo: &Path,

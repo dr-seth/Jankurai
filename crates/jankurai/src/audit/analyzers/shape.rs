@@ -62,6 +62,17 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score -= 10;
         evidence.push("IO markers found in domain/core files".into());
     }
+    if max_loc(&files).is_some_and(|max| max <= 350)
+        && scan::duplicate_blocks(ctx).is_empty()
+        && scan::todo_hits(ctx).is_empty()
+        && scan::fallback_hits(ctx).is_empty()
+        && scan::future_hostile_hits(ctx).is_empty()
+        && weak_name_hits(ctx).is_empty()
+        && domain_io_hits(ctx).is_empty()
+    {
+        score += 20;
+        evidence.push("authored code stays below hard LOC limits with no shape markers".into());
+    }
     let rust_summary = crate::audit::language_rules::rust::summary(ctx);
     if rust_summary.hard_findings > 0 {
         evidence.push(format!(
@@ -105,6 +116,11 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             "git",
             crate::audit::language_rules::git::summary(ctx).hard_findings,
             crate::audit::language_rules::git::summary(ctx).advisory_signals,
+        ),
+        (
+            "gittools",
+            crate::audit::language_rules::gittools::summary(ctx).hard_findings,
+            crate::audit::language_rules::gittools::summary(ctx).advisory_signals,
         ),
     ] {
         if hard > 0 {

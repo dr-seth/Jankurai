@@ -5,7 +5,11 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
     let python_files: Vec<_> = ctx
         .scope_files
         .iter()
-        .filter(|f| f.suffix == ".py")
+        .filter(|f| {
+            f.suffix == ".py"
+                && !f.rel_path.contains("/tests/fixtures/")
+                && !f.rel_path.starts_with("tests/fixtures/")
+        })
         .cloned()
         .collect();
     let non_optimal = non_optimal_language_hits(ctx);

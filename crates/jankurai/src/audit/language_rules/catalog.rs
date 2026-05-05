@@ -9,6 +9,7 @@ pub enum Language {
     Python,
     Ci,
     Git,
+    GitTools,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,6 +98,7 @@ pub fn all() -> &'static [LanguageRule] {
         rules.extend_from_slice(crate::audit::language_rules::python::catalog());
         rules.extend_from_slice(crate::audit::language_rules::ci::catalog());
         rules.extend_from_slice(crate::audit::language_rules::git::catalog());
+        rules.extend_from_slice(crate::audit::language_rules::gittools::catalog());
         rules
     });
     RULES.as_slice()

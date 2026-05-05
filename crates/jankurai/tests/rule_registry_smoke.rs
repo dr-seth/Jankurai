@@ -107,6 +107,12 @@ fn language_bad_behavior_rules_are_registered() {
             "audit",
             Some("git-bad-behavior"),
         ),
+        (
+            "HLT-036-GITTOOLS-BAD-BEHAVIOR",
+            "agent",
+            "audit",
+            Some("gittools-bad-behavior"),
+        ),
     ] {
         let rule = rules::lookup(rule_id).unwrap_or_else(|| panic!("{rule_id} must exist"));
         assert_eq!(rule.category, category);

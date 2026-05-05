@@ -113,7 +113,10 @@ pub(crate) fn proofmark_summary(
     results: &[ObligationResult],
     mode: ProofMarkMode,
 ) -> ProofMarkSummary {
-    let satisfied = results.iter().filter(|result| result.status == "pass").count();
+    let satisfied = results
+        .iter()
+        .filter(|result| result.status == "pass")
+        .count();
     let review = results.len().saturating_sub(satisfied);
     let verdict = if review == 0 {
         "pass"
@@ -169,7 +172,11 @@ pub(crate) fn changed_unit(
     }
 }
 
-pub(crate) fn coverage_summary(source: Option<&Path>, units: &[ChangedUnit], loaded: bool) -> CoverageSummary {
+pub(crate) fn coverage_summary(
+    source: Option<&Path>,
+    units: &[ChangedUnit],
+    loaded: bool,
+) -> CoverageSummary {
     let changed_line_count = units.iter().map(|unit| unit.changed_lines.len()).sum();
     let covered_changed_line_count = units
         .iter()

@@ -33,7 +33,12 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "agent",
         lane: "audit",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["git clean -ffdx", "git clean -fdx", "git clean -fx", "git clean -fd"]),
+        matcher: Matcher::ContainsAny(&[
+            "git clean -ffdx",
+            "git clean -fdx",
+            "git clean -fx",
+            "git clean -fd",
+        ]),
         proof_window: ProofWindow::None,
         problem: "script performs a destructive git clean",
         fix: "narrow the clean scope or keep the deleted paths explicit",
@@ -46,7 +51,13 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "agent",
         lane: "audit",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["git stash -u", "git stash --all", "git stash pop", "git stash drop", "git stash clear"]),
+        matcher: Matcher::ContainsAny(&[
+            "git stash -u",
+            "git stash --all",
+            "git stash pop",
+            "git stash drop",
+            "git stash clear",
+        ]),
         proof_window: ProofWindow::None,
         problem: "script hides state in git stash",
         fix: "avoid stash-based automation or make the hidden state explicit",
@@ -59,7 +70,12 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "agent",
         lane: "audit",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["git push --force", "git push --mirror", "git push --all", "git push --tags"]),
+        matcher: Matcher::ContainsAny(&[
+            "git push --force",
+            "git push --mirror",
+            "git push --all",
+            "git push --tags",
+        ]),
         proof_window: ProofWindow::None,
         problem: "script force-pushes or mirrors refs to the remote",
         fix: "replace the force push with a reviewed fast-forward or a dedicated release branch",
@@ -72,7 +88,15 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "agent",
         lane: "audit",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["git branch -d", "git tag -d", "git update-ref", "git reflog expire", "git gc --prune=now", "git filter-branch", "git filter-repo"]),
+        matcher: Matcher::ContainsAny(&[
+            "git branch -d",
+            "git tag -d",
+            "git update-ref",
+            "git reflog expire",
+            "git gc --prune=now",
+            "git filter-branch",
+            "git filter-repo",
+        ]),
         proof_window: ProofWindow::None,
         problem: "script destructively mutates refs or repository history",
         fix: "replace the destructive ref edit with a scoped, reviewed history operation",
@@ -85,7 +109,12 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "agent",
         lane: "audit",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["git worktree remove --force", "git worktree prune", "rm -rf .git", "rm -fr .git"]),
+        matcher: Matcher::ContainsAny(&[
+            "git worktree remove --force",
+            "git worktree prune",
+            "rm -rf .git",
+            "rm -fr .git",
+        ]),
         proof_window: ProofWindow::None,
         problem: "script force-cleans a git worktree or repository metadata",
         fix: "avoid forced cleanup or constrain it to the exact temporary path",
@@ -98,7 +127,12 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "agent",
         lane: "audit",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["git add .", "git add -a", "git commit -am", "--no-verify"]),
+        matcher: Matcher::ContainsAny(&[
+            "git add .",
+            "git add -a",
+            "git commit -am",
+            "--no-verify",
+        ]),
         proof_window: ProofWindow::None,
         problem: "script stages the entire tree or skips verification",
         fix: "enumerate the exact paths and keep verification on",
@@ -154,7 +188,9 @@ fn advisory_signals(ctx: &AuditContext) -> usize {
         {
             total += 1;
         }
-        if (text.contains("git add .") || text.contains("git add -a") || text.contains("commit -am"))
+        if (text.contains("git add .")
+            || text.contains("git add -a")
+            || text.contains("commit -am"))
             && !text.contains("git status --porcelain")
             && !text.contains("git ls-files --others --exclude-standard")
         {
@@ -163,9 +199,7 @@ fn advisory_signals(ctx: &AuditContext) -> usize {
         if text.contains("git push") && !text.contains("git status --porcelain") {
             total += 1;
         }
-        if (text.contains("cp -r .") || text.contains("rsync -a ."))
-            && !text.contains("/.git")
-        {
+        if (text.contains("cp -r .") || text.contains("rsync -a .")) && !text.contains("/.git") {
             total += 1;
         }
     }
@@ -183,6 +217,7 @@ fn git_files(ctx: &AuditContext) -> Vec<FileInfo> {
 fn is_git_file(file: &FileInfo) -> bool {
     if is_docs_reference_tips_or_generated(&file.rel_path)
         || is_test_fixture_or_example(&file.rel_path)
+        || super::gittools::is_gittools_owned_surface(&file.rel_path)
     {
         return false;
     }
@@ -437,6 +472,10 @@ fn line_kind(file: &FileInfo) -> &'static str {
     }
 }
 
-fn push_once(out: &mut Vec<LanguageFinding>, _seen: &mut BTreeSet<&'static str>, finding: LanguageFinding) {
+fn push_once(
+    out: &mut Vec<LanguageFinding>,
+    _seen: &mut BTreeSet<&'static str>,
+    finding: LanguageFinding,
+) {
     out.push(finding);
 }

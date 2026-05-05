@@ -7,8 +7,8 @@ pub mod catalog;
 pub mod classify;
 pub mod receipts;
 pub mod shared;
-pub mod surface_rules;
 pub mod summary;
+pub mod surface_rules;
 
 use catalog::Catalog;
 use classify::{classify_changed_path, obligation_for_surface};

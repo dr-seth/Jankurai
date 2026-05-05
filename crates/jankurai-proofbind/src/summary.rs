@@ -29,7 +29,10 @@ pub(crate) fn obligation_summary(
     obligations: &[crate::ProofObligation],
     mode: crate::ProofBindMode,
 ) -> ObligationSummary {
-    let satisfied = obligations.iter().filter(|obligation| obligation.satisfied).count();
+    let satisfied = obligations
+        .iter()
+        .filter(|obligation| obligation.satisfied)
+        .count();
     let missing = obligations.len().saturating_sub(satisfied);
     let high_or_critical_missing = obligations
         .iter()

@@ -40,3 +40,13 @@ viewports = ["390x844"]
     viewports: [{ width: 390, height: 844 }]
   });
 });
+
+test("config rejects malformed JSON shapes", async ({}, testInfo) => {
+  const path = testInfo.outputPath("ux-qa.json");
+  await writeFile(path, JSON.stringify({
+    artifactRoot: "target/jankurai/ux-qa",
+    requiredStates: ["loading", "bogus"]
+  }), "utf8");
+
+  await expect(readUxQaConfig(path)).rejects.toThrow(/invalid ux-qa config/i);
+});

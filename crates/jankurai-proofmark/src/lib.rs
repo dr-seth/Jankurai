@@ -5,8 +5,8 @@ use std::path::PathBuf;
 
 pub mod coverage;
 pub mod engine;
-pub mod report;
 pub mod render;
+pub mod report;
 pub mod shared;
 
 pub const PROOFMARK_SCHEMA_VERSION: &str = "1.0.0";

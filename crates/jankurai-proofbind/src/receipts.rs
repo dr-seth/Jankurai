@@ -137,15 +137,16 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
         }
     }
     let null_value = Value::Null;
-    let proofmark = if let Some(proofmark) = value
-        .get("extensions")
-        .and_then(|v| v.get("proofmark"))
+    let proofmark =
+        if let Some(proofmark) = value.get("extensions").and_then(|v| v.get("proofmark")) {
+            proofmark
+        } else {
+            &null_value
+        };
+    let satisfied_obligations = if let Some(items) = proofmark
+        .get("satisfied_obligations")
+        .and_then(Value::as_array)
     {
-        proofmark
-    } else {
-        &null_value
-    };
-    let satisfied_obligations = if let Some(items) = proofmark.get("satisfied_obligations").and_then(Value::as_array) {
         items
             .iter()
             .filter_map(Value::as_str)

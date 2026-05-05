@@ -792,6 +792,8 @@ pub fn bad_python_path_hits(ctx: &AuditContext) -> Vec<FileInfo> {
         .filter(|f| {
             f.suffix == ".py"
                 && !is_allowed_python_path(&f.rel_path)
+                && !f.rel_path.contains("/tests/fixtures/")
+                && !f.rel_path.starts_with("tests/fixtures/")
                 && !accepted_boundary_file_for_cap(ctx, &f.rel_path, PYTHON_DIRECT_CAP)
         })
         .cloned()

@@ -4,11 +4,11 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 use crate::coverage::{changed_lines_for_paths, load_coverage};
+use crate::render::{render_markdown, standard_proof_receipt};
 use crate::report::{
     changed_unit, coverage_summary, load_mutation, load_obligations, obligation_result,
     proofmark_summary,
 };
-use crate::render::{render_markdown, standard_proof_receipt};
 use crate::shared::{elapsed_ms, git_output, resolve_changed_paths, unix_seconds};
 use crate::{ProofMarkMode, ProofMarkOutput, ProofMarkReceipt};
 
@@ -23,13 +23,13 @@ pub(crate) fn build_proofmark_output(
     mode: ProofMarkMode,
 ) -> Result<ProofMarkOutput> {
     let started = SystemTime::now();
-    let changed_paths = resolve_changed_paths(&repo, &changed_paths, changed_from.as_deref(), |path| {
-        path.ends_with(".rs")
-    })?;
+    let changed_paths =
+        resolve_changed_paths(&repo, &changed_paths, changed_from.as_deref(), |path| {
+            path.ends_with(".rs")
+        })?;
     let coverage = load_coverage(&repo, coverage_path.as_deref())?;
     let mutation = load_mutation(&repo, mutation_path.as_deref())?;
-    let changed_lines =
-        changed_lines_for_paths(&repo, changed_from.as_deref(), &changed_paths);
+    let changed_lines = changed_lines_for_paths(&repo, changed_from.as_deref(), &changed_paths);
     let changed_units = changed_paths
         .iter()
         .filter(|path| path.ends_with(".rs"))
@@ -50,14 +50,17 @@ pub(crate) fn build_proofmark_output(
                 .any(|lane| lane == "proofmark-rust")
                 || obligation.path.ends_with(".rs")
         })
-        .map(|obligation| obligation_result(obligation, &changed_units, &mutation, &negative_proofs))
+        .map(|obligation| {
+            obligation_result(obligation, &changed_units, &mutation, &negative_proofs)
+        })
         .collect::<Vec<_>>();
     let satisfied_obligations = obligation_results
         .iter()
         .filter(|result| result.status == "pass")
         .map(|result| result.obligation_id.clone())
         .collect::<Vec<_>>();
-    let coverage_summary = coverage_summary(coverage_path.as_deref(), &changed_units, coverage.loaded);
+    let coverage_summary =
+        coverage_summary(coverage_path.as_deref(), &changed_units, coverage.loaded);
     let summary = proofmark_summary(&changed_units, &obligation_results, mode);
     let generated_at = unix_seconds();
     let git_head = if let Some(head) = git_output(&repo, &["rev-parse", "--short", "HEAD"]) {
@@ -80,7 +83,13 @@ pub(crate) fn build_proofmark_output(
         satisfied_obligations,
         summary,
     };
-    let proof_receipt = standard_proof_receipt(&repo, &receipt, elapsed_ms(started), &generated_at, &git_head);
+    let proof_receipt = standard_proof_receipt(
+        &repo,
+        &receipt,
+        elapsed_ms(started),
+        &generated_at,
+        &git_head,
+    );
     let markdown = render_markdown(&receipt);
     Ok(ProofMarkOutput {
         receipt,

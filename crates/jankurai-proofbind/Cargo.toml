@@ -1,6 +1,6 @@
 [package]
 name = "jankurai-proofbind"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 description = "Semantic surface routing and proof obligation binding for Jankurai."
 license = "MIT"

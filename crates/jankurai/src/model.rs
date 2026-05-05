@@ -1,10 +1,10 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-pub const STANDARD_VERSION: &str = "0.7.0";
-pub const AUDITOR_VERSION: &str = "0.7.0";
+pub const STANDARD_VERSION: &str = "0.8.0";
+pub const AUDITOR_VERSION: &str = "0.8.0";
 pub const SCHEMA_VERSION: &str = "1.5.0";
-pub const PAPER_EDITION: &str = "2026.05-ed7";
+pub const PAPER_EDITION: &str = "2026.05-ed8";
 pub const TARGET_STACK_ID: &str = "rust-ts-vite-react-postgres-bounded-python";
 pub const TARGET_STACK: &str = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service";
 

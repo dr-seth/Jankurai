@@ -91,9 +91,15 @@ pub(crate) fn contains_process_sink(text: &str) -> bool {
 }
 
 pub(crate) fn contains_destructive_sql(text: &str) -> bool {
-    ["drop table", "drop column", "truncate", "delete from", "alter table"]
-        .iter()
-        .any(|needle| text.contains(needle))
+    [
+        "drop table",
+        "drop column",
+        "truncate",
+        "delete from",
+        "alter table",
+    ]
+    .iter()
+    .any(|needle| text.contains(needle))
 }
 
 pub(crate) fn is_agent_tool_surface(path: &str, text: &str) -> bool {

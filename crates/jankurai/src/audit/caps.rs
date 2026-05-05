@@ -249,6 +249,12 @@ pub const CAP_SPECS: &[CapSpec] = &[
         rule_id: Some("HLT-035-GIT-BAD-BEHAVIOR"),
         hardness: "hard",
     },
+    CapSpec {
+        key: "gittools-bad-behavior",
+        max_score: 70,
+        rule_id: Some("HLT-036-GITTOOLS-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
 ];
 
 pub const CAPS: &[(&str, i32)] = &[
@@ -292,6 +298,7 @@ pub const CAPS: &[(&str, i32)] = &[
     ("python-bad-behavior", 72),
     ("ci-bad-behavior", 70),
     ("git-bad-behavior", 70),
+    ("gittools-bad-behavior", 70),
 ];
 
 pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> Vec<String> {
@@ -425,6 +432,9 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     }
     if crate::audit::language_rules::git::summary(ctx).hard_findings > 0 {
         caps.push("git-bad-behavior".into());
+    }
+    if crate::audit::language_rules::gittools::summary(ctx).hard_findings > 0 {
+        caps.push("gittools-bad-behavior".into());
     }
     caps
 }

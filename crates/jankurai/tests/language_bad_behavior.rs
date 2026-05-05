@@ -1,7 +1,7 @@
 use jankurai::audit::{
     self,
     helpers::AuditContext,
-    language_rules::{ci, docker, git, python, sql, typescript},
+    language_rules::{ci, docker, git, gittools, python, sql, typescript},
 };
 use jankurai::model::{FileInfo, Finding};
 use serde_json::Value as JsonValue;
@@ -42,6 +42,20 @@ mod audit_packet {
             include!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/src/audit/language_rules/git.rs"
+            ));
+        }
+
+        pub mod gittools {
+            include!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/audit/language_rules/gittools.rs"
+            ));
+        }
+
+        pub mod python {
+            include!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/audit/language_rules/python.rs"
             ));
         }
     }
@@ -106,12 +120,7 @@ fn assert_finding(findings: &[Finding], path: &str, matched_term: &str, evidence
     );
 }
 
-fn assert_has_finding(
-    findings: &[Finding],
-    path: &str,
-    matched_term: &str,
-    evidence_term: &str,
-) {
+fn assert_has_finding(findings: &[Finding], path: &str, matched_term: &str, evidence_term: &str) {
     assert!(
         findings.iter().any(|finding| {
             finding.path == path
@@ -235,37 +244,6 @@ fn sql_fixture_corpus_covers_risky_and_safe_cases() {
 }
 
 #[test]
-fn python_fixture_corpus_covers_risky_and_safe_cases() {
-    let cases: &[(&str, &[&str])] = &[
-        ("python/risky/dynamic_code.py", &["eval("]),
-        ("python/risky/unsafe_deser.py", &["pickle.loads"]),
-        ("python/risky/shell_dynamic.py", &["shell=True"]),
-        (
-            "python/risky/sql_string_built.py",
-            &["cursor.execute", "f\"SELECT *"],
-        ),
-        ("python/risky/tls_debug.py", &["verify=False"]),
-        ("python/safe/parameterized.py", &["cursor.execute", "%s"]),
-        ("python/safe/safe_deser.py", &["safe_load"]),
-        (
-            "python/safe/safe_shell.py",
-            &["subprocess.run", "[\"git\", \"status\"]"],
-        ),
-        ("python/safe/secure_tls.py", &["verify=True"]),
-    ];
-
-    for (rel, needles) in cases {
-        let text = read_fixture(rel);
-        for needle in *needles {
-            assert!(
-                text.contains(needle),
-                "fixture {rel} missing `{needle}`\n{text}"
-            );
-        }
-    }
-}
-
-#[test]
 fn sql_risky_fixtures_emit_hlt030_findings() {
     let repo = tempdir().unwrap();
     copy_fixture(
@@ -324,6 +302,37 @@ fn sql_safe_fixtures_emit_no_hlt030_findings() {
 }
 
 #[test]
+fn python_fixture_corpus_covers_risky_and_safe_cases() {
+    let cases: &[(&str, &[&str])] = &[
+        ("python/risky/dynamic_code.py", &["eval("]),
+        ("python/risky/unsafe_deser.py", &["pickle.loads"]),
+        ("python/risky/shell_dynamic.py", &["shell=True"]),
+        (
+            "python/risky/sql_string_built.py",
+            &["cursor.execute", "f\"SELECT *"],
+        ),
+        ("python/risky/tls_debug.py", &["verify=False"]),
+        ("python/safe/parameterized.py", &["cursor.execute", "%s"]),
+        ("python/safe/safe_deser.py", &["safe_load"]),
+        (
+            "python/safe/safe_shell.py",
+            &["subprocess.run", "[\"git\", \"status\"]"],
+        ),
+        ("python/safe/secure_tls.py", &["verify=True"]),
+    ];
+
+    for (rel, needles) in cases {
+        let text = read_fixture(rel);
+        for needle in *needles {
+            assert!(
+                text.contains(needle),
+                "fixture {rel} missing `{needle}`\n{text}"
+            );
+        }
+    }
+}
+
+#[test]
 fn python_risky_fixtures_emit_hlt033_findings() {
     let repo = tempdir().unwrap();
     copy_fixture(
@@ -353,31 +362,31 @@ fn python_risky_fixtures_emit_hlt033_findings() {
     assert_finding(
         &findings,
         "src/dynamic_code.py",
-        "eval",
+        "python.exec.dynamic-code",
         "detector=python.exec.dynamic-code",
     );
     assert_finding(
         &findings,
         "src/unsafe_deser.py",
-        "pickle",
+        "python.deser.unsafe-object",
         "detector=python.deser.unsafe-object",
     );
     assert_finding(
         &findings,
         "src/shell_dynamic.py",
-        "shell=True",
+        "python.shell.dynamic",
         "detector=python.shell.dynamic",
     );
     assert_finding(
         &findings,
         "src/sql_string_built.py",
-        "execute",
+        "python.sql.string-built",
         "detector=python.sql.string-built",
     );
     assert_finding(
         &findings,
         "src/tls_debug.py",
-        "verify=False",
+        "python.net.tls-debug",
         "detector=python.net.tls-debug",
     );
 }
@@ -432,15 +441,15 @@ fn docs_tips_reference_and_generated_paths_stay_out_of_sql_python_scans() {
     assert!(findings_for(repo.path(), "HLT-032-DOCKER-BAD-BEHAVIOR").is_empty());
     assert!(findings_for(repo.path(), "HLT-034-CI-BAD-BEHAVIOR").is_empty());
     assert!(findings_for(repo.path(), "HLT-035-GIT-BAD-BEHAVIOR").is_empty());
+    assert!(findings_for(repo.path(), "HLT-036-GITTOOLS-BAD-BEHAVIOR").is_empty());
 }
 
 #[test]
 fn language_bad_behavior_lane_and_test_map_are_routed() {
     let repo = repo_root();
-    let test_map: JsonValue = serde_json::from_str(
-        &fs::read_to_string(repo.join("agent/test-map.json")).unwrap(),
-    )
-    .unwrap();
+    let test_map: JsonValue =
+        serde_json::from_str(&fs::read_to_string(repo.join("agent/test-map.json")).unwrap())
+            .unwrap();
     let entries = test_map["tests"]
         .as_object()
         .expect("test map must contain a tests object");
@@ -453,27 +462,26 @@ fn language_bad_behavior_lane_and_test_map_are_routed() {
         "crates/jankurai/tests/fixtures/language_bad_behavior/python/",
         "crates/jankurai/tests/fixtures/language_bad_behavior/ci/",
         "crates/jankurai/tests/fixtures/language_bad_behavior/git/",
+        "crates/jankurai/tests/fixtures/language_bad_behavior/gittools/",
     ] {
         let entry = entries
             .get(path)
             .unwrap_or_else(|| panic!("missing test-map entry for {path}"));
         assert_eq!(
-            entry["command"],
-            "cargo test -p jankurai language_bad_behavior",
+            entry["command"], "cargo test -p jankurai language_bad_behavior",
             "unexpected command for {path}"
         );
     }
 
     let lanes: toml::Value =
         toml::from_str(&fs::read_to_string(repo.join("agent/proof-lanes.toml")).unwrap()).unwrap();
-    let lane_entries = lanes["lane"].as_array().expect("proof lanes must be an array");
+    let lane_entries = lanes["lane"]
+        .as_array()
+        .expect("proof lanes must be an array");
     let lane = lane_entries
         .iter()
         .find(|entry| {
-            entry
-                .get("command_id")
-                .and_then(|v| v.as_str())
-                == Some("lane.language-bad-behavior")
+            entry.get("command_id").and_then(|v| v.as_str()) == Some("lane.language-bad-behavior")
         })
         .expect("missing language-bad-behavior lane");
     let rules = lane
@@ -488,6 +496,7 @@ fn language_bad_behavior_lane_and_test_map_are_routed() {
         "HLT-033-PYTHON-BAD-BEHAVIOR",
         "HLT-034-CI-BAD-BEHAVIOR",
         "HLT-035-GIT-BAD-BEHAVIOR",
+        "HLT-036-GITTOOLS-BAD-BEHAVIOR",
     ] {
         assert!(
             rules.iter().any(|value| value.as_str() == Some(rule_id)),
@@ -526,6 +535,7 @@ fn catalog_entries_reference_stable_hlt_rules() {
     let docker_rules = docker::catalog();
     let ci_rules = ci::catalog();
     let git_rules = git::catalog();
+    let gittools_rules = gittools::catalog();
     let mut ids = HashSet::new();
     for rule in sql_rules
         .iter()
@@ -534,6 +544,7 @@ fn catalog_entries_reference_stable_hlt_rules() {
         .chain(docker_rules.iter())
         .chain(ci_rules.iter())
         .chain(git_rules.iter())
+        .chain(gittools_rules.iter())
     {
         ids.insert(rule.hlt_rule_id);
     }
@@ -543,6 +554,7 @@ fn catalog_entries_reference_stable_hlt_rules() {
     assert!(ids.contains("HLT-032-DOCKER-BAD-BEHAVIOR"));
     assert!(ids.contains("HLT-034-CI-BAD-BEHAVIOR"));
     assert!(ids.contains("HLT-035-GIT-BAD-BEHAVIOR"));
+    assert!(ids.contains("HLT-036-GITTOOLS-BAD-BEHAVIOR"));
     assert!(sql_rules
         .iter()
         .all(|rule| rule.hlt_rule_id == "HLT-030-SQL-BAD-BEHAVIOR"));
@@ -561,6 +573,9 @@ fn catalog_entries_reference_stable_hlt_rules() {
     assert!(git_rules
         .iter()
         .all(|rule| rule.hlt_rule_id == "HLT-035-GIT-BAD-BEHAVIOR"));
+    assert!(gittools_rules
+        .iter()
+        .all(|rule| rule.hlt_rule_id == "HLT-036-GITTOOLS-BAD-BEHAVIOR"));
 }
 
 #[test]
@@ -591,16 +606,21 @@ fn typescript_fixture_corpus_covers_risky_and_safe_cases() {
 #[test]
 fn docker_fixture_corpus_covers_risky_and_safe_cases() {
     let cases: &[(&str, &[&str])] = &[
-        ("docker/risky/Dockerfile", &["FROM node:latest", "curl", ".env"]),
+        (
+            "docker/risky/Dockerfile",
+            &["FROM node:latest", "curl", ".env"],
+        ),
         (
             "docker/risky/docker-compose.yml",
-            &["privileged: true", "network_mode: host", "/var/run/docker.sock", "seccomp=unconfined"],
+            &[
+                "privileged: true",
+                "network_mode: host",
+                "/var/run/docker.sock",
+                "seccomp=unconfined",
+            ],
         ),
         ("docker/safe/Dockerfile", &["HEALTHCHECK", "USER node"]),
-        (
-            "docker/safe/docker-compose.yml",
-            &["127.0.0.1:5432:5432"],
-        ),
+        ("docker/safe/docker-compose.yml", &["127.0.0.1:5432:5432"]),
     ];
 
     for (rel, needles) in cases {
@@ -627,7 +647,10 @@ fn ci_fixture_corpus_covers_risky_and_safe_cases() {
                 "actions/upload-artifact@latest",
             ],
         ),
-        ("ci/safe/safe.yml", &["pull_request", "contents: read", "actions/checkout@v4"]),
+        (
+            "ci/safe/safe.yml",
+            &["pull_request", "contents: read", "actions/checkout@v4"],
+        ),
     ];
 
     for (rel, needles) in cases {
@@ -675,6 +698,52 @@ fn git_fixture_corpus_covers_risky_and_safe_cases() {
 }
 
 #[test]
+fn gittools_fixture_corpus_covers_risky_and_safe_cases() {
+    let cases: &[(&str, &[&str])] = &[
+        (
+            "gittools/risky/.husky/pre-commit",
+            &["git reset --hard", "git add ."],
+        ),
+        (
+            "gittools/risky/package.json",
+            &["git commit --no-verify", "lint-staged", "git add ."],
+        ),
+        (
+            "gittools/risky/.pre-commit-config.yaml",
+            &["git push --no-verify"],
+        ),
+        ("gittools/risky/lefthook.yml", &["git clean -fdx"]),
+        (
+            "gittools/risky/scripts/install-hooks.sh",
+            &["core.hooksPath /dev/null", ".git/hooks/pre-commit"],
+        ),
+        ("gittools/safe/.husky/pre-commit", &["npm run lint:staged"]),
+        (
+            "gittools/safe/package.json",
+            &["lint-staged", "eslint --fix"],
+        ),
+        (
+            "gittools/safe/.pre-commit-config.yaml",
+            &["rev: v4.6.0", "check-yaml"],
+        ),
+        (
+            "gittools/safe/.github/workflows/quality.yml",
+            &["pre-commit run --all-files"],
+        ),
+    ];
+
+    for (rel, needles) in cases {
+        let text = read_fixture(rel);
+        for needle in *needles {
+            assert!(
+                text.contains(needle),
+                "fixture {rel} missing `{needle}`\n{text}"
+            );
+        }
+    }
+}
+
+#[test]
 fn typescript_risky_fixtures_emit_hlt031_findings() {
     let repo = tempdir().unwrap();
     copy_fixture(
@@ -703,7 +772,11 @@ fn typescript_risky_fixtures_emit_hlt031_findings() {
         "src/raw_command_sql.ts",
     );
     copy_fixture(repo.path(), "typescript/risky/raw_sql.ts", "src/raw_sql.ts");
-    copy_fixture(repo.path(), "typescript/risky/strict_false.json", "tsconfig.json");
+    copy_fixture(
+        repo.path(),
+        "typescript/risky/strict_false.json",
+        "tsconfig.json",
+    );
 
     let findings = findings_for(repo.path(), "HLT-031-TYPESCRIPT-BAD-BEHAVIOR");
     assert_eq!(findings.len(), 9, "{findings:?}");
@@ -756,11 +829,7 @@ fn typescript_risky_fixtures_emit_hlt031_findings() {
 #[test]
 fn typescript_safe_fixtures_emit_no_hlt031_findings() {
     let repo = tempdir().unwrap();
-    copy_fixture(
-        repo.path(),
-        "typescript/safe/guarded.ts",
-        "src/guarded.ts",
-    );
+    copy_fixture(repo.path(), "typescript/safe/guarded.ts", "src/guarded.ts");
     copy_fixture(
         repo.path(),
         "typescript/safe/strict_true.json",
@@ -854,7 +923,11 @@ fn docker_safe_fixtures_emit_no_hlt032_findings() {
 #[test]
 fn ci_risky_fixtures_emit_hlt034_findings() {
     let repo = tempdir().unwrap();
-    copy_fixture(repo.path(), "ci/risky/risky.yml", ".github/workflows/risky.yml");
+    copy_fixture(
+        repo.path(),
+        "ci/risky/risky.yml",
+        ".github/workflows/risky.yml",
+    );
 
     let findings = findings_for(repo.path(), "HLT-034-CI-BAD-BEHAVIOR");
     assert_eq!(findings.len(), 9, "{findings:?}");
@@ -911,7 +984,11 @@ fn ci_risky_fixtures_emit_hlt034_findings() {
 #[test]
 fn ci_safe_fixtures_emit_no_hlt034_findings() {
     let repo = tempdir().unwrap();
-    copy_fixture(repo.path(), "ci/safe/safe.yml", ".github/workflows/safe.yml");
+    copy_fixture(
+        repo.path(),
+        "ci/safe/safe.yml",
+        ".github/workflows/safe.yml",
+    );
 
     assert!(findings_for(repo.path(), "HLT-034-CI-BAD-BEHAVIOR").is_empty());
 }
@@ -919,7 +996,11 @@ fn ci_safe_fixtures_emit_no_hlt034_findings() {
 #[test]
 fn git_risky_fixtures_emit_hlt035_findings() {
     let repo = tempdir().unwrap();
-    copy_fixture(repo.path(), "git/risky/scripts/release.sh", "scripts/release.sh");
+    copy_fixture(
+        repo.path(),
+        "git/risky/scripts/release.sh",
+        "scripts/release.sh",
+    );
 
     let findings = findings_for(repo.path(), "HLT-035-GIT-BAD-BEHAVIOR");
     assert_eq!(findings.len(), 9, "{findings:?}");
@@ -976,7 +1057,143 @@ fn git_risky_fixtures_emit_hlt035_findings() {
 #[test]
 fn git_safe_fixtures_emit_no_hlt035_findings() {
     let repo = tempdir().unwrap();
-    copy_fixture(repo.path(), "git/safe/scripts/status.sh", "scripts/status.sh");
+    copy_fixture(
+        repo.path(),
+        "git/safe/scripts/status.sh",
+        "scripts/status.sh",
+    );
 
     assert!(findings_for(repo.path(), "HLT-035-GIT-BAD-BEHAVIOR").is_empty());
+}
+
+#[test]
+fn gittools_risky_fixtures_emit_hlt036_findings() {
+    let repo = tempdir().unwrap();
+    copy_fixture(
+        repo.path(),
+        "gittools/risky/.husky/pre-commit",
+        ".husky/pre-commit",
+    );
+    copy_fixture(repo.path(), "gittools/risky/package.json", "package.json");
+    copy_fixture(
+        repo.path(),
+        "gittools/risky/.pre-commit-config.yaml",
+        ".pre-commit-config.yaml",
+    );
+    copy_fixture(repo.path(), "gittools/risky/lefthook.yml", "lefthook.yml");
+    copy_fixture(
+        repo.path(),
+        "gittools/risky/scripts/install-hooks.sh",
+        "scripts/install-hooks.sh",
+    );
+
+    let report = audit::run_audit(repo.path(), &[]).unwrap();
+    assert!(
+        report
+            .caps_applied
+            .iter()
+            .any(|cap| cap == "gittools-bad-behavior"),
+        "{:?}",
+        report.caps_applied
+    );
+    let findings: Vec<_> = report
+        .findings
+        .into_iter()
+        .filter(|finding| finding.rule_id.as_deref() == Some("HLT-036-GITTOOLS-BAD-BEHAVIOR"))
+        .collect();
+    assert_eq!(findings.len(), 9, "{findings:?}");
+    assert_has_finding(
+        &findings,
+        ".husky/pre-commit",
+        "gittools.hook.destructive-git-command",
+        "detector=gittools.hook.destructive-git-command",
+    );
+    assert_has_finding(
+        &findings,
+        ".husky/pre-commit",
+        "gittools.hook.unbounded-stage",
+        "detector=gittools.hook.unbounded-stage",
+    );
+    assert_has_finding(
+        &findings,
+        "package.json",
+        "gittools.bypass.no-verify-automation",
+        "proof_window=none",
+    );
+    assert_has_finding(
+        &findings,
+        "package.json",
+        "gittools.lint-staged.manual-restage",
+        "snippet=",
+    );
+    assert_has_finding(
+        &findings,
+        ".pre-commit-config.yaml",
+        "gittools.bypass.no-verify-automation",
+        "line=",
+    );
+    assert_has_finding(
+        &findings,
+        "lefthook.yml",
+        "gittools.hook.destructive-git-command",
+        "detector=gittools.hook.destructive-git-command",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/install-hooks.sh",
+        "gittools.hooks-path.disabled",
+        "detector=gittools.hooks-path.disabled",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/install-hooks.sh",
+        "gittools.raw-hooks.unversioned-install",
+        "detector=gittools.raw-hooks.unversioned-install",
+    );
+}
+
+#[test]
+fn gittools_safe_fixtures_emit_no_hlt036_findings() {
+    let repo = tempdir().unwrap();
+    copy_fixture(
+        repo.path(),
+        "gittools/safe/.husky/pre-commit",
+        ".husky/pre-commit",
+    );
+    copy_fixture(repo.path(), "gittools/safe/package.json", "package.json");
+    copy_fixture(
+        repo.path(),
+        "gittools/safe/.pre-commit-config.yaml",
+        ".pre-commit-config.yaml",
+    );
+    copy_fixture(
+        repo.path(),
+        "gittools/safe/.github/workflows/quality.yml",
+        ".github/workflows/quality.yml",
+    );
+
+    assert!(findings_for(repo.path(), "HLT-036-GITTOOLS-BAD-BEHAVIOR").is_empty());
+}
+
+#[test]
+fn gittools_summary_reports_hard_and_advisory_counts() {
+    let ctx = ctx_with_files(vec![file_info(
+        ".husky/pre-commit",
+        "git add .\ncargo test\n",
+    )]);
+    let summary = gittools::summary(&ctx);
+    assert_eq!(summary.hard_findings, 1, "{summary:?}");
+    assert_eq!(summary.advisory_signals, 2, "{summary:?}");
+}
+
+#[test]
+fn gittools_surfaces_do_not_double_score_as_generic_git() {
+    let repo = tempdir().unwrap();
+    write(
+        &repo.path().join(".husky/pre-commit"),
+        "git reset --hard HEAD\n",
+    );
+
+    assert!(findings_for(repo.path(), "HLT-035-GIT-BAD-BEHAVIOR").is_empty());
+    assert!(!findings_for(repo.path(), "HLT-036-GITTOOLS-BAD-BEHAVIOR").is_empty());
 }

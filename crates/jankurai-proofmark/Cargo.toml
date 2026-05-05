@@ -1,6 +1,6 @@
 [package]
 name = "jankurai-proofmark"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 description = "Changed-behavior proof receipt engine for Jankurai."
 license = "MIT"

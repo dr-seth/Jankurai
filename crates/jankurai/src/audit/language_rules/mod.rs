@@ -1,8 +1,9 @@
+pub mod catalog;
 pub mod ci;
 pub mod common;
-pub mod catalog;
 pub mod docker;
 pub mod git;
+pub mod gittools;
 pub mod python;
 pub mod rust;
 pub mod sql;
@@ -27,5 +28,6 @@ pub fn findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
     out.extend(python::findings(ctx));
     out.extend(ci::findings(ctx));
     out.extend(git::findings(ctx));
+    out.extend(gittools::findings(ctx));
     out
 }

@@ -260,6 +260,15 @@ pub fn is_fixed_safe_command_invocation(line: &str) -> bool {
     looks_fixed && !looks_shell && !has_shell_eval
 }
 
+fn is_import_only_line(lower: &str) -> bool {
+    let trimmed = lower.trim();
+    (trimmed.starts_with("import ") || trimmed.starts_with("const ") || trimmed.starts_with("let "))
+        && (trimmed.contains(" from ") || trimmed.contains("require("))
+        && !trimmed.contains(".exec(")
+        && !trimmed.contains(".spawn(")
+        && !trimmed.contains(".execfile(")
+}
+
 pub const AGENT_TOOL_SUPPLY_PATTERNS: &[&str] = &[
     "mcp",
     "modelcontextprotocol",
@@ -561,7 +570,7 @@ pub fn input_boundary_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             let matched = if lower.contains("eval(") {
                 Some("eval(")
             } else if lower.contains("exec(")
-                || lower.contains("child_process")
+                || (lower.contains("child_process") && !is_import_only_line(&lower))
                 || lower.contains("shell=true")
             {
                 Some("shell execution")
@@ -773,6 +782,7 @@ pub fn human_review_evidence_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         !file.is_generated
             && !file.rel_path.starts_with("reference/")
             && !file.rel_path.starts_with("tips/")
+            && !file.rel_path.starts_with("paper/")
             && file.rel_path != "agent/vibe-coverage.toml"
             && !file.rel_path.starts_with("crates/jankurai/")
     }) {

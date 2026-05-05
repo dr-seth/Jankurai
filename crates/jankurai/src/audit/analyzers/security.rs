@@ -115,6 +115,11 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             crate::audit::language_rules::git::summary(ctx).hard_findings,
             crate::audit::language_rules::git::summary(ctx).advisory_signals,
         ),
+        (
+            "gittools",
+            crate::audit::language_rules::gittools::summary(ctx).hard_findings,
+            crate::audit::language_rules::gittools::summary(ctx).advisory_signals,
+        ),
     ] {
         if hard > 0 {
             evidence.push(format!("{label} bad-behavior hard findings: {hard}"));
