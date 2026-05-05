@@ -48,9 +48,13 @@
 
 \begin{titlepage}
 \centering
-\vspace*{0.15in}
-{\Huge\bfseries Jankurai\par}
-\vspace{0.25em}
+\vspace*{0.05in}
+\IfFileExists{assets/jankurai_github_header_transparent.png}{%
+  \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio]{assets/jankurai_github_header_transparent.png}%
+}{%
+  \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio]{../assets/jankurai_github_header_transparent.png}%
+}
+\vspace{0.6em}
 {\Large\bfseries The Anti-Vibe Coding Standard\par}
 \vspace{0.25em}
 {\large\bfseries Continuous Repository Alignment for Proof-Carrying AI Pull Requests\par}
@@ -62,12 +66,6 @@
 {\small\texttt{status=public\_draft} \textbullet{} \texttt{standard\_version=0.7.0} \textbullet{} \texttt{auditor\_version=0.7.0}\par}
 \vspace{0.15em}
 {\small\texttt{schema\_version=1.5.0} \textbullet{} \texttt{paper\_edition=2026.05-ed7}\par}
-\vspace{0.65em}
-\IfFileExists{assets/jankurai_github_header_transparent.png}{%
-  \includegraphics[width=0.44\textwidth,height=0.10\textheight,keepaspectratio]{assets/jankurai_github_header_transparent.png}%
-}{%
-  \includegraphics[width=0.44\textwidth,height=0.10\textheight,keepaspectratio]{../assets/jankurai_github_header_transparent.png}%
-}
 \vspace{0.8em}
 
 \begin{minipage}{0.92\textwidth}
