@@ -1,18 +1,12 @@
 \input{paper/tex/frontmatter}
 
 \input{paper/tex/sections/01_new_bottleneck}
-\FloatBarrier
 \input{paper/tex/sections/02_running_example}
 \input{paper/tex/sections/02_definitions_threat_model}
-\FloatBarrier
 \input{paper/tex/sections/06_jankurai_standard}
-\FloatBarrier
 \input{paper/tex/sections/05_fault_taxonomy}
-\FloatBarrier
 \input{paper/tex/sections/07_evaluation_and_conformance_suite}
-\FloatBarrier
 \input{paper/tex/sections/08_public_repo_scoring}
-\FloatBarrier
 \input{paper/tex/sections/10_agent_controls}
 \input{paper/tex/sections/11_continuous_proof}
 \input{paper/tex/sections/12_pixel_qa}
@@ -24,13 +18,16 @@
 \input{paper/tex/sections/07_stack_rubric}
 \input{paper/tex/sections/08_stack_ranking}
 \input{paper/tex/sections/09_winner_architecture}
-\FloatBarrier
 \input{paper/tex/sections/15_vibe_bad_behavior_discussion}
-\FloatBarrier
 \input{paper/tex/sections/15_related_work}
 \input{paper/tex/sections/16_limitations_conclusion}
 
 \FloatBarrier
+\clearpage
+
+\bibliographystyle{IEEEtran}
+\bibliography{paper/references}
+
 \clearpage
 \appendices
 \onecolumn
@@ -42,11 +39,5 @@
 \input{paper/tex/appendices/e_command_map}
 \input{paper/tex/appendices/f_public_repo_scores}
 \input{paper/tex/appendices/g_language_bad_behavior_matrix}
-
-\clearpage
-\twocolumn
-
-\bibliographystyle{IEEEtran}
-\bibliography{paper/references}
 
 \end{document}

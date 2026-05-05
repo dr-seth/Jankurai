@@ -2,4 +2,5 @@
 // Source: contracts/api.json
 // Command: fixture regen
 // DO NOT EDIT BY HAND.
+// TODO: intentional generated drift fixture
 export const drift = true;

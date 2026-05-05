@@ -1,12 +1,13 @@
 # Jankurai Seed Conformance Suite
 
-This directory contains seed fixtures for the `0.7.0` paper cut. The suite is
+This directory contains seed fixtures for the `0.8.0` paper cut. The suite is
 not a broad benchmark. It is local conformance evidence for the standard's
 central claim: merge decisions should be reproducible from versioned artifacts.
 
-Fixture expectations live in `expected/*.json`. Each expected file names the
-fixture, the primary rule exercised, the expected audit decision, and the merge
-witness decision a conforming implementation should reach.
+Each fixture has a `jankurai-fixture.toml` manifest with changed paths,
+expected audit and witness decisions, expected rules, and optional proof
+receipts. Historical expectation summaries live in `expected/*.json`; the
+release evidence is produced by the observed runner.
 
 The seed suite is intentionally small:
 
@@ -24,5 +25,12 @@ The seed suite is intentionally small:
 Run:
 
 ```bash
-just conformance
+cargo run -p jankurai -- conformance run \
+  --fixtures conformance/fixtures \
+  --expected conformance/expected \
+  --out target/jankurai/conformance-results.json \
+  --md target/jankurai/conformance-results.md \
+  --tex paper/tex/generated/conformance_results_table.tex
 ```
+
+The command emits schema-valid JSON, Markdown, and the generated paper table.

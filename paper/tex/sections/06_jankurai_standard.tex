@@ -44,8 +44,8 @@ The standard's public primitive is the merge witness:
 \begin{lstlisting}[style=codebox]
 {
   "schema": "jankurai.merge_witness.v1",
-  "standard_version": "0.7.0",
-  "auditor_version": "0.7.0",
+  "standard_version": "0.8.0",
+  "auditor_version": "0.8.0",
   "schema_version": "1.5.0",
   "current_commit": "9f3a1c4",
   "changed_paths": [
@@ -54,11 +54,14 @@ The standard's public primitive is the merge witness:
     "contracts/openapi/api.yaml"
   ],
   "owner_route": ["web", "contracts"],
-  "required_receipts": ["web", "contract", "security"],
-  "present_receipts": ["contract"],
+  "required_lanes": ["web", "contract", "security"],
+  "present_receipts": {
+    "contract": "target/jankurai/receipts/contract.json"
+  },
+  "missing_receipts": ["web", "security"],
   "missing_evidence": [
-    "contract_receipt",
-    "rendered_ux_receipt"
+    "rendered_ux_receipt",
+    "security_receipt"
   ],
   "artifact_digests": {
     "contract_receipt": "sha256:...",
@@ -154,7 +157,7 @@ Audit JSON and audit Markdown & MUST & MUST & MUST & MUST & MUST & Machines cons
 Required proof receipts and merge witness & MAY & SHOULD & MUST & MUST & MUST & HL3 requires a merge witness and current proof receipts for all required changed-path lanes. \\
 Repair queue, score delta, historical audit comparison & MAY & SHOULD & SHOULD & MUST & MUST & The repo can route missing evidence and detect posture regression. \\
 Reproducible conformance-suite pass & MAY & MAY & SHOULD & SHOULD & MUST & HL5 requires runnable fixtures and independently repeatable expected output. \\
-Signed or independently verifiable receipts & MAY & MAY & MAY & SHOULD & SHOULD & Strongly recommended for release and federation; not required at HL3 in v0.7.0. \\
+Signed or independently verifiable receipts & MAY & MAY & MAY & SHOULD & SHOULD & Strongly recommended for release and federation; not required at HL3 in v0.8.0. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -210,6 +213,6 @@ Public evidence & \texttt{registry}, \texttt{cell}, \texttt{bench}, \texttt{cert
 \end{tabularx}
 \end{table}
 
-Stable rule identifiers make the standard repairable. \texttt{HLT-001} through \texttt{HLT-027} are stable rule families tied to evidence and repair, not just detector names. Appendix~A expands these IDs into required evidence and repair fields.
+Stable rule identifiers make the standard repairable. \texttt{HLT-001} through \texttt{HLT-036} are stable rule families tied to evidence and repair, not just detector names. Appendix~A expands these IDs into required evidence and repair fields.
 
 Centerline drift is the score delta between a repository's claimed standard and its observed behavior. Hard caps are versioned policy, not final empirical truth. Alternate stacks can conform if they provide equivalent owner routing, generated boundaries, proof lanes, security evidence, UX evidence, repair artifacts, and merge witnesses; Rust, TypeScript, and PostgreSQL are profile choices, not Core requirements.

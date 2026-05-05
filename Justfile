@@ -39,7 +39,8 @@ conformance:
     test -f conformance/README.md
     test "$(find conformance/fixtures -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "10"
     test "$(find conformance/expected -type f -name '*.json' | wc -l | tr -d ' ')" = "12"
-    cargo test -p jankurai conformance_fixture_inventory
+    cargo run -p jankurai -- conformance run --fixtures conformance/fixtures --expected conformance/expected --out target/jankurai/conformance-results.json --md target/jankurai/conformance-results.md --tex paper/tex/generated/conformance_results_table.tex
+    cargo test -p jankurai conformance
 
 self-audit:
     cargo run -p jankurai -- audit . --self-audit --json target/jankurai/self-audit.json --md target/jankurai/self-audit.md

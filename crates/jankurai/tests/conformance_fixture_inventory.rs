@@ -29,6 +29,10 @@ fn conformance_fixture_inventory_matches_paper_seed_suite() {
         "rendered-ux-gap-fail",
     ] {
         assert!(fixtures.join(name).exists(), "missing fixture {name}");
+        assert!(
+            fixtures.join(name).join("jankurai-fixture.toml").exists(),
+            "missing fixture manifest {name}"
+        );
     }
 
     let expected_json_count = fs::read_dir(&expected)

@@ -1,3 +1,3 @@
-export function renderUnsafe(input: string): string {
-  return `<div>${input}</div>`;
+export function renderUnsafe(target: HTMLElement, input: string): void {
+  target.innerHTML = input;
 }

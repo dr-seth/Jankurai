@@ -34,6 +34,13 @@ read_only = false
 write_policy = "generator_only"
 
 [[zone]]
+path = "paper/tex/generated/conformance_results_table.tex"
+source = "conformance/fixtures and conformance/expected"
+command = "cargo run -p jankurai -- conformance run --fixtures conformance/fixtures --expected conformance/expected --out target/jankurai/conformance-results.json --md target/jankurai/conformance-results.md --tex paper/tex/generated/conformance_results_table.tex"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
 path = "agent/repo-score.json"
 source = "crates/jankurai"
 command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
