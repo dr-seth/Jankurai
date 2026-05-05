@@ -11,14 +11,21 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const UPDATE_SCHEMA_VERSION: &str = "1.0.0";
 const STATE_SCHEMA_VERSION: &str = "1.0.0";
 const INSTALL_MANIFEST_SCHEMA_VERSION: &str = "1.0.0";
 const CLIENT_START_TTL_SECS: u64 = 60 * 30;
+const AUDIT_NETWORK_TIMEOUT_MS: u64 = 400;
 const DEFAULT_INSTALL_SOURCE: &str = "crates-io";
 const DEFAULT_UPDATE_CHANNEL: &str = "stable";
+const MANUAL_UPGRADE_COMMAND: &str = "jankurai upgrade";
+const NO_UPDATE_CHECK_ENV: &str = "JANKURAI_NO_UPDATE_CHECK";
+const TEST_LATEST_VERSION_ENV: &str = "JANKURAI_TEST_LATEST_VERSION";
+
+static AUDIT_UPGRADE_NOTICE_EMITTED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone)]
 pub struct UpdateArgs {
@@ -41,6 +48,16 @@ pub struct UpdateArgs {
     pub out: String,
     pub md: String,
     pub state: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpgradeNotice {
+    pub current_version: String,
+    pub latest_version: String,
+    pub manual_command: String,
+    pub state_status: String,
+    pub checked_live: bool,
+    pub cache_hit: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,6 +181,33 @@ struct UpdateState {
     md_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     manifest_hash: Option<String>,
+}
+
+pub fn audit_upgrade_notice(repo: &Path) -> Option<UpgradeNotice> {
+    if std::env::var(NO_UPDATE_CHECK_ENV).as_deref() == Ok("1") {
+        return None;
+    }
+
+    let repo = repo.canonicalize().unwrap_or_else(|_| repo.to_path_buf());
+    let args = default_audit_update_args(&repo);
+    let state_path = repo.join(&args.state);
+    if let Some(state) = read_state(&state_path) {
+        if state_is_fresh(&state) {
+            return notice_from_state(&state, false, true);
+        }
+    }
+
+    match build_plan(&repo, &args) {
+        Ok(plan) => {
+            let _ = write_state(&repo, &args, &plan);
+            notice_from_plan(&plan, true, false)
+        }
+        Err(_) => {
+            let fallback = fallback_error_state(&repo, &args);
+            let _ = write_update_state_file(&state_path, &fallback);
+            None
+        }
+    }
 }
 
 pub fn run(args: UpdateArgs) -> Result<()> {
@@ -291,12 +335,9 @@ pub fn run(args: UpdateArgs) -> Result<()> {
 
 fn run_client_start(repo: &Path, args: &UpdateArgs) -> Result<()> {
     let state_path = repo.join(&args.state);
-    if let Ok(text) = fs::read_to_string(&state_path) {
-        if let Ok(state) = serde_json::from_str::<UpdateState>(&text) {
-            let now = now_secs();
-            if now.saturating_sub(state.checked_at) <= state.ttl_seconds {
-                return Ok(());
-            }
+    if let Some(state) = read_state(&state_path) {
+        if state_is_fresh(&state) {
+            return Ok(());
         }
     }
     match build_plan(repo, args) {
@@ -305,24 +346,8 @@ fn run_client_start(repo: &Path, args: &UpdateArgs) -> Result<()> {
             Ok(())
         }
         Err(err) => {
-            let fallback = UpdateState {
-                schema_version: STATE_SCHEMA_VERSION.into(),
-                checked_at: now_secs(),
-                ttl_seconds: CLIENT_START_TTL_SECS,
-                repo_root: repo.display().to_string(),
-                status: "error".into(),
-                current_version: current_version(),
-                latest_version: None,
-                install_state: "unknown".into(),
-                plan_path: rel_path(repo, &repo.join(&args.out)),
-                md_path: rel_path(repo, &repo.join(&args.md)),
-                manifest_hash: None,
-            };
-            let _ = fs::create_dir_all(repo.join("target/jankurai/update"));
-            let _ = fs::write(
-                &state_path,
-                serde_json::to_string_pretty(&fallback).unwrap_or_default(),
-            );
+            let fallback = fallback_error_state(repo, args);
+            let _ = write_update_state_file(&state_path, &fallback);
             let _ = err;
             Ok(())
         }
@@ -676,7 +701,17 @@ fn resolve_latest_version(
 }
 
 fn fetch_crates_io_version() -> Result<Option<String>> {
-    let response = ureq::get("https://crates.io/api/v1/crates/jankurai").call();
+    if let Ok(version) = std::env::var(TEST_LATEST_VERSION_ENV) {
+        let version = version.trim();
+        return Ok((!version.is_empty()).then(|| version.to_string()));
+    }
+
+    let timeout = Duration::from_millis(AUDIT_NETWORK_TIMEOUT_MS);
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(timeout)
+        .timeout_read(timeout)
+        .build();
+    let response = agent.get("https://crates.io/api/v1/crates/jankurai").call();
     match response {
         Ok(response) => {
             let value: serde_json::Value = response.into_json()?;
@@ -910,8 +945,6 @@ fn write_receipt(repo: &Path, receipt: &UpdateReceipt) -> Result<PathBuf> {
 }
 
 fn write_state(repo: &Path, args: &UpdateArgs, plan: &UpdatePlan) -> Result<()> {
-    let dir = repo.join("target/jankurai/update");
-    fs::create_dir_all(&dir)?;
     let manifest_hash = load_install_manifest(&install_manifest_path(repo))
         .ok()
         .map(|manifest| sha256_text(&toml::to_string_pretty(&manifest).unwrap_or_default()));
@@ -928,10 +961,119 @@ fn write_state(repo: &Path, args: &UpdateArgs, plan: &UpdatePlan) -> Result<()> 
         md_path: plan.md_path.clone(),
         manifest_hash,
     };
-    fs::write(
-        repo.join(&args.state),
-        serde_json::to_string_pretty(&state)?,
-    )?;
+    write_update_state_file(&repo.join(&args.state), &state)?;
+    Ok(())
+}
+
+fn default_audit_update_args(repo: &Path) -> UpdateArgs {
+    UpdateArgs {
+        repo: repo.to_path_buf(),
+        check: true,
+        apply: false,
+        yes: false,
+        self_update: false,
+        skip_self: false,
+        client_start: true,
+        quiet: true,
+        channel: DEFAULT_UPDATE_CHANNEL.into(),
+        source: "auto".into(),
+        offline: false,
+        fail_if_outdated: false,
+        install_missing: false,
+        profile: "rust-ts-postgres".into(),
+        level: "full".into(),
+        ide: "all".into(),
+        out: "target/jankurai/update/update-plan.json".into(),
+        md: "target/jankurai/update/update-plan.md".into(),
+        state: "target/jankurai/update/state.json".into(),
+    }
+}
+
+fn read_state(path: &Path) -> Option<UpdateState> {
+    let text = fs::read_to_string(path).ok()?;
+    serde_json::from_str::<UpdateState>(&text).ok()
+}
+
+fn state_is_fresh(state: &UpdateState) -> bool {
+    now_secs().saturating_sub(state.checked_at) <= state.ttl_seconds
+}
+
+fn notice_from_state(
+    state: &UpdateState,
+    checked_live: bool,
+    cache_hit: bool,
+) -> Option<UpgradeNotice> {
+    let latest = state.latest_version.as_deref()?;
+    notice_if_newer(
+        &current_version(),
+        latest,
+        &state.status,
+        checked_live,
+        cache_hit,
+    )
+}
+
+fn notice_from_plan(
+    plan: &UpdatePlan,
+    checked_live: bool,
+    cache_hit: bool,
+) -> Option<UpgradeNotice> {
+    let latest = plan.latest_version.as_deref()?;
+    notice_if_newer(
+        &plan.current_version,
+        latest,
+        &plan.status,
+        checked_live,
+        cache_hit,
+    )
+}
+
+fn notice_if_newer(
+    current: &str,
+    latest: &str,
+    state_status: &str,
+    checked_live: bool,
+    cache_hit: bool,
+) -> Option<UpgradeNotice> {
+    let current_version = Version::parse(current).ok()?;
+    let latest_version = Version::parse(latest).ok()?;
+    if latest_version <= current_version {
+        return None;
+    }
+    if AUDIT_UPGRADE_NOTICE_EMITTED.swap(true, Ordering::SeqCst) {
+        return None;
+    }
+    Some(UpgradeNotice {
+        current_version: current.to_string(),
+        latest_version: latest.to_string(),
+        manual_command: MANUAL_UPGRADE_COMMAND.into(),
+        state_status: state_status.into(),
+        checked_live,
+        cache_hit,
+    })
+}
+
+fn fallback_error_state(repo: &Path, args: &UpdateArgs) -> UpdateState {
+    UpdateState {
+        schema_version: STATE_SCHEMA_VERSION.into(),
+        checked_at: now_secs(),
+        ttl_seconds: CLIENT_START_TTL_SECS,
+        repo_root: repo.display().to_string(),
+        status: "error".into(),
+        current_version: current_version(),
+        latest_version: None,
+        install_state: "unknown".into(),
+        plan_path: rel_path(repo, &repo.join(&args.out)),
+        md_path: rel_path(repo, &repo.join(&args.md)),
+        manifest_hash: None,
+    }
+}
+
+fn write_update_state_file(path: &Path, state: &UpdateState) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_string_pretty(state)?)?;
     Ok(())
 }
 
@@ -981,19 +1123,6 @@ fn build_self_update_command(
     }
     cmd.push("--root".into());
     cmd.push(cargo_root());
-    cmd.push("&&".into());
-    cmd.push("jankurai".into());
-    cmd.push("update".into());
-    cmd.push(repo.display().to_string());
-    cmd.push("--apply".into());
-    cmd.push("--yes".into());
-    cmd.push("--skip-self".into());
-    if args.offline {
-        cmd.push("--offline".into());
-    }
-    if args.quiet {
-        cmd.push("--quiet".into());
-    }
     let _ = plan;
     Ok(cmd)
 }

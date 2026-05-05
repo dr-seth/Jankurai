@@ -9,8 +9,35 @@ use jankurai::report::{issues, junit, sarif};
 use jankurai::validation::{self, ArtifactSchema};
 use std::collections::HashSet;
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 use tempfile::tempdir;
+
+fn write_audit_notice_fixture(repo: &Path) {
+    fs::write(
+        repo.join("AGENTS.md"),
+        "Read `agent/JANKURAI_STANDARD.md` first.\n",
+    )
+    .unwrap();
+    fs::write(
+        repo.join("README.md"),
+        "# Repo\n\nlayout map validate workspace\n",
+    )
+    .unwrap();
+    fs::write(repo.join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(repo.join("agent")).unwrap();
+    fs::write(
+        repo.join("agent/JANKURAI_STANDARD.md"),
+        "Standard version: `0.5.0`\n",
+    )
+    .unwrap();
+    fs::create_dir_all(repo.join("docs")).unwrap();
+    fs::write(
+        repo.join("docs/agent-native-standard.md"),
+        "Standard version: `0.5.0`\n",
+    )
+    .unwrap();
+}
 
 #[test]
 fn audit_report_serializes_against_repo_score_schema() {
@@ -41,6 +68,103 @@ fn audit_report_serializes_against_repo_score_schema() {
 
     let report = run_audit(dir.path(), &[]).unwrap();
     validation::validate_serializable(dir.path(), ArtifactSchema::RepoScore, &report).unwrap();
+}
+
+#[test]
+fn audit_cli_prints_upgrade_notice_when_newer_version_is_available() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+
+    let output = Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(dir.path().join("target/jankurai/repo-score.json"))
+        .arg("--md")
+        .arg(dir.path().join("target/jankurai/repo-score.md"))
+        .env("JANKURAI_TEST_LATEST_VERSION", "999.0.0")
+        .output()
+        .expect("spawn jankurai audit");
+
+    assert!(
+        output.status.success(),
+        "audit failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("upgrade available"));
+    assert!(stderr.contains("jankurai upgrade"));
+}
+
+#[test]
+fn audit_cli_update_notice_can_be_disabled_by_env() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+
+    let output = Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(dir.path().join("target/jankurai/repo-score.json"))
+        .arg("--md")
+        .arg(dir.path().join("target/jankurai/repo-score.md"))
+        .env("JANKURAI_TEST_LATEST_VERSION", "999.0.0")
+        .env("JANKURAI_NO_UPDATE_CHECK", "1")
+        .output()
+        .expect("spawn jankurai audit");
+
+    assert!(
+        output.status.success(),
+        "audit failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stderr.contains("upgrade available"));
+}
+
+#[test]
+fn audit_cli_reuses_fresh_update_state_without_live_check() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+
+    let first = Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(dir.path().join("target/jankurai/first.json"))
+        .arg("--md")
+        .arg(dir.path().join("target/jankurai/first.md"))
+        .env("JANKURAI_TEST_LATEST_VERSION", "999.0.0")
+        .output()
+        .expect("spawn first audit");
+    assert!(
+        first.status.success(),
+        "first audit failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&first.stdout),
+        String::from_utf8_lossy(&first.stderr)
+    );
+
+    let second = Command::new(env!("CARGO_BIN_EXE_jankurai"))
+        .arg("audit")
+        .arg(dir.path())
+        .arg("--json")
+        .arg(dir.path().join("target/jankurai/second.json"))
+        .arg("--md")
+        .arg(dir.path().join("target/jankurai/second.md"))
+        .env("JANKURAI_TEST_LATEST_VERSION", env!("CARGO_PKG_VERSION"))
+        .output()
+        .expect("spawn second audit");
+    assert!(
+        second.status.success(),
+        "second audit failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&second.stdout),
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&second.stderr);
+    assert!(stderr.contains("upgrade available"));
+    assert!(stderr.contains("999.0.0"));
 }
 
 #[test]

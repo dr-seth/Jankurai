@@ -34,6 +34,7 @@ enum Commands {
     Adopt(AdoptArgs),
     Init(InitArgs),
     Update(UpdateArgs),
+    Upgrade(UpgradeArgs),
     Doctor(DoctorArgs),
     ContextPack(ContextPackArgs),
     Witness(WitnessArgs),
@@ -314,6 +315,26 @@ struct UpdateArgs {
         default_value = "target/jankurai/update/state.json"
     )]
     state: String,
+}
+
+#[derive(Args, Debug)]
+struct UpgradeArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long)]
+    offline: bool,
+    #[arg(long)]
+    quiet: bool,
+    #[arg(long, default_value = "stable", value_parser = ["stable", "beta", "draft", "lts"])]
+    channel: String,
+    #[arg(long, default_value = "auto", value_parser = ["auto", "crates-io", "git", "local"])]
+    source: String,
+    #[arg(long, default_value = "rust-ts-postgres")]
+    profile: String,
+    #[arg(long, default_value = "full", value_parser = ["agents", "score", "ci", "full"])]
+    level: String,
+    #[arg(long, default_value = "all")]
+    ide: String,
 }
 
 #[derive(Args, Debug)]
@@ -939,6 +960,29 @@ fn main() -> anyhow::Result<()> {
                 out: args.out,
                 md: args.md,
                 state: args.state,
+            })?;
+        }
+        Some(Commands::Upgrade(args)) => {
+            update::run(update::UpdateArgs {
+                repo: args.repo,
+                check: false,
+                apply: true,
+                yes: true,
+                self_update: true,
+                skip_self: false,
+                client_start: false,
+                quiet: args.quiet,
+                channel: args.channel,
+                source: args.source,
+                offline: args.offline,
+                fail_if_outdated: false,
+                install_missing: false,
+                profile: args.profile,
+                level: args.level,
+                ide: args.ide,
+                out: "target/jankurai/update/update-plan.json".into(),
+                md: "target/jankurai/update/update-plan.md".into(),
+                state: "target/jankurai/update/state.json".into(),
             })?;
         }
         Some(Commands::Doctor(args)) => {
@@ -1651,6 +1695,18 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     if let Some(path) = args.timings_json.as_deref() {
         timings.total_ms = command_started.elapsed().as_millis();
         write_json(path, &serde_json::to_string_pretty(&timings)?)?;
+    }
+    if let Some(notice) = update::audit_upgrade_notice(&args.repo) {
+        eprintln!(
+            "{}",
+            jankurai::ui::epaint(
+                jankurai::ui::Style::Warn,
+                format!(
+                    "upgrade available: jankurai {} -> {}; run {}",
+                    notice.current_version, notice.latest_version, notice.manual_command
+                )
+            )
+        );
     }
     progress.finish(format!(
         "score {} raw {} findings {}",

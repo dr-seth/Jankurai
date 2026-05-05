@@ -461,3 +461,45 @@ fn update_self_flag_alias_is_accepted() {
         .join("target/jankurai/update/update-plan.json")
         .exists());
 }
+
+#[test]
+fn update_self_update_alias_is_accepted() {
+    let repo = tempdir().unwrap();
+    let status = Command::new(binary_path())
+        .arg("update")
+        .arg(repo.path())
+        .arg("--self-update")
+        .arg("--offline")
+        .arg("--quiet")
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/update-plan.json")
+        .exists());
+}
+
+#[test]
+fn upgrade_offline_writes_update_artifacts_and_receipt() {
+    let repo = tempdir().unwrap();
+    let status = Command::new(binary_path())
+        .arg("upgrade")
+        .arg(repo.path())
+        .arg("--offline")
+        .arg("--quiet")
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/update-plan.json")
+        .exists());
+    assert!(repo
+        .path()
+        .join("target/jankurai/update/state.json")
+        .exists());
+    let receipt_dir = repo.path().join("target/jankurai/receipts");
+    let receipt_count = fs::read_dir(receipt_dir).unwrap().count();
+    assert_eq!(receipt_count, 1);
+}

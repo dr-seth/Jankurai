@@ -106,9 +106,17 @@ Then open your coding agent from the same repo root and ask it to:
 Read AGENTS.md, follow the jankurai standard, then run the proof lane for my change.
 ```
 
-## Update An Initialized Repo
+## Upgrade Jankurai
 
-Check what would change:
+Audits check for available Jankurai upgrades automatically. The check is advisory only: audit never auto-applies an upgrade, never changes score reports with live version data, and silently continues when the network is unavailable.
+
+When audit reports an available upgrade, run:
+
+```bash
+jankurai upgrade
+```
+
+For advanced review-only checks, preview what would change:
 
 ```bash
 jankurai update . \
@@ -117,13 +125,7 @@ jankurai update . \
   --md target/jankurai/update/update-plan.md
 ```
 
-Apply reviewed updates and allow the CLI to update itself when needed:
-
-```bash
-jankurai update . --self --apply --yes
-```
-
-Use `--offline` when the update must avoid network-backed version checks.
+Set `JANKURAI_NO_UPDATE_CHECK=1` to disable audit-time upgrade checks. Use `jankurai update . --offline` in environments where explicit update checks must avoid network-backed version lookups.
 
 ## How Jankurai Handles AI-Agent Risk
 
