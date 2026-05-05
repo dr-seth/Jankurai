@@ -39,7 +39,7 @@ This is why the rubric punishes "vibe coding" even when the product seems to wor
 
 | Rank | Stack | ANSS | Best role | Main reason |
 | ---: | --- | ---: | --- | --- |
-| 1 | Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python | 94 | Best technical future stack | Strongest correctness/security loop with best product surface and durable truth |
+| 1 | Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python | 94 | Best technical future stack | Strongest correctness/security loop with best product surface and durable truth |
 | 2 | Go services + TypeScript/React/Vite + PostgreSQL | 90 | Best practical default for many companies | Simple, fast, easy to standardize, excellent concurrency, weaker invariant encoding than Rust |
 | 3 | C#/.NET 10 + TypeScript/React/Vite + PostgreSQL | 89 | Best enterprise/regulatory stack | Mature platform, identity and enterprise tooling, strong operational story, more ceremony |
 | 4 | TypeScript product plane + Rust/Go compute cells + PostgreSQL | 88 | Best product-velocity hybrid | Fastest product iteration, good escape hatches, high boundary-drift risk |
@@ -63,7 +63,7 @@ Kafka deserves a separate note because it is both strong and not the standard. I
 
 Rust wins because agent-native engineering rewards compile-time distrust. Rust's ownership model, borrowing rules, enums, module privacy, trait boundaries, and exhaustive matching let teams encode decisions that other stacks leave to review discipline. That does not make Rust easy. It makes Rust honest. The compiler becomes a hard reviewer that does not care how confident the agent sounds.
 
-Rust is not the whole stack because Rust should not own every concern. It is the core because core product truth, authorization-sensitive decisions, state machines, parsers, workflow rules, crypto-adjacent logic, concurrency-heavy work, and expensive compute should be in the place where invalid states are hardest to express. The UI should still be TypeScript. The database should still be PostgreSQL. Model and data work can still use Python. Rust wins by owning the center, not by pretending to be the entire world.
+Rust is not the whole stack because Rust should not own every concern. It is the core because core product truth, authorization-sensitive decisions, state machines, parsers, workflow rules, crypto-adjacent logic, concurrency-heavy work, and expensive compute should be in the place where invalid states are hardest to express. The UI should still be TypeScript. The database should still be PostgreSQL. Model and data work can use Python only when a rare advanced-ML/data exception is documented. Rust wins by owning the center, not by pretending to be the entire world.
 
 ### Why Go Comes Second
 
@@ -105,6 +105,6 @@ The ranking is useful only until it identifies the standard. After that, continu
 
 That target is:
 
-> Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + bounded Python AI/data service.
+> Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + exception-only Python AI/data service.
 
 Everything after this point is winner-only because standards need sharp edges. The runner-up stacks remain valuable. Go is often the best pragmatic migration step. .NET is often the best enterprise path. Kotlin/Java is often the right modernization path. Elixir can win realtime. But the standard must specify one shape deeply enough that agents, audits, CI pipelines, and repair tooling can enforce it.

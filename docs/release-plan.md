@@ -2,6 +2,11 @@
 
 jankurai must ship as a paper, a standard, an auditor, and a set of agent-ready operating artifacts. The goal is not to win an argument on style. The goal is to make agent-native engineering easier to adopt than vibe-coded sprawl.
 
+Current workspace policy is stricter than older bounded-Python planning notes:
+agents must not add Python for repo tools, proof lanes, product services,
+authorization, direct PostgreSQL writes, or backend glue. Python is allowed only
+for rare dated advanced-ML/data exceptions under `python/ai-service`.
+
 ## Release Lines
 
 | Release line | Artifact | Audience | Compatibility promise |
@@ -358,7 +363,7 @@ Templates should include:
 - Rust workspace with `domain`, `application`, `adapters`, `workers`
 - Vite/React app with generated client path
 - PostgreSQL migrations and constraints folders
-- bounded `python/ai-service`
+- exception-only `python/ai-service` for rare advanced-ML/data work
 - CI workflows for audit, fast, contracts, security, db, ui, full
 - docs skeleton for decisions and exceptions
 
@@ -470,7 +475,7 @@ Default limits for the optimal stack:
 | Rust adapter file | 400 LOC | 700 LOC | split by external system or table family |
 | TypeScript component | 220 LOC | 350 LOC | split presentation, state, and generated client use |
 | TypeScript module | 300 LOC | 500 LOC | split by route, feature, or contract |
-| Python AI file | 250 LOC | 400 LOC | split model call, transform, eval, and boundary schema |
+| Exception-only Python AI/data file | 250 LOC | 400 LOC | split model call, transform, eval, and boundary schema |
 | SQL migration | 250 LOC | 500 LOC | split into ordered migrations unless atomicity requires one |
 | Markdown instruction file | 120 lines | 200 lines | move detail to path-scoped docs |
 | Function/method | 60 LOC | 100 LOC | extract named policy, validator, command, or adapter call |
@@ -514,7 +519,7 @@ Planned research outputs:
 | CI adoption feels punitive | start advisory, then raise gates |
 | public repo audits look hostile | frame reports around repair and opt-in examples |
 | file-size limits become cargo cult | allow documented exceptions with proof evidence |
-| Python rule feels ideological | define clear exception process for data-heavy systems |
+| Python rule feels ideological | define clear rare advanced-ML/data exception process and keep default work in Rust/TypeScript/PostgreSQL |
 | agent tooling changes quickly | release rule-pack updates separately from core standard |
 | teams pin old versions forever | update check emits advisory with migration notes |
 

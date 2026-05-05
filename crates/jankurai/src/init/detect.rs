@@ -32,10 +32,7 @@ pub fn detect_surfaces(repo: &Path) -> Vec<String> {
             ][..],
         ),
         ("postgres", &["db", "migrations"][..]),
-        (
-            "python",
-            &["pyproject.toml", "requirements.txt", "python"][..],
-        ),
+        ("python", &["python"][..]),
         ("github-ci", &[".github/workflows"][..]),
         ("agent-files", &["AGENTS.md", "CLAUDE.md", "GEMINI.md"][..]),
     ] {

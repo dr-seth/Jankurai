@@ -16,7 +16,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         if !non_optimal.is_empty() {
             score -= 10;
             evidence.push("non-optimal product language marker".into());
-            notes.push("runtime code should converge to Rust, TypeScript, SQL, contracts, and bounded Python".into());
+            notes.push("runtime code should converge to Rust, TypeScript, SQL, generated contracts, and rare advanced-ML/data Python exceptions".into());
         }
         return make_dim(
             "Python containment and polyglot hygiene",
@@ -42,7 +42,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         .collect();
     if bad_paths.is_empty() {
         score += 30;
-        evidence.push("Python stays inside allowed non-product roots".into());
+        evidence.push("Python stays inside exception-only non-product roots".into());
     } else {
         score -= 30;
         evidence.push(format!(
@@ -56,7 +56,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         .any(|f| f.rel_path.starts_with("python/ai-service"))
     {
         score += 10;
-        evidence.push("bounded AI/data service path present".into());
+        evidence.push("exception-only AI/data service path present".into());
     }
     let ratio = python_ratio(ctx);
     if ratio > 0.3 {
@@ -80,7 +80,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             non_optimal[0].rel_path
         ));
         notes.push(
-            "runtime code should converge to Rust, TypeScript, SQL, contracts, and bounded Python"
+            "runtime code should converge to Rust, TypeScript, SQL, generated contracts, and rare advanced-ML/data Python exceptions"
                 .into(),
         );
     }

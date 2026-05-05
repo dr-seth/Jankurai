@@ -32,20 +32,25 @@ jankurai migrate . --out target/jankurai/migration-plan.json --md target/jankura
 
 ## Stack Detection
 
-The engine detects the following from filesystem heuristics (manifest files, not code parsing):
+The engine detects the following from filesystem heuristics:
+
+These markers are for legacy-repo detection only. They do not authorize agents
+to add Python to this workspace; new Python still requires a rare dated
+advanced-ML/data exception under `python/ai-service`. Legacy Python package
+manifest files are intentionally not scaffolded or stored in this repo.
 
 | Marker | Detected As |
 |--------|------------|
 | `Cargo.toml` | Rust, cargo, cargo-test |
 | `package.json` | TypeScript, npm |
-| `requirements.txt` / `pyproject.toml` | Python, pip, pytest |
+| `python/` | Python exception boundary |
 | `pom.xml` / `build.gradle` | Java, maven/gradle, junit |
 | `Gemfile` | Ruby, bundler, rspec, rails |
 | `composer.json` | PHP, composer |
 | `go.mod` | Go, go-modules, go-test |
 | `.github/workflows/` | github-actions CI |
 
-Framework and DB client detection reads manifest content (lowercase contains) for known markers like `actix`, `express`, `fastapi`, `sqlx`, `prisma`, etc.
+Framework and DB client detection reads supported manifest content (lowercase contains) for known markers like `actix`, `express`, `sqlx`, `prisma`, etc.
 
 ## Liability Score
 

@@ -13,6 +13,8 @@ Testing is routed proof. Agents should not guess which tests matter.
 | `security` | secrets, dependencies, SBOM/SCA, workflow lint |
 | `observability` | traces, request IDs, structured error payloads |
 | `audit` | jankurai repo score and hard-rule findings |
+| `proofbind` | changed-path to semantic-surface obligation routing |
+| `proofmark-rust` | changed Rust line coverage, focused mutation, and negative proof receipt evidence |
 | `full` | release/merge gate |
 
 ## SQL migration safety (audit)
@@ -38,6 +40,8 @@ For this workspace:
 - `jankurai doctor` and `jankurai init` write receipts under `target/jankurai/receipts/` for handoff evidence.
 - `jankurai prove` executes a proof-plan JSON. Commands must match `agent/proof-lanes.toml` and `agent/test-map.json` after whitespace normalization, unless `--allow-unsigned-commands` is passed together with `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1` (emergency only; keep CI on the default allowlist).
 - `jankurai proof-verify` compares a proof plan and evidence index against the current repo state and writes a tamper-evident verification envelope.
+- `jankurai proofbind verify` writes `target/jankurai/proofbind/surface-witness.json`, `target/jankurai/proofbind/obligations.json`, and `target/jankurai/proofbind/proofbind.md`. First rollout is advisory: missing semantic proof is reported as repair work unless `--mode required` is used.
+- `jankurai proofmark rust` writes `target/jankurai/proofmark/proofmark-receipt.json`, a standard proof receipt at `target/jankurai/proofmark/proof-receipt.json`, and `target/jankurai/proofmark/proofmark.md`. Coverage gaps stay review/advisory; do not fake hard proof when coverage or mutation evidence is unavailable.
 - `jankurai witness` writes a merge witness that checks changed-path routing, generated-zone touches, baseline score delta, current audit status, and proof receipt coverage. It may report proof freshness as unknown unless receipts carry git/file digests; it must not claim freshness without evidence.
 - `jankurai score diff` and `jankurai score trend` validate rolling score artifacts so regressions, new findings, caps, and high/critical counts are visible before ratchet gates.
 - `jankurai vibe validate --source agent/vibe-coverage.toml --tips tips/vibe_coding` proves every source row is mapped exactly once, matches the source title, is reviewed, references known rules/tools/lanes, has no unjustified `none`, and only claims `detector-backed` with deterministic audit evidence.

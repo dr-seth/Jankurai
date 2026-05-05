@@ -1,6 +1,6 @@
 ## Winner-Only Architecture
 
-The winner architecture is intentionally narrow: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and bounded Python for AI/data work. The goal is not elegance in a diagram. The goal is a repository that tells an agent where a change belongs, what it is allowed to touch, which proof lane must run, and what kind of repair is acceptable.
+The winner architecture is intentionally narrow: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and exception-only Python for rare advanced ML/data work. The goal is not elegance in a diagram. The goal is a repository that tells an agent where a change belongs, what it is allowed to touch, which proof lane must run, and what kind of repair is acceptable.
 
 An agent-native repo should make confusion expensive and correct routing cheap. The filesystem, dependency graph, generated zones, test map, docs, and CI gates should all say the same thing.
 
@@ -35,7 +35,7 @@ repo/
     seeds/
     snapshots/
   python/
-    ai-service/             # models, embeddings, evals, typed API, no product truth
+    ai-service/             # exception-only advanced ML/data, typed API, no product truth
   ops/
     ci/
     observability/
@@ -80,7 +80,7 @@ An ownership cell is a bounded region with one reason to change, one default pro
 | `crates/workers` | async jobs, retries, backoff, dead-letter handling, workflow replay, scheduled tasks | UI behavior, duplicated invariants, ad hoc product truth | workflow tests, replay tests, idempotency tests |
 | `contracts/*` | OpenAPI, Protobuf, JSON Schema, generated stubs and clients | business logic, manual edits to generated files | schema lint, generation check, backward-compatibility diff |
 | `db/*` | migrations, constraints, indexes, RLS policies, seed rules, schema snapshots | app orchestration, controller logic, hidden business process | migration tests, schema drift checks, constraint tests |
-| `python/ai-service` | inference, embeddings, evals, prompt experiments, offline data transforms, typed service boundary | product truth, authz, billing, direct production DB ownership, user-facing workflow state | contract tests, eval suites, no-direct-db scan |
+| `python/ai-service` | rare approved advanced ML/data library work, embeddings, evals, typed service boundary | product truth, authz, billing, repo tools, proof lanes, general backend glue, direct production DB ownership, user-facing workflow state | contract tests, eval suites, no-direct-db scan |
 | `ops/*` | CI, release, telemetry, secret scanning, SBOM, SCA, provenance, policy gates | feature behavior, hidden manual approvals as product logic | policy checks, security lane, release dry run |
 
 The shortest rule: if a cell needs another cell's private knowledge to be safe, the boundary is wrong.
@@ -94,10 +94,10 @@ The winning stack is polyglot by design, but each language gets a narrow job.
 | Rust | domain invariants, application use cases, authz, idempotency, workflows, adapters, API edge, workers, parsers, compute-heavy logic | browser UI, notebooks, prompt experiments, handwritten generated clients | Most durable backend code belongs here |
 | TypeScript | React UI, Vite build, route state, form state, local validation, generated clients, Storybook/component tests, Playwright tests | durable truth, billing truth, direct SQL, core authz, workflow state, duplicate backend DTOs | Product surface and tests, not backend truth |
 | PostgreSQL/SQL | durable records, constraints, indexes, migrations, RLS, uniqueness, referential integrity, transactional truth | application orchestration, UI logic, model prompts | Truth that must survive app bugs belongs here |
-| Python | model calls, embeddings, offline evals, data-science workflows, prompt research, bounded AI service | product API ownership, authz, billing, direct prod DB writes, general backend glue | Boxed to `python/ai-service` unless an exception is documented |
+| Python | rare advanced ML/data library work with a dated exception | product API ownership, authz, billing, repo tools, proof lanes, direct prod DB writes, general backend glue | Boxed to `python/ai-service`; not a default implementation language |
 | Shell | thin wrappers around standard commands | business logic, multi-page deployment logic, hidden data mutation | Keep scripts short and route to typed tools |
 
-The Python boundary is strict because Python is both useful and dangerous. It is excellent for AI and data work. It is also the easiest place for "just glue this" to become unowned production truth. The audit should treat Python outside `python/ai-service` as suspicious until proven otherwise.
+The Python boundary is strict because Python is both useful and dangerous. It is useful when a Python-only advanced ML/data library is genuinely required. It is also the easiest place for "just glue this" to become unowned production truth. The audit should treat any new Python without a dated advanced-ML/data exception as suspicious until proven otherwise.
 
 ### Dependency Direction
 
@@ -134,7 +134,7 @@ Every boundary needs one source of truth and one generated or enforced mirror.
 | Application to domain | validated Rust constructors and enums | unit/property tests | invalid state |
 | Application to adapters | port traits and transaction abstractions | adapter contract tests | side effects leaking into use cases |
 | App to PostgreSQL | migrations, constraints, indexes, RLS | migration/schema drift checks | app-only data truth |
-| Rust to Python | typed RPC/queue/schema contract | contract tests and eval gates | Python taking product ownership |
+| Rust to Python | typed RPC/queue/schema contract | contract tests and eval gates | Python taking product ownership or becoming backend glue |
 | Repo to agents | owner map, test map, proof lanes, generated-zone manifest | audit report and CI gate | directionless edits |
 
 Generated zones must be declared in `agent/generated-zones.toml`. Files in generated zones are read-only to agents unless the patch also changes the generator or source contract. Hand-edited generated code is a hard failure.
@@ -147,7 +147,7 @@ Agent-native code should fit into context without hiding responsibilities.
 | --- | ---: | ---: | --- |
 | Rust source file | 300 LOC | 500 LOC | split by domain concept, port, adapter, or use case |
 | TypeScript/TSX file | 250 LOC | 450 LOC | split component, hook, generated client, or test fixture |
-| Python file | 250 LOC | 400 LOC | split eval, model client, transform, or service boundary |
+| Exception-only Python file | 250 LOC | 400 LOC | split eval, model client, transform, or service boundary |
 | Markdown instruction file | 150 LOC | 250 LOC | move details into local docs or repair recipes |
 | Function/method | 40 LOC | 80 LOC | extract named decision, parser, adapter call, or test helper |
 | Directory | 20 peer files | 35 peer files | introduce ownership subfolders |
@@ -166,7 +166,7 @@ Tests should be organized by proof question, not by the convenience of the first
 | Does the API match the contract? | Contract and handler tests | `apps/api`, `contracts` |
 | Does the UI behave on critical paths? | Component tests and Playwright tests | `apps/web` |
 | Does the database preserve truth? | Migration, constraint, schema drift tests | `db` |
-| Does the AI service stay bounded? | Contract tests and eval suites | `python/ai-service` |
+| Does the Python exception stay bounded? | Contract tests and eval suites | `python/ai-service` |
 | Does the whole repo remain agent-safe? | Audit script and proof-lane checks | `agent`, `ops/ci` |
 
 Playwright is the default browser automation choice for this stack because it is widely adopted, cross-browser, CI-friendly, and fits TypeScript product surfaces. It should prove critical user paths, auth/session behavior, permissions boundaries, and regressions that unit tests cannot see. It should not become a dumping ground for every UI assertion. Most behavior should still be proven closer to the owning cell.
@@ -188,7 +188,7 @@ Every exception should live under `docs/exceptions/` and include:
 | Expiration or exit criteria | date, milestone, or measurable removal condition |
 | Documentation link | canonical local doc or external reference |
 
-The same idea applies to runtime exceptions/errors in code. Rust errors, TypeScript error objects, and Python exceptions should carry stable names, purpose, reason, and repair hints where appropriate. The goal is not verbose failure text. The goal is for an agent to see a failure and know the next bounded move.
+The same idea applies to runtime exceptions/errors in code. Rust errors, TypeScript error objects, and approved Python exception-service errors should carry stable names, purpose, reason, and repair hints where appropriate. The goal is not verbose failure text. The goal is for an agent to see a failure and know the next bounded move.
 
 ### Observability and Repair Evidence
 
@@ -211,7 +211,7 @@ The repair loop should produce receipts: what changed, which proof lanes ran, wh
 - TypeScript owns product interaction, not durable truth.
 - Rust owns backend truth, use cases, authorization, workflows, and side effects through explicit layers.
 - PostgreSQL owns durable facts, constraints, indexes, migrations, and transaction semantics.
-- Python owns AI/data capability only through typed service boundaries.
+- Python owns only approved advanced ML/data capability through typed service boundaries.
 - Contracts own cross-language shape. Handwritten mirrors are defects.
 - Generated files are outputs. Editing them by hand is a defect.
 - Root instructions route. Local docs explain. Neither should contradict the standard.
@@ -219,4 +219,4 @@ The repair loop should produce receipts: what changed, which proof lanes ran, wh
 - Exceptions must be named, documented, scoped, and given exit criteria.
 - Any "temporary" fallback path must be treated as production architecture unless it is deleted before merge.
 
-The winning architecture is narrow because narrowness is what makes it repairable. If the UI is wrong, inspect the UI cell. If the contract is wrong, inspect the contract source. If the invariant is wrong, inspect Rust domain. If the persisted fact is wrong, inspect PostgreSQL. If model behavior is wrong, inspect the bounded Python service. The repo should answer "where does this belong?" before the agent has time to guess.
+The winning architecture is narrow because narrowness is what makes it repairable. If the UI is wrong, inspect the UI cell. If the contract is wrong, inspect the contract source. If the invariant is wrong, inspect Rust domain. If the persisted fact is wrong, inspect PostgreSQL. If approved model behavior is wrong, inspect the exception-bounded Python service. The repo should answer "where does this belong?" before the agent has time to guess.

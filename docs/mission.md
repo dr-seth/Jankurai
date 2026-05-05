@@ -26,7 +26,9 @@ Jankurai Core is the standard:
 - stable HLT rule IDs
 - a closed decision enum: `pass`, `review`, `block`, `ratchet_fail`, `release_fail`
 
-The Rust/TypeScript/React/Vite/PostgreSQL/bounded-Python layout is a reference profile. It is useful because it gives agents and CI a concrete implementation shape, but it is not Jankurai Core. Go, .NET, JVM, Rails, Python, Elixir, or other profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence where applicable, repair queues, and merge witnesses.
+The Rust/TypeScript/React/Vite/PostgreSQL/exception-only-Python layout is a reference profile. It is useful because it gives agents and CI a concrete implementation shape, but it is not Jankurai Core. Go, .NET, JVM, Rails, Python, Elixir, or other profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence where applicable, repair queues, and merge witnesses.
+
+For this workspace and its default profile, implementation is Rust-first. Agents must not add Python for repository tools, proof lanes, product truth, authorization, direct PostgreSQL writes, product services, or general backend glue. Python is allowed only for rare advanced ML/data library work that has no practical Rust/TypeScript/service alternative, is boxed under `python/ai-service`, and has a dated exception with owner, expiry, proof lane, and migration/containment plan.
 
 Score is posture. Witness is decision. Conformance is pass/fail.
 

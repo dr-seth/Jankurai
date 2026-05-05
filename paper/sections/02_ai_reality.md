@@ -75,16 +75,16 @@ Adaptability in the agent era does not mean switching frameworks every quarter. 
 | Handwritten clients and copied types | Generated clients from contract sources |
 | App-only validation | Domain constructors plus database constraints |
 | "Temporary" scripts in random paths | Tooling zones with ownership and deletion rules |
-| Python as universal glue | Python boxed to AI/data service contracts |
+| Python as universal glue | Python forbidden except rare advanced-ML/data exceptions |
 | Manual QA as confidence | Automated QA as evidence, manual QA as judgment |
 | README as narrative | AGENTS.md as routing surface, local docs as repair manuals |
 
-This is why the paper stops caring about the runners-up after ranking them. The top five stacks are useful for comparison, but the work after that belongs to the winner. If the goal is to define a standard, not a buying guide, the paper must stop hedging. Rust core plus TypeScript/React/Vite plus PostgreSQL plus generated contracts plus bounded Python is the architecture worth specifying in detail.
+This is why the paper stops caring about the runners-up after ranking them. The top five stacks are useful for comparison, but the work after that belongs to the winner. If the goal is to define a standard, not a buying guide, the paper must stop hedging. Rust core plus TypeScript/React/Vite plus PostgreSQL plus generated contracts plus exception-only Python for rare advanced ML/data work is the architecture worth specifying in detail.
 
 ### The New Failure Standard
 
 The old failure standard was, "Can a human understand what happened after enough reading?" The new standard is, "Can the repository tell the next agent where to look, what failed, why it failed, what proof lane to run, and what repair patterns are allowed?"
 
-That standard changes every downstream choice. It rewards Rust where core correctness matters because Rust rejects more invalid code before runtime. It rewards TypeScript at the product surface because the browser and UI ecosystem are strongest there and typed generated clients make drift visible. It rewards PostgreSQL because durable truth should live in constraints, migrations, indexes, and transaction semantics rather than application folklore. It rewards Python only when boxed to AI/data work because Python remains excellent for models and analysis while being dangerous as unbounded product glue.
+That standard changes every downstream choice. It rewards Rust where core correctness matters because Rust rejects more invalid code before runtime. It rewards TypeScript at the product surface because the browser and UI ecosystem are strongest there and typed generated clients make drift visible. It rewards PostgreSQL because durable truth should live in constraints, migrations, indexes, and transaction semantics rather than application folklore. It allows Python only for rare advanced ML/data dependencies because Python remains useful for models and analysis while being dangerous as unbounded product glue.
 
 The agent era does not eliminate craft. It makes craft more architectural. The craft is now in designing codebases that make bad generated code boring to catch.

@@ -88,6 +88,32 @@ command = "cargo test -p jankurai"
 purpose = "run Rust unit tests"
 
 [[lane]]
+name = "proofbind"
+command = "cargo test -p jankurai-proofbind"
+purpose = "verify semantic surface routing and obligation binding"
+command_id = "lane.proofbind"
+kind = "analysis"
+cost = 8
+rules_covered = ["HLT-004-UNMAPPED-PROOF", "HLT-008-FALSE-GREEN-RISK", "HLT-022-AUTHZ-ISOLATION-GAP", "HLT-023-INPUT-BOUNDARY-GAP", "HLT-024-AGENT-TOOL-SUPPLY-GAP"]
+required_artifacts = ["target/jankurai/proofbind/surface-witness.json", "target/jankurai/proofbind/obligations.json", "target/jankurai/proofbind/proofbind.md"]
+timeout_seconds = 900
+requires_network = false
+destructive = false
+
+[[lane]]
+name = "proofmark-rust"
+command = "cargo test -p jankurai-proofmark"
+purpose = "verify changed Rust behavior proof receipts"
+command_id = "lane.proofmark-rust"
+kind = "validation"
+cost = 15
+rules_covered = ["HLT-007-HANDWRITTEN-CONTRACT", "HLT-008-FALSE-GREEN-RISK", "HLT-022-AUTHZ-ISOLATION-GAP", "HLT-023-INPUT-BOUNDARY-GAP", "HLT-024-AGENT-TOOL-SUPPLY-GAP"]
+required_artifacts = ["target/jankurai/proofmark/proofmark-receipt.json", "target/jankurai/proofmark/proof-receipt.json", "target/jankurai/proofmark/proofmark.md"]
+timeout_seconds = 1800
+requires_network = false
+destructive = false
+
+[[lane]]
 name = "migrate-fixture"
 command = "cargo run -p jankurai -- migrate examples/legacy-node-api --json target/jankurai/migration/node.json"
 purpose = "verify migration fixture"

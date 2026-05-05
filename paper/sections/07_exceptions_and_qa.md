@@ -30,7 +30,7 @@ RFC 9457 problem details, OpenTelemetry exception semantic conventions, JavaScri
 | Rust application | typed use-case errors mapped to API problem details | stringly authz or transaction failures |
 | TypeScript UI | discriminated API error unions and safe user messages | `throw "message"`, broad `any`, hidden catch-all fallbacks |
 | PostgreSQL | named constraints mapped to stable application errors | anonymous constraints and app-only durable truth |
-| Python AI service | typed service-boundary exceptions mapped to schema-defined errors | raw provider exceptions crossing the product boundary |
+| Exception-only Python AI/data service | typed service-boundary exceptions mapped to schema-defined errors | raw provider exceptions crossing the product boundary |
 | Workers | retryable/permanent error split with idempotency key and trace id | infinite retry loops and log-only failure handling |
 
 The point is not to make every function verbose. The point is that every boundary failure should teach the next agent what happened and where repair belongs.
@@ -62,7 +62,7 @@ Agent-native testing is an evidence routing system:
 | Browser E2E | critical product flows, auth/session, permissions | Playwright by default |
 | PostgreSQL | migration apply, constraint checks, rollback policy | migration test harness, schema drift checks |
 | Contracts | generation and backward compatibility | OpenAPI/Protobuf/JSON Schema checks |
-| Python AI service | eval fixtures, model IO contracts, reproducibility | typed contract tests, golden evals |
+| Exception-only Python AI/data service | eval fixtures, model IO contracts, reproducibility | typed contract tests, golden evals |
 | Ops/security | secrets, dependencies, SBOM, provenance, workflow lint | gitleaks, dependency review, Syft/Grype, SLSA, Zizmor |
 | Audit | standard compliance and agent repair queue | `cargo run -p jankurai --` |
 

@@ -4,13 +4,18 @@ Date: 2026-05-01
 Scope: public references for agent-first code design, repo setup, validation, auditability, and tool-specific instructions.
 Primary rule: prefer official docs, project repositories, standards, and papers. Treat Reddit/X/community posts as low-weight sentiment only.
 
+Current workspace policy is Rust-first: agents must not add Python for repo
+tools, proof lanes, product services, authorization, direct PostgreSQL writes, or
+backend glue. Python appears only as a rare dated advanced-ML/data exception
+under `python/ai-service`, or as research/background material in this file.
+
 ## Executive Findings
 
 1. `AGENTS.md` is the best neutral repo instruction file. Official and project sources now describe it as a plain Markdown, agent-focused companion to README, with nested files for monorepos and closest-file precedence.
 2. Tool-specific rule files still matter. Cursor, Claude Code, Gemini CLI, GitHub Copilot, and Jules all have their own memory/rule/instruction surfaces. The jankurai standard should generate these from one canonical `AGENTS.md`/`agent/` source, not hand-maintain divergent copies.
 3. Agent-first repos need deterministic control surfaces more than prose. Strong sources converge on setup scripts, test commands, scoped instructions, generated contracts, security checks, and reproducible environments.
 4. Benchmarks show two core bottlenecks: setup reliability and context retrieval. SetupBench reports agents still struggle to bootstrap real environments. ContextBench reports large gaps between explored and useful context. This supports one-command setup, fast lanes, repo maps, owner maps, and token-filtered command output.
-5. The optimal repo shape for the paper's winning stack is a Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and bounded Python AI/data service. Agent-first rules should enforce ownership, generated zones, and import boundaries as CI policy.
+5. The optimal repo shape for the paper's winning stack is a Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and exception-only Python AI/data service. Agent-first rules should enforce ownership, generated zones, import boundaries, and a rare advanced-ML/data exception process as CI policy.
 6. Security gates must run before trust. Official GitHub secret scanning, OpenSSF Scorecard, OSV-Scanner, SLSA provenance, and OpenTelemetry all support the audit thesis: generated code needs secrets, dependency, provenance, and production traceability checks.
 7. Playwright is the default browser QA source for this stack. Its official best practices align with agent-friendly testing: user-visible behavior, isolation, locators, web-first assertions, cross-browser projects, and no hard sleeps.
 8. Agent-friendly exceptions should be a standard. Combine RFC 9457 problem details, OpenTelemetry exception attributes, language-native error causes/context, and doc-linked error codes so agents can localize, classify, and repair failures.
@@ -266,7 +271,7 @@ Ownership rules:
 | `crates/workers` | jobs, retries, queues, durable workflow glue | product truth not backed by DB | retry/idempotency tests, trace IDs |
 | `contracts` | OpenAPI/protobuf/schema source | product logic | generated diff checks |
 | `db` | migrations, constraints, indexes, RLS, seeds | app-only hidden invariants | migration tests, constraint tests |
-| `python/ai-service` | model inference, embeddings, evals, notebooks, data science | product truth, authz, direct prod DB writes | import/driver audit, API contract tests |
+| `python/ai-service` | rare approved advanced ML/data library work, embeddings, evals | product truth, authz, repo tools, proof lanes, general backend glue, direct prod DB writes | import/driver audit, API contract tests |
 | `ops` | CI, OTel, SBOM, SCA, secret scanning, provenance | manual hidden release gates | CI audit, evidence artifacts |
 
 ## Testing And QA Best Practices
@@ -291,7 +296,7 @@ Rules:
 - Add contract tests for every generated API boundary.
 - Add database constraint tests for every durable invariant.
 - Add Rust domain property/unit tests for state machines and invariants.
-- Add Python eval tests for model/data behavior, but keep product truth tests outside Python.
+- Add Python eval tests only for approved advanced-ML/data exceptions, and keep product truth tests outside Python.
 
 Agent QA doctrine:
 
@@ -357,7 +362,7 @@ Language rules:
 - Rust: domain/application errors use typed enums; boundary/application context can attach `anyhow::Context`; API maps to RFC 9457 JSON.
 - TypeScript: custom errors must set stable `name`, `code`, and `cause`; UI displays safe message only.
 - PostgreSQL: constraint names must be stable and documented so agents can map DB failures to fixes.
-- Python AI service: custom exceptions must be typed, carry `code`, and map to RFC 9457 at service boundary.
+- Approved Python AI/data exception: custom exceptions must be typed, carry `code`, and map to RFC 9457 at service boundary.
 - OpenTelemetry: log `exception.type`, `exception.message`, `exception.stacktrace`, plus stable `error.type` and trace ID.
 
 ## Audit Rubric Inputs From Research
@@ -376,7 +381,7 @@ Hard audit rules:
 - Hand-written frontend API types when contracts exist.
 - Direct DB access from web/UI.
 - Product truth in Python.
-- Python outside `python/ai-service` without documented exception.
+- Python outside a dated advanced-ML/data exception under `python/ai-service`.
 - Raw SQL in handlers instead of adapters/application-approved modules.
 - Rust domain crate imports I/O/framework/env/DB crates.
 - Missing DB migrations for schema changes.

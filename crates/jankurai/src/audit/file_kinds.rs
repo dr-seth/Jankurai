@@ -30,8 +30,6 @@ const TEXT_BASENAMES: &[&str] = &[
     "package.json",
     "pnpm-lock.yaml",
     "poetry.lock",
-    "pyproject.toml",
-    "requirements.txt",
     "rust-toolchain.toml",
     "rustfmt.toml",
     "tsconfig.json",

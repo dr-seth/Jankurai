@@ -642,6 +642,8 @@ dependencies = [
  "globset",
  "ignore",
  "indicatif",
+ "jankurai-proofbind",
+ "jankurai-proofmark",
  "once_cell",
  "quote",
  "rayon",
@@ -656,6 +658,27 @@ dependencies = [
  "toml",
  "ureq",
  "walkdir",
+]
+
+[[package]]
+name = "jankurai-proofbind"
+version = "0.7.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
+name = "jankurai-proofmark"
+version = "0.7.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

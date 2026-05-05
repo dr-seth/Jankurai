@@ -166,7 +166,8 @@ Paper framing:
 
 - The standard is stack-neutral.
 - The CLI is a reference implementation.
-- The Rust/TypeScript/PostgreSQL profile is non-normative.
+- The Rust/TypeScript/React/Vite/PostgreSQL/exception-only-Python profile is non-normative.
+- This workspace is Rust-first: agents must not add Python for repo tools, proof lanes, product truth, product services, authorization, direct PostgreSQL writes, or general backend glue. Python is allowed only for rare advanced ML/data library work with a dated exception under `python/ai-service`.
 - Full audit remains the merge and release gate.
 - Score is posture; the merge witness is the decision; conformance is pass/fail.
 

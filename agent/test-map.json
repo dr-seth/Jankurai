@@ -137,6 +137,14 @@
       "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify the audit package compiles and still emits JSON/Markdown"
     },
+    "crates/jankurai-proofbind/": {
+      "command": "cargo test -p jankurai-proofbind",
+      "purpose": "verify semantic surface routing and proof obligation binding"
+    },
+    "crates/jankurai-proofmark/": {
+      "command": "cargo test -p jankurai-proofmark",
+      "purpose": "verify changed-behavior proof receipts"
+    },
     "package.json": {
       "command": "npm ci && npm --workspace @jankurai/ux-qa run build && npm --workspace @jankurai/ux-qa run test",
       "purpose": "verify the npm workspace and UX QA runtime"

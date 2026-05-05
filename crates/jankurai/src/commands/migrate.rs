@@ -222,34 +222,8 @@ pub fn detect_stack(repo: &Path) -> StackInventory {
         }
     }
 
-    if repo.join("requirements.txt").exists() || repo.join("pyproject.toml").exists() {
-        let evidence = if repo.join("requirements.txt").exists() {
-            "requirements.txt"
-        } else {
-            "pyproject.toml"
-        };
-        inv.languages.push(di("python", evidence, "high"));
-        inv.package_managers.push(di("pip", evidence, "high"));
-        inv.test_frameworks.push(di("pytest", evidence, "medium"));
-        for manifest in ["requirements.txt", "pyproject.toml"] {
-            if let Ok(text) = fs::read_to_string(repo.join(manifest)) {
-                let lower = text.to_ascii_lowercase();
-                for fw in ["fastapi", "django", "flask"] {
-                    if lower.contains(fw) {
-                        inv.frameworks.push(di(fw, manifest, "medium"));
-                        inv.api_surfaces.push(ApiSurface {
-                            framework: fw.to_string(),
-                            evidence: format!("{manifest} dependency"),
-                        });
-                    }
-                }
-                for db in ["psycopg", "sqlalchemy", "asyncpg"] {
-                    if lower.contains(db) {
-                        inv.db_clients.push(di(db, manifest, "medium"));
-                    }
-                }
-            }
-        }
+    if repo.join("python").exists() {
+        inv.languages.push(di("python", "python/", "medium"));
     }
 
     if repo.join("pom.xml").exists() || repo.join("build.gradle").exists() {

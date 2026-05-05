@@ -33,6 +33,8 @@
     "examples/perfect-web-api-db/": "standard",
     "examples/legacy-node-api/": "tools",
     "crates/jankurai/": "tools",
+    "crates/jankurai-proofbind/": "tools",
+    "crates/jankurai-proofmark/": "tools",
     "packages/ux-qa/": "tools",
     ".cursor/": "agent",
     ".claude/": "agent",

@@ -565,7 +565,7 @@ fn build_findings(
                 evidence,
                 None,
                 Some(boundary.id.clone()),
-                Some("declared runtime boundary reclassification needs deterministic evidence before Python stack caps can be removed".into()),
+                Some("declared runtime boundary reclassification needs deterministic evidence before Python exception caps can be removed".into()),
                 Some(&boundary.rerun_command),
             );
         }
@@ -575,9 +575,9 @@ fn build_findings(
             "high",
             "python",
             "python/",
-            "Python appears outside the bounded AI/data service or owns product truth",
-            "move Python into `python/ai-service` only when it is hard AI/data work; otherwise remove or migrate it to Rust",
-            vec!["Python should stay away from product truth and production DB ownership".into()],
+            "Python appears without a rare advanced-ML/data exception or owns product truth",
+            "remove Python or box it under `python/ai-service` only when a dated advanced-ML/data exception exists; otherwise migrate it to Rust",
+            vec!["Python must stay away from product truth, repo tooling, proof lanes, backend glue, and production DB ownership".into()],
             Some("HLT-005-PYTHON-PRODUCT-TRUTH"),
             None,
         );
@@ -645,11 +645,11 @@ fn build_findings(
         && !helpers::non_optimal_language_hits(ctx).is_empty()
     {
         let hit = helpers::non_optimal_language_hits(ctx)[0].clone();
-        b.add("high", "stack", &hit.rel_path, "runtime code uses a language outside the chosen optimal stack", "move product runtime behavior to Rust core, TypeScript web, SQL migrations, generated contracts, or bounded `python/ai-service` only", vec![format!("{} uses `{}`", hit.rel_path, hit.suffix), TARGET_STACK.into()], None, None);
+        b.add("high", "stack", &hit.rel_path, "runtime code uses a language outside the chosen optimal stack", "move product runtime behavior to Rust core, TypeScript web, SQL migrations, or generated contracts; Python needs a dated advanced-ML/data exception", vec![format!("{} uses `{}`", hit.rel_path, hit.suffix), TARGET_STACK.into()], None, None);
     }
     let ratio = helpers::python_ratio(ctx);
     if caps_applied.contains(&"too-much-python-in-product-surface".into()) && ratio > 0.15 {
-        b.add(if ratio > 0.30 { "high" } else { "medium" }, "python", "python/ai-service", "Python is too large a share of runtime product code for this standard", "keep Python bounded to model/data work and move durable product truth, authz, workflows, and core behavior into Rust", vec!["Python share is above the soft cap".into()], None, None);
+        b.add(if ratio > 0.30 { "high" } else { "medium" }, "python", "python/ai-service", "Python is too large a share of runtime product code for this standard", "remove Python unless it is a dated advanced-ML/data exception, and move durable product truth, authz, workflows, and core behavior into Rust", vec!["Python share is above the soft cap".into()], None, None);
     }
     if !scan::todo_hits(ctx).is_empty() {
         let hit = scan::todo_hits(ctx)[0].clone();
@@ -1123,8 +1123,6 @@ fn changed_fast_inventory_paths(scope_paths: &[String]) -> Vec<String> {
         "package-lock.json",
         "pnpm-lock.yaml",
         "yarn.lock",
-        "pyproject.toml",
-        "requirements.txt",
         "go.mod",
         "go.sum",
         "agent",

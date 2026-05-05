@@ -28,15 +28,6 @@ fn detect_node_express() {
 }
 
 #[test]
-fn detect_python_fastapi() {
-    let inv = migrate::detect_stack(&fixture("python-fastapi"));
-    assert!(inv.languages.iter().any(|l| l.name == "python"));
-    assert!(inv.frameworks.iter().any(|f| f.name == "fastapi"));
-    assert!(inv.db_clients.iter().any(|d| d.name == "sqlalchemy"));
-    assert!(inv.api_surfaces.iter().any(|a| a.framework == "fastapi"));
-}
-
-#[test]
 fn detect_java_spring() {
     let inv = migrate::detect_stack(&fixture("java-spring"));
     assert!(inv.languages.iter().any(|l| l.name == "java"));
@@ -102,7 +93,6 @@ fn liability_has_eight_dimensions() {
 fn liability_total_is_bounded() {
     for name in [
         "node-express",
-        "python-fastapi",
         "java-spring",
         "ruby-rails",
         "go-api",
@@ -156,7 +146,6 @@ fn report_validates_against_schema_for_each_fixture() {
     let repo = repo_root();
     for name in [
         "node-express",
-        "python-fastapi",
         "java-spring",
         "ruby-rails",
         "go-api",
@@ -179,7 +168,6 @@ fn plan_validates_against_schema_for_each_fixture() {
     let repo = repo_root();
     for name in [
         "node-express",
-        "python-fastapi",
         "java-spring",
         "ruby-rails",
         "go-api",
@@ -251,13 +239,7 @@ fn slices_have_monotonic_dependency_order() {
 
 #[test]
 fn equivalence_proof_always_requires_human_approval() {
-    for name in [
-        "node-express",
-        "python-fastapi",
-        "java-spring",
-        "ruby-rails",
-        "go-api",
-    ] {
+    for name in ["node-express", "java-spring", "ruby-rails", "go-api"] {
         let plan = migrate::build_migration_plan(&fixture(name), "rust-ts-postgres").unwrap();
         let eq = plan
             .slices

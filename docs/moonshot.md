@@ -27,7 +27,7 @@ That loop is the product, the standard, and the paper thesis at the same time. I
 - ambiguous ownership
 - hidden fallback behavior
 - handwritten mirrors of contracts and generated types
-- UI, Python, or adapter layers that quietly own durable product truth
+- UI, exception-only Python, or adapter layers that quietly own durable product truth
 - generated files edited by hand
 - proof that passes without covering the changed behavior
 - exceptions that never expire

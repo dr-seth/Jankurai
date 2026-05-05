@@ -1,5 +1,6 @@
 use crate::audit::analyzers;
 use crate::audit::helpers::*;
+use crate::audit::proofbind_artifact;
 use crate::model::DimensionResult;
 
 pub fn analyze(ctx: &AuditContext) -> DimensionResult {
@@ -89,6 +90,21 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
     {
         score -= 10;
         notes.push("no obvious test automation commands".into());
+    }
+    if let Some(summary) = proofbind_artifact::load_summary(&ctx.root) {
+        evidence.push(format!(
+            "proofbind artifact found: surfaces={} missing={} high_or_critical_missing={} verdict={}",
+            summary.changed_surface_count,
+            summary.missing,
+            summary.high_or_critical_missing,
+            summary.verdict
+        ));
+        if summary.high_or_critical_missing > 0 {
+            notes.push(format!(
+                "proofbind reports {} missing high/critical semantic proof obligation(s)",
+                summary.high_or_critical_missing
+            ));
+        }
     }
     make_dim("Proof lanes and test routing", score, evidence, notes)
 }

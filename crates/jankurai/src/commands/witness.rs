@@ -36,6 +36,7 @@ pub struct MergeWitness {
     pub generated_zone_touches: Vec<GeneratedZoneTouch>,
     pub required_lanes: Vec<String>,
     pub available_proof_receipts: Vec<ProofReceiptSummary>,
+    pub proofbind: ProofBindWitnessSummary,
     pub missing_evidence: Vec<String>,
     pub current_score: i32,
     pub current_raw_score: i32,
@@ -92,6 +93,14 @@ pub struct ProofReceiptSummary {
     pub changed_paths: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ProofBindWitnessSummary {
+    pub changed_surface_count: usize,
+    pub satisfied_obligation_count: usize,
+    pub missing_obligation_count: usize,
+    pub verdict: String,
+}
+
 pub fn run(args: WitnessArgs) -> Result<()> {
     let witness = build_witness(&args)?;
     validation::write_json(
@@ -128,6 +137,7 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
         },
     )?;
     let receipts = load_proof_receipts(&args.repo, args.proof_receipts.as_deref())?;
+    let proofbind = load_proofbind_summary(&args.repo, args.proof_receipts.as_deref())?;
     let route_decisions = route_decisions(&catalog, &changed_paths);
     let required_lanes = required_lanes(&route_decisions);
     let available_lanes: BTreeSet<String> = receipts
@@ -206,6 +216,15 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
             ),
         );
     }
+    if proofbind.missing_obligation_count > 0 {
+        push_unique(
+            &mut next_repair,
+            format!(
+                "proofbind reports {} semantic proof obligation(s) still missing receipt evidence",
+                proofbind.missing_obligation_count
+            ),
+        );
+    }
     if next_repair.is_empty() {
         next_repair.push("merge proof is complete; keep receipts attached to the PR".into());
     }
@@ -233,6 +252,7 @@ pub fn build_witness(args: &WitnessArgs) -> Result<MergeWitness> {
         generated_zone_touches,
         required_lanes,
         available_proof_receipts: receipts,
+        proofbind,
         missing_evidence,
         current_score: report.score,
         current_raw_score: report.raw_score,
@@ -379,6 +399,211 @@ fn load_proof_receipts(repo: &Path, path: Option<&str>) -> Result<Vec<ProofRecei
     Ok(out)
 }
 
+fn load_proofbind_summary(
+    repo: &Path,
+    proof_receipts: Option<&str>,
+) -> Result<ProofBindWitnessSummary> {
+    let obligations_path = repo.join("target/jankurai/proofbind/obligations.json");
+    if !obligations_path.exists() {
+        return Ok(ProofBindWitnessSummary {
+            changed_surface_count: 0,
+            satisfied_obligation_count: 0,
+            missing_obligation_count: 0,
+            verdict: "not_run".into(),
+        });
+    }
+    let obligations_value = load_json(&obligations_path)?;
+    validation::validate_value(
+        repo,
+        ArtifactSchema::ProofBindObligations,
+        &obligations_value,
+    )?;
+    let receipt_values = load_proof_receipt_values(repo, proof_receipts)?;
+    let changed_surface_count = obligations_value
+        .get("summary")
+        .and_then(|summary| summary.get("changed_surface_count"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0) as usize;
+    let obligations = obligations_value
+        .get("obligations")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut satisfied = 0usize;
+    let mut missing = 0usize;
+    for obligation in &obligations {
+        let already_satisfied = obligation
+            .get("satisfied")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if already_satisfied
+            || receipt_values
+                .iter()
+                .any(|receipt| receipt_satisfies_obligation(obligation, receipt))
+        {
+            satisfied += 1;
+        } else {
+            missing += 1;
+        }
+    }
+    let configured_verdict = obligations_value
+        .get("summary")
+        .and_then(|summary| summary.get("verdict"))
+        .and_then(Value::as_str)
+        .unwrap_or("review");
+    let verdict = if missing == 0 {
+        "pass"
+    } else {
+        configured_verdict
+    };
+    Ok(ProofBindWitnessSummary {
+        changed_surface_count,
+        satisfied_obligation_count: satisfied,
+        missing_obligation_count: missing,
+        verdict: verdict.into(),
+    })
+}
+
+fn load_proof_receipt_values(repo: &Path, path: Option<&str>) -> Result<Vec<Value>> {
+    let Some(path) = path else {
+        return Ok(vec![]);
+    };
+    let path = resolve(repo, path);
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+    let mut entries = Vec::new();
+    if path.is_dir() {
+        for entry in fs::read_dir(&path).with_context(|| format!("read {}", path.display()))? {
+            let entry = entry?;
+            if entry.path().extension().and_then(|ext| ext.to_str()) == Some("json") {
+                entries.push(entry.path());
+            }
+        }
+        entries.sort();
+    } else {
+        entries.push(path);
+    }
+    let mut values = Vec::new();
+    for entry in entries {
+        let text =
+            fs::read_to_string(&entry).with_context(|| format!("read {}", entry.display()))?;
+        let value: Value =
+            serde_json::from_str(&text).with_context(|| format!("parse {}", entry.display()))?;
+        validation::validate_value(repo, ArtifactSchema::ProofReceipt, &value)?;
+        if value.get("exit_code").and_then(Value::as_i64).unwrap_or(1) == 0 {
+            values.push(value);
+        }
+    }
+    Ok(values)
+}
+
+fn receipt_satisfies_obligation(obligation: &Value, receipt: &Value) -> bool {
+    let obligation_id = obligation
+        .get("obligation_id")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let proofmark = receipt
+        .get("extensions")
+        .and_then(|extensions| extensions.get("proofmark"))
+        .unwrap_or(&Value::Null);
+    if proofmark
+        .get("satisfied_obligations")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .any(|id| id == obligation_id)
+    {
+        return true;
+    }
+    if proofmark
+        .get("obligation_results")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .any(|result| {
+            result
+                .get("obligation_id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| id == obligation_id)
+                && result
+                    .get("status")
+                    .and_then(Value::as_str)
+                    .is_some_and(|status| status == "pass")
+        })
+    {
+        return true;
+    }
+    let lane = receipt
+        .get("lane")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if lane == "proofmark-rust" {
+        return false;
+    }
+    let lane_matches = obligation
+        .get("required_lanes")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .any(|required| required == lane);
+    if !lane_matches {
+        return false;
+    }
+    let path = obligation
+        .get("path")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let path_matches = receipt
+        .get("changed_paths")
+        .and_then(Value::as_array)
+        .map(|paths| {
+            paths
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|changed| changed == path || path.starts_with(&format!("{changed}/")))
+        })
+        .unwrap_or(true);
+    if !path_matches {
+        return false;
+    }
+    let covered_rules = receipt_rules_covered(receipt);
+    covered_rules.is_empty()
+        || obligation
+            .get("rule_ids")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .any(|rule| covered_rules.contains(rule))
+}
+
+fn receipt_rules_covered(receipt: &Value) -> BTreeSet<String> {
+    receipt
+        .get("rules_covered")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|item| {
+            if let Some(rule) = item.as_str() {
+                return Some(rule.to_string());
+            }
+            let status = item
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("covered");
+            if !matches!(status, "covered" | "pass" | "satisfied") {
+                return None;
+            }
+            item.get("rule_id")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .collect()
+}
+
 fn finding_map_from_report(report: &Report) -> BTreeMap<String, FindingSummary> {
     let mut out = BTreeMap::new();
     for finding in &report.findings {
@@ -445,6 +670,14 @@ fn render_markdown(witness: &MergeWitness) -> String {
         let _ = writeln!(out, "- score delta: `{:+}`", delta);
     }
     let _ = writeln!(out, "- changed paths: `{}`", witness.changed_paths.len());
+    let _ = writeln!(
+        out,
+        "- proofbind: surfaces=`{}` satisfied=`{}` missing=`{}` verdict=`{}`",
+        witness.proofbind.changed_surface_count,
+        witness.proofbind.satisfied_obligation_count,
+        witness.proofbind.missing_obligation_count,
+        witness.proofbind.verdict
+    );
     let _ = writeln!(
         out,
         "- missing evidence: `{}`",

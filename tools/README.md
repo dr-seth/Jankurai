@@ -2,12 +2,13 @@
 
 Use the installed `jankurai` command or `cargo run -p jankurai --` to score a repository against jankurai `0.3.0`.
 
-Target stack only: Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service. This is not a generic linter.
+Target stack only: Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service. This is not a generic linter.
 
 ## Contract
 
 - Fast Rust binary with low-overhead filesystem traversal
 - No Python runtime dependency for the audit lane
+- Agents must not add Python to repo tools, proof lanes, product services, or backend glue
 - Runs on arbitrary checkouts without bootstrap drama
 - Emits JSON and Markdown
 - Reads repo structure and local evidence, not build artifacts
@@ -68,7 +69,7 @@ The scorer flags known vibe-coding failure modes:
 
 | Category | Hard Signals |
 | --- | --- |
-| stack drift | unnecessary runtime languages, too much Python, Python outside `python/ai-service` |
+| stack drift | unnecessary runtime languages, any new Python without a dated advanced-ML/data exception |
 | code shape | duplication, mega files, mega functions, weak names, junk drawers |
 | placeholders | TODO/FIXME/HACK/XXX, stubs, placeholders, unimplemented/unreachable/TODO panics |
 | fallbacks | fallback soup, best-effort retries, broad catch/except, null/undefined fallbacks |

@@ -469,9 +469,10 @@ fn tool_cost_budget_applicable(ctx: &AuditContext) -> bool {
 
 pub fn is_high_risk_repo(ctx: &AuditContext) -> bool {
     product_code_files(ctx).iter().any(|f| f.is_code)
-        || ctx.all_files.iter().any(|f| {
-            ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"].contains(&f.name.as_str())
-        })
+        || ctx
+            .all_files
+            .iter()
+            .any(|f| ["package.json", "Cargo.toml", "go.mod"].contains(&f.name.as_str()))
 }
 
 pub fn has_contract_surface(ctx: &AuditContext) -> bool {

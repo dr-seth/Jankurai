@@ -11,13 +11,13 @@ kind of truth and must not leak into adjacent layers.
 | Rust application | commands, authz, idempotency, transactions | UI concerns, provider-specific adapter details |
 | Rust adapters | PostgreSQL, queue/streaming clients, external APIs, filesystem, env | domain rules, event schema ownership |
 | PostgreSQL | constraints, migrations, indexes, transactional truth | app orchestration |
-| Python AI service | models, embeddings, evals, data transforms | product truth, authz, direct production DB writes |
+| Python AI/data exception | advanced ML/data library work behind typed boundaries | product truth, authz, repo tools, proof lanes, general backend glue, direct production DB writes |
 | Ops/security | CI, OTel, SBOM, SCA, secret scanning, provenance | hidden product logic |
 
 Boundary exceptions belong in `docs/exceptions/` with owner, reason,
 expiration, proof lane, and repair guidance.
 
-The blessed default stack is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and bounded Python AI/data service. The repo should treat that stack as the default control plane, not as a stylistic suggestion.
+The blessed default stack is Rust core, TypeScript/React/Vite product surface, PostgreSQL durable truth, generated contracts, and exception-only Python AI/data service. The repo should treat that stack as the default control plane, not as a stylistic suggestion. New repository tools, proof lanes, core behavior, authorization, and durable writes must be Rust-first. Agents must not add Python unless a rare dated advanced-ML/data exception explicitly approves it and keeps it boxed under `python/ai-service`.
 
 ## Queue And Streaming Boundary
 

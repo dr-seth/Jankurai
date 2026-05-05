@@ -1,6 +1,7 @@
 use crate::commands::context_data::{push_unique, GeneratedZone, RepoCatalog};
 use crate::validation::{self, ArtifactSchema};
 use anyhow::Result;
+use jankurai_proofbind::{build_proofbind, ProofBindMode, ProofBindRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -144,7 +145,7 @@ pub fn build_context_pack_with_options(
     let forbidden_paths = build_forbidden_paths(&catalog);
     let read_first_files = build_read_first_files(&task_lc);
     let relevant_docs = build_relevant_docs(&task_lc);
-    let proof_lanes = build_proof_lanes(&task_lc, &allowed_paths, &permission_profile);
+    let mut proof_lanes = build_proof_lanes(&task_lc, &allowed_paths, &permission_profile);
     let mut commands = catalog.commands_for_paths(&allowed_paths);
     for lane in &proof_lanes {
         let lane_cmds = catalog.proof_lane_commands(&[lane.as_str()]);
@@ -157,7 +158,19 @@ pub fn build_context_pack_with_options(
             push_unique(&mut commands, cmd);
         }
     }
-    let likely_rules = build_likely_rules(&task_lc, &permission_profile, &owner, &allowed_paths);
+    let mut likely_rules =
+        build_likely_rules(&task_lc, &permission_profile, &owner, &allowed_paths);
+    let mut proofbind_stop_conditions = Vec::new();
+    let mut proofbind_residual_risk = Vec::new();
+    apply_proofbind_context(
+        repo,
+        &changed_paths,
+        &mut proof_lanes,
+        &mut commands,
+        &mut likely_rules,
+        &mut proofbind_stop_conditions,
+        &mut proofbind_residual_risk,
+    );
     let scope_paths = if changed_paths.is_empty() {
         allowed_paths.clone()
     } else {
@@ -166,16 +179,22 @@ pub fn build_context_pack_with_options(
     let scope_decisions = build_scope_decisions(&catalog, &scope_paths);
     let human_approval_reasons = build_human_approval_reasons(&scope_decisions);
     let human_approval_required = !human_approval_reasons.is_empty();
-    let stop_conditions = build_stop_conditions(
+    let mut stop_conditions = build_stop_conditions(
         &permission_profile,
         &allowed_paths,
         &generated_zones,
         &scope_decisions,
     );
-    let residual_risk = vec![
+    for item in proofbind_stop_conditions {
+        push_unique(&mut stop_conditions, item);
+    }
+    let mut residual_risk = vec![
         "heuristic routing can miss a cross-owner edit".to_string(),
         "confirm the source contract before editing generated output".to_string(),
     ];
+    for item in proofbind_residual_risk {
+        push_unique(&mut residual_risk, item);
+    }
     let token_budget = max_tokens.max(1);
     let (included_files, excluded_files, estimated_tokens, source_trust_summary) =
         build_context_files(
@@ -216,6 +235,69 @@ pub fn build_context_pack_with_options(
             "include trusted policy and repo code first; summarize untrusted input and generated artifacts when budget is tight"
                 .to_string(),
     })
+}
+
+fn apply_proofbind_context(
+    repo: &Path,
+    changed_paths: &[String],
+    proof_lanes: &mut Vec<String>,
+    commands: &mut Vec<String>,
+    likely_rules: &mut Vec<String>,
+    stop_conditions: &mut Vec<String>,
+    residual_risk: &mut Vec<String>,
+) {
+    if changed_paths.is_empty() {
+        return;
+    }
+    let output = build_proofbind(ProofBindRequest {
+        repo_root: repo.to_path_buf(),
+        changed_paths: changed_paths.iter().map(PathBuf::from).collect(),
+        changed_from: None,
+        mode: ProofBindMode::Advisory,
+        proof_receipts: None,
+    });
+    let Ok(output) = output else {
+        return;
+    };
+    if output.witness.surfaces.is_empty() {
+        return;
+    }
+    push_unique(proof_lanes, "proofbind");
+    let mut command = "cargo run -p jankurai -- proofbind verify .".to_string();
+    for path in changed_paths.iter().take(12) {
+        command.push_str(" --changed ");
+        command.push_str(path);
+    }
+    push_unique(commands, command);
+    for surface in &output.witness.surfaces {
+        for lane in &surface.required_lanes {
+            push_unique(proof_lanes, lane.clone());
+        }
+        for rule in &surface.required_rules {
+            push_unique(likely_rules, rule.clone());
+        }
+        push_unique(
+            residual_risk,
+            format!(
+                "proofbind surface `{}` type=`{}` severity=`{}` owner=`{}`",
+                surface.path, surface.surface_type, surface.severity, surface.owner
+            ),
+        );
+    }
+    for obligation in output
+        .obligations
+        .obligations
+        .iter()
+        .filter(|item| !item.satisfied)
+    {
+        push_unique(
+            stop_conditions,
+            format!(
+                "stop if proofbind obligation `{}` remains missing for `{}`",
+                obligation.surface_type, obligation.path
+            ),
+        );
+    }
 }
 
 fn render_markdown(pack: &ContextPack) -> String {

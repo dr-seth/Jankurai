@@ -186,7 +186,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".github/instructions/jankurai-python-ai.instructions.md",
-        body: "---\napplyTo: \"python/ai-service/**/*.py\"\n---\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nIf jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n",
+        body: "---\napplyTo: \"python/ai-service/**/*.py\"\n---\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nDo not create or expand Python unless a dated advanced-ML/data exception explicitly approves this path. Python must not own product truth, authorization, repo tools, proof lanes, backend glue, or direct production DB writes.\nIf jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n",
     },
     Template {
         path: ".agents/agents.md",
@@ -254,7 +254,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "docs/agent-native-standard.md",
-        body: "# Agent-Native Standard\n\nKeep product truth in Rust, SQL, generated contracts, and bounded Python AI/data services. Route every path to an owner and proof lane.\n",
+        body: "# Agent-Native Standard\n\nKeep product truth in Rust, SQL, and generated contracts. Agents must not add Python except for rare dated advanced-ML/data exceptions under `python/ai-service`. Route every path to an owner and proof lane.\n",
     },
     Template {
         path: "docs/ide-integrations.md",
@@ -306,7 +306,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "docs/ai/README.md",
-        body: "# AI Product Boundary\n\nAI services may classify, retrieve, rank, generate, summarize, or recommend.\n\nThey may not silently own durable product truth. Version prompts and attach eval receipts to releases.\n",
+        body: "# AI Product Boundary\n\nPrefer Rust/TypeScript service boundaries. Add Python only for rare dated advanced-ML/data exceptions under `python/ai-service`.\n\nAI services may classify, retrieve, rank, generate, summarize, or recommend. They may not silently own durable product truth. Version prompts and attach eval receipts to releases.\n",
     },
     Template {
         path: "docs/product/README.md",
@@ -358,11 +358,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "python/ai-service/README.md",
-        body: "# Bounded AI Service\n\nScaffold only. Keep retrieval, ranking, and generation behind explicit contracts; do not treat model output as source of truth.\n",
-    },
-    Template {
-        path: "python/ai-service/pyproject.toml",
-        body: "[project]\nname = \"ai-service\"\nversion = \"0.1.0\"\ndescription = \"Bounded AI service scaffold (non-production)\"\nrequires-python = \">=3.11\"\n",
+        body: "# Exception-Only AI/Data Service\n\nScaffold only. Do not add Python here unless a dated advanced-ML/data exception exists. Keep retrieval, ranking, and generation behind explicit contracts; do not treat model output as source of truth.\n",
     },
     Template {
         path: "tools/security-lane.sh",

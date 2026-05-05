@@ -16,6 +16,7 @@
     "generated_zone_touches",
     "required_lanes",
     "available_proof_receipts",
+    "proofbind",
     "missing_evidence",
     "current_score",
     "current_raw_score",
@@ -53,6 +54,22 @@
     "generated_zone_touches": { "type": "array", "items": { "type": "object" } },
     "required_lanes": { "type": "array", "items": { "type": "string" } },
     "available_proof_receipts": { "type": "array", "items": { "type": "object" } },
+    "proofbind": {
+      "type": "object",
+      "required": [
+        "changed_surface_count",
+        "satisfied_obligation_count",
+        "missing_obligation_count",
+        "verdict"
+      ],
+      "properties": {
+        "changed_surface_count": { "type": "integer", "minimum": 0 },
+        "satisfied_obligation_count": { "type": "integer", "minimum": 0 },
+        "missing_obligation_count": { "type": "integer", "minimum": 0 },
+        "verdict": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "missing_evidence": { "type": "array", "items": { "type": "string" } },
     "current_score": { "type": "integer" },
     "current_raw_score": { "type": "integer" },

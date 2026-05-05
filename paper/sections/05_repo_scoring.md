@@ -8,7 +8,7 @@ The current auditor line is `0.3.0`. It is intentionally strict for one target s
 
 ```text
 Rust core + TypeScript/React/Vite + PostgreSQL truth
-+ generated contracts + bounded Python AI/data service
++ generated contracts + exception-only Python AI/data service
 ```
 
 ### Static score dimensions
@@ -25,7 +25,7 @@ The rubric is fixed at 100 points. Each dimension is scored from 0 to its weight
 | Data truth and workflow safety | 8 | Migrations, constraints, RLS where useful, and durable writes owned by the right layer |
 | Observability and repair evidence | 8 | OpenTelemetry, tracing, structured logs, request IDs, and failure evidence that helps repair |
 | Context economy and agent instructions | 8 | Concise root instructions, local docs, generated-zone manifests, and readable routing for agents |
-| Python containment and polyglot hygiene | 4 | Python stays boxed, with no product truth or direct production DB ownership |
+| Python containment and polyglot hygiene | 4 | Python appears only in rare advanced-ML/data exceptions, with no product truth or direct production DB ownership |
 | Build speed signals | 4 | Fast compile and test loops, incremental-friendly tooling, and no unnecessary rebuild drag |
 
 ### Hard caps
@@ -93,7 +93,7 @@ Example shape:
 {
   "standard": "jankurai",
   "standard_version": "0.3.0",
-  "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service",
+  "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service",
   "score": 86,
   "raw_score": 91,
   "caps_applied": ["no-security-lane"],
@@ -134,7 +134,7 @@ The scanner should prefer direct evidence over inference. If it flags a repo, it
 | Security | secret scanners, SBOM, SCA, lockfiles, unsafe ledger, dependency rationale |
 | Code shape | mega files, mega functions by regex, junk-drawer dirs, hidden I/O in core or domain code |
 | Data | migrations, constraints, RLS, direct DB access from the wrong layer |
-| Python containment | Python outside `python/ai-service`, direct DB drivers, product API ownership |
+| Python containment | Python outside a dated advanced-ML/data exception, direct DB drivers, product API ownership |
 | Observability | OpenTelemetry, tracing, structured logs, request IDs, proof receipts |
 | Agent readiness | concise root instructions, local docs, generated zones, raw evidence paths |
 | Vibe-coding blocks | TODO stubs, fallback soup, duplicate blocks, weak names, hand-written DTOs, broad catches |

@@ -1,7 +1,7 @@
 {
   "id": "ai-product",
   "displayName": "AI Product",
-  "targetStackId": "bounded-python-ai-product",
+  "targetStackId": "exception-python-ai-product",
   "generatedPaths": [
     "AGENTS.md",
     "CLAUDE.md",
@@ -44,7 +44,6 @@
     "evals/README.md",
     "prompts/README.md",
     "python/ai-service/README.md",
-    "python/ai-service/pyproject.toml",
     "tools/security-lane.sh",
     "tools/jankurai-hooks/pre-commit",
     "tools/jankurai-hooks/prepare-commit-msg"
@@ -61,8 +60,7 @@
     "agent/proof-lanes.toml": "merge-toml",
     "agent/standard-version.toml": "merge-toml",
     "agent/test-map.json": "merge-json",
-    "agent/jankurai-install.toml": "merge-toml",
-    "python/ai-service/pyproject.toml": "merge-toml"
+    "agent/jankurai-install.toml": "merge-toml"
   },
   "requiredLanes": ["fast", "audit", "security"],
   "optionalLanes": ["eval"],

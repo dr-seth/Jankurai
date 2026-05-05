@@ -19,10 +19,10 @@ Status labels:
 | HB-09 | OpenTelemetry is a vendor-neutral open-source observability framework for traces, metrics, and logs. | Evidence-backed | OpenTelemetry documentation |
 | HB-10 | Microsoft says TypeScript 7.0 Beta, ported to Go, is often about 10x faster than TypeScript 6.0 and uses `tsgo` via `@typescript/native-preview`. | Project claim | TypeScript 7.0 Beta announcement |
 | HB-11 | Vite 8 says its Rolldown-based bundler can deliver up to 10-30x faster builds while preserving plugin compatibility. | Project claim | Vite 8 announcement |
-| HB-12 | The winning stack should be Rust core plus TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and a bounded Python AI/data service. | Proposed doctrine | Synthesis of HB-01 through HB-11 |
+| HB-12 | The winning stack should be Rust core plus TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, and exception-only Python AI/data service for rare advanced-ML/data dependencies. | Proposed doctrine | Synthesis of HB-01 through HB-11 |
 | HB-13 | The stack rubric should prioritize agent-verifiable correctness, security, runtime cost, concurrency, contract integrity, review surface, observability, data safety, and product velocity. | Proposed doctrine | Source-plan rubric |
 | HB-14 | Product and service boundaries should be contract-generated and typed so wrong code is rejected at the edge instead of diffusing across the repo. | Proposed doctrine | Source-plan synthesis |
-| HB-15 | Python should stay bounded to AI/data-service roles and should not own product truth or direct production DB writes. | Proposed doctrine | Python 3.14 plus AI/security evidence |
+| HB-15 | Python should be a rare advanced-ML/data exception and should not own product truth, repo tools, proof lanes, general backend glue, or direct production DB writes. | Proposed doctrine | Python 3.14 plus AI/security evidence |
 | HB-16 | OpenTelemetry should be the default observability substrate for the winner stack. | Evidence-backed + doctrine | OpenTelemetry docs plus stack synthesis |
 | HB-17 | Repo scoring should cap readiness when security gates, deterministic fast lanes, generated-contract validation, or Python containment are missing. | Proposed doctrine | Source-plan rubric |
 | HB-18 | Rust is a strong core choice when mistake cost dominates because memory-safe languages reduce memory-related vulnerabilities and prevent entire bug classes. | Evidence-backed + doctrine | NSA/CISA Memory Safe Languages guidance |

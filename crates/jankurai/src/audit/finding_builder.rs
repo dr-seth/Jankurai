@@ -496,7 +496,7 @@ pub fn dimension_soft_route(
             "python",
             "python/ai-service",
             "HLT-005-PYTHON-PRODUCT-TRUTH",
-            "keep Python bounded to hard AI/data service work and move product truth into Rust, SQL, and generated contracts",
+            "remove Python unless it is a dated advanced-ML/data exception and move product truth into Rust, SQL, and generated contracts",
         ),
         "Build speed signals" => (
             "proof",

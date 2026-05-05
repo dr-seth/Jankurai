@@ -5,8 +5,14 @@ defines is:
 
 ```text
 Rust core + TypeScript/React/Vite product surface + PostgreSQL truth
-+ generated contracts + bounded Python AI/data service
++ generated contracts + exception-only Python AI/data service
 ```
+
+New implementation should be Rust-first. Agents must not write Python for repo
+tools, proof lanes, product services, general backend glue, authorization, or
+production database writes. Python is allowed only for rare advanced ML/data
+library work that has no practical Rust/TypeScript/service alternative, stays
+boxed to `python/ai-service`, and carries a dated exception.
 
 The canonical architecture is documented in:
 
