@@ -43,17 +43,90 @@
 
 \newsavebox{\JankuraiHeaderBox}
 \newlength{\JankuraiHeaderShift}
-\setlength{\JankuraiHeaderShift}{-0.055\textwidth}
+\newlength{\JankuraiHeaderLeft}
+
+% Negative = move the whole logo/wordmark image left.
+% This value is stronger than before so the "Jankurai" wordmark,
+% not the full mascot+wordmark graphic, feels visually centered.
+\setlength{\JankuraiHeaderShift}{-0.090\textwidth}
+
 \newcommand{\JankuraiHeaderGraphic}{%
   \IfFileExists{assets/jankurai_github_header_transparent.png}{%
-    \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio,trim=163bp 143bp 460bp 142bp,clip]{assets/jankurai_github_header_transparent.png}%
+    \includegraphics[
+      width=0.492\textwidth,
+      height=0.108\textheight,
+      keepaspectratio,
+      trim=163bp 143bp 460bp 142bp,
+      clip
+    ]{assets/jankurai_github_header_transparent.png}%
   }{%
-    \includegraphics[width=0.506\textwidth,height=0.115\textheight,keepaspectratio,trim=163bp 143bp 460bp 142bp,clip]{../assets/jankurai_github_header_transparent.png}%
+    \includegraphics[
+      width=0.492\textwidth,
+      height=0.108\textheight,
+      keepaspectratio,
+      trim=163bp 143bp 460bp 142bp,
+      clip
+    ]{../assets/jankurai_github_header_transparent.png}%
   }%
 }
+
 \newcommand{\JankuraiPlacedHeader}{%
   \sbox{\JankuraiHeaderBox}{\JankuraiHeaderGraphic}%
-  \makebox[\wd\JankuraiHeaderBox][c]{\hspace*{\JankuraiHeaderShift}\usebox{\JankuraiHeaderBox}}%
+  \setlength{\JankuraiHeaderLeft}{\dimexpr\textwidth-\wd\JankuraiHeaderBox\relax}%
+  \setlength{\JankuraiHeaderLeft}{0.5\JankuraiHeaderLeft}%
+  \addtolength{\JankuraiHeaderLeft}{\JankuraiHeaderShift}%
+  \noindent\makebox[\textwidth][l]{%
+    \hspace*{\JankuraiHeaderLeft}%
+    \usebox{\JankuraiHeaderBox}%
+  }%
+  \par
+}
+
+\newcommand{\JankuraiMetadataBlock}{%
+  \begingroup
+  \footnotesize
+  \setlength{\tabcolsep}{0.55em}
+  \renewcommand{\arraystretch}{1.12}
+  \begin{tabular}{@{}c@{}}
+    \textbf{Status} \texttt{public\_draft}
+    \quad
+    \textbf{Standard} \texttt{0.7.0}
+    \quad
+    \textbf{Auditor} \texttt{0.7.0}
+    \\[0.16em]
+    \textbf{Schema} \texttt{1.5.0}
+    \quad
+    \textbf{Paper edition} \texttt{2026.05-ed7}
+  \end{tabular}
+  \par
+  \endgroup
+}
+
+\newcommand{\JankuraiAbstractBlock}{%
+  \noindent\makebox[\textwidth][c]{%
+    \begin{minipage}{0.875\textwidth}
+      {\centering\bfseries Abstract\par}
+      \vspace{0.32em}
+
+      \begingroup
+      \small
+      \linespread{1.065}\selectfont
+      \setlength{\parindent}{0pt}
+      \setlength{\parskip}{0.48em}
+      \emergencystretch=2em
+
+      AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Jankurai is a versioned repository conformance standard for finding and reducing \emph{vibe artifacts}: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, and unreceipted review claims. Its central artifact is the \emph{merge witness}, a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool identity, artifact digests, and commit identity.
+
+      Jankurai treats the repository as the alignment layer for human- and agent-authored code. A local, pull-request, and CI loop maps each changed path to bounded authority, proof lanes, evidence receipts, repair queues, or expiring waivers. The result is not a larger prompt or a hosted trust service; it is a reproducible merge decision that can be audited at the current commit.
+
+      The paper contributes a stack-neutral repository model with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, bounded authority, proof receipts, audit reports, repair queues, merge witnesses, and a seed conformance suite. The claim is bounded: Jankurai does not prove full program semantics, does not require a Rust/TypeScript/PostgreSQL stack, and does not treat scores as merge approval. It proposes a version-controlled standard for turning vibe coding into repairable evidence.
+      \par
+      \endgroup
+
+      \vspace{0.35em}
+      {\small\noindent\textbf{Index Terms---}vibe coding, vibe artifacts, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence.\par}
+    \end{minipage}%
+  }%
   \par
 }
 
@@ -64,34 +137,27 @@
 
 \begin{titlepage}
 \centering
-\vspace*{0.05in}
+\vspace*{0.01in}
+
 \JankuraiPlacedHeader
-\vspace{0.6em}
+\vspace{0.42em}
+
 {\Large\bfseries Anti-Vibe Coding Standard\par}
-\vspace{0.25em}
+\vspace{0.22em}
+
 {\large\bfseries Continuous Repository Alignment for Proof-Carrying AI Pull Requests\par}
-\vspace{0.25em}
+\vspace{0.24em}
+
 {\normalsize\bfseries Find the vibe. Prove the merge. Repair the repo.\par}
-\vspace{0.6em}
+\vspace{0.58em}
+
 {\normalsize Jankurai Project \textbullet{} \href{https://github.com/jeppsontaylor/jankurai}{github.com/jeppsontaylor/jankurai}\par}
-\vspace{0.35em}
-{\small\texttt{status=public\_draft} \textbullet{} \texttt{standard\_version=0.7.0} \textbullet{} \texttt{auditor\_version=0.7.0}\par}
-\vspace{0.15em}
-{\small\texttt{schema\_version=1.5.0} \textbullet{} \texttt{paper\_edition=2026.05-ed7}\par}
-\vspace{0.8em}
+\vspace{0.42em}
 
-\begin{minipage}{0.92\textwidth}
-\begin{abstract}
-AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Jankurai is a versioned repository conformance standard for finding and reducing \emph{vibe artifacts}: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, and unreceipted review claims. Its central artifact is the \emph{merge witness}, a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool identity, artifact digests, and commit identity.
+\JankuraiMetadataBlock
+\vspace{0.78em}
 
-Jankurai treats the repository as the alignment layer for human- and agent-authored code. A local, pull-request, and CI loop maps each changed path to bounded authority, proof lanes, evidence receipts, repair queues, or expiring waivers. The result is not a larger prompt or a hosted trust service; it is a reproducible merge decision that can be audited at the current commit.
+\JankuraiAbstractBlock
 
-The paper contributes a stack-neutral repository model with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, bounded authority, proof receipts, audit reports, repair queues, merge witnesses, and a seed conformance suite. The claim is bounded: Jankurai does not prove full program semantics, does not require a Rust/TypeScript/PostgreSQL stack, and does not treat scores as merge approval. It proposes a version-controlled standard for turning vibe coding into repairable evidence.
-\end{abstract}
-
-\begin{IEEEkeywords}
-vibe coding, vibe artifacts, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence.
-\end{IEEEkeywords}
-\end{minipage}
 \vfill
 \end{titlepage}
