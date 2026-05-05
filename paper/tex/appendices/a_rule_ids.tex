@@ -68,8 +68,8 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 
 \subsection{Vibe-Coding Source Coverage}
 
-Jankurai 0.7.0 maps every parsed row from \texttt{tips/vibe\_coding/tip1.txt}
-through \texttt{tip5.txt} into \texttt{agent/vibe-coverage.toml}. Coverage is
+Jankurai 0.7.0 maps every parsed row in the vibe-coding corpus into
+\texttt{agent/vibe-coverage.toml}. Coverage is
 detector-backed only when a narrowed row has deterministic rule coverage plus
 proof/report evidence; partial when Jankurai has a reviewed control family but
 still needs issue-specific fixture, CI, or governance receipt evidence. The full
@@ -87,7 +87,7 @@ emitted under \texttt{target/jankurai/} by the documented coverage command.
 \JKTableHeader
 \textbf{Status or family} & \textbf{Count} & \textbf{Interpretation} \\
 \midrule
-Source rows mapped & 260 & Every parsed row from \texttt{tips/vibe\_coding/tip1.txt} through \texttt{tip5.txt} has one canonical issue. \\
+Source rows mapped & 260 & Every parsed row in the corpus has one canonical issue. \\
 Detector-backed & 17 & Narrow issue families with deterministic detector evidence and audit/report artifacts. \\
 Partial & 243 & Reviewed control families that still require issue-specific fixture, CI, or governance evidence. \\
 Unmapped / none & 0 & No source rows are intentionally left without a control-family mapping in this release. \\

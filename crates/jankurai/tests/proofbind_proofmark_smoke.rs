@@ -143,3 +143,31 @@ fn proofbind_obligation_can_be_satisfied_by_proofmark_receipt() {
     validation::validate_value(repo.path(), ArtifactSchema::MergeWitness, &witness).unwrap();
     assert_eq!(witness["proofbind"]["missing_obligation_count"], 0);
 }
+
+#[test]
+fn proofbind_required_mode_fails_when_any_obligation_is_missing() {
+    let repo = tempdir().unwrap();
+    seed_catalog(repo.path());
+    fs::create_dir_all(repo.path().join("src")).unwrap();
+    fs::write(
+        repo.path().join("src/lib.rs"),
+        "pub fn api() -> bool { true }\n",
+    )
+    .unwrap();
+
+    let status = Command::new(binary_path())
+        .current_dir(repo.path())
+        .arg("proofbind")
+        .arg("verify")
+        .arg(repo.path())
+        .arg("--changed")
+        .arg("src/lib.rs")
+        .arg("--mode")
+        .arg("required")
+        .status()
+        .unwrap();
+    assert!(
+        !status.success(),
+        "required mode should fail when any obligation is unresolved"
+    );
+}

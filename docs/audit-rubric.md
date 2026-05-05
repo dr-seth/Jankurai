@@ -72,6 +72,13 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | missing Rust property/integration tests | 82 | add invariant/property tests plus integration tests through cargo test/nextest |
 | no agent-friendly exception pattern | 76 | add typed errors with code, purpose, reason, common fixes, docs URL |
 | missing agent-readable docs | 80 | add concise architecture, boundary, testing, and audit docs |
+| rust-bad-behavior | 72 | detector-backed Rust bad-behavior findings only; keep proof-gated and high-confidence |
+| sql-bad-behavior | detector-backed | SQL detector pack with hard and advisory signals |
+| typescript-bad-behavior | detector-backed | TypeScript detector pack with hard and advisory signals |
+| docker-bad-behavior | detector-backed | Docker detector pack with hard and advisory signals |
+| python-bad-behavior | detector-backed | Python detector pack with hard and advisory signals |
+| ci-bad-behavior | detector-backed | CI detector pack with hard and advisory signals |
+| git-bad-behavior | detector-backed | Git detector pack with hard and advisory signals |
 
 ## Known Vibe-Coding Insults
 

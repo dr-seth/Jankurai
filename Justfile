@@ -64,3 +64,11 @@ phase13:
     mkdir -p target/jankurai
     cargo run -p jankurai -- optimize . --mode all --out target/jankurai/p13-optimization-report.json --md target/jankurai/p13-optimization-report.md
     cargo run -p jankurai -- exceptions expire . --warning-days 7 --strict --out target/jankurai/p13-exception-expiry.json --md target/jankurai/p13-exception-expiry.md
+
+tuiwright-test:
+    cargo test -p tuiwright --lib
+    cargo test -p tuiwright --test smoke -- --test-threads=1
+    cargo test -p tuiwright-cli
+
+tuiwright-demo:
+    cargo run -p tuiwright-demo

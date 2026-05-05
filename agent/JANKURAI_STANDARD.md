@@ -74,6 +74,7 @@ Stop or fix first when any condition is true:
   general backend glue, or production DB writes
 - new silent fallback, broad catch, disabled test, or duplicate behavior
 - product/runtime code contains future-hostile markers without allowlisted docs/generated/vendor/product-copy context or dated exception
+- paper sources must not mention `tips/*.txt` file names; refer to corpus, row-family, or source-group labels instead
 - high-risk change lacks security lane
 - generated code changes auth/input/crypto/filesystem behavior without security proof
 - secret-like values, prompt transcripts, MCP config, fixtures, or logs expose credentials or customer data
@@ -115,6 +116,15 @@ Stop or fix first when any condition is true:
 | `HLT-026-COST-BUDGET-GAP` | unbounded paid work lacks budget, quota, or stop-condition evidence |
 | `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP` | review or proof claim lacks reproducible receipts |
 | `HLT-028-BOUNDARY-EVIDENCE-GAP` | audited runtime boundary reclassification lacks deterministic evidence |
+| `HLT-029-RUST-BAD-BEHAVIOR` | Rust code uses unsafe, unchecked, or dishonest APIs without local proof |
+| `HLT-030-SQL-BAD-BEHAVIOR` | SQL code or migrations use unsafe string assembly or unchecked execution without proof |
+| `HLT-031-TYPESCRIPT-BAD-BEHAVIOR` | TypeScript code uses unchecked boundary or runtime shortcuts without proof |
+| `HLT-032-DOCKER-BAD-BEHAVIOR` | Docker or container build behavior hides unsafe or unreviewed execution steps |
+| `HLT-033-PYTHON-BAD-BEHAVIOR` | Python code owns runtime behavior or unchecked data paths without an approved exception |
+| `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
+| `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
+
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-035` are detector-backed catalog IDs in the language bad-behavior family.
 
 ## Ownership Boundaries
 

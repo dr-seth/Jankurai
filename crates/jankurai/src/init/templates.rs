@@ -58,18 +58,27 @@ fi
 
 cd "$repo_root"
 
+report_dir="${JANKURAI_HOOK_REPORT_DIR:-target/jankurai/hooks}"
+mkdir -p "$report_dir"
+report_json="$report_dir/pre-commit-score.json"
+report_md="$report_dir/pre-commit-score.md"
+report_history_jsonl="$report_dir/pre-commit-score-history.jsonl"
+report_history_csv="$report_dir/pre-commit-score-history.csv"
+
 if ! "$jankurai_cmd" audit . --mode advisory \
-  --json agent/repo-score.json \
-  --md agent/repo-score.md \
-  --score-history agent/score-history.jsonl \
-  --score-history-csv agent/score-history.csv; then
+  --json "$report_json" \
+  --md "$report_md" \
+  --score-history "$report_history_jsonl" \
+  --score-history-csv "$report_history_csv"; then
   echo "jankurai pre-commit audit failed; set JANKURAI_SKIP_HOOKS=1 to bypass local hooks" >&2
   exit 1
 fi
 
-git add -- agent/repo-score.json agent/repo-score.md agent/score-history.jsonl agent/score-history.csv 2>/dev/null || true
+if [ "${JANKURAI_HOOK_STAGE_ARTIFACTS:-}" = "1" ]; then
+  git add -- "$report_json" "$report_md" "$report_history_jsonl" "$report_history_csv" 2>/dev/null || true
+fi
 
-report_path="agent/repo-score.json"
+report_path="$report_json"
 json_int() {
   sed -n "s/^[[:space:]]*\"$1\":[[:space:]]*\([-0-9][0-9]*\).*/\1/p" "$report_path" | head -n 1
 }
@@ -94,7 +103,7 @@ JANKURAI_RAW_SCORE='$raw_score'
 JANKURAI_FINDINGS='$finding_count'
 JANKURAI_HARD_FINDINGS='$hard_findings'
 JANKURAI_DECISION='$decision'
-JANKURAI_REPORT='agent/repo-score.json'
+JANKURAI_REPORT='${report_json}'
 EOF
 "#;
 pub const PREPARE_COMMIT_MSG_HOOK: &str = r#"#!/usr/bin/env bash
@@ -143,7 +152,7 @@ fi
   printf 'Jankurai-Findings: %s\n' "${JANKURAI_FINDINGS:-0}"
   printf 'Jankurai-Hard-Findings: %s\n' "${JANKURAI_HARD_FINDINGS:-0}"
   printf 'Jankurai-Decision: %s\n' "${JANKURAI_DECISION:-unknown}"
-  printf 'Jankurai-Report: %s\n' "${JANKURAI_REPORT:-agent/repo-score.json}"
+  printf 'Jankurai-Report: %s\n' "${JANKURAI_REPORT:-target/jankurai/hooks/pre-commit-score.json}"
 } >> "$message_file"
 "#;
 
@@ -167,6 +176,10 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "Justfile",
         body: "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\nsecurity:\n\tjankurai security run . --out target/jankurai/security/evidence.json\n\ncheck: fast score security\n",
+    },
+    Template {
+        path: ".gitignore",
+        body: "# jankurai scaffold .gitignore\n\n# Keep Jankurai receipts local without hiding the rest of target/.\ntarget/jankurai/\n.jankurai/\n",
     },
     Template {
         path: ".github/copilot-instructions.md",

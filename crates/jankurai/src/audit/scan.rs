@@ -1,4 +1,5 @@
 use super::helpers::*;
+use super::language_rules;
 use crate::model::FileInfo;
 use aho_corasick::AhoCorasick;
 use once_cell::sync::Lazy;
@@ -103,6 +104,161 @@ pub const INPUT_BOUNDARY_PATTERNS: &[&str] = &[
     "SELECT * FROM",
     "fetch(",
 ];
+
+pub fn language_bad_behavior_hits(
+    ctx: &AuditContext,
+) -> Vec<super::language_rules::LanguageFinding> {
+    language_rules::findings(ctx)
+}
+
+pub fn is_test_or_example_path(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    lower.starts_with("tests/")
+        || lower.contains("/tests/")
+        || lower.starts_with("examples/")
+        || lower.contains("/examples/")
+        || lower.contains("/example/")
+        || lower.contains("/spec/")
+        || lower.ends_with("_test.rs")
+        || lower.ends_with(".test.rs")
+        || lower.ends_with(".spec.rs")
+        || lower.ends_with(".test.ts")
+        || lower.ends_with(".spec.ts")
+}
+
+pub fn is_generated_or_reference_path(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    lower.starts_with("docs/")
+        || lower.starts_with("paper/")
+        || lower.starts_with("reference/")
+        || lower.starts_with("tips/")
+        || lower.starts_with("generated/")
+        || lower.contains("/generated/")
+        || lower.starts_with("target/")
+}
+
+pub fn line_has_nearby_safety_comment(text: &str, line: usize) -> bool {
+    let lines: Vec<&str> = text.lines().collect();
+    if lines.is_empty() {
+        return false;
+    }
+    let idx = line.saturating_sub(1);
+    let start = idx.saturating_sub(3);
+    let end = (idx + 2).min(lines.len());
+    lines[start..end].iter().any(|candidate| {
+        let trimmed = candidate.trim().to_ascii_lowercase();
+        trimmed.contains("safety:")
+            || trimmed.starts_with("// safety")
+            || trimmed.starts_with("/// safety")
+            || trimmed.starts_with("/* safety")
+            || trimmed.starts_with("// safety:")
+    })
+}
+
+pub fn public_unsafe_has_safety_docs(text: &str, line: usize) -> bool {
+    let lines: Vec<&str> = text.lines().collect();
+    if lines.is_empty() {
+        return false;
+    }
+    let idx = line.saturating_sub(1);
+    let start = idx.saturating_sub(12);
+    let mut saw_doc = false;
+    for candidate in lines[start..idx].iter().rev() {
+        let trimmed = candidate.trim();
+        if trimmed.is_empty() {
+            if saw_doc {
+                break;
+            }
+            continue;
+        }
+        let lower = trimmed.to_ascii_lowercase();
+        if lower.starts_with("pub ") || lower.starts_with("fn ") || lower.starts_with("impl ") {
+            break;
+        }
+        if lower.starts_with("///")
+            || lower.starts_with("//!")
+            || lower.starts_with("/**")
+            || lower.starts_with("/*")
+            || lower.starts_with("*")
+        {
+            saw_doc = true;
+            if lower.contains("# safety") {
+                return true;
+            }
+        } else if saw_doc {
+            break;
+        }
+    }
+    false
+}
+
+pub fn function_context_contains_async(text: &str, line: usize) -> bool {
+    let lines: Vec<&str> = text.lines().collect();
+    if lines.is_empty() {
+        return false;
+    }
+    let idx = line.saturating_sub(1);
+    let start = idx.saturating_sub(32);
+    lines[start..idx].iter().rev().any(|candidate| {
+        let trimmed = candidate.trim().to_ascii_lowercase();
+        trimmed.contains("async fn")
+            || (trimmed.contains("async") && trimmed.contains("fn"))
+            || trimmed.contains("async move")
+            || trimmed.contains("tokio::main")
+            || trimmed.contains("tokio::test")
+    })
+}
+
+pub fn is_fixed_safe_command_invocation(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    let Some(start) = lower.find("command::new(") else {
+        return false;
+    };
+    let tail = &lower[start + "command::new(".len()..];
+    let quote = tail.chars().find(|c| *c == '"' || *c == '\'');
+    let Some(quote) = quote else {
+        return false;
+    };
+    let quote_idx = tail.find(quote).unwrap_or(0);
+    let tail = &tail[quote_idx + 1..];
+    let end = tail.find(quote).unwrap_or(0);
+    if end == 0 {
+        return false;
+    }
+    let executable = &tail[..end];
+    let fixed = [
+        "git",
+        "cargo",
+        "rustc",
+        "node",
+        "python",
+        "python3",
+        "npm",
+        "pnpm",
+        "yarn",
+        "make",
+        "just",
+        "bash",
+        "sh",
+        "zsh",
+        "fish",
+        "cmd",
+        "cmd.exe",
+        "powershell",
+        "pwsh",
+    ];
+    let looks_fixed = fixed.contains(&executable);
+    let looks_shell = matches!(
+        executable,
+        "bash" | "sh" | "zsh" | "fish" | "cmd" | "cmd.exe" | "powershell" | "pwsh"
+    );
+    let has_shell_eval = lower.contains(".arg(\"-c\")")
+        || lower.contains(".args([\"-c\"")
+        || lower.contains(".args(&[\"-c\"")
+        || lower.contains("shell=true")
+        || lower.contains("shell = true");
+    looks_fixed && !looks_shell && !has_shell_eval
+}
 
 pub const AGENT_TOOL_SUPPLY_PATTERNS: &[&str] = &[
     "mcp",
@@ -406,10 +562,28 @@ pub fn input_boundary_hits(ctx: &AuditContext) -> Vec<FindingHit> {
                 Some("eval(")
             } else if lower.contains("exec(")
                 || lower.contains("child_process")
-                || lower.contains("command::new")
                 || lower.contains("shell=true")
             {
                 Some("shell execution")
+            } else if lower.contains("command::new") {
+                if file.suffix == ".rs" {
+                    None
+                } else if is_fixed_safe_command_invocation(line) {
+                    None
+                } else if lower.contains(".arg(\"-c\")")
+                    || lower.contains(".args([\"-c\"")
+                    || lower.contains(".args(&[\"-c\"")
+                    || lower.contains("command::new(\"bash\"")
+                    || lower.contains("command::new(\"sh\"")
+                    || lower.contains("command::new(\"zsh\"")
+                    || lower.contains("command::new(\"fish\"")
+                    || lower.contains("command::new(\"cmd\"")
+                    || lower.contains("command::new(\"powershell\"")
+                {
+                    Some("shell execution")
+                } else {
+                    None
+                }
             } else if lower.contains("dangerouslysetinnerhtml") || lower.contains("innerhtml") {
                 Some("unsafe html")
             } else if (lower.contains("select ") || lower.contains("select * from"))
@@ -1229,28 +1403,24 @@ pub fn ci_hardening_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     }) {
         for (idx, line) in file.text.lines().enumerate() {
             let line_lower = line.to_ascii_lowercase();
-            if line_lower.contains("permissions:") && line_lower.contains("write-all") {
-                hits.push(FindingHit {
-                    path: file.rel_path.clone(),
-                    line: Some(idx + 1),
-                    text: line.to_string(),
-                    matched_term: Some("write-all".into()),
-                    agent_fix: "replace write-all permissions with explicit minimum required scopes (e.g. contents: read, actions: read)".into(),
-                    problem: "workflow declares broad write-all permissions".into(),
-                });
-            }
-            if line_lower.contains("run:")
-                && line_lower.contains("echo ")
-                && line_lower.contains("${{")
-                && line_lower.contains("secrets.")
+            if (line_lower.contains("continue-on-error")
+                || line_lower.contains("allow_failure")
+                || line_lower.contains("allow-failure")
+                || line_lower.contains("|| true"))
+                && (line_lower.contains("security")
+                    || line_lower.contains("secret")
+                    || line_lower.contains("dependency")
+                    || line_lower.contains("sbom")
+                    || line_lower.contains("proof")
+                    || line_lower.contains("audit"))
             {
                 hits.push(FindingHit {
                     path: file.rel_path.clone(),
                     line: Some(idx + 1),
                     text: line.to_string(),
-                    matched_term: Some("echo secrets".into()),
-                    agent_fix: "never echo secrets; mask them or use environment variables passed directly to trusted binaries".into(),
-                    problem: "workflow potentially leaks secrets via echo".into(),
+                    matched_term: Some("nonblocking security job".into()),
+                    agent_fix: "remove the nonblocking override and let the security or proof job fail so the CI gate actually proves the change".into(),
+                    problem: "security or proof job is marked nonblocking".into(),
                 });
             }
             if line_lower.contains("uses:") && line_lower.contains("@master") {

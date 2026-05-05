@@ -2,9 +2,9 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
-    adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
-    migrate, optimize, paper, proof, proofbind, proofmark, publish, registry, repair, repair_plan,
-    rules, rust, score, security, update, vibe, witness,
+    adopt, agent, badge, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks,
+    init, migrate, optimize, paper, proof, proofbind, proofmark, publish, registry, repair,
+    repair_plan, rules, rust, score, security, update, vibe, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -32,6 +32,7 @@ struct Cli {
 enum Commands {
     Audit(AuditArgs),
     Adopt(AdoptArgs),
+    Badge(BadgeCliArgs),
     Init(InitArgs),
     Update(UpdateArgs),
     Upgrade(UpgradeArgs),
@@ -113,6 +114,39 @@ enum Commands {
         #[command(subcommand)]
         command: VibeCommand,
     },
+}
+
+#[derive(Args, Debug)]
+struct BadgeCliArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "PATH", default_value = badge::DEFAULT_SCORE_JSON)]
+    score: String,
+    #[arg(long, value_name = "PATH", default_value = badge::DEFAULT_BADGE_SVG)]
+    out: String,
+    #[arg(long, value_name = "PATH", default_value = badge::DEFAULT_BADGE_JSON)]
+    json_out: String,
+    /// Skip writing badge JSON metadata.
+    #[arg(long)]
+    no_json: bool,
+    #[arg(long, value_name = "PATH", default_value = badge::DEFAULT_README)]
+    readme: String,
+    /// Skip updating the README file.
+    #[arg(long)]
+    no_readme: bool,
+    #[arg(long, value_name = "PATH_OR_URL", default_value = badge::DEFAULT_SCORE_MD)]
+    link: String,
+    /// Write the badge block into the README.
+    #[arg(long)]
+    update_readme: bool,
+    /// CI mode: verify badge is current without writing.
+    #[arg(long)]
+    check: bool,
+    /// Print the Markdown snippet to stdout.
+    #[arg(long)]
+    print_markdown: bool,
+    #[arg(long, default_value = "jankurai")]
+    label: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -1068,6 +1102,20 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::Badge(args)) => {
+            badge::run(badge::BadgeArgs {
+                repo: args.repo,
+                score: args.score,
+                out: args.out,
+                json_out: if args.no_json { None } else { Some(args.json_out) },
+                readme: if args.no_readme { None } else { Some(args.readme) },
+                link: args.link,
+                update_readme: args.update_readme,
+                check: args.check,
+                print_markdown: args.print_markdown,
+                label: args.label,
+            })?;
+        }
         Some(Commands::Init(args)) => {
             if args.bootstrap_commit {
                 run_init_bootstrap_commit(args)?;
@@ -1558,10 +1606,10 @@ fn run_init_bootstrap_commit(args: InitArgs) -> anyhow::Result<()> {
     let repo = args.repo.clone();
     let adoption_json = repo.join("agent/adoption-plan.json");
     let adoption_md = repo.join("agent/adoption-plan.md");
-    let score_json = repo.join("agent/repo-score.json");
-    let score_md = repo.join("agent/repo-score.md");
-    let history_jsonl = repo.join("agent/score-history.jsonl");
-    let history_csv = repo.join("agent/score-history.csv");
+    let score_json = repo.join("target/jankurai/hooks/pre-commit-score.json");
+    let score_md = repo.join("target/jankurai/hooks/pre-commit-score.md");
+    let history_jsonl = repo.join("target/jankurai/hooks/pre-commit-score-history.jsonl");
+    let history_csv = repo.join("target/jankurai/hooks/pre-commit-score-history.csv");
     let doctor_json = repo.join("target/jankurai/doctor.json");
     let doctor_md = repo.join("target/jankurai/doctor.md");
 
@@ -1694,8 +1742,10 @@ fn print_bootstrap_commit_next_steps(repo: &std::path::Path) {
     );
     println!(
         "- score history: `{}` and `{}`",
-        repo.join("agent/score-history.jsonl").display(),
-        repo.join("agent/score-history.csv").display()
+        repo.join("target/jankurai/hooks/pre-commit-score-history.jsonl")
+            .display(),
+        repo.join("target/jankurai/hooks/pre-commit-score-history.csv")
+            .display()
     );
 }
 
@@ -1930,6 +1980,18 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             )
         )
     );
+    // Auto-update badge if agent/badge.toml is present and this is a full audit.
+    if !args.changed_fast {
+        if let Err(e) = badge::run_from_config_after_audit(&args.repo, &args.json, &args.md) {
+            eprintln!(
+                "{}",
+                jankurai::ui::epaint(
+                    jankurai::ui::Style::Warn,
+                    format!("badge update skipped: {e}")
+                )
+            );
+        }
+    }
     Ok(())
 }
 

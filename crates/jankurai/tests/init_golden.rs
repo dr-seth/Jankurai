@@ -114,6 +114,20 @@ fn init_unknown_profile_errors() {
 }
 
 #[test]
+fn workspace_gitignore_keeps_conformance_repo_score_fixtures_visible() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let text = fs::read_to_string(root.join(".gitignore")).unwrap();
+    assert!(
+        text.contains("!conformance/expected/*.repo-score.json"),
+        "{text}"
+    );
+    assert!(!text.contains("*-score.json"), "{text}");
+    assert!(!text.contains("*-score.md"), "{text}");
+}
+
+#[test]
 fn init_level_agents_only_plans_agent_and_provider_guidance() {
     let dir = tempdir().unwrap();
     let plan_path = dir.path().join("init-agents.json");
@@ -261,17 +275,44 @@ edition = "2021"
     ))
     .unwrap();
 
+    let gitignore = fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+    let gitignore_lines: Vec<_> = gitignore.lines().map(str::trim).collect();
+    assert!(
+        gitignore_lines.contains(&"target/jankurai/"),
+        "{gitignore}"
+    );
+    assert!(gitignore_lines.contains(&".jankurai/"), "{gitignore}");
+    assert!(!gitignore_lines.contains(&"target/"), "{gitignore}");
+
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
     let pre_commit = dir.path().join("tools/jankurai-hooks/pre-commit");
     let prepare = dir.path().join("tools/jankurai-hooks/prepare-commit-msg");
     assert!(pre_commit.is_file());
     assert!(prepare.is_file());
-    assert!(fs::read_to_string(pre_commit)
-        .unwrap()
-        .contains("--mode advisory"));
-    assert!(fs::read_to_string(prepare)
-        .unwrap()
-        .contains("Jankurai-Score:"));
+    let pre_commit_text = fs::read_to_string(pre_commit).unwrap();
+    assert!(pre_commit_text.contains("--mode advisory"));
+    assert!(
+        pre_commit_text.contains("JANKURAI_HOOK_REPORT_DIR"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        pre_commit_text.contains("JANKURAI_HOOK_STAGE_ARTIFACTS"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        !pre_commit_text.contains("agent/repo-score.json"),
+        "{pre_commit_text}"
+    );
+    assert!(
+        !pre_commit_text.contains("agent/score-history.jsonl"),
+        "{pre_commit_text}"
+    );
+    let prepare_text = fs::read_to_string(prepare).unwrap();
+    assert!(prepare_text.contains("Jankurai-Score:"));
+    assert!(
+        prepare_text.contains("target/jankurai/hooks/pre-commit-score.json"),
+        "{prepare_text}"
+    );
     let witness = dir.path().join("tools/jankurai-rust/witness.sh");
     assert!(witness.is_file());
     assert!(fs::read_to_string(dir.path().join("Justfile"))
@@ -296,6 +337,24 @@ fn init_level_full_without_cargo_skips_rust_foundation_templates() {
     let justfile = fs::read_to_string(dir.path().join("Justfile")).unwrap();
     assert!(!justfile.contains("rust-map:"));
     assert!(!justfile.contains("rust-diagnose:"));
+}
+
+#[test]
+fn init_level_full_gitignore_keeps_jankurai_outputs_narrow() {
+    let dir = tempdir().unwrap();
+    init::run(greenfield_apply_args(
+        dir.path().to_path_buf(),
+        "rust-ts-postgres",
+    ))
+    .unwrap();
+
+    let text = fs::read_to_string(dir.path().join(".gitignore")).unwrap();
+    let lines: Vec<_> = text.lines().map(str::trim).collect();
+    assert!(lines.contains(&"target/jankurai/"), "{text}");
+    assert!(lines.contains(&".jankurai/"), "{text}");
+    assert!(!lines.contains(&"target/"), "{text}");
+    assert!(!lines.contains(&"*-score.json"), "{text}");
+    assert!(!lines.contains(&"*-score.md"), "{text}");
 }
 
 #[test]
@@ -335,12 +394,19 @@ fn hooks_install_yes_installs_local_hooks() {
     assert!(pre_commit.is_file());
     assert!(prepare.is_file());
     assert!(dir.path().join(".git/jankurai/env").is_file());
-    assert!(fs::read_to_string(pre_commit)
-        .unwrap()
-        .contains("JANKURAI MANAGED HOOK: pre-commit"));
-    assert!(fs::read_to_string(prepare)
-        .unwrap()
-        .contains("JANKURAI MANAGED HOOK: prepare-commit-msg"));
+    let pre_commit_text = fs::read_to_string(pre_commit).unwrap();
+    assert!(pre_commit_text.contains("JANKURAI MANAGED HOOK: pre-commit"));
+    assert!(
+        pre_commit_text.contains("JANKURAI_HOOK_REPORT_DIR"),
+        "{pre_commit_text}"
+    );
+    assert!(pre_commit_text.contains("JANKURAI_HOOK_STAGE_ARTIFACTS"), "{pre_commit_text}");
+    let prepare_text = fs::read_to_string(prepare).unwrap();
+    assert!(prepare_text.contains("JANKURAI MANAGED HOOK: prepare-commit-msg"));
+    assert!(
+        prepare_text.contains("target/jankurai/hooks/pre-commit-score.json"),
+        "{prepare_text}"
+    );
 }
 
 #[test]
@@ -406,7 +472,10 @@ edition = "2021"
     assert!(justfile.contains("rust-witness:"));
     let first_message = git_stdout(dir.path(), &["log", "-1", "--format=%B"]);
     assert!(first_message.contains("Jankurai-Score:"), "{first_message}");
-    assert!(first_message.contains("Jankurai-Report: agent/repo-score.json"));
+    assert!(
+        first_message.contains("Jankurai-Report: target/jankurai/hooks/pre-commit-score.json"),
+        "{first_message}"
+    );
 
     fs::write(
         dir.path().join("docs/architecture/README.md"),
@@ -422,7 +491,11 @@ edition = "2021"
         "{second_message}"
     );
     assert!(dir.path().join(".git/jankurai/last-score.env").is_file());
-    let history = fs::read_to_string(dir.path().join("agent/score-history.jsonl")).unwrap();
+    assert!(dir.path().join("target/jankurai/hooks/pre-commit-score.json").is_file());
+    assert!(dir.path().join("target/jankurai/hooks/pre-commit-score.md").is_file());
+    let history =
+        fs::read_to_string(dir.path().join("target/jankurai/hooks/pre-commit-score-history.jsonl"))
+            .unwrap();
     assert!(
         history
             .lines()

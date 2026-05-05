@@ -60,6 +60,7 @@ pub enum ArtifactSchema {
     ScoreTrend,
     VibeCoverageSource,
     VibeCoverageReport,
+    ReadmeBadge,
 }
 
 impl ArtifactSchema {
@@ -117,6 +118,7 @@ impl ArtifactSchema {
             Self::ScoreTrend => "score-trend.schema.json",
             Self::VibeCoverageSource => "vibe-coverage-source.schema.json",
             Self::VibeCoverageReport => "vibe-coverage-report.schema.json",
+            Self::ReadmeBadge => "readme-badge.schema.json",
         }
     }
 }

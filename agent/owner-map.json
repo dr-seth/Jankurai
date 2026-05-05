@@ -26,15 +26,19 @@
     "agent/": "agent",
     "assets/": "paper",
     "docs/": "standard",
+    "docs/tuiwright.md": "standard",
     "conformance/": "standard",
     "schemas/": "standard",
     "contracts/": "standard",
     "db/": "standard",
     "examples/perfect-web-api-db/": "standard",
     "examples/legacy-node-api/": "tools",
+    "examples/tuiwright-demo/": "tools",
     "crates/jankurai/": "tools",
     "crates/jankurai-proofbind/": "tools",
     "crates/jankurai-proofmark/": "tools",
+    "crates/tuiwright/": "tools",
+    "crates/tuiwright-cli/": "tools",
     "packages/ux-qa/": "tools",
     ".cursor/": "agent",
     ".claude/": "agent",
@@ -43,6 +47,8 @@
     "reference/": "read-only",
     "tips/phases/logs/": "agent",
     "tips/": "paper",
-    "tools/": "tools"
+    "tools/": "tools",
+    "tools/jankurai-hooks/": "tools",
+    "tools/jankurai-rust/": "tools"
   }
 }

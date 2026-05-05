@@ -166,7 +166,9 @@ fn no_orphan_caps() {
                     "jankurai-required-tool-ci-evidence-gap",
                     "missing-rust-property-or-integration-tests",
                     "no-agent-friendly-exception-pattern",
-                    "missing-agent-readable-docs"
+                    "missing-agent-readable-docs",
+                    "ci-bad-behavior",
+                    "git-bad-behavior"
                 ]
                 .contains(&cap.key),
                 "Cap {} has no rule_id and is not a known legacy cap",
@@ -202,10 +204,10 @@ fn confidence_policy_is_consistent_with_severity() {
 
 #[test]
 fn rule_count_matches_expected() {
-    assert_eq!(rules::all().len(), 28, "Expected exactly 28 stable rules");
+    assert_eq!(rules::all().len(), 35, "Expected exactly 35 stable rules");
 }
 
 #[test]
 fn cap_count_matches_expected() {
-    assert_eq!(caps::CAP_SPECS.len(), 33, "Expected exactly 33 caps");
+    assert_eq!(caps::CAP_SPECS.len(), 40, "Expected exactly 40 caps");
 }

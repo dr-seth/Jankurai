@@ -100,33 +100,35 @@ pub(crate) fn receipt_satisfies(
 }
 
 fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEvidence {
-    let lane = value
-        .get("lane")
-        .and_then(Value::as_str)
-        .unwrap_or("unknown")
-        .to_string();
-    let exit_code = value.get("exit_code").and_then(Value::as_i64).unwrap_or(1);
-    let changed_paths = value
-        .get("changed_paths")
-        .and_then(Value::as_array)
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(Value::as_str)
-                .map(str::to_string)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or(Default::default());
+    let lane = if let Some(lane) = value.get("lane").and_then(Value::as_str) {
+        lane.to_string()
+    } else {
+        "unknown".into()
+    };
+    let exit_code = match value.get("exit_code").and_then(Value::as_i64) {
+        Some(code) => code,
+        None => 1,
+    };
+    let changed_paths = if let Some(items) = value.get("changed_paths").and_then(Value::as_array) {
+        items
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
     let mut rules_covered = Vec::new();
     if let Some(items) = value.get("rules_covered").and_then(Value::as_array) {
         for item in items {
             if let Some(rule) = item.as_str() {
                 rules_covered.push(rule.to_string());
             } else if let Some(rule) = item.get("rule_id").and_then(Value::as_str) {
-                let status = item
-                    .get("status")
-                    .and_then(Value::as_str)
-                    .unwrap_or("covered");
+                let status = if let Some(status) = item.get("status").and_then(Value::as_str) {
+                    status
+                } else {
+                    "covered"
+                };
                 if !matches!(status, "covered" | "pass" | "satisfied") {
                     continue;
                 }
@@ -134,21 +136,24 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
             }
         }
     }
-    let proofmark = value
+    let null_value = Value::Null;
+    let proofmark = if let Some(proofmark) = value
         .get("extensions")
         .and_then(|v| v.get("proofmark"))
-        .unwrap_or(&Value::Null);
-    let satisfied_obligations = proofmark
-        .get("satisfied_obligations")
-        .and_then(Value::as_array)
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(Value::as_str)
-                .map(str::to_string)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or(Default::default());
+    {
+        proofmark
+    } else {
+        &null_value
+    };
+    let satisfied_obligations = if let Some(items) = proofmark.get("satisfied_obligations").and_then(Value::as_array) {
+        items
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
     let mut proofmark_results = BTreeMap::new();
     if let Some(items) = proofmark
         .get("obligation_results")
@@ -158,12 +163,12 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
             let Some(id) = item.get("obligation_id").and_then(Value::as_str) else {
                 continue;
             };
-            let status = item
-                .get("status")
-                .and_then(Value::as_str)
-                .unwrap_or("unknown")
-                .to_string();
-            proofmark_results.insert(id.to_string(), status);
+            let status = if let Some(status) = item.get("status").and_then(Value::as_str) {
+                status
+            } else {
+                "unknown"
+            };
+            proofmark_results.insert(id.to_string(), status.to_string());
         }
     }
     ReceiptEvidence {
@@ -178,8 +183,9 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
 }
 
 fn display_rel(repo: &Path, path: &Path) -> String {
-    path.strip_prefix(repo)
-        .unwrap_or(path)
-        .to_string_lossy()
-        .replace('\\', "/")
+    if let Ok(rel) = path.strip_prefix(repo) {
+        rel.to_string_lossy().replace('\\', "/")
+    } else {
+        path.to_string_lossy().replace('\\', "/")
+    }
 }

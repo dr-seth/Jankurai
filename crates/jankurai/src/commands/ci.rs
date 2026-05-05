@@ -116,6 +116,9 @@ jobs:
       - run: jankurai --version
       - name: jankurai audit
         run: jankurai audit . --mode {audit_mode}{baseline_arg} --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl{gate}
+      - name: jankurai badge check
+        run: jankurai badge . --check --update-readme
+        continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -134,6 +137,8 @@ jobs:
             target/jankurai/ux-qa.json
             target/jankurai/migration-report.json
             target/jankurai/rust/witness-graph.json
+            agent/jankurai-badge.svg
+            agent/jankurai-badge.json
 "#
     )
 }

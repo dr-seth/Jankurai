@@ -10,7 +10,7 @@
       "rank": 1,
       "repo": "rtk-ai/rtk",
       "slug": "rtk-ai__rtk",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -52,7 +52,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/rtk-ai__rtk.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/rtk-ai__rtk.audit.log",
         "git_head": "4338f029ec43b69eb959748ec02cd7885200c264",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 28,
@@ -191,7 +191,7 @@
       "rank": 2,
       "repo": "vercel-labs/agent-browser",
       "slug": "vercel-labs__agent-browser",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -233,7 +233,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/vercel-labs__agent-browser.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/vercel-labs__agent-browser.audit.log",
         "git_head": "7ada3384e2afb5f3c43d9106389da86d8f807dca",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 38,
@@ -370,7 +370,7 @@
       "rank": 3,
       "repo": "zeroclaw-labs/zeroclaw",
       "slug": "zeroclaw-labs__zeroclaw",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -412,7 +412,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/zeroclaw-labs__zeroclaw.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/zeroclaw-labs__zeroclaw.audit.log",
         "git_head": "70b84d30204fae2a229221bca34dab64902bf43f",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 40,
@@ -549,7 +549,7 @@
       "rank": 4,
       "repo": "googleworkspace/cli",
       "slug": "googleworkspace__cli",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -591,7 +591,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/googleworkspace__cli.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/googleworkspace__cli.audit.log",
         "git_head": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 41,
@@ -727,7 +727,7 @@
       "rank": 5,
       "repo": "AlexsJones/llmfit",
       "slug": "AlexsJones__llmfit",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -769,7 +769,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/AlexsJones__llmfit.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/AlexsJones__llmfit.audit.log",
         "git_head": "064fa68e6f0a32537469ed6e3c6cd3d756d8e039",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 35,
@@ -908,7 +908,7 @@
       "rank": 6,
       "repo": "RightNow-AI/openfang",
       "slug": "RightNow-AI__openfang",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -950,7 +950,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/RightNow-AI__openfang.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/RightNow-AI__openfang.audit.log",
         "git_head": "3cce1eb3fb19ad590a0937e039a8bf8bc09aba13",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 42,
@@ -1087,7 +1087,7 @@
       "rank": 7,
       "repo": "xai-org/x-algorithm",
       "slug": "xai-org__x-algorithm",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -1129,7 +1129,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/xai-org__x-algorithm.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/xai-org__x-algorithm.audit.log",
         "git_head": "aaa167b3de8a674587c53545a43c90eaad360010",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 24,
@@ -1265,7 +1265,7 @@
       "rank": 8,
       "repo": "microsoft/RustTraining",
       "slug": "microsoft__RustTraining",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -1307,7 +1307,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/microsoft__RustTraining.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/microsoft__RustTraining.audit.log",
         "git_head": "1d3651fa59edf20a2c3ad260d0c596c82c7413f6",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 31,
@@ -1440,7 +1440,7 @@
       "rank": 9,
       "repo": "nearai/ironclaw",
       "slug": "nearai__ironclaw",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -1482,7 +1482,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/nearai__ironclaw.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/nearai__ironclaw.audit.log",
         "git_head": "e3742aee3c272db7a24f42c1f00128ebe17c9ddc",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 42,
@@ -1626,7 +1626,7 @@
       "rank": 10,
       "repo": "h4ckf0r0day/obscura",
       "slug": "h4ckf0r0day__obscura",
-      "tip_source": "tip1.txt",
+      "tip_source": "tip1",
       "status": "ok",
       "error": null,
       "clone": {
@@ -1668,7 +1668,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/h4ckf0r0day__obscura.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/h4ckf0r0day__obscura.audit.log",
         "git_head": "e60da1af39f03b34056d59bdcc27f538c6370dc5",
-        "tip_source": "tip1.txt",
+        "tip_source": "tip1",
         "jankurai_version": "0.7.0"
       },
       "score": 26,
@@ -1805,7 +1805,7 @@
       "rank": 11,
       "repo": "octasoft-ltd/wsl-ui",
       "slug": "octasoft-ltd__wsl-ui",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -1847,7 +1847,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/octasoft-ltd__wsl-ui.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/octasoft-ltd__wsl-ui.audit.log",
         "git_head": "741d8da6a5f462c75e1ba5075e21ae89414d468b",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 31,
@@ -1986,7 +1986,7 @@
       "rank": 12,
       "repo": "kvnxiao/tauri-tanstack-start-react-template",
       "slug": "kvnxiao__tauri-tanstack-start-react-template",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -2028,7 +2028,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/kvnxiao__tauri-tanstack-start-react-template.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/kvnxiao__tauri-tanstack-start-react-template.audit.log",
         "git_head": "6d83e7b732681fc8c90d214bab134e244f975a68",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 39,
@@ -2152,7 +2152,7 @@
       "rank": 13,
       "repo": "fudanglp/tauri-fastapi-full-stack-template",
       "slug": "fudanglp__tauri-fastapi-full-stack-template",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -2194,7 +2194,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/fudanglp__tauri-fastapi-full-stack-template.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/fudanglp__tauri-fastapi-full-stack-template.audit.log",
         "git_head": "c31457a52d4a7f1faf678157fde8b95f353cc75e",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 23,
@@ -2335,7 +2335,7 @@
       "rank": 14,
       "repo": "sergioadevita/notemac-plus-plus",
       "slug": "sergioadevita__notemac-plus-plus",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -2377,7 +2377,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/sergioadevita__notemac-plus-plus.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/sergioadevita__notemac-plus-plus.audit.log",
         "git_head": "3577d5386f9fac2256ad1e5d7d4f16029fbac7b9",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 24,
@@ -2518,7 +2518,7 @@
       "rank": 15,
       "repo": "ianho7/maptoposter-online",
       "slug": "ianho7__maptoposter-online",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -2560,7 +2560,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/ianho7__maptoposter-online.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/ianho7__maptoposter-online.audit.log",
         "git_head": "9ebbd7e8f7d35bbac9837199108aeacc55bfb535",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 14,
@@ -2695,7 +2695,7 @@
       "rank": 16,
       "repo": "exit-zero-labs/threat-forge",
       "slug": "exit-zero-labs__threat-forge",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -2737,7 +2737,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/exit-zero-labs__threat-forge.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/exit-zero-labs__threat-forge.audit.log",
         "git_head": "e053d4e58d062a3c1c7e50f747644571df634240",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 32,
@@ -2875,7 +2875,7 @@
       "rank": 17,
       "repo": "lostf1sh/rustune",
       "slug": "lostf1sh__rustune",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -2917,7 +2917,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/lostf1sh__rustune.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/lostf1sh__rustune.audit.log",
         "git_head": "54e2ba28c208061364c12e8ee5314870e2d7e24c",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 23,
@@ -3052,7 +3052,7 @@
       "rank": 18,
       "repo": "Duri686/RustQuantLab",
       "slug": "Duri686__RustQuantLab",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -3094,7 +3094,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/Duri686__RustQuantLab.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/Duri686__RustQuantLab.audit.log",
         "git_head": "4a9821d62d04f98b714ee26eb43d76b27f1882d4",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 26,
@@ -3231,7 +3231,7 @@
       "rank": 19,
       "repo": "kevinpiao1025/tauri-react-typescript-tailwind",
       "slug": "kevinpiao1025__tauri-react-typescript-tailwind",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -3273,7 +3273,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/kevinpiao1025__tauri-react-typescript-tailwind.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/kevinpiao1025__tauri-react-typescript-tailwind.audit.log",
         "git_head": "addc07ff9ddb279b2dfcd9d90517092daa108035",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 36,
@@ -3392,7 +3392,7 @@
       "rank": 20,
       "repo": "MarkShawn2020/lovtauri",
       "slug": "MarkShawn2020__lovtauri",
-      "tip_source": "tip2.txt",
+      "tip_source": "tip2",
       "status": "ok",
       "error": null,
       "clone": {
@@ -3434,7 +3434,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/MarkShawn2020__lovtauri.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/MarkShawn2020__lovtauri.audit.log",
         "git_head": "17e69bce46ca84672ae57be513de0b5b5c7cdecb",
-        "tip_source": "tip2.txt",
+        "tip_source": "tip2",
         "jankurai_version": "0.7.0"
       },
       "score": 26,
@@ -3566,7 +3566,7 @@
       "rank": 21,
       "repo": "tauri-apps/tauri",
       "slug": "tauri-apps__tauri",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -3608,7 +3608,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/tauri-apps__tauri.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/tauri-apps__tauri.audit.log",
         "git_head": "5e3126ff7045aec54811b227cb4d33d78b3957b5",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 38,
@@ -3744,7 +3744,7 @@
       "rank": 22,
       "repo": "rustdesk/rustdesk",
       "slug": "rustdesk__rustdesk",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -3786,7 +3786,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/rustdesk__rustdesk.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/rustdesk__rustdesk.audit.log",
         "git_head": "5abae617dc8a5c6aea3f0c053832c1a89566d453",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 30,
@@ -3926,7 +3926,7 @@
       "rank": 23,
       "repo": "denoland/deno",
       "slug": "denoland__deno",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -3968,7 +3968,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/denoland__deno.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/denoland__deno.audit.log",
         "git_head": "096978925efae1a68e82bcd7be095ba402f0320c",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 43,
@@ -4108,7 +4108,7 @@
       "rank": 24,
       "repo": "astral-sh/uv",
       "slug": "astral-sh__uv",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -4150,7 +4150,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/astral-sh__uv.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/astral-sh__uv.audit.log",
         "git_head": "f895a30318ce3314004bb8580b5d30fa9f05f681",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 38,
@@ -4293,7 +4293,7 @@
       "rank": 25,
       "repo": "zed-industries/zed",
       "slug": "zed-industries__zed",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -4335,7 +4335,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/zed-industries__zed.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/zed-industries__zed.audit.log",
         "git_head": "c34dd1743562e37ff18a0c4ac5084afc8ec66eb4",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 48,
@@ -4472,7 +4472,7 @@
       "rank": 26,
       "repo": "astral-sh/ruff",
       "slug": "astral-sh__ruff",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -4514,7 +4514,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/astral-sh__ruff.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/astral-sh__ruff.audit.log",
         "git_head": "ea6be89b0af6442ec09ac6a8998bce247c1fe5ba",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 45,
@@ -4656,7 +4656,7 @@
       "rank": 27,
       "repo": "alacritty/alacritty",
       "slug": "alacritty__alacritty",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -4698,7 +4698,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/alacritty__alacritty.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/alacritty__alacritty.audit.log",
         "git_head": "79adb086002be778cec5d3b90676594bfe2105bb",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 34,
@@ -4826,7 +4826,7 @@
       "rank": 28,
       "repo": "BurntSushi/ripgrep",
       "slug": "BurntSushi__ripgrep",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -4868,7 +4868,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/BurntSushi__ripgrep.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/BurntSushi__ripgrep.audit.log",
         "git_head": "4519153e5e461527f4bca45b042fff45c4ec6fb9",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 31,
@@ -5004,7 +5004,7 @@
       "rank": 29,
       "repo": "meilisearch/meilisearch",
       "slug": "meilisearch__meilisearch",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -5046,7 +5046,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/meilisearch__meilisearch.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/meilisearch__meilisearch.audit.log",
         "git_head": "475ed56e5612df0dbb826748add5f93e0e7d5500",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 42,
@@ -5184,7 +5184,7 @@
       "rank": 30,
       "repo": "typst/typst",
       "slug": "typst__typst",
-      "tip_source": "tip3.txt",
+      "tip_source": "tip3",
       "status": "ok",
       "error": null,
       "clone": {
@@ -5226,7 +5226,7 @@
         "md_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/scores/typst__typst.md",
         "log_path": "/home/ubuntu/jankscore/runs/20260505T184426Z/logs/typst__typst.audit.log",
         "git_head": "a0be73ab12ab36e00afb20557242491d8b80e60b",
-        "tip_source": "tip3.txt",
+        "tip_source": "tip3",
         "jankurai_version": "0.7.0"
       },
       "score": 31,

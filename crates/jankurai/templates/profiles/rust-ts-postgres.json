@@ -7,6 +7,7 @@
     "CLAUDE.md",
     "GEMINI.md",
     "Justfile",
+    ".gitignore",
     "README-jankurai-scaffold.md",
     ".agents/agents.md",
     ".agents/skills/jankurai/SKILL.md",
@@ -47,6 +48,7 @@
   "mergePolicy": {
     "AGENTS.md": "merge-marker",
     "Justfile": "merge-lines",
+    ".gitignore": "merge-lines",
     "agent/JANKURAI_STANDARD.md": "merge-marker",
     "agent/audit-policy.toml": "merge-toml",
     "agent/boundaries.toml": "merge-toml",

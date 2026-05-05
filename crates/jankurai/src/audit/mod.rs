@@ -9,6 +9,7 @@ pub mod fix_queue;
 pub mod fs;
 pub mod fs_policy;
 pub mod helpers;
+pub mod language_rules;
 pub mod policy;
 pub mod proofbind_artifact;
 pub mod rule_analyzer;
@@ -857,6 +858,18 @@ fn build_findings(
             hit.line,
             hit.matched_term,
             Some("input handling risk needs deterministic negative tests".into()),
+        );
+    }
+    for hit in scan::language_bad_behavior_hits(ctx) {
+        b.add_with_rule(
+            hit.rule_id,
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            hit.evidence,
+            hit.line,
+            Some(hit.matched_term.into()),
+            Some(hit.reason.into()),
         );
     }
     if !scan::agent_tool_supply_hits(ctx).is_empty() {

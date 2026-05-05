@@ -19,8 +19,7 @@ paper/_markdown_main/
 # Audit outputs
 agent/repo-score.json
 agent/repo-score.md
-*-score.json
-*-score.md
+!conformance/expected/*.repo-score.json
 !docs/rolling-score.md
 
 # Build directories

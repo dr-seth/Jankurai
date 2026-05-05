@@ -207,6 +207,48 @@ pub const CAP_SPECS: &[CapSpec] = &[
         rule_id: Some("HLT-019-STREAMING-RUNTIME-DRIFT"),
         hardness: "hard",
     },
+    CapSpec {
+        key: "rust-bad-behavior",
+        max_score: 72,
+        rule_id: Some("HLT-029-RUST-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "sql-bad-behavior",
+        max_score: 72,
+        rule_id: Some("HLT-030-SQL-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "typescript-bad-behavior",
+        max_score: 72,
+        rule_id: Some("HLT-031-TYPESCRIPT-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "docker-bad-behavior",
+        max_score: 72,
+        rule_id: Some("HLT-032-DOCKER-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "python-bad-behavior",
+        max_score: 72,
+        rule_id: Some("HLT-033-PYTHON-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "ci-bad-behavior",
+        max_score: 70,
+        rule_id: Some("HLT-034-CI-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "git-bad-behavior",
+        max_score: 70,
+        rule_id: Some("HLT-035-GIT-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
 ];
 
 pub const CAPS: &[(&str, i32)] = &[
@@ -243,6 +285,13 @@ pub const CAPS: &[(&str, i32)] = &[
     ("no-agent-friendly-exception-pattern", 76),
     ("missing-agent-readable-docs", 80),
     ("streaming-runtime-drift", 78),
+    ("rust-bad-behavior", 72),
+    ("sql-bad-behavior", 72),
+    ("typescript-bad-behavior", 72),
+    ("docker-bad-behavior", 72),
+    ("python-bad-behavior", 72),
+    ("ci-bad-behavior", 70),
+    ("git-bad-behavior", 70),
 ];
 
 pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> Vec<String> {
@@ -355,6 +404,27 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     }
     if !scan::streaming_runtime_hits(ctx).is_empty() {
         caps.push("streaming-runtime-drift".into());
+    }
+    if crate::audit::language_rules::rust::summary(ctx).hard_findings > 0 {
+        caps.push("rust-bad-behavior".into());
+    }
+    if crate::audit::language_rules::sql::summary(ctx).hard_findings > 0 {
+        caps.push("sql-bad-behavior".into());
+    }
+    if crate::audit::language_rules::typescript::summary(ctx).hard_findings > 0 {
+        caps.push("typescript-bad-behavior".into());
+    }
+    if crate::audit::language_rules::docker::summary(ctx).hard_findings > 0 {
+        caps.push("docker-bad-behavior".into());
+    }
+    if crate::audit::language_rules::python::summary(ctx).hard_findings > 0 {
+        caps.push("python-bad-behavior".into());
+    }
+    if crate::audit::language_rules::ci::summary(ctx).hard_findings > 0 {
+        caps.push("ci-bad-behavior".into());
+    }
+    if crate::audit::language_rules::git::summary(ctx).hard_findings > 0 {
+        caps.push("git-bad-behavior".into());
     }
     caps
 }

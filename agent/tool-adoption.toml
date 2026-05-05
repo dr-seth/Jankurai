@@ -59,3 +59,19 @@ mode = "auto"
 [[tools]]
 id = "cost-budget"
 mode = "auto"
+
+[[tools]]
+id = "rust-bad-behavior"
+mode = "advisory"
+
+[[tools]]
+id = "tui-testing"
+mode = "advisory"
+
+[[tools]]
+id = "ci-bad-behavior"
+mode = "advisory"
+
+[[tools]]
+id = "git-bad-behavior"
+mode = "advisory"

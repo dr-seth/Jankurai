@@ -158,9 +158,81 @@ Jankurai works as a local control plane over a few repeatable surfaces:
 
 The loop is intentionally ordinary: changed paths map to owners and proof lanes, commands leave receipts, audit turns evidence into findings, and repair plans keep follow-up bounded.
 
+## Toolkit
+
+Jankurai ships as a Rust workspace of focused crates. Install the core CLI with `cargo install --path crates/jankurai --locked`; companion crates are available as library dependencies or standalone binaries.
+
+### Core Crates
+
+| Crate | Purpose |
+| --- | --- |
+| [`jankurai`](crates/jankurai) | Audit CLI and standard enforcement engine. Scores repositories, generates findings, routes proof obligations, and writes JSON/Markdown evidence. |
+| [`jankurai-proofbind`](crates/jankurai-proofbind) | Semantic surface routing and proof obligation binding. Maps changed paths to owners, proof lanes, and generated-zone policies. |
+| [`jankurai-proofmark`](crates/jankurai-proofmark) | Changed-behavior proof receipt engine. Validates that proof plans produce runnable commands and writes audit-ready receipts. |
+
+### Companion Tools
+
+#### Tuiwright — Playwright-Style TUI Testing
+
+[Tuiwright](docs/tuiwright.md) is a Rust-native, black-box testing framework for terminal user interfaces. It spawns real TUI applications in a real pseudo-terminal, drives keyboard/mouse/paste/resize input, maintains an accurate virtual terminal model, and provides Playwright-grade ergonomics.
+
+| Crate | Purpose |
+| --- | --- |
+| [`tuiwright`](crates/tuiwright) | Core library: PTY driver, vt100 screen model, locators, auto-waiting assertions, PNG screenshot renderer, GIF recorder, JSONL trace writer. |
+| [`tuiwright-cli`](crates/tuiwright-cli) | CLI binary for headless `tuiwright screenshot` and `tuiwright record` commands. |
+| [`tuiwright-demo`](examples/tuiwright-demo) | Minimal crossterm counter app used as the integration test target. |
+
+```rust
+use tuiwright::{Key, Page, SpawnConfig};
+use std::time::Duration;
+
+let page = Page::spawn(SpawnConfig::new("my-tui").size(80, 24))?;
+page.wait_for_text("Ready", Duration::from_secs(5))?;
+page.press(Key::Enter)?;
+page.screenshot("target/tuiwright/home.png")?;
+```
+
+Run the Tuiwright test suite:
+
+```bash
+just tuiwright-test
+```
+
+#### Bad-Behavior Reference Docs
+
+The `docs/` directory includes anti-pattern catalogs covering common vibe-coding failure modes. These are curated from real agent sessions and referenced by Jankurai's audit rules:
+
+| Doc | Scope |
+| --- | --- |
+| [BAD_RUST.md](docs/BAD_RUST.md) | Rust anti-patterns: unsafe misuse, error swallowing, mega-functions, trait misuse |
+| [BAD_SQL.md](docs/BAD_SQL.md) | SQL anti-patterns: destructive migrations, missing rollbacks, lock contention |
+| [BAD_PYTHON.md](docs/BAD_PYTHON.md) | Python anti-patterns: scope creep, product truth leaks, missing typed contracts |
+| [BAD_CI.md](docs/BAD_CI.md) | CI anti-patterns: flaky tests, no gates, artifact gaps |
+| [BAD_GIT.md](docs/BAD_GIT.md) | Git anti-patterns: force push, broad commits, missing context |
+| [BAD_DOCKER.md](docs/BAD_DOCKER.md) | Docker anti-patterns: root execution, unbounded layers, missing health checks |
+| [BAD_TYPE.md](docs/BAD_TYPE.md) | Type system anti-patterns: handwritten DTOs, missing generated clients |
+
+### Registered Tools
+
+Jankurai's tool adoption catalog ([`agent/tool-adoption.toml`](agent/tool-adoption.toml)) tracks which tools are active and their enforcement mode. Each tool produces evidence that feeds the audit loop:
+
+| Tool ID | Mode | Purpose |
+| --- | --- | --- |
+| `audit-ci` | auto | CI audit integration and score gating |
+| `proof-routing` | auto | Changed-path proof obligation routing |
+| `proofbind` | advisory | Semantic surface binding validation |
+| `proofmark-rust` | advisory | Rust-specific proof receipt engine |
+| `security` | auto | Dependency, secret, and provenance scanning |
+| `ux-qa` | auto | Playwright UX evidence and accessibility |
+| `db-migration-analyze` | auto | Migration safety analysis |
+| `contract-drift` | auto | Generated contract drift detection |
+| `rust-witness` | auto | Rust build witness graph |
+| `vibe-coverage` | auto | Vibe-coding coverage analysis |
+| `tui-testing` | advisory | TUI black-box testing via Tuiwright |
+
 ## Project Status
 
-Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Jankurai: The Anti-Vibe Coding Standard*.
+Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, TUI testing, publication evidence, and the paper source for *Jankurai: The Anti-Vibe Coding Standard*.
 
 Paper framing:
 
@@ -191,9 +263,13 @@ Known open-source gaps:
 - [Agent-native standard](docs/agent-native-standard.md)
 - [Architecture](docs/architecture.md)
 - [Testing and proof lanes](docs/testing.md)
+- [Tuiwright TUI testing](docs/tuiwright.md)
 - [Merge witness](docs/merge-witness.md)
 - [Rolling score](docs/rolling-score.md)
 - [Security tool matrix](docs/security-tool-matrix.md)
+- [Audit rubric](docs/audit-rubric.md)
+- [Language bad-behavior catalogs](docs/language-bad-behavior.md)
+- [Migration engine](docs/migration-engine.md)
 - [Mission](docs/mission.md)
 
 ## Contributing

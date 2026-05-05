@@ -44,7 +44,7 @@ Reference profile & A non-normative stack or implementation profile that can sat
 \textbf{Threat} & \textbf{Risk} & \textbf{Jankurai control} \\
 \midrule
 False plausibility & Agent or human patch looks idiomatic but violates architecture, data, security, or runtime expectations. & Stable rule IDs, owner maps, proof lanes, generated-zone policy, and merge witness. \\
-Fabricated, stale, or copied receipts & A proof claim names evidence that did not run for this commit, path scope, tool, or command. & Proof freshness checks, artifact digests, receipt validity rules, and witness binding. \\
+Stale or copied claims & A stale artifact is attached to a commit, path scope, tool, or command that did not run. & Freshness checks, artifact digests, validity rules, and witness binding. \\
 Adapter drift & Tool-specific instruction files widen permissions or contradict canonical policy. & Source-of-authority hierarchy, adapter verification, policy digests, and generated mirrors. \\
 Flaky proof lanes & Intermittent tests hide real failures or make proof receipts unreliable. & Lane contracts with timeout, environment, retry policy, artifact paths, and failure classification. \\
 Emergency bypass & Urgent work merges without owner, security, release, or proof evidence. & Expiring waivers, compensating controls, release-fail decisions, and repair receipts. \\
@@ -52,7 +52,7 @@ Evidence leakage & Screenshots, logs, traces, prompts, or artifacts expose secre
 CI downgrade & A workflow disables proof, widens permissions, removes artifacts, or changes branch gates. & CI hardening rule, workflow diff checks, pinned actions, and required evidence uploads. \\
 Malicious MCP or tool schema & External tool output or schema attempts to change trusted policy or execute unsafe commands. & Untrusted-content isolation, schema validation, permission receipts, and no direct execution of generated text. \\
 Generated test self-confirmation & Generated code and generated tests confirm the same wrong assumption. & Owner-owned acceptance criteria, negative fixtures, semantic assertions, and changed-path routing. \\
-Subjective or rubber-stamp review & Review approval relies on taste, memory, or plausibility instead of reproducible evidence. & Stable rule IDs, human-review evidence rule, receipt requirement, explicit waiver/review evidence, and merge witness decision record. \\
+Subjective or rubber-stamp review & Review approval relies on taste, memory, or plausibility instead of reproducible evidence. & Stable rule IDs, human-review receipt rule, receipt requirement, explicit waiver or review receipt, and merge witness decision record. \\
 Screenshots or logs leaking secrets & Browser and observability evidence captures tokens, PII, prompt text, or private data. & UX/security evidence redaction, hash-based references, and artifact privacy status. \\
 Out of scope & Full semantic correctness, malicious compiler/runtime integrity, and organizational governance outside the repository. & Explicit limitations, signed-receipt future work, and no claim of total program proof. \\
 \bottomrule

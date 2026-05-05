@@ -93,6 +93,15 @@ Stable rule IDs:
 | `HLT-026-COST-BUDGET-GAP` | unbounded paid work lacks budget, quota, or stop-condition evidence |
 | `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP` | review or proof claim lacks reproducible receipts |
 | `HLT-028-BOUNDARY-EVIDENCE-GAP` | audited runtime boundary reclassification lacks deterministic evidence |
+| `HLT-029-RUST-BAD-BEHAVIOR` | Rust code uses unsafe, unchecked, or dishonest APIs without local proof |
+| `HLT-030-SQL-BAD-BEHAVIOR` | SQL code or migrations use unsafe string assembly or unchecked execution without proof |
+| `HLT-031-TYPESCRIPT-BAD-BEHAVIOR` | TypeScript code uses unchecked boundary or runtime shortcuts without proof |
+| `HLT-032-DOCKER-BAD-BEHAVIOR` | Docker or container build behavior hides unsafe or unreviewed execution steps |
+| `HLT-033-PYTHON-BAD-BEHAVIOR` | Python code owns runtime behavior or unchecked data paths without an approved exception |
+| `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
+| `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
+
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-035` are detector-backed catalog IDs in the language bad-behavior family.
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 
@@ -111,6 +120,7 @@ These are blocking violations unless an approved, dated exception exists in `doc
 | Too-large function | Function exceeds hard LOC limit | Extract pure units before adding behavior |
 | Silent fallback | Code hides failure with default, retry, catch-all, or stale data | Replace with explicit policy and agent-friendly error |
 | Duplicate behavior | Same decision or transformation exists in multiple owner cells | Consolidate into owning layer |
+| Paper filename ban | Paper sources mention `tips/*.txt` file names | Rewrite the paper to use corpus, row-family, or source-group labels instead |
 | Direct DB misuse | UI, domain, or exception-only Python writes product truth directly | Move write into Rust application/adapters |
 | Python sprawl | Python appears outside a dated advanced-ML/data exception or owns product behavior | Remove it or migrate the behavior to Rust/TypeScript/PostgreSQL |
 | Security lane | High-risk change skips secret/dependency/static scanning | Add lane and block merge |

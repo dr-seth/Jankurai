@@ -1,0 +1,11 @@
+name: safe
+on:
+  pull_request:
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test -p jankurai

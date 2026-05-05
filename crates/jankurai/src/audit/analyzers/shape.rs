@@ -62,5 +62,56 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score -= 10;
         evidence.push("IO markers found in domain/core files".into());
     }
+    let rust_summary = crate::audit::language_rules::rust::summary(ctx);
+    if rust_summary.hard_findings > 0 {
+        evidence.push(format!(
+            "rust bad-behavior hard findings: {}",
+            rust_summary.hard_findings
+        ));
+        notes.push("rust hard behavior is already captured by the language-rule catalog".into());
+    } else if rust_summary.advisory_signals > 0 {
+        evidence.push(format!(
+            "rust bad-behavior advisory signals: {}",
+            rust_summary.advisory_signals
+        ));
+    }
+    for (label, hard, advisory) in [
+        (
+            "sql",
+            crate::audit::language_rules::sql::summary(ctx).hard_findings,
+            crate::audit::language_rules::sql::summary(ctx).advisory_signals,
+        ),
+        (
+            "typescript",
+            crate::audit::language_rules::typescript::summary(ctx).hard_findings,
+            crate::audit::language_rules::typescript::summary(ctx).advisory_signals,
+        ),
+        (
+            "docker",
+            crate::audit::language_rules::docker::summary(ctx).hard_findings,
+            crate::audit::language_rules::docker::summary(ctx).advisory_signals,
+        ),
+        (
+            "python",
+            crate::audit::language_rules::python::summary(ctx).hard_findings,
+            crate::audit::language_rules::python::summary(ctx).advisory_signals,
+        ),
+        (
+            "ci",
+            crate::audit::language_rules::ci::summary(ctx).hard_findings,
+            crate::audit::language_rules::ci::summary(ctx).advisory_signals,
+        ),
+        (
+            "git",
+            crate::audit::language_rules::git::summary(ctx).hard_findings,
+            crate::audit::language_rules::git::summary(ctx).advisory_signals,
+        ),
+    ] {
+        if hard > 0 {
+            evidence.push(format!("{label} bad-behavior hard findings: {hard}"));
+        } else if advisory > 0 {
+            evidence.push(format!("{label} bad-behavior advisory signals: {advisory}"));
+        }
+    }
     make_dim("Code shape and semantic surface", score, evidence, notes)
 }

@@ -73,10 +73,10 @@ fn write_outputs(args: ProofBindMapArgs) -> Result<()> {
         &output.obligations,
     )?;
     crate::render::write_markdown(&args.md, &output.markdown)?;
-    if mode == ProofBindMode::Required && output.obligations.summary.high_or_critical_missing > 0 {
+    if mode == ProofBindMode::Required && output.obligations.summary.missing > 0 {
         anyhow::bail!(
-            "proofbind required mode has {} missing high/critical obligation(s)",
-            output.obligations.summary.high_or_critical_missing
+            "proofbind required mode has {} missing obligation(s)",
+            output.obligations.summary.missing
         );
     }
     Ok(())

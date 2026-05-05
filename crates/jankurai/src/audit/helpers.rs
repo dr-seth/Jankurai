@@ -189,6 +189,32 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         applicability: tool_security_applicable,
     },
     ToolAdoptionCatalogEntry {
+        id: "ci-bad-behavior",
+        category: "security",
+        replaced_tools: &[
+            "mutable workflow refs",
+            "secret echo/debug workflow checks",
+            "non-blocking security scans",
+        ],
+        local_command: "cargo test -p jankurai language_bad_behavior",
+        ci_command: "cargo test -p jankurai language_bad_behavior",
+        artifact_paths: &["crates/jankurai/tests/fixtures/language_bad_behavior/ci/"],
+        applicability: tool_security_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "git-bad-behavior",
+        category: "audit",
+        replaced_tools: &[
+            "destructive git automation",
+            "force-push release scripts",
+            "hidden stash-based state",
+        ],
+        local_command: "cargo test -p jankurai language_bad_behavior",
+        ci_command: "cargo test -p jankurai language_bad_behavior",
+        artifact_paths: &["crates/jankurai/tests/fixtures/language_bad_behavior/git/"],
+        applicability: tool_security_applicable,
+    },
+    ToolAdoptionCatalogEntry {
         id: "ux-qa",
         category: "ux",
         replaced_tools: &["playwright", "axe-core", "visual baselines"],

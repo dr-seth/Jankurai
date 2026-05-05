@@ -1,3 +1,4 @@
+use crate::validation::{self, ArtifactSchema};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
@@ -66,7 +67,9 @@ struct ProofBindObligation {
 pub fn load_summary(root: &Path) -> Option<ProofBindAuditSummary> {
     let path = root.join("target/jankurai/proofbind/obligations.json");
     let text = fs::read_to_string(&path).ok()?;
-    let parsed: ProofBindObligationsFile = serde_json::from_str(&text).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+    validation::validate_value(root, ArtifactSchema::ProofBindObligations, &value).ok()?;
+    let parsed: ProofBindObligationsFile = serde_json::from_value(value).ok()?;
     let missing_obligations = parsed
         .obligations
         .into_iter()

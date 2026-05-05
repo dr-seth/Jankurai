@@ -85,6 +85,13 @@ fn hlt023_input_boundary_flags_unsafe_sinks_but_not_allowlisted_paths() {
         "const safe_url = allowlist.parse(req.query.url); await fetch(safe_url);\nconst row = await db.query('SELECT * FROM users WHERE id = $1', [id]); // parameterized\n",
     );
     assert!(findings_for(edge.path(), "HLT-023-INPUT-BOUNDARY-GAP").is_empty());
+
+    let git = tempdir().unwrap();
+    write(
+        &git.path().join("src/run.ts"),
+        "import { execFile } from 'node:child_process';\nconst cmd = Command::new(\"git\").args([\"status\"]);\n",
+    );
+    assert!(findings_for(git.path(), "HLT-023-INPUT-BOUNDARY-GAP").is_empty());
 }
 
 #[test]

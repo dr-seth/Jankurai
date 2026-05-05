@@ -63,6 +63,61 @@ fn boundary_evidence_gap_rule_is_registered() {
 }
 
 #[test]
+fn language_bad_behavior_rules_are_registered() {
+    for (rule_id, category, lane, cap_key) in [
+        (
+            "HLT-029-RUST-BAD-BEHAVIOR",
+            "security",
+            "fast",
+            Some("rust-bad-behavior"),
+        ),
+        (
+            "HLT-030-SQL-BAD-BEHAVIOR",
+            "data",
+            "db",
+            Some("sql-bad-behavior"),
+        ),
+        (
+            "HLT-031-TYPESCRIPT-BAD-BEHAVIOR",
+            "boundary",
+            "fast",
+            Some("typescript-bad-behavior"),
+        ),
+        (
+            "HLT-032-DOCKER-BAD-BEHAVIOR",
+            "security",
+            "security",
+            Some("docker-bad-behavior"),
+        ),
+        (
+            "HLT-033-PYTHON-BAD-BEHAVIOR",
+            "python",
+            "contract",
+            Some("python-bad-behavior"),
+        ),
+        (
+            "HLT-034-CI-BAD-BEHAVIOR",
+            "security",
+            "security",
+            Some("ci-bad-behavior"),
+        ),
+        (
+            "HLT-035-GIT-BAD-BEHAVIOR",
+            "agent",
+            "audit",
+            Some("git-bad-behavior"),
+        ),
+    ] {
+        let rule = rules::lookup(rule_id).unwrap_or_else(|| panic!("{rule_id} must exist"));
+        assert_eq!(rule.category, category);
+        assert_eq!(rule.lane, lane);
+        assert_eq!(rule.cap_key, cap_key);
+        assert_eq!(rule.status, rules::RuleStatus::Stable);
+        assert!(!rule.docs_url.trim().is_empty());
+    }
+}
+
+#[test]
 fn every_rule_has_repair_policy_metadata() {
     for rule in rules::all() {
         assert!(

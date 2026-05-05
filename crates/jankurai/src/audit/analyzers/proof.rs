@@ -99,6 +99,12 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             summary.high_or_critical_missing,
             summary.verdict
         ));
+        if summary.missing > 0 {
+            notes.push(format!(
+                "proofbind reports {} unresolved obligation(s)",
+                summary.missing
+            ));
+        }
         if summary.high_or_critical_missing > 0 {
             notes.push(format!(
                 "proofbind reports {} missing high/critical semantic proof obligation(s)",
