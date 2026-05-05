@@ -2,9 +2,9 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
-    adopt, agent, badge, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks,
-    init, migrate, optimize, paper, proof, proofbind, proofmark, publish, registry, repair,
-    repair_plan, rules, rust, score, security, update, vibe, witness,
+    adopt, agent, badge, bench, cell, certify, conformance, context_pack, doctor, exceptions,
+    govern, history, hooks, init, migrate, optimize, paper, proof, proofbind, proofmark, publish,
+    registry, repair, repair_plan, rules, rust, score, security, update, vibe, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -39,9 +39,17 @@ enum Commands {
     Doctor(DoctorArgs),
     ContextPack(ContextPackArgs),
     Witness(WitnessArgs),
+    Conformance {
+        #[command(subcommand)]
+        command: ConformanceCommand,
+    },
     Score {
         #[command(subcommand)]
         command: ScoreCommand,
+    },
+    History {
+        #[command(subcommand)]
+        command: HistoryCommand,
     },
     Rules {
         #[command(subcommand)]
@@ -182,6 +190,11 @@ enum VibeCommand {
 }
 
 #[derive(Subcommand, Debug)]
+enum ConformanceCommand {
+    Run(ConformanceRunArgs),
+}
+
+#[derive(Subcommand, Debug)]
 enum PaperCommand {
     PublicRepoScores(PublicRepoScoresArgs),
 }
@@ -190,6 +203,14 @@ enum PaperCommand {
 enum ScoreCommand {
     Diff(ScoreDiffArgs),
     Trend(ScoreTrendArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum HistoryCommand {
+    Latest(HistoryLatestArgs),
+    Export(HistoryExportArgs),
+    Compact(HistoryCompactArgs),
+    Restore(HistoryRestoreArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -283,6 +304,14 @@ struct AuditArgs {
     score_history: String,
     #[arg(long, value_name = "PATH")]
     score_history_csv: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    score_history_mirror: Option<String>,
+    #[arg(long)]
+    score_history_mirror_required: bool,
+    #[arg(long, default_value_t = 500)]
+    score_history_max_rows: usize,
+    #[arg(long, default_value_t = 1_048_576)]
+    score_history_max_bytes: usize,
     #[arg(long)]
     no_score_history: bool,
 }
@@ -490,6 +519,34 @@ struct WitnessArgs {
         default_value = "target/jankurai/merge-witness.md"
     )]
     md: String,
+}
+
+#[derive(Args, Debug)]
+struct ConformanceRunArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    workspace: PathBuf,
+    #[arg(long, value_name = "PATH", default_value = "conformance/fixtures")]
+    fixtures: PathBuf,
+    #[arg(long, value_name = "PATH", default_value = "conformance/expected")]
+    expected: PathBuf,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/conformance-results.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/conformance-results.md"
+    )]
+    md: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "paper/tex/generated/conformance_results_table.tex"
+    )]
+    tex: String,
 }
 
 #[derive(Args, Debug)]
@@ -930,6 +987,90 @@ struct ScoreTrendArgs {
 }
 
 #[derive(Args, Debug)]
+struct HistoryLatestArgs {
+    #[arg(long, value_name = "PATH")]
+    history: PathBuf,
+    #[arg(long, default_value = "auto", value_parser = ["auto", "local", "mirror"])]
+    source: String,
+    #[arg(long, value_name = "PATH", default_value = "-")]
+    out: String,
+}
+
+#[derive(Args, Debug)]
+struct HistoryExportArgs {
+    #[arg(long, value_name = "PATH")]
+    history: PathBuf,
+    #[arg(long, default_value_t = 30)]
+    window: usize,
+    #[arg(long, default_value = "auto", value_parser = ["auto", "local", "mirror"])]
+    source: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/history-export.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/history-export.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct HistoryCompactArgs {
+    #[arg(long, value_name = "PATH")]
+    history: PathBuf,
+    #[arg(long, default_value_t = 500)]
+    max_rows: usize,
+    #[arg(long, default_value_t = 1_048_576)]
+    max_bytes: usize,
+    #[arg(long, default_value = "auto", value_parser = ["auto", "local", "mirror"])]
+    source: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/history-compact.json"
+    )]
+    json: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/history-compact.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct HistoryRestoreArgs {
+    #[arg(long, value_name = "PATH")]
+    mirror: PathBuf,
+    #[arg(long, default_value = "auto")]
+    repo_id: String,
+    #[arg(long, value_name = "PATH")]
+    out: String,
+    #[arg(long, default_value_t = 500)]
+    max_rows: usize,
+    #[arg(long, default_value_t = 1_048_576)]
+    max_bytes: usize,
+    #[arg(long, default_value = "auto", value_parser = ["auto", "local", "mirror"])]
+    source: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/history-restore.json"
+    )]
+    json: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/history-restore.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
 struct RulesExportArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -1107,8 +1248,16 @@ fn main() -> anyhow::Result<()> {
                 repo: args.repo,
                 score: args.score,
                 out: args.out,
-                json_out: if args.no_json { None } else { Some(args.json_out) },
-                readme: if args.no_readme { None } else { Some(args.readme) },
+                json_out: if args.no_json {
+                    None
+                } else {
+                    Some(args.json_out)
+                },
+                readme: if args.no_readme {
+                    None
+                } else {
+                    Some(args.readme)
+                },
                 link: args.link,
                 update_readme: args.update_readme,
                 check: args.check,
@@ -1215,6 +1364,18 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::Conformance { command }) => match command {
+            ConformanceCommand::Run(args) => {
+                conformance::run(conformance::ConformanceRunArgs {
+                    workspace: args.workspace,
+                    fixtures: args.fixtures,
+                    expected: args.expected,
+                    out: args.out,
+                    md: args.md,
+                    tex: args.tex,
+                })?;
+            }
+        },
         Some(Commands::Score { command }) => match command {
             ScoreCommand::Diff(args) => {
                 score::run_diff(score::DiffArgs {
@@ -1229,6 +1390,46 @@ fn main() -> anyhow::Result<()> {
                     history: args.history,
                     window: args.window,
                     out: args.out,
+                    md: args.md,
+                })?;
+            }
+        },
+        Some(Commands::History { command }) => match command {
+            HistoryCommand::Latest(args) => {
+                history::run_latest(history::LatestArgs {
+                    history: args.history,
+                    source: args.source,
+                    out: args.out,
+                })?;
+            }
+            HistoryCommand::Export(args) => {
+                history::run_export(history::ExportArgs {
+                    history: args.history,
+                    window: args.window,
+                    source: args.source,
+                    out: args.out,
+                    md: args.md,
+                })?;
+            }
+            HistoryCommand::Compact(args) => {
+                history::run_compact(history::CompactArgs {
+                    history: args.history,
+                    max_rows: args.max_rows,
+                    max_bytes: args.max_bytes,
+                    source: args.source,
+                    json: args.json,
+                    md: args.md,
+                })?;
+            }
+            HistoryCommand::Restore(args) => {
+                history::run_restore(history::RestoreArgs {
+                    mirror: args.mirror,
+                    repo_id: args.repo_id,
+                    out: args.out,
+                    max_rows: args.max_rows,
+                    max_bytes: args.max_bytes,
+                    source: args.source,
+                    json: args.json,
                     md: args.md,
                 })?;
             }
@@ -1675,6 +1876,10 @@ fn run_init_bootstrap_commit(args: InitArgs) -> anyhow::Result<()> {
         fail_on: vec![],
         score_history: history_jsonl.display().to_string(),
         score_history_csv: Some(history_csv.display().to_string()),
+        score_history_mirror: None,
+        score_history_mirror_required: false,
+        score_history_max_rows: 500,
+        score_history_max_bytes: 1_048_576,
         no_score_history: false,
         changed_fast: false,
         timings_json: None,
@@ -1932,16 +2137,33 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
     let write_history = !args.no_score_history && !args.changed_fast;
     if write_history {
         let history_started = std::time::Instant::now();
-        let history_path = jankurai::score_history::append_score_history(
+        let policy = jankurai::score_history::ScoreHistoryPolicy::from_repo(&args.repo)
+            .with_overrides(
+                Some(args.score_history_max_rows),
+                Some(args.score_history_max_bytes),
+                None,
+            );
+        let mirror_path = args
+            .score_history_mirror
+            .clone()
+            .or_else(|| jankurai::score_history::history_mirror_path_from_env(&policy));
+        let history_path = jankurai::score_history::append_score_history_with_options(
             &args.repo,
             &report,
             &args.json,
             &args.md,
-            &args.score_history,
-            args.score_history_csv.as_deref(),
+            jankurai::score_history::ScoreHistoryAppendOptions {
+                history_path: args.score_history.clone(),
+                csv_path: args.score_history_csv.clone(),
+                mirror_path,
+                mirror_required: args.score_history_mirror_required,
+                policy,
+            },
         )?;
         timings.record_duration("history_write", history_started.elapsed());
-        eprintln!("score history appended {}", history_path.display());
+        if let Some(history_path) = history_path {
+            eprintln!("score history appended {}", history_path.display());
+        }
     } else {
         timings.record_ms("history_write", 0);
     }

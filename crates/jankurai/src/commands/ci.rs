@@ -110,12 +110,22 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - name: Install jankurai
         run: cargo install jankurai --locked
       - run: jankurai --version
       - name: jankurai audit
         run: jankurai audit . --mode {audit_mode}{baseline_arg} --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl{gate}
+      - name: Proofbind verify
+        run: jankurai proofbind verify . --changed-from origin/main
+      - name: Proofmark rust
+        run: jankurai proofmark rust . --obligations target/jankurai/proofbind/obligations.json
+      - name: Rust witness build
+        run: jankurai rust witness build .
+      - name: UX QA smoke
+        run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
       - name: jankurai badge check
         run: jankurai badge . --check --update-readme
         continue-on-error: true
@@ -129,14 +139,18 @@ jobs:
             target/jankurai/repo-score.md
             target/jankurai/jankurai.sarif
             target/jankurai/repair-queue.jsonl
+            target/jankurai/proofbind/obligations.json
+            target/jankurai/proofbind/surface-witness.json
+            target/jankurai/proofmark/proofmark-receipt.json
+            target/jankurai/proofmark/proof-receipt.json
+            target/jankurai/rust/witness-graph.json
+            target/jankurai/ux-qa.json
             target/jankurai/merge-witness.json
             target/jankurai/merge-witness.md
             target/jankurai/score-diff.json
             target/jankurai/score-trend.json
             target/jankurai/security/evidence.json
-            target/jankurai/ux-qa.json
             target/jankurai/migration-report.json
-            target/jankurai/rust/witness-graph.json
             agent/jankurai-badge.svg
             agent/jankurai-badge.json
 "#
@@ -161,7 +175,7 @@ mod tests {
         let rendered = workflow("observe", 85, None);
         assert!(rendered.contains("--mode advisory"));
         assert!(!rendered.contains("Enforce score floor"));
-        assert!(!rendered.contains("cargo run -p jankurai"));
+        assert!(!rendered.contains("-ge 85"));
     }
 
     #[test]

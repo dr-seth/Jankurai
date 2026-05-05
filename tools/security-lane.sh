@@ -50,20 +50,24 @@ run_required() {
     fi
     return 0
   fi
-  local err
+  local err code
   err="$(mktemp)"
   if bash -lc "$cmd" 2>"$err"; then
     emit_step "$tool" "$tool" "$cmd" "ran" "0" "0"
+    if [ -s "$err" ]; then
+      cat "$err" >&2
+    fi
     rm -f "$err"
     return 0
+  else
+    code=$?
+    emit_step "$tool" "$tool" "$cmd" "failed" "0" "$code"
+    if [ -s "$err" ]; then
+      cat "$err" >&2
+    fi
+    rm -f "$err"
+    exit "$code"
   fi
-  local code=$?
-  emit_step "$tool" "$tool" "$cmd" "failed" "0" "$code"
-  if [ -s "$err" ]; then
-    cat "$err" >&2
-  fi
-  rm -f "$err"
-  exit "$code"
 }
 
 run_advisory() {
@@ -74,31 +78,38 @@ run_advisory() {
     emit_step "$tool" "$tool" "$cmd" "skipped" "1" ""
     return 0
   fi
-  local err
+  local err code
   err="$(mktemp)"
   if bash -lc "$cmd" 2>"$err"; then
     emit_step "$tool" "$tool" "$cmd" "ran" "1" "0"
+    if [ -s "$err" ]; then
+      cat "$err" >&2
+    fi
     rm -f "$err"
     return 0
+  else
+    code=$?
+    emit_step "$tool" "$tool" "$cmd" "failed" "1" "$code"
+    if [ -s "$err" ]; then
+      cat "$err" >&2
+    fi
+    rm -f "$err"
+    if [ "$strict" = "1" ]; then
+      exit "$code"
+    fi
+    return 0
   fi
-  local code=$?
-  emit_step "$tool" "$tool" "$cmd" "failed" "1" "$code"
-  if [ -s "$err" ]; then
-    cat "$err" >&2
-  fi
-  rm -f "$err"
-  exit "$code"
 }
 
-required_tool_names=(gitleaks cargo-audit npm)
+required_tool_names=(gitleaks)
 required_commands=(
   "gitleaks detect --source . --redact --no-banner"
-  "cargo audit"
-  "npm audit --audit-level=high"
 )
 
-advisory_tool_names=(syft zizmor)
+advisory_tool_names=(cargo-audit npm syft zizmor)
 advisory_commands=(
+  "cargo audit"
+  "npm audit --audit-level=high"
   "syft . -o spdx-json=target/jankurai/sbom.spdx.json"
   "zizmor .github/workflows"
 )

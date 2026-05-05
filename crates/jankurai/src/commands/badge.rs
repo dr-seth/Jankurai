@@ -102,8 +102,8 @@ pub fn run_from_config_after_audit(
 
     let config_text = fs::read_to_string(&config_path)
         .with_context(|| format!("read {}", config_path.display()))?;
-    let config: BadgeConfig = toml::from_str(&config_text)
-        .with_context(|| format!("parse {}", config_path.display()))?;
+    let config: BadgeConfig =
+        toml::from_str(&config_text).with_context(|| format!("parse {}", config_path.display()))?;
 
     if config.enabled == Some(false) {
         return Ok(());
@@ -113,7 +113,9 @@ pub fn run_from_config_after_audit(
         .score
         .unwrap_or_else(|| just_written_score_json.to_string());
     let svg = config.svg.unwrap_or_else(|| DEFAULT_BADGE_SVG.to_string());
-    let json = config.json.unwrap_or_else(|| DEFAULT_BADGE_JSON.to_string());
+    let json = config
+        .json
+        .unwrap_or_else(|| DEFAULT_BADGE_JSON.to_string());
     let readme = config.readme.unwrap_or_else(|| DEFAULT_README.to_string());
     let link = config
         .link
@@ -182,7 +184,13 @@ pub fn run(args: BadgeArgs) -> Result<()> {
     }
 
     if args.check {
-        return check_outputs(&args, &svg, args.json_out.as_ref(), &metadata, readme_block.as_ref());
+        return check_outputs(
+            &args,
+            &svg,
+            args.json_out.as_ref(),
+            &metadata,
+            readme_block.as_ref(),
+        );
     }
 
     let badge_path = resolve_path(&args.repo, &args.out);
@@ -191,7 +199,7 @@ pub fn run(args: BadgeArgs) -> Result<()> {
     if let Some(json_out) = args.json_out.as_ref() {
         crate::validation::validate_serializable(
             &args.repo,
-            crate::validation::ArtifactSchema::CertificationBadge,
+            crate::validation::ArtifactSchema::ReadmeBadge,
             &metadata,
         )?;
         let json_text = format!("{}\n", serde_json::to_string_pretty(&metadata)?);
@@ -247,8 +255,8 @@ fn check_outputs(
             .readme
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("--check --update-readme requires --readme PATH"))?;
-        let block = readme_block
-            .ok_or_else(|| anyhow::anyhow!("internal error: missing README block"))?;
+        let block =
+            readme_block.ok_or_else(|| anyhow::anyhow!("internal error: missing README block"))?;
         let readme_path = resolve_path(&args.repo, readme);
         let existing = fs::read_to_string(&readme_path)
             .with_context(|| format!("read {}", readme_path.display()))?;
@@ -327,8 +335,7 @@ fn load_score_input(repo: &Path, score_path: &str) -> Result<ScoreInput> {
         .and_then(Value::as_u64)
         .map(|n| n as usize);
 
-    let hard_findings =
-        hard_findings_from_decision.unwrap_or_else(|| count_hard_findings(&value));
+    let hard_findings = hard_findings_from_decision.unwrap_or_else(|| count_hard_findings(&value));
     let soft_findings =
         soft_findings_from_decision.unwrap_or_else(|| findings.saturating_sub(hard_findings));
 
@@ -355,7 +362,11 @@ fn load_score_input(repo: &Path, score_path: &str) -> Result<ScoreInput> {
     let conformance_level = value
         .get("observed_conformance_level")
         .and_then(Value::as_str)
-        .or_else(|| value.get("claimed_conformance_level").and_then(Value::as_str))
+        .or_else(|| {
+            value
+                .get("claimed_conformance_level")
+                .and_then(Value::as_str)
+        })
         .map(str::to_string);
 
     let standard_version = value
@@ -429,13 +440,8 @@ fn count_hard_findings(value: &Value) -> usize {
 }
 
 fn render_readme_block(image_path: &str, link_path: &str, input: &ScoreInput) -> String {
-    let alt = format!(
-        "Jankurai score: {}/100 ({})",
-        input.score, input.decision
-    );
-    format!(
-        "{START_MARKER}\n[![{alt}]({image_path})]({link_path})\n{END_MARKER}\n"
-    )
+    let alt = format!("Jankurai score: {}/100 ({})", input.score, input.decision);
+    format!("{START_MARKER}\n[![{alt}]({image_path})]({link_path})\n{END_MARKER}\n")
 }
 
 fn render_badge_svg(label: &str, message: &str, input: &ScoreInput) -> String {
@@ -513,7 +519,11 @@ fn badge_color(input: &ScoreInput) -> &'static str {
 }
 
 pub fn upsert_badge_block(existing: &str, block: &str) -> Result<String> {
-    let eol = if existing.contains("\r\n") { "\r\n" } else { "\n" };
+    let eol = if existing.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
     let normalized = existing.replace("\r\n", "\n");
     let block = block.trim_end_matches('\n');
 
@@ -691,9 +701,7 @@ fn path_to_posix(path: &Path) -> String {
 }
 
 fn looks_like_url(value: &str) -> bool {
-    value.starts_with("http://")
-        || value.starts_with("https://")
-        || value.starts_with("mailto:")
+    value.starts_with("http://") || value.starts_with("https://") || value.starts_with("mailto:")
 }
 
 fn escape_xml(value: &str) -> String {

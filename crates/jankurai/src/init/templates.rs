@@ -65,11 +65,29 @@ report_md="$report_dir/pre-commit-score.md"
 report_history_jsonl="$report_dir/pre-commit-score-history.jsonl"
 report_history_csv="$report_dir/pre-commit-score-history.csv"
 
-if ! "$jankurai_cmd" audit . --mode advisory \
-  --json "$report_json" \
-  --md "$report_md" \
-  --score-history "$report_history_jsonl" \
-  --score-history-csv "$report_history_csv"; then
+audit_args=(
+  audit .
+  --mode advisory
+  --json "$report_json"
+  --md "$report_md"
+  --score-history "$report_history_jsonl"
+  --score-history-csv "$report_history_csv"
+)
+
+if [ -n "${JANKURAI_HISTORY_MIRROR:-}" ]; then
+  audit_args+=(--score-history-mirror "$JANKURAI_HISTORY_MIRROR")
+fi
+if [ "${JANKURAI_HISTORY_MIRROR_REQUIRED:-}" = "1" ]; then
+  audit_args+=(--score-history-mirror-required)
+fi
+if [ -n "${JANKURAI_SCORE_HISTORY_MAX_ROWS:-}" ]; then
+  audit_args+=(--score-history-max-rows "$JANKURAI_SCORE_HISTORY_MAX_ROWS")
+fi
+if [ -n "${JANKURAI_SCORE_HISTORY_MAX_BYTES:-}" ]; then
+  audit_args+=(--score-history-max-bytes "$JANKURAI_SCORE_HISTORY_MAX_BYTES")
+fi
+
+if ! "$jankurai_cmd" "${audit_args[@]}"; then
   echo "jankurai pre-commit audit failed; set JANKURAI_SKIP_HOOKS=1 to bypass local hooks" >&2
   exit 1
 fi
@@ -219,7 +237,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "agent/JANKURAI_STANDARD.md",
-        body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.7.0`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/tool-adoption.toml`, and `agent/boundaries.toml` before editing.\n",
+        body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.8.0`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/tool-adoption.toml`, and `agent/boundaries.toml` before editing.\n",
     },
     Template {
         path: "agent/MASTER_PLAN.md",
@@ -243,7 +261,7 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: "agent/audit-policy.toml",
-        body: "minimum_score = 85\nfail_on = [\"critical\", \"high\"]\nadvisory_on = [\"medium\", \"low\"]\n",
+        body: "minimum_score = 85\nfail_on = [\"critical\", \"high\"]\nadvisory_on = [\"medium\", \"low\"]\n\n[history]\nmax_rows = 500\nmax_bytes = 1048576\ndedupe = \"consecutive-equivalent\"\nmirror_env = \"JANKURAI_HISTORY_MIRROR\"\nmirror_required = false\nmirror_max_rows = 5000\n",
     },
     Template {
         path: "agent/security-policy.toml",
@@ -399,6 +417,6 @@ pub const TEMPLATES: &[Template] = &[
     },
     Template {
         path: ".github/workflows/jankurai.yml",
-        body: "name: jankurai\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Install jankurai\n        run: cargo install jankurai --locked\n      - run: jankurai --version\n      - name: jankurai audit\n        run: jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl\n      - uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: jankurai-adoption-evidence\n          if-no-files-found: ignore\n          path: |\n            target/jankurai/repo-score.json\n            target/jankurai/repo-score.md\n            target/jankurai/jankurai.sarif\n            target/jankurai/repair-queue.jsonl\n            target/jankurai/security/evidence.json\n            target/jankurai/ux-qa.json\n            target/jankurai/migration-report.json\n            target/jankurai/rust/witness-graph.json\n",
+        body: "name: jankurai\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          fetch-depth: 0\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Install jankurai\n        run: cargo install jankurai --locked\n      - run: jankurai --version\n      - name: jankurai audit\n        run: jankurai audit . --mode advisory --baseline agent/repo-score.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl\n      - name: Proofbind verify\n        run: jankurai proofbind verify . --changed-from origin/main\n      - name: Proofmark rust\n        run: jankurai proofmark rust . --obligations target/jankurai/proofbind/obligations.json\n      - name: Rust witness build\n        run: jankurai rust witness build .\n      - name: UX QA smoke\n        run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json\n      - uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: jankurai-adoption-evidence\n          if-no-files-found: ignore\n          path: |\n            target/jankurai/repo-score.json\n            target/jankurai/repo-score.md\n            target/jankurai/jankurai.sarif\n            target/jankurai/repair-queue.jsonl\n            target/jankurai/proofbind/obligations.json\n            target/jankurai/proofbind/surface-witness.json\n            target/jankurai/proofmark/proofmark-receipt.json\n            target/jankurai/proofmark/proof-receipt.json\n            target/jankurai/rust/witness-graph.json\n            target/jankurai/ux-qa.json\n            target/jankurai/security/evidence.json\n            target/jankurai/migration-report.json\n",
     },
 ];
