@@ -1,6 +1,6 @@
 # Jankurai Outline
 
-Paper edition: `2026.05-ed7`
+Paper edition: `2026.05-ed8`
 
 ## Sections
 

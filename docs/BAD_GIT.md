@@ -1965,7 +1965,7 @@ To counteract the anti-patterns listed below, ensure adherence to these core GIT
 7. Treating non-fast-forward as permission to force push.
 8. Treating dirty remote checkout as permission to run `stash -u`.
 9. Treating branch mismatch as permission to checkout/reset.
-10. Treating merge conflict as permission to accept all ours/theirs.
+10. Treating merge conflict as permission to skip inspection; inspect both sides, capture human review evidence, and resolve deliberately.
 11. Treating CI failure as permission to amend history.
 12. Treating review failure as permission to rewrite the branch.
 13. Treating “same as GitHub” as permission to hard reset local.

@@ -6,9 +6,9 @@ Subtitle: **Continuous Repository Alignment for Proof-Carrying AI Pull Requests*
 
 Thesis line: **Find the vibe. Prove the merge. Repair the repo.**
 
-Paper edition: `2026.05-ed7`
+Paper edition: `2026.05-ed8`
 
-Standard version: `0.7.0`
+Standard version: `0.8.0`
 
 Schema version: `1.5.0`
 
@@ -78,8 +78,8 @@ Compact conformance claim:
 
 ```json
 {
-  "standard_version": "0.7.0",
-  "auditor_version": "0.7.0",
+  "standard_version": "0.8.0",
+  "auditor_version": "0.8.0",
   "schema_version": "1.5.0",
   "claimed_level": "HL3",
   "current_commit": "9f3a1c4",

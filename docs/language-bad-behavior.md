@@ -1,9 +1,9 @@
 # Language Bad-Behavior Audit
 
 This document defines the language-specific bad-behavior audit family.
-The active detector pack covers Rust, SQL, TypeScript, Docker, Python, CI, and
-Git so the scanner can grow without changing the report shape or rule registry
-again.
+The active detector pack covers Rust, SQL, TypeScript, Docker, Python, CI, Git,
+and GitTools so the scanner can grow without changing the report shape or rule
+registry again.
 
 ## Stable Rule IDs
 
@@ -16,6 +16,7 @@ again.
 | `HLT-033-PYTHON-BAD-BEHAVIOR` | Python code owns runtime behavior or unchecked data paths without an approved exception |
 | `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
+| `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
 
 ## Detector Tiers
 
@@ -44,7 +45,7 @@ These are review signals, not hard findings yet:
 | API honesty | public `repr(C)` without the rest of the contract, `Pin` where the proof is still human-only |
 | Concurrency hints | atomics without an explicit ordering story, generic `unwrap` in non-test code |
 
-### SQL, TypeScript, Docker, Python, CI, Git
+### SQL, TypeScript, Docker, Python, CI, Git, GitTools
 
 These modules use deterministic, repository-local detectors and stable rule
 IDs. They are designed to stay narrow, high-confidence, and proof-gated rather
@@ -58,6 +59,7 @@ than broad heuristics over arbitrary text.
 | Python | detector-backed |
 | CI | detector-backed |
 | Git | detector-backed |
+| GitTools | detector-backed |
 
 ## False-Positive Policy
 
@@ -99,7 +101,7 @@ Language findings should carry:
 
 | Field | Meaning |
 | --- | --- |
-| `rule_id` | `HLT-029-RUST-BAD-BEHAVIOR` today |
+| `rule_id` | stable `HLT-029` through `HLT-036` bad-behavior rule IDs |
 | `matched_term` | the specific subrule or detector id |
 | `reason` | why the proof is insufficient |
 | `evidence` | path, line, snippet, detector id, and proof-window result |

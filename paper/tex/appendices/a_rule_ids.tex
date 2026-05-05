@@ -47,6 +47,7 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-033} & Python bad behavior & HL3 & detector-backed & contract/security & deterministic \\
 \texttt{HLT-034} & CI bad behavior & HL3 & detector-backed & security/ci & deterministic \\
 \texttt{HLT-035} & Git bad behavior & HL3 & detector-backed & audit/security & deterministic \\
+\texttt{HLT-036} & GitTools bad behavior & HL3 & detector-backed & audit/security & deterministic \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -78,13 +79,14 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-033-PYTHON-BAD-BEHAVIOR} & Python dynamic execution, unsafe deserialization, shell, DB, TLS, or product-truth paths lack exception proof. & Box Python behind a typed approved boundary or move behavior to the owning layer. \\
 \texttt{HLT-034-CI-BAD-BEHAVIOR} & CI runs untrusted privileged code, leaks secrets, weakens permissions, or makes security nonblocking. & Split trust contexts, pin actions, minimize scopes, and make security proof blocking. \\
 \texttt{HLT-035-GIT-BAD-BEHAVIOR} & Git automation hides state, stages broadly, bypasses checks, or mutates refs destructively. & Use explicit paths, status receipts, reviewed ref operations, and verification-on workflows. \\
+\texttt{HLT-036-GITTOOLS-BAD-BEHAVIOR} & Hook managers or Git tooling normalize bypass, destructive mutation, or broad staging. & Remove routine bypasses and destructive hook behavior; mirror policy in CI or server enforcement. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{Vibe-Coding Source Coverage}
 
-Jankurai 0.7.0 maps every parsed row in the vibe-coding corpus into
+Jankurai 0.8.0 maps every parsed row in the vibe-coding corpus into
 \texttt{agent/vibe-coverage.toml}. Coverage is
 detector-backed only when a narrowed row has deterministic rule coverage plus
 proof/report evidence; partial when Jankurai has a reviewed control family but
@@ -94,7 +96,7 @@ per-row registry is supplemental source material in
 emitted under \texttt{target/jankurai/} by the documented coverage command.
 
 \begin{table}[t]
-\caption{Compact vibe-coverage registry summary for v0.7.0.}
+\caption{Compact vibe-coverage registry summary for v0.8.0.}
 \label{tab:vibe-coverage-summary}
 \centering
 \scriptsize

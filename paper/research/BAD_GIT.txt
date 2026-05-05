@@ -1560,7 +1560,7 @@ To counteract the anti-patterns, ensure adherence to these core GIT best practic
   \item **Moves code across modules without preserving history or rationale.**
   \item **Deletes “unused” files based on incomplete static analysis.**
   \item **Deletes comments, docs, or tests it thinks are obsolete.**
-  \item **Deletes feature flags, fallback code, or compatibility paths it does not understand.**
+  \item **Deletes feature flags, compatibility code, or compatibility paths it does not understand.**
   \item **Simplifies code by removing edge cases.**
   \item **Changes public APIs while fixing internals.**
   \item **Normalizes formatting in vendored files.**
@@ -2548,7 +2548,7 @@ To counteract the anti-patterns, ensure adherence to these core GIT best practic
   \item Running \texttt{sed -i} across the repo.
   \item Running platform-specific \texttt{sed} commands incorrectly.
   \item Running Perl/Python codemods without tests.
-  \item Combining codemods with \texttt{git restore} fallback.
+  \item Combining codemods with \texttt{git restore} as a recovery step.
   \item Creating scripts that call Git destructively.
   \item Running scripts from the wrong directory.
   \item Running scripts over generated/vendor directories.
@@ -4880,4 +4880,3 @@ To counteract the anti-patterns, ensure adherence to these core GIT best practic
   \item Hide AI authorship.
   \item Hide tool/model provenance.
 \end{itemize}
-

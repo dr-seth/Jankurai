@@ -25,20 +25,20 @@ Use separate versions because the paper, rules, and tooling will move at differe
 
 | Version | Format | Example | Rule |
 | --- | --- | --- | --- |
-| Paper edition | date plus edition | `2026.05-ed7` | changes when the argument or evidence changes |
-| Standard version | SemVer | `0.7.0` | breaking compliance rule means major bump |
-| Audit version | SemVer | `0.7.0` | implementation release of the scanner |
+| Paper edition | date plus edition | `2026.05-ed8` | changes when the argument or evidence changes |
+| Standard version | SemVer | `0.8.0` | breaking compliance rule means major bump |
+| Audit version | SemVer | `0.8.0` | implementation release of the scanner |
 | Output schema | SemVer | `1.5.0` | breaking JSON/Markdown contract means major bump |
-| Rule pack version | SemVer plus tool | `codex-0.7.0` | tracks standard version with tool-specific packaging |
+| Rule pack version | SemVer plus tool | `codex-0.8.0` | tracks standard version with tool-specific packaging |
 
 Every audit output should include:
 
 ```json
 {
-  "standard_version": "0.7.0",
-  "auditor_version": "0.7.0",
+  "standard_version": "0.8.0",
+  "auditor_version": "0.8.0",
   "schema_version": "1.5.0",
-  "paper_edition": "2026.05-ed7",
+  "paper_edition": "2026.05-ed8",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "rust-ts-vite-react-postgres-bounded-python"
 }
@@ -48,8 +48,8 @@ Every adopted repo should pin:
 
 ```json
 {
-  "jankurai_standard": "0.7.0",
-  "audit_min_version": "0.7.0",
+  "jankurai_standard": "0.8.0",
+  "audit_min_version": "0.8.0",
   "audit_update_channel": "stable",
   "fail_on": ["critical", "high"],
   "advisory_on": ["medium", "low"]

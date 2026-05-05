@@ -1,6 +1,6 @@
 # jankurai Audit Rubric
 
-Version: `0.7.0`
+Version: `0.8.0`
 
 Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + exception-only Python AI/data service.
 
@@ -79,6 +79,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | python-bad-behavior | detector-backed | Python detector pack with hard and advisory signals |
 | ci-bad-behavior | detector-backed | CI detector pack with hard and advisory signals |
 | git-bad-behavior | detector-backed | Git detector pack with hard and advisory signals |
+| gittools-bad-behavior | detector-backed | Git tooling detector pack with hard and advisory signals |
 
 ## Known Vibe-Coding Insults
 
