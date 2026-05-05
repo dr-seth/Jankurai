@@ -43,6 +43,27 @@ CI modes should be explicit. \emph{Advisory} mode emits reports but does not fai
 
 The continuous proof loop is concrete and local. A changed path enters \texttt{agent/owner-map.json} for ownership and \texttt{agent/test-map.json} for lane routing. \texttt{jankurai lane} or \texttt{jankurai proof} turns that route into a proof plan. \texttt{jankurai prove} executes allowed commands, writes command receipts and \texttt{target/jankurai/evidence-index.json}, and records artifact digests. \texttt{jankurai proof-verify} checks the plan and evidence against the current repository state. \texttt{jankurai audit} folds ownership, generated zones, proof receipts, security evidence, UX evidence, and score history into JSON/Markdown/SARIF/JUnit reports. \texttt{jankurai witness} compares the candidate against an accepted baseline and emits the PR proof matrix. Findings become a repair queue through \texttt{agent\_fix\_queue}, \texttt{issues export}, or \texttt{repair-plan}. This is the real-time part of Jankurai: not an omniscient daemon, but a repeatable local/PR/CI loop that makes merge evidence current.
 
+\begin{table}[t]
+\caption{Proof freshness algorithm.}
+\label{tab:proof-freshness}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.26\columnwidth} Y}
+\toprule
+\textbf{Check} & \textbf{Invalid when} \\
+\midrule
+Commit binding & Receipt \texttt{git\_head} differs from witness head. \\
+Path scope & Receipt omits a changed path in its declared lane. \\
+Lane authority & Command is absent from the current proof lane map. \\
+Tool identity & Tool version or command digest is missing or mismatched. \\
+Artifact digest & Named log, report, screenshot, or trace is missing or hash-mismatched. \\
+Privacy status & Required redaction status is absent for restricted evidence. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Flaky proof is not proof. A lane may retry only under a declared retry policy that records attempts, timing, environment, and failure class. A pass-after-retry can satisfy advisory evidence, but release and ratchet gates should require either deterministic rerun stability or a waiver with owner approval, residual risk, and a repair plan for the flaky lane.
+
 \begin{lstlisting}[style=codebox]
 jankurai witness . \
   --changed-from origin/main \

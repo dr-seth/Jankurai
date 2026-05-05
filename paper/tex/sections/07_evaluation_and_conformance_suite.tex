@@ -6,13 +6,31 @@ Jankurai is currently best understood as a standards proposal with an early refe
 
 The \texttt{jankurai} CLI audits this repository and emits JSON and Markdown reports. It validates rule coverage from \texttt{agent/vibe-coverage.toml}, tracks generated zones, owner routes, proof lanes, score history, and repair queues where those controls are implemented, and builds this paper from source. The paper, schemas, agent maps, generated-zone manifest, audit reports, and generated coverage outputs are repository-local artifacts rather than hosted service state.
 
+\begin{table}[t]
+\caption{Current self-audit evidence for this paper cut.}
+\label{tab:self-audit-evidence}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.36\columnwidth} Y}
+\toprule
+\textbf{Artifact or count} & \textbf{Current value} \\
+\midrule
+Audit JSON/Markdown & \texttt{agent/repo-score.json}, \texttt{agent/repo-score.md}. \\
+Score / findings & Score 91; 1 current finding after the latest audit lane. \\
+Vibe coverage rows & 260 source rows mapped; 0 unmapped. \\
+Detector maturity & 17 detector-backed rows; 243 partial rows. \\
+Largest TLR bucket & Security, followed by verification and business truth. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 Current evidence remains limited. Some detectors are deterministic, such as secret-like content, generated-zone mutation, direct DB markers, destructive SQL heuristics, and dead-language markers. Other rows are policy-backed or advisory because they require project-specific fixtures, organizational proof, or semantic tests that cannot be inferred from repository shape alone.
 
 \subsection{Seed Conformance Suite}
 
 This edition includes a seed conformance suite under \texttt{conformance/}. It is not a benchmark and does not claim detector completeness. Its purpose is narrower: keep the standard's rule IDs, expected decisions, and merge-witness outcomes concrete enough for the reference auditor to validate and for future implementations to copy. Kubernetes conformance is a useful precedent because certification rests on repeatable tests and submitted evidence rather than branding alone \cite{kubernetesConformance2026}.
 
-The current seed suite contains 10 fixture directories and 12 expected JSON files. The \texttt{hl3-pass-minimal} fixture expects \texttt{pass}. The nine fail fixtures expect \texttt{block}. Primary rule examples are \texttt{HLT-002}, \texttt{HLT-003}, \texttt{HLT-004}, \texttt{HLT-010}, \texttt{HLT-012}, \texttt{HLT-013}, \texttt{HLT-021}, \texttt{HLT-022}, and \texttt{HLT-023}. The validation command is \texttt{rtk just conformance}.
+The current seed suite contains 10 fixture directories and 12 expected JSON files. The \texttt{hl3-pass-minimal} fixture expects \texttt{pass}. The nine fail fixtures expect \texttt{block}. Primary rule examples are \texttt{HLT-002}, \texttt{HLT-003}, \texttt{HLT-004}, \texttt{HLT-010}, \texttt{HLT-012}, \texttt{HLT-013}, \texttt{HLT-021}, \texttt{HLT-022}, and \texttt{HLT-023}. The validation command is \texttt{rtk just conformance}. In this edition that command validates fixture inventory and expected JSON presence, then runs the inventory test; it does not yet emit observed per-fixture witness decisions. Observed decision comparison is future work rather than a hidden empirical claim.
 
 \begin{table}[t]
 \caption{Seed conformance-suite fixtures in this repository.}
@@ -36,6 +54,29 @@ Input boundary & \texttt{HLT-023} requires deterministic negative proof for unsa
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\begin{table*}[t]
+\caption{Expected seed fixture decisions. Current observed comparison is inventory-only until a per-fixture runner exists.}
+\label{tab:expected-fixture-decisions}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.24\textwidth} L{0.12\textwidth} L{0.22\textwidth} Y}
+\toprule
+\textbf{Fixture} & \textbf{Expected witness} & \textbf{Primary rule} & \textbf{Current validation status} \\
+\midrule
+\texttt{hl3-pass-minimal} & \texttt{pass} & none & Inventory and expected JSON present. \\
+\texttt{generated-zone-mutation-fail} & \texttt{block} & \texttt{HLT-002} & Inventory and expected JSON present. \\
+\texttt{ownerless-path-fail} & \texttt{block} & \texttt{HLT-003} & Inventory and expected JSON present. \\
+\texttt{unmapped-proof-fail} & \texttt{block} & \texttt{HLT-004} & Inventory and expected JSON present. \\
+\texttt{secret-sprawl-fail} & \texttt{block} & \texttt{HLT-010} & Inventory and expected JSON present. \\
+\texttt{overbroad-agency-fail} & \texttt{block} & \texttt{HLT-012} & Inventory and expected JSON present. \\
+\texttt{rendered-ux-gap-fail} & \texttt{block} & \texttt{HLT-013} & Inventory and expected JSON present. \\
+\texttt{destructive-migration-fail} & \texttt{block} & \texttt{HLT-021} & Inventory and expected JSON present. \\
+\texttt{authz-isolation-fail} & \texttt{block} & \texttt{HLT-022} & Inventory and expected JSON present. \\
+\texttt{input-boundary-xss-fail} & \texttt{block} & \texttt{HLT-023} & Inventory and expected JSON present. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
 
 \textbf{Miniature walkthrough.} In \texttt{generated-zone-mutation-fail}, the bad state is a generated output changed without its declared source contract and regeneration command. The expected finding is \texttt{HLT-002-GENERATED-MUTATION}. The required proof is a contract lane receipt showing the source contract changed and the generator reran, with artifact digests for the generated output. Until that receipt exists, the merge witness decision is \texttt{block}. The repair queue item should name the generated path, source path, regeneration command, owner route, and expected proof lane.
 

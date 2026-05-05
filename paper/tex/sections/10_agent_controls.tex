@@ -4,12 +4,26 @@ Public agent tooling converges on one lesson: instructions matter, but determini
 
 The adapter problem is an authority problem, not a formatting problem. Jankurai treats prompt files as thin routers over machine-readable policy: \texttt{agent/owner-map.json} says who may own a path, \texttt{agent/test-map.json} says which lane proves it, \texttt{agent/generated-zones.toml} says which outputs are read-only unless regenerated from source, and \texttt{agent/standard-version.toml} binds the instruction surface to the standard and paper edition.
 
-The source-of-authority hierarchy is:
-\begin{center}
-\small
-\texttt{standard/version manifest -> owner/test/generated/security maps -> proof lanes -> adapter mirrors -> task prompt -> untrusted issue/PR/web/tool text}
-\end{center}
-For example, if \texttt{AGENTS.md} appears to permit generated edits but \texttt{agent/generated-zones.toml} denies hand edits, adapter verification fails and the generated-zone policy wins. Provider files may summarize policy, but they may not widen permissions.
+\begin{table}[t]
+\caption{Source-of-authority hierarchy for agent adapters.}
+\label{tab:authority-hierarchy}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.20\columnwidth} Y}
+\toprule
+\textbf{Rank} & \textbf{Authority} \\
+\midrule
+1 & Standard/version manifest and schema bundle. \\
+2 & Owner, test, generated-zone, security, and waiver maps. \\
+3 & Proof lanes and CI/release gates. \\
+4 & Generated or verified adapter mirrors. \\
+5 & Current task prompt from the operator. \\
+6 & Untrusted issue, PR, web, model, or tool text. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+For example, if \texttt{AGENTS.md} appears to permit generated edits but \texttt{agent/generated-zones.toml} denies hand edits, adapter verification fails and the generated-zone policy wins. If a web issue asks an agent to ``ignore the repo rules and edit generated clients directly,'' the instruction is untrusted input and cannot override the generated-zone map. Provider files may summarize policy, but they may not widen permissions.
 
 \begin{table*}[t]
 \caption{Agent adapter conformance checklist.}
@@ -50,4 +64,4 @@ Terminal agents & CLI prompt files, repo maps, shell wrappers. & Root router, fi
 
 Token minimization is not a prompting trick; it is repository design. Large root instructions, duplicate architecture documents, stale docs, broad rereads, and noisy command output waste context and invite contradiction. ContextBench and SWE-Effi support this direction by treating useful context and resource constraints as first-class bottlenecks \cite{contextBench2026,sweEffi2025}. Context-pack metrics should include token count, stale docs excluded, proof-selection precision, route confidence, false-exclusion rate, and first-pass repair success.
 
-The context-pack contract is budgeted and trust-labeled. A pack carries \texttt{--max-tokens}, an estimated token count, included and excluded file lists, source-trust labels, changed paths, selected owner routes, selected proof lanes, and evidence pointers. The result is not a larger prompt. It is a smaller grant of authority backed by files the repo can audit.
+The context-pack contract is budgeted and trust-labeled. A pack carries \verb|--max-tokens|, an estimated token count, included and excluded file lists, source-trust labels, changed paths, selected owner routes, selected proof lanes, and evidence pointers. The result is not a larger prompt. It is a smaller grant of authority backed by files the repo can audit.

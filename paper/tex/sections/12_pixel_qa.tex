@@ -18,6 +18,24 @@ Rendered UX proof should be a contract, not a taste debate. The standard treats 
 }
 \end{lstlisting}
 
+\begin{table}[t]
+\caption{Required rendered-UX evidence fields.}
+\label{tab:ux-evidence-fields}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.34\columnwidth} Y}
+\toprule
+\textbf{Field group} & \textbf{Examples} \\
+\midrule
+Surface identity & Route, story, selector, viewport, browser, locale, timezone. \\
+Artifact identity & Screenshot, crop, ARIA snapshot, trace, video, geometry report, hashes. \\
+Rule evidence & Rule IDs, severity, deterministic detector result, baseline reference. \\
+Privacy state & \texttt{clean}, \texttt{redacted}, \texttt{restricted}, or \texttt{blocked}. \\
+Decision gate & \texttt{block} for objective failures; \texttt{review} for semantic visual judgment. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \begin{table*}[t]
 \caption{Rendered UX QA detectors for a conformant product surface.}
 \label{tab:rendered-ux-qa}
@@ -39,7 +57,7 @@ Human feedback loop & Labels for true defect, intentional change, false positive
 \end{tabularx}
 \end{table*}
 
-Some criteria are deterministic enough to be Jankurai evidence: overlap, clipping, horizontal overflow, target-size failures, missing focus visibility, severe CLS, blank critical surface, missing protected-route screenshot, clipped required text, sticky obstruction, and unapproved token violations. WCAG 2.2 target-size guidance defines a 24 by 24 CSS-pixel minimum or sufficient spacing exceptions for pointer targets \cite{wcagTargetSizeMinimum2026}. Core Web Vitals guidance keeps CLS of 0.1 or less as the good visual-stability threshold \cite{webDevCls2025}.
+Some criteria are deterministic enough to be Jankurai evidence: overlap, clipping, horizontal overflow, target-size failures, missing focus visibility, severe CLS, blank critical surface, missing protected-route screenshot, clipped required text, sticky obstruction, and unapproved token violations. Ambiguous semantic visual changes, brand judgment, and acceptable variance route to review, not automatic pass. WCAG 2.2 target-size guidance defines a 24 by 24 CSS-pixel minimum or sufficient spacing exceptions for pointer targets \cite{wcagTargetSizeMinimum2026}. Core Web Vitals guidance keeps CLS of 0.1 or less as the good visual-stability threshold \cite{webDevCls2025}.
 
 Open-source tools already solve real pieces. Storybook can turn every story into a visual baseline \cite{storybookVisualTests2026}. Playwright can compare screenshots and ARIA snapshots \cite{playwrightVisualComparisons2026,playwrightAriaSnapshots2026}. Argos and BackstopJS provide visual review and screenshot-diff workflows \cite{argosVisualTesting2026,backstopJs2026}. Playwright and Storybook can run axe-based accessibility checks, while their docs warn that automation is only a first-line signal \cite{playwrightAccessibility2026,storybookAccessibility2026}. Jankurai's role is to bind those outputs to route, viewport, browser, hashes, rule IDs, selector, severity, owner, and witness decision.
 

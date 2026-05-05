@@ -2,7 +2,7 @@
 
 Stable rule identifiers make audit output durable enough for repair agents, CI annotations, release notes, and independent conformance tests. The compact registry below is the public shape; detailed row coverage remains in \texttt{agent/vibe-coverage.toml} and generated reports.
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Compact rule metadata registry.}
 \label{tab:rule-metadata}
 \centering
@@ -40,9 +40,9 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-027} & Human-review evidence gap & HL3 & mapped & review & evidence-routed \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Representative rule repairs.}
 \label{tab:rule-repairs}
 \centering
@@ -62,7 +62,7 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-023-INPUT-BOUNDARY-GAP} & Unsafe input boundary, dynamic execution, string SQL, shell, fetch, or rendering sink lacks negative proof. & Add schemas, parameterization, allowlists, sandboxing, and exploit fixtures. \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}
 
 \subsection{Vibe-Coding Source Coverage}
 
@@ -75,7 +75,7 @@ per-row registry is supplemental source material in
 \texttt{agent/vibe-coverage.toml}; generated machine-readable outputs are
 emitted under \texttt{target/jankurai/} by the documented coverage command.
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Compact vibe-coverage registry summary for v0.7.0.}
 \label{tab:vibe-coverage-summary}
 \centering
@@ -93,4 +93,4 @@ Verification TLR rows & 61 & Includes false-green tests, UI/a11y proof, and dest
 Business-truth TLR rows & 24 & Includes authorization, data isolation, and state-machine correctness risks. \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}

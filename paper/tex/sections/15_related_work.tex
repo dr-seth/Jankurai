@@ -20,6 +20,6 @@ Repository ownership and policy & CODEOWNERS-style review, policy-as-code, repro
 \end{tabularx}
 \end{table*}
 
-AI coding benchmarks and agents measure task completion, environment use, and agent-computer interfaces. Supply-chain standards secure artifacts and dependencies. API/schema standards define contract surfaces. Conformance ecosystems show how standards become adoptable. Agent instruction surfaces are emerging as repository policy. UX, accessibility, observability, and proof-output ecosystems provide the receipts.
+AI coding benchmarks and agents measure task completion, environment use, and agent-computer interfaces. Supply-chain standards secure artifacts and dependencies. API/schema standards define contract surfaces. Conformance ecosystems show how standards become adoptable. Agent instruction surfaces are emerging as repository policy. UX, accessibility, observability, SARIF, and JUnit ecosystems provide the receipts.
 
-Jankurai's contribution is the binding layer: it turns existing outputs into a versioned, repository-local merge witness.
+Jankurai's contribution is the missing merge-time binding layer. It does not replace CI, CODEOWNERS-style review, SLSA/SPDX provenance, OpenAPI, Playwright, SARIF, JUnit, OpenTelemetry, or agent instruction files. It asks those systems to leave compatible evidence, then binds their outputs to changed paths, owners, proof lanes, missing evidence, repair queues, waiver state, and a closed merge-witness decision. The claim is therefore narrower and more practical than a new universal verifier: existing tools produce signals; Jankurai defines the repository-local object that decides whether those signals are sufficient to merge.

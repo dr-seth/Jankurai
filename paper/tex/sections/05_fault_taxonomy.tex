@@ -4,7 +4,7 @@ Vibe coding is not a mood. It is a fault class: shipping code whose correctness 
 
 Public evidence supports treating vibe coding as a high-risk production pattern rather than a harmless workflow style. Veracode reports that AI-generated samples introduced risky security flaws in 45\% of tests \cite{veracodeGenaiCodeSecurity2025}. GitGuardian reports accelerating hardcoded-secret exposure in public GitHub activity and AI-service leak growth \cite{gitguardianSecretsSprawl2026,gitguardianSecretsSprawl2026Blog}. Stack Overflow's 2025 survey reports that developers' largest AI frustration is output that is almost right but not quite, with time-consuming AI-code debugging close behind \cite{stackOverflowAISurvey2025}. OWASP's LLM Top 10 names prompt injection, sensitive information disclosure, supply-chain risk, improper output handling, and excessive agency as first-order AI application risks \cite{owaspLlmTopTen2025}. SetupBench and ContextBench add the operational failure modes: agents still struggle with environment bootstrap and useful context retrieval \cite{setupBench2025,contextBench2026}.
 
-The v0.7.0 coverage method is mechanical: parse source rows, normalize issue families, map each row to one HLT rule, assign TLR/RPN, mark detector maturity, and emit registry/report artifacts. Every parsed row from \texttt{tips/vibe\_coding/tip1.txt} through \texttt{tip5.txt} maps to exactly one canonical issue in \texttt{agent/vibe-coverage.toml}. Appendix~A renders the generated summary: green means detector-backed Jankurai control plus proof/report evidence, yellow means a reviewed control family exists but still needs issue-specific fixture, CI, or governance evidence. The v0.7.0 registry has 0 unmapped rows.
+The v0.7.0 coverage method is mechanical: parse source rows, normalize issue families, map each row to one HLT rule, assign TLR/RPN, mark detector maturity, and emit registry/report artifacts. Every parsed row from \texttt{tips/vibe\_coding/tip1.txt} through \texttt{tip5.txt} maps to exactly one canonical issue in \texttt{agent/vibe-coverage.toml}. Detector maturity uses four labels: deterministic detectors can be reproduced from repository state; evidence-routed controls require project proof artifacts; governance-backed controls require accepted policy or review receipts; research rows are not yet detector-backed. Appendix~A renders the generated summary: green means detector-backed Jankurai control plus proof/report evidence, yellow means a reviewed control family exists but still needs issue-specific fixture, CI, or governance evidence. The v0.7.0 registry has 0 unmapped rows.
 
 \begin{table*}[t]
 \caption{Ranked vibe-artifact taxonomy. RPN is a Jankurai policy priority, not an empirical frequency claim.}
@@ -45,25 +45,25 @@ Context/setup & 30 & Documentation or instruction drift & HLT-015 / audit & Cano
 \end{tabularx}
 \end{table*}
 
-\begin{figure*}[t]
+\begin{table}[t]
 \centering
 \scriptsize
-\begin{tabularx}{0.92\textwidth}{L{0.16\textwidth} L{0.14\textwidth} Y}
+\caption{TLR RPN share. TLR means Top-Level Risk; shares are computed from Table~\ref{tab:fault-taxonomy}.}
+\label{tab:tlr-bars}
+\begin{tabularx}{\columnwidth}{L{0.28\columnwidth} L{0.16\columnwidth} Y}
 \toprule
 \textbf{TLR bucket} & \textbf{RPN share} & \textbf{Relative weight} \\
 \midrule
-Security & 32\% & \rule{3.2cm}{0.6em} \\
-Business truth & 20\% & \rule{2.0cm}{0.6em} \\
-Contracts/data & 13\% & \rule{1.3cm}{0.6em} \\
-Verification & 13\% & \rule{1.3cm}{0.6em} \\
-Entropy & 10\% & \rule{1.0cm}{0.6em} \\
-Context/setup & 9\% & \rule{0.9cm}{0.6em} \\
-Repair & 3\% & \rule{0.3cm}{0.6em} \\
+Security & 32\% & \rule{2.6cm}{0.55em} \\
+Business truth & 20\% & \rule{1.6cm}{0.55em} \\
+Contracts/data & 13\% & \rule{1.0cm}{0.55em} \\
+Verification & 13\% & \rule{1.0cm}{0.55em} \\
+Entropy & 10\% & \rule{0.8cm}{0.55em} \\
+Context/setup & 9\% & \rule{0.7cm}{0.55em} \\
+Repair & 3\% & \rule{0.24cm}{0.55em} \\
 \bottomrule
 \end{tabularx}
-\caption{TLR means Top-Level Risk. Shares are computed directly from Table~\ref{tab:fault-taxonomy}: each row contributes its RPN to one TLR bucket, then bucket totals are rounded to whole percentages. The chart is a policy-priority model for Jankurai 0.7.0, not an incident-frequency measurement.}
-\label{fig:tlr-bars}
-\end{figure*}
+\end{table}
 
 \begin{center}
 \fbox{\begin{minipage}{0.93\columnwidth}

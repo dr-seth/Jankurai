@@ -24,31 +24,32 @@ Naming policy: paper artifacts use the `jankurai.*` prefix. Do not create `main.
 
 AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Jankurai is a versioned repository conformance standard for finding and reducing vibe artifacts: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, and unreceipted review claims.
 
-The repository is the alignment layer. Jankurai maps changed paths to bounded authority, proof lanes, evidence receipts, repair queues, and expiring waivers. The central artifact is the merge witness: a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, missing-evidence decisions, artifact digests, tool identity, and commit identity.
+The repository is the alignment layer. In this paper, "proof" means repository-local evidence receipts, not formal proof of full program semantics. Jankurai maps changed paths to bounded authority, proof lanes, evidence receipts, repair queues, and expiring waivers. The central artifact is the merge witness: a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, missing-evidence decisions, artifact digests, tool identity, and commit identity.
 
 Jankurai Core is stack-neutral. Rust/TypeScript/PostgreSQL is a non-normative reference profile, not the standard. Go, .NET, JVM, TypeScript-heavy, Rails/Python, and Elixir profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence, and merge witnesses. Scores are posture signals, not merge approval.
 
 ## Section Map
 
 1. From Vibe Coding to Verified Merge
-2. Definitions and Threat Model
-3. Jankurai Core Standard and Conformance
-4. Vibe-Artifact Taxonomy and Stable Rule IDs
-5. Evaluation and Conformance Evidence
-6. Agent Repository Controls and Tool Adapters
-7. Continuous Proof: From Changed Paths to Merge Witness
-8. Rendered UX and Browser-Step QA
-9. Security, Supply Chain, and Permissions
-10. Waivers, Observability, and Repair Receipts
-11. Migration, Versioning, and Governance
-12. Languages as Proof-Cost Compression
-13. Technical Promise Versus Standard Gravity
-14. Non-Normative Reference Profile Score
-15. Reference Profile Comparison
-16. Reference Architecture Profile
-17. Related Work
-18. Limitations and Research Agenda
-19. Conclusion
+2. Running Example: Checkout PR
+3. Definitions and Threat Model
+4. Jankurai Core Standard and Conformance
+5. Vibe-Artifact Taxonomy and Stable Rule IDs
+6. Evaluation and Conformance Evidence
+7. Agent Repository Controls and Tool Adapters
+8. Continuous Proof: From Changed Paths to Merge Witness
+9. Rendered UX and Browser-Step QA
+10. Security, Supply Chain, and Permissions
+11. Waivers, Observability, and Repair Receipts
+12. Migration, Versioning, and Governance
+13. Languages as Proof-Cost Compression
+14. Technical Promise Versus Standard Gravity
+15. Non-Normative Reference Profile Score
+16. Reference Profile Comparison
+17. Reference Architecture Profile
+18. Related Work
+19. Limitations and Research Agenda
+20. Conclusion
 
 Appendices:
 
@@ -85,7 +86,7 @@ Compact conformance claim:
 
 ## Conformance Evidence
 
-The current seed suite under `conformance/` has 10 fixture directories and 12 expected JSON files.
+The current seed suite under `conformance/` has 10 fixture directories and 12 expected JSON files. `rtk just conformance` currently validates fixture inventory and expected JSON presence; observed per-fixture witness comparison is future work.
 
 - `hl3-pass-minimal` expects `pass`.
 - Nine fail fixtures expect `block`.

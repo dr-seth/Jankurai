@@ -2,6 +2,30 @@
 
 Jankurai Core is the standard interface. It is not a claim that all repositories should use one language, database, CI provider, or coding agent. It binds prose, machine-readable maps, generated-zone policy, audit output, proof receipts, repair evidence, CI behavior, and release governance into repository-local conformance claims.
 
+\begin{center}
+\fbox{\begin{minipage}{0.94\columnwidth}
+\textbf{Conformance predicate.} Repository \(R\) at commit \(C\) conforms to Jankurai Core level \(L\) under standard version \(S\), auditor version \(A\), and schema version \(K\) iff \(R\) can emit schema-valid, current artifacts showing that every required ownership, generated-zone, proof-lane, security, waiver, repair, and witness predicate for \(L\) is satisfied at \(C\).
+\end{minipage}}
+\end{center}
+
+\begin{table}[t]
+\caption{Normative boundary of the Jankurai ecosystem.}
+\label{tab:core-boundary}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.32\columnwidth} Y}
+\toprule
+\textbf{Layer} & \textbf{Status} \\
+\midrule
+Jankurai Core & Stack-neutral normative conformance model: levels, decision enum, artifact validity, rule IDs, and witness semantics. \\
+Reference auditor & Current Rust CLI implementation; useful evidence but not the only possible conformant implementation. \\
+Schema bundle & Versioned JSON schemas for reports, proof receipts, repair queues, merge witnesses, and manifests. \\
+Rule registry & Stable HLT rule families with required evidence, detector maturity, and repair metadata. \\
+Reference profile & Non-normative stack/profile guidance. A conformant alternate profile must not be rejected because it differs from the reference stack. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 The standard's public primitive is the merge witness:
 \begin{center}
 \small
@@ -13,6 +37,9 @@ The standard's public primitive is the merge witness:
 \end{tabular}
 \end{center}
 
+\begin{figure*}[t]
+\centering
+\begin{minipage}{0.92\textwidth}
 \begin{lstlisting}[style=codebox]
 {
   "schema": "jankurai.merge_witness.v1",
@@ -20,7 +47,6 @@ The standard's public primitive is the merge witness:
   "auditor_version": "0.7.0",
   "schema_version": "1.5.0",
   "current_commit": "9f3a1c4",
-  "tool_version": "jankurai 0.7.0",
   "changed_paths": [
     "apps/web/src/checkout/Checkout.tsx",
     "apps/web/src/generated/client.ts",
@@ -29,7 +55,10 @@ The standard's public primitive is the merge witness:
   "owner_route": ["web", "contracts"],
   "required_receipts": ["web", "contract", "security"],
   "present_receipts": ["contract"],
-  "missing_evidence": ["rendered_ux_receipt"],
+  "missing_evidence": [
+    "contract_receipt",
+    "rendered_ux_receipt"
+  ],
   "artifact_digests": {
     "contract_receipt": "sha256:...",
     "audit_report": "sha256:..."
@@ -39,20 +68,69 @@ The standard's public primitive is the merge witness:
   "witness_path": "target/jankurai/merge-witness.json"
 }
 \end{lstlisting}
+\end{minipage}
+\caption{Compact HL3 merge-witness excerpt for the running checkout PR. The complete schema lives in \texttt{schemas/merge-witness.schema.json}; the body excerpt shows only the binding that matters for review.}
+\label{fig:merge-witness-excerpt}
+\end{figure*}
 
-\begin{lstlisting}[style=codebox]
-{
-  "standard_version": "0.7.0",
-  "auditor_version": "0.7.0",
-  "schema_version": "1.5.0",
-  "claimed_level": "HL3",
-  "current_commit": "9f3a1c4",
-  "decision": "block",
-  "required_receipts": ["web", "contract", "security"],
-  "missing_evidence": ["rendered_ux_receipt"],
-  "witness_path": "target/jankurai/merge-witness.json"
-}
-\end{lstlisting}
+\begin{table*}[t]
+\caption{Core artifact model.}
+\label{tab:core-artifact-model}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.24\textwidth} L{0.18\textwidth} Y}
+\toprule
+\textbf{Artifact} & \textbf{Core role} & \textbf{Validity signal} \\
+\midrule
+\texttt{standard-version.toml} & Version identity. & Binds standard, auditor, schema, paper provenance, and registered artifacts. \\
+\texttt{owner-map.json} & Ownership route. & Every changed path maps to an accountable owner or emits \texttt{HLT-003}. \\
+\texttt{test-map.json} & Proof route. & Every changed path maps to a deterministic proof lane or emits \texttt{HLT-004}. \\
+\texttt{generated-zones.toml} & Generated boundary. & Generated outputs declare source, regeneration command, and hand-edit policy. \\
+Proof receipts & Evidence record. & Command, cwd, tool identity, path scope, exit code, artifacts, and digests match the commit. \\
+Merge witness & Merge decision. & Closed decision enum binds paths, owners, receipts, missing evidence, score delta, and digests. \\
+Repair queue & Next action. & Findings carry rule ID, owner, lane, rerun command, evidence kind, and bounded repair. \\
+Waivers & Temporary deviation. & Named, scoped, owned, testable, expiring, and bound to compensating controls. \\
+Evidence index & Artifact ledger. & Receipts, logs, screenshots, traces, reports, redaction status, and hashes are discoverable. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{table}[t]
+\caption{Proof receipt validity fields.}
+\label{tab:proof-receipt-validity}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.34\columnwidth} Y}
+\toprule
+\textbf{Field} & \textbf{Why required} \\
+\midrule
+\texttt{lane}, \texttt{command}, \texttt{cwd} & Shows which approved proof ran and from where. \\
+\texttt{git\_head}, \texttt{changed\_paths} & Prevents stale or copied evidence. \\
+\texttt{tool\_version}, \texttt{command\_digest} & Binds execution identity. \\
+\texttt{exit\_code}, \texttt{elapsed\_ms} & Records result and timeout behavior. \\
+\texttt{artifacts}, \texttt{artifact\_digests} & Makes logs, reports, screenshots, or traces inspectable. \\
+\texttt{redaction\_status} & Prevents private evidence from becoming public proof by accident. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[t]
+\caption{Minimum merge-witness fields.}
+\label{tab:merge-witness-fields}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.34\columnwidth} Y}
+\toprule
+\textbf{Field group} & \textbf{Required meaning} \\
+\midrule
+Version identity & \texttt{standard\_version}, \texttt{auditor\_version}, \texttt{schema\_version}. \\
+Repository identity & Repo, base/head commit, dirty state, changed paths. \\
+Routing & Owner routes, generated-zone touches, required lanes. \\
+Evidence & Available receipts, missing evidence, artifact digests, current score. \\
+Decision & Claimed/observed level, blockers, closed decision enum, next repair. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 The machine field is \texttt{schema\_version}. A schema bundle is prose for the collection of report, witness, receipt, and evidence schemas identified by that version. Emitted audit, report, and profile claims use \texttt{target\_stack\_id}. The current manifest still carries \texttt{target\_stack} as the repository's profile label; this edition treats that as manifest provenance, not a core conformance field. Likewise, \texttt{paper\_edition} is provenance for this document and companion artifacts, not a required core field for every external conformance claim.
 
@@ -76,7 +154,7 @@ Signed or independently verifiable receipts & MAY & MAY & MAY & SHOULD & SHOULD 
 \end{tabularx}
 \end{table*}
 
-Conformance and score are deliberately separate. Conformance is pass/fail against required artifacts for the claimed level. Score is posture and prioritization. A high score without current required receipts is not conformant. A low score can still be useful as an advisory finding, but it MUST NOT be represented as merge approval.
+\textbf{Score is posture. Witness is decision. Conformance is pass/fail.} A high score without current required receipts is not conformant. A low score can still be useful as an advisory finding, but it MUST NOT be represented as merge approval.
 
 The decision enum is closed in this edition: \texttt{pass}, \texttt{review}, \texttt{block}, \texttt{ratchet\_fail}, and \texttt{release\_fail}. Implementations may attach reasons, but they MUST NOT invent alternate merge states for core conformance reports.
 
@@ -105,25 +183,25 @@ Receipt invalidation is part of conformance. A proof receipt is invalid when it 
 
 Jankurai borrows standards mechanics without claiming institutional equivalence. Normative requirements use BCP 14-style \textsc{must}, \textsc{should}, and \textsc{may} language for clarity \cite{bcp14RfcEditor2026}. Standard, auditor, schema, and paper artifacts use SemVer-like compatibility signaling where breaking report changes require a major version, additive fields are minor-compatible, and copy or clarification changes can remain patch compatible \cite{semverSpec2026}. Current and previous releases follow the SPDX pattern of visible specification history \cite{spdxSpecifications2026}. The OpenAPI distinction between specification text and schema artifacts informs Jankurai's split between normative prose, JSON schemas, and patch/minor report compatibility \cite{openapiSpecification2026}. W3C-style maturity states make draft, candidate, implementation evidence, stable, superseded, and obsolete status explicit \cite{w3cProcess2026}. Kubernetes-style conformance means certification must rest on runnable tests and reproducible evidence, not branding \cite{kubernetesConformance2026}. OpenSSF Scorecard motivates automated open-source posture scoring as an adoption surface rather than a private checklist \cite{openssfScorecard2026}.
 
-\begin{table*}[t]
-\caption{Current Jankurai control-plane surfaces.}
+\begin{table}[t]
+\caption{Current control-plane surfaces.}
 \label{tab:control-plane-surfaces}
 \centering
 \scriptsize
-\begin{tabularx}{\textwidth}{L{0.22\textwidth} L{0.24\textwidth} Y}
+\begin{tabularx}{\columnwidth}{L{0.30\columnwidth} Y}
 \toprule
-\textbf{Surface} & \textbf{Commands} & \textbf{Control-plane role} \\
+\textbf{Surface} & \textbf{Status and role} \\
 \midrule
-Adoption and drift & \texttt{adopt}, \texttt{init}, \texttt{update}, \texttt{doctor} & Introduce the control plane without surprise writes, keep adapters and manifests current, and report stale or malformed evidence. \\
-Context and adapters & \texttt{context-pack}, \texttt{adapters verify/sync}, \texttt{agent verify}, \texttt{hooks install} & Turn prompt files and IDE rules into bounded authority tied to owner maps, test maps, generated zones, hooks, and CI entrypoints. \\
-Proof ledger & \texttt{lane}, \texttt{proof}, \texttt{prove}, \texttt{proof-verify} & Route changed paths, execute allowed proof commands, write receipts and evidence indexes, and verify proof artifacts against the current repo state. \\
-Audit, witness, and score ledger & \texttt{audit}, \texttt{witness}, \texttt{score diff/trend}, \texttt{rules verify}, \texttt{issues export} & Emit JSON/Markdown/SARIF/JUnit/summary evidence, merge witnesses, rolling score diffs, ordered repair queues, and machine-readable issue rows. \\
-Security and UX & \texttt{security run}, \texttt{ux ...} & Normalize secret, dependency, SBOM, workflow, and rendered-UX evidence under policy-controlled artifacts. \\
-Repair and expiry & \texttt{repair-plan}, \texttt{repair}, \texttt{optimize}, \texttt{exceptions expire} & Convert findings into bounded repair plans, dry-run or gated apply receipts, optimization proposals, and expiring waivers. \\
-Cells and public evidence & \texttt{registry}, \texttt{cell}, \texttt{bench}, \texttt{certify}, \texttt{govern}, \texttt{publish} & Promote repeated fixes into reusable cells and publish benchmark, certification, governance, badge, and evidence-bundle artifacts. \\
+Adoption/drift & \texttt{adopt}, \texttt{init}, \texttt{update}, \texttt{doctor}; implemented/candidate no-surprise onboarding. \\
+Context/adapters & \texttt{context-pack}, adapter verify/sync, hooks; candidate bounded authority. \\
+Proof ledger & \texttt{lane}, \texttt{proof}, \texttt{prove}, \texttt{proof-verify}; candidate receipts and evidence index. \\
+Audit/witness & \texttt{audit}, \texttt{witness}, score/rules/issues; implemented/candidate reports and repair queue. \\
+Security/UX & \texttt{security run}, \texttt{ux ...}; candidate/experimental evidence lanes. \\
+Repair/expiry & \texttt{repair-plan}, \texttt{repair}, \texttt{waivers expire}; candidate governed repair. Legacy \texttt{exceptions expire} should migrate. \\
+Public evidence & \texttt{registry}, \texttt{cell}, \texttt{bench}, \texttt{certify}, \texttt{govern}, \texttt{publish}; draft/planned. \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}
 
 Stable rule identifiers make the standard repairable. \texttt{HLT-001} through \texttt{HLT-027} are stable rule families tied to evidence and repair, not just detector names. Appendix~A expands these IDs into required evidence and repair fields.
 

@@ -23,27 +23,6 @@ Rails, Python/FastAPI, or Elixir/Phoenix with strong boundaries & 72--90 \\
 \end{tabularx}
 \end{table}
 
-\begin{table*}[t]
-\caption{Representative score decomposition. Bands express policy uncertainty, not statistical confidence.}
-\label{tab:score-decomposition}
-\centering
-\scriptsize
-\begin{tabularx}{\textwidth}{L{0.24\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} L{0.08\textwidth} Y}
-\toprule
-\textbf{Stack family} & \textbf{Proof} & \textbf{Sec.} & \textbf{Runtime} & \textbf{Boundary} & \textbf{Ops} & \textbf{Band} & \textbf{Conformance logic} \\
-\midrule
-Rust + TS/Vite + Postgres & 18 & 16 & 13 & 11 & 36 & $\pm 3$ & Reference default when no stronger domain constraint exists. \\
-Go + TS/Vite + Postgres & 16 & 13 & 13 & 10 & 38 & $\pm 4$ & Strong cloud-service profile where simplicity beats type-state power. \\
-.NET + TS/Vite + Postgres & 16 & 13 & 12 & 10 & 38 & $\pm 4$ & Strong regulated enterprise answer when Microsoft platform fit speeds proof. \\
-Full-stack TypeScript + Postgres & 13 & 10 & 9 & 8 & 36 & $\pm 6$ & Conformant when server ownership, generated contracts, and durable truth boundaries are explicit. \\
-Python/FastAPI + Postgres & 10 & 8 & 8 & 7 & 34 & $\pm 7$ & Conformant as durable core only with strong ownership, DB constraints, security, and generated contracts. \\
-Rails + Postgres & 11 & 9 & 8 & 7 & 36 & $\pm 6$ & Fast CRUD fit; can conform with generated contracts, policy-backed service boundaries, and release receipts. \\
-Elixir/Phoenix + Postgres & 14 & 11 & 11 & 8 & 37 & $\pm 5$ & Specialist override for realtime collaboration and supervision-heavy systems. \\
-JVM/Spring or Kotlin + Postgres & 15 & 11 & 11 & 10 & 40 & $\pm 5$ & Brownfield and enterprise fit can outweigh default-profile migration cost. \\
-\bottomrule
-\end{tabularx}
-\end{table*}
-
-Sensitivity is concentrated in three weights: memory safety/security, ecosystem corpus strength, and runtime/concurrency. Increase ecosystem weight and Go, .NET, and JVM improve. Increase type-state and memory-safety weight and Rust separates. Increase product velocity and full-stack TypeScript rises, but it hits hard filters unless durable truth, generated contracts, and server ownership are explicit. These scores are reproducible from stated assumptions, not empirical universals.
+Sensitivity is concentrated in three weights: memory safety/security, ecosystem corpus strength, and runtime/concurrency. Increase ecosystem weight and Go, .NET, and JVM improve. Increase type-state and memory-safety weight and Rust separates. Increase product velocity and full-stack TypeScript rises, but it hits hard filters unless durable truth, generated contracts, and server ownership are explicit. The detailed decomposition is intentionally omitted from the main conformance line: these scores are reproducible policy assumptions, not empirical universals.
 
 Detailed streaming comparisons do not belong in the main conformance line. The core rule is short: streaming clients belong behind adapters and generated event contracts. Kafka, Tansu, Iggy, Fluvio, NATS, Redis Streams, or equivalent systems can be profile choices when they emit replay, compatibility, security, observability, and migration evidence. The broker must not become hidden stack identity.

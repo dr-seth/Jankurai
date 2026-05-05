@@ -6,6 +6,41 @@ Agentic coding expands the write surface. The security posture must therefore be
 
 Jankurai evidence can itself become sensitive. A conformant implementation MUST treat logs, screenshots, traces, prompts, browser storage, dependency reports, and security scan output as evidence with privacy rules, not as disposable CI noise. Evidence bundles should avoid secrets by construction, redact customer data, hash large binary artifacts, separate public and restricted receipts, carry retention metadata, and fail release when required redaction status is missing.
 
+\begin{table}[t]
+\caption{Evidence privacy classes.}
+\label{tab:evidence-privacy}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.22\columnwidth} Y}
+\toprule
+\textbf{Class} & \textbf{Merge and publication rule} \\
+\midrule
+Public & Safe to publish with report or badge. \\
+Internal & May satisfy CI evidence but not public registry evidence. \\
+Restricted & Requires access controls, retention bounds, and redacted public pointer. \\
+Secret-bearing & Fails the lane until removed, rotated where needed, and replaced by clean evidence. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[t]
+\caption{Security obligations by conformance level.}
+\label{tab:security-hl-obligations}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.16\columnwidth} Y}
+\toprule
+\textbf{Level} & \textbf{Security obligation} \\
+\midrule
+HL1 & Advisory scan output records missing security tools. \\
+HL2 & Secret sprawl, generated mutation, destructive migration, and overbroad agency can block. \\
+HL3 & High/critical security findings require current receipts and witness binding. \\
+HL4 & Security posture cannot regress without waiver and repair queue. \\
+HL5 & Release evidence includes security, provenance, redaction, and rollback readiness. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \begin{table*}[t]
 \caption{Permission receipt matrix.}
 \label{tab:permission-matrix}
@@ -49,4 +84,4 @@ CI downgrade & Pin actions, minimize workflow permissions, require evidence uplo
 \end{tabularx}
 \end{table*}
 
-Permission policy should be boring. Agents should not receive broad filesystem, network, or credential access merely because a task is urgent. High-risk actions need named lanes and evidence: dependency install, secret material, generated-zone writes, migrations, release artifacts, and browser automation against privileged surfaces. Missing tools are not silently green: doctor diagnostics and security evidence record whether a tool was absent, advisory, failed, or blocking. \texttt{--strict} turns policy-blocking security status into a failing lane.
+Permission policy should be boring. Agents should not receive broad filesystem, network, or credential access merely because a task is urgent. High-risk actions need named lanes and evidence: dependency install, secret material, generated-zone writes, migrations, release artifacts, and browser automation against privileged surfaces. Missing tools are not silently green: doctor diagnostics and security evidence record whether a tool was absent, advisory, failed, or blocking. \verb|--strict| turns policy-blocking security status into a failing lane.

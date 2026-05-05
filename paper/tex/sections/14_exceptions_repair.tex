@@ -4,6 +4,25 @@ This paper reserves \emph{exceptions} for runtime or program errors. Standards d
 
 Waiver lifecycle states are \texttt{proposed}, \texttt{active}, \texttt{renewed}, \texttt{expired}, \texttt{closed}, and \texttt{superseded}. Active waivers require owner approval, scope, reason, proof requirements, residual risk, expiry, and repair plan. Expired waivers fail closed in ratchet and release modes.
 
+\begin{table}[t]
+\caption{Waiver lifecycle.}
+\label{tab:waiver-lifecycle}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.22\columnwidth} Y}
+\toprule
+\textbf{State} & \textbf{Required behavior} \\
+\midrule
+\texttt{proposed} & Not merge-authorizing; must name owner, scope, reason, proof, expiry, and repair path. \\
+\texttt{active} & May satisfy the named deviation only within scope and until expiry. \\
+\texttt{renewed} & Requires fresh owner approval, residual-risk update, and evidence that repair remains bounded. \\
+\texttt{expired} & Fails closed in ratchet and release modes. \\
+\texttt{closed} & Repair receipt or replacement evidence resolved the deviation. \\
+\texttt{superseded} & Replaced by a narrower waiver or standard change with compatibility note. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 Runtime exceptions still matter for repair. HTTP APIs should use RFC 9457 problem details for boundary errors \cite{rfc9457ProblemDetails2023}. Observability should emit OpenTelemetry exception attributes such as exception type, message, stack trace, and error type \cite{otelSemanticConventions2026,otelExceptionAttributes2026}. TypeScript can preserve underlying causes with \texttt{Error.cause} \cite{mdnErrorCause2026}. Rust should prefer typed errors for domain/application code, using context wrappers only at boundaries where opaque provider detail is acceptable \cite{rustByExampleError2026,anyhowDocs2026}.
 
 \begin{table*}[t]
@@ -31,4 +50,4 @@ Runtime exceptions still matter for repair. HTTP APIs should use RFC 9457 proble
 
 Every controlled error that can reach logs, API responses, background jobs, or tests should expose a stable name, stable code, purpose, reason, common fixes, documentation URL, safe user message, correlation ID, and source cause when safe. The point is not verbosity. The point is to make a failing test or production trace directly actionable for the next agent.
 
-Repair is a governed loop, not permission for unattended mutation. \texttt{jankurai repair-plan} reads audit output and turns findings into ordered, schema-validated candidate repairs. \texttt{jankurai repair --dry-run} produces a receipt without touching the repository. Real application is gated behind explicit environment variables, bounded risk, and reviewed flags; git commits, pushes, and draft PR creation require separate opt-ins. Jankurai can prepare a proof-backed branch, commit, and draft PR, but high-risk autonomous mutation and auto-merge remain outside the standard.
+Repair is a governed loop, not permission for unattended mutation. \texttt{jankurai repair-plan} reads audit output and turns findings into ordered, schema-validated candidate repairs. \verb|jankurai repair --dry-run| produces a receipt without touching the repository. Real application is gated behind explicit environment variables, bounded risk, and reviewed flags; git commits, pushes, and draft PR creation require separate opt-ins. Jankurai can prepare a proof-backed branch, commit, and draft PR, but high-risk autonomous mutation and auto-merge remain outside the standard.

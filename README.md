@@ -7,13 +7,13 @@
 [![jankurai CI](https://github.com/jeppsontaylor/Jankurai/actions/workflows/jankurai.yml/badge.svg)](https://github.com/jeppsontaylor/Jankurai/actions/workflows/jankurai.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Jankurai is a repository conformance standard and local audit CLI for auditable AI-assisted merge. Its public rule is simple: no proof, no merge; no receipt, no trust.
+Jankurai is an anti-vibe coding standard and local audit CLI for auditable AI-assisted merge. Its public loop is simple: find vibe artifacts, prove the merge, repair the repo.
 
 - Turns ownership maps, proof lanes, generated zones, security boundaries, rolling scores, merge witnesses, and repair queues into files agents and humans can both read.
 - Starts with read-only reports, then lets teams adopt guidance, CI, hooks, and ratchets only when they choose.
 - Leaves receipts: JSON/Markdown reports, score history, proof artifacts, and command evidence under predictable paths.
 
-Jankurai is not a model, hosted AI service, or "open source AI" system. It is repository infrastructure for making merge decisions reproducible.
+Jankurai is not a model, hosted AI service, or "open source AI" system. It is repository infrastructure for making merge decisions reproducible. In Jankurai, "proof" means repository-local evidence receipts, not formal proof of full program semantics.
 
 ## Install
 
@@ -153,14 +153,14 @@ Jankurai works as a local control plane over a few repeatable surfaces:
 | Proof and evidence | `lane`, `proof`, `prove`, `proof-verify` |
 | Audit and routing | `audit`, `witness`, `score diff`, `score trend`, `rules verify`, `issues export`, score history, repair queues |
 | Security and UX evidence | `security run`, `ux ...` |
-| Repair and expiry | `repair-plan`, `repair`, `optimize`, `exceptions expire` |
+| Repair and expiry | `repair-plan`, `repair`, `optimize`, `waivers expire` |
 | Reusable/public evidence | `registry`, `cell`, `bench`, `certify`, `govern`, `publish` |
 
 The loop is intentionally ordinary: changed paths map to owners and proof lanes, commands leave receipts, audit turns evidence into findings, and repair plans keep follow-up bounded.
 
 ## Project Status
 
-Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge*.
+Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, publication evidence, and the paper source for *Jankurai: The Anti-Vibe Coding Standard*.
 
 Paper framing:
 
@@ -168,12 +168,20 @@ Paper framing:
 - The CLI is a reference implementation.
 - The Rust/TypeScript/PostgreSQL profile is non-normative.
 - Full audit remains the merge and release gate.
+- Score is posture; the merge witness is the decision; conformance is pass/fail.
 
 Compatibility posture:
 
 - Public report schemas should remain compatible or receive explicit migration notes.
 - Ratchet enforcement should be opt-in and baseline-backed.
 - New agent-facing guidance should be deterministic, local, and reviewable.
+
+Known open-source gaps:
+
+- deeper conformance runner with observed per-fixture witness decisions
+- accessible HTML or tagged PDF edition
+- durable JEP/RFC governance docs and independent implementation path
+- public evidence registry, badge policy, and release checklist
 
 ## Docs
 
@@ -219,9 +227,9 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 ## Citation And Paper
 
-This repository is the working source for the paper *Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge*.
+This repository is the working source for the paper *Jankurai: The Anti-Vibe Coding Standard*.
 
-Public thesis line: *No proof, no merge; no receipt, no trust.*
+Public thesis line: *Find the vibe. Prove the merge. Repair the repo.*
 
 - Paper source: [paper/jankurai.tex](paper/jankurai.tex)
 - Agent-readable companion: [paper/jankurai.md](paper/jankurai.md)

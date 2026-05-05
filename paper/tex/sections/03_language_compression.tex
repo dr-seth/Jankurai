@@ -1,25 +1,24 @@
 \section{Languages as Proof-Cost Compression}
 
-Programming language history is often told as a progression toward abstraction. For Jankurai, the more useful lens is proof cost. A language or framework decides which burdens move from human memory into syntax, type systems, runtimes, libraries, tooling, and conventions. Machine code compressed nothing. Assembly compressed opcodes into names. Fortran compressed scientific arithmetic. COBOL compressed business records. C compressed portable systems programming into a thin abstraction over hardware. Java and .NET compressed memory management and enterprise portability into managed runtimes. Python compressed exploration and glue. TypeScript compressed large-team JavaScript maintenance by adding a static feedback loop to the browser ecosystem, a direction now strengthened by Microsoft's native TypeScript 7 effort \cite{typescript70Beta2026}.
+This non-normative profile material uses one lens from language history: proof cost. A language or framework decides which burdens move from human memory into syntax, type systems, runtimes, libraries, tooling, and conventions. In the agent era, syntax imitation is cheap; hidden ownership, hidden waiver policy, and unstated proof routes are expensive.
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Language evolution as proof-cost compression.}
 \label{tab:language-history}
 \centering
-\small
-\begin{tabularx}{\textwidth}{L{0.20\textwidth} Y Y}
+\scriptsize
+\begin{tabularx}{\columnwidth}{L{0.30\columnwidth} Y}
 \toprule
-\textbf{Era or family} & \textbf{Human bottleneck compressed} & \textbf{Repository-alignment interpretation} \\
+\textbf{Era or family} & \textbf{Repository-alignment interpretation} \\
 \midrule
-Machine code and assembly & Remembering opcodes, addresses, registers, and jumps. & Exactness without reviewability is not enough; merge evidence needs semantic structure. \\
-Fortran and COBOL & Expressing domain work without writing every machine operation. & Domain vocabulary matters because owners and proof lanes need stable concepts. \\
-C and Unix systems programming & Portable control over hardware, memory, and operating-system interfaces. & Power without structural memory safety increases audit burden; CISA/NSA guidance pushes teams toward memory-safe defaults \cite{cisaMemorySafeLanguages2025}. \\
-Java and .NET & Managed memory, deployment portability, enterprise libraries, and tooling. & Mature ecosystems help when boundaries and contracts are explicit. \\
-Python, R, Julia & Exploration, data analysis, notebooks, and scientific productivity. & Excellent for model/data loops; risky when unbounded into durable product truth. Python 3.14 improves runtime options, but not the boundary problem \cite{python314Release2025}. \\
-JavaScript and TypeScript & Browser programming, product velocity, and typed frontend maintenance. & Essential product surface; durable backend truth still needs explicit ownership and proof. \\
-Rust and modern safe systems languages & Memory safety, ownership, concurrency discipline, and explicit error handling. & Strong reference-profile core because many invalid states can be rejected before runtime. \\
+Machine/assembly & Exactness without reviewability is not enough; merge evidence needs semantic structure. \\
+C/Unix & Power without structural memory safety increases audit burden; CISA/NSA guidance pushes teams toward memory-safe defaults \cite{cisaMemorySafeLanguages2025}. \\
+Managed runtimes & Mature ecosystems help when boundaries and contracts are explicit. \\
+Python/R/Julia & Excellent for model/data loops; risky when unbounded into durable product truth \cite{python314Release2025}. \\
+JavaScript/TypeScript & Essential product surface; TypeScript adds a static loop to browser work \cite{typescript70Beta2026}. \\
+Rust and safe systems & Strong reference-profile core because ownership and explicit errors reject many invalid states before runtime. \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}
 
-The agent-era lesson is that syntax is no longer the scarce resource. A model can imitate syntax. It cannot reliably infer unstated ownership, hidden waiver policy, or tribal boundaries. The language and repository must make invalid paths structurally harder and repair locality easier.
+The agent-era lesson is that the language and repository must make invalid paths structurally harder and repair locality easier.
