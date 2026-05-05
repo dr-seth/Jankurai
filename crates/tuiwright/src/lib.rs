@@ -1,9 +1,9 @@
-//! Tuiwright: Playwright-style black-box testing for terminal user interfaces.
+//! Tuiwright: black-box testing for terminal user interfaces.
 //!
 //! Tuiwright spawns real applications in a real pseudo-terminal, drives
 //! keyboard/mouse/paste/resize input, parses terminal output into a
-//! deterministic screen model, and provides Playwright-like ergonomics:
-//! locators, auto-waiting, retrying assertions, screenshots, GIF recordings,
+//! deterministic screen model, and provides locator-driven ergonomics:
+//! locators, auto-waiting, polling assertions, screenshots, GIF recordings,
 //! and JSONL traces.
 //!
 //! # Quick start

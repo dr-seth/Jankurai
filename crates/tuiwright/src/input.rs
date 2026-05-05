@@ -154,12 +154,7 @@ pub fn encode_paste(text: &str, bracketed_paste: bool) -> Vec<u8> {
 /// Encode an SGR 1006 mouse event.
 ///
 /// Coordinates are 0-based cell positions; the wire protocol uses 1-based.
-pub fn encode_sgr_mouse(
-    button: MouseButton,
-    col: u16,
-    row: u16,
-    release: bool,
-) -> Vec<u8> {
+pub fn encode_sgr_mouse(button: MouseButton, col: u16, row: u16, release: bool) -> Vec<u8> {
     let code = match button {
         MouseButton::Left => 0,
         MouseButton::Middle => 1,
@@ -168,8 +163,7 @@ pub fn encode_sgr_mouse(
         MouseButton::WheelDown => 65,
     };
     let suffix = if release { 'm' } else { 'M' };
-    let wire_code = if release && !matches!(button, MouseButton::WheelUp | MouseButton::WheelDown)
-    {
+    let wire_code = if release && !matches!(button, MouseButton::WheelUp | MouseButton::WheelDown) {
         3
     } else {
         code

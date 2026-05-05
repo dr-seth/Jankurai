@@ -103,11 +103,11 @@ impl GifRecorder {
         let width = rendered[0].width() as u16;
         let height = rendered[0].height() as u16;
 
-        let file = File::create(path)
-            .with_context(|| format!("creating gif file {}", path.display()))?;
+        let file =
+            File::create(path).with_context(|| format!("creating gif file {}", path.display()))?;
 
-        let mut encoder = Encoder::new(file, width, height, &[])
-            .with_context(|| "creating GIF encoder")?;
+        let mut encoder =
+            Encoder::new(file, width, height, &[]).with_context(|| "creating GIF encoder")?;
 
         if options.loop_forever {
             encoder.set_repeat(Repeat::Infinite).ok();
@@ -119,7 +119,9 @@ impl GifRecorder {
         for (i, img) in rendered.iter().enumerate() {
             // Calculate delay to next frame
             let delay_cs = if i + 1 < self.frames.len() {
-                let delta_ms = self.frames[i + 1].at_ms.saturating_sub(self.frames[i].at_ms);
+                let delta_ms = self.frames[i + 1]
+                    .at_ms
+                    .saturating_sub(self.frames[i].at_ms);
                 let cs = (delta_ms / 10) as u16;
                 cs.clamp(min_delay, max_delay_cs.max(min_delay).max(200))
             } else {

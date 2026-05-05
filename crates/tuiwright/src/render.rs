@@ -160,12 +160,27 @@ impl TerminalRenderer {
                 let y = padding + row as u32 * self.options.cell_height;
 
                 // Draw cell background
-                fill_rect(&mut img, x, y, self.options.cell_width, self.options.cell_height, rgb_to_rgba(bg_color));
+                fill_rect(
+                    &mut img,
+                    x,
+                    y,
+                    self.options.cell_width,
+                    self.options.cell_height,
+                    rgb_to_rgba(bg_color),
+                );
 
                 // Draw cell text using font8x8
                 if cell.text.len() > 0 && cell.text != " " {
                     let ch = cell.text.chars().next().unwrap_or(' ');
-                    draw_char_8x8(&mut img, x, y, self.options.cell_width, self.options.cell_height, ch, rgb_to_rgba(fg));
+                    draw_char_8x8(
+                        &mut img,
+                        x,
+                        y,
+                        self.options.cell_width,
+                        self.options.cell_height,
+                        ch,
+                        rgb_to_rgba(fg),
+                    );
                 }
 
                 // Draw underline
@@ -253,18 +268,16 @@ fn draw_char_8x8(
 ) {
     // Try to get the glyph from font8x8 basic set
     let glyph = if (ch as u32) < 128 {
-        font8x8::BASIC_FONTS
-            .get(ch)
-            .map(|g| g.to_vec())
+        font8x8::BASIC_FONTS.get(ch).map(|g| g.to_vec())
     } else {
-        // For non-ASCII, try Unicode sets or fall back to '?'
+        // For non-ASCII, try Unicode sets or use '?' as a substitute
         None
     };
 
     let glyph = match glyph {
         Some(g) => g,
         None => {
-            // Fallback: draw a filled rectangle for unknown chars
+            // Unknown glyph: draw a filled rectangle
             if let Some(g) = font8x8::BASIC_FONTS.get('?') {
                 g.to_vec()
             } else {

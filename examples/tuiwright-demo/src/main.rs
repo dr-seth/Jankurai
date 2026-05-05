@@ -5,8 +5,7 @@ use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::style::{Color, Print, SetBackgroundColor, SetForegroundColor, Stylize};
 use crossterm::terminal::{
-    self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
-    SetTitle,
+    self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, SetTitle,
 };
 use crossterm::{execute, queue};
 

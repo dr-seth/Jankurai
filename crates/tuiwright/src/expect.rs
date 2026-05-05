@@ -7,7 +7,7 @@ use crate::screen::ScreenSnapshot;
 
 /// Assertion builder for screen-level expectations.
 ///
-/// All assertions retry with polling until timeout, matching Playwright's behavior.
+/// All assertions poll until timeout.
 pub struct ExpectScreen<'a> {
     screen_fn: Box<dyn Fn() -> ScreenSnapshot + 'a>,
     timeout: Duration,
@@ -16,10 +16,7 @@ pub struct ExpectScreen<'a> {
 
 impl<'a> ExpectScreen<'a> {
     /// Create a new screen expectation that polls for the current screen state.
-    pub fn new(
-        screen_fn: impl Fn() -> ScreenSnapshot + 'a,
-        timeout: Duration,
-    ) -> Self {
+    pub fn new(screen_fn: impl Fn() -> ScreenSnapshot + 'a, timeout: Duration) -> Self {
         Self {
             screen_fn: Box::new(screen_fn),
             timeout,
@@ -27,7 +24,7 @@ impl<'a> ExpectScreen<'a> {
         }
     }
 
-    /// Assert that the screen contains the given text, retrying until timeout.
+    /// Assert that the screen contains the given text, polling until timeout.
     pub fn to_contain_text(&self, text: &str) -> Result<()> {
         let deadline = Instant::now() + self.timeout;
         loop {
@@ -66,7 +63,7 @@ impl<'a> ExpectScreen<'a> {
         }
     }
 
-    /// Assert that the screen matches a regex, retrying until timeout.
+    /// Assert that the screen matches a regex, polling until timeout.
     pub fn to_match_regex(&self, pattern: &str) -> Result<()> {
         let deadline = Instant::now() + self.timeout;
         loop {

@@ -32,10 +32,7 @@ fn demo_bin() -> String {
                     .and_then(|n| n.as_str())
                     == Some("tuiwright-demo")
             {
-                if let Some(exe) = msg
-                    .get("executable")
-                    .and_then(|e| e.as_str())
-                {
+                if let Some(exe) = msg.get("executable").and_then(|e| e.as_str()) {
                     return exe.to_string();
                 }
             }
@@ -115,7 +112,10 @@ fn screenshot_produces_valid_png() {
 
     assert!(path.exists(), "screenshot file should exist");
     let metadata = std::fs::metadata(&path).unwrap();
-    assert!(metadata.len() > 100, "screenshot should not be trivially small");
+    assert!(
+        metadata.len() > 100,
+        "screenshot should not be trivially small"
+    );
 }
 
 #[test]

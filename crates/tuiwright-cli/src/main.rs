@@ -70,11 +70,7 @@ fn main() -> Result<()> {
             cmd,
         } => {
             let (program, args) = split_cmd(&cmd)?;
-            let page = Page::spawn(
-                SpawnConfig::new(program)
-                    .args(args)
-                    .size(cols, rows),
-            )?;
+            let page = Page::spawn(SpawnConfig::new(program).args(args).size(cols, rows))?;
 
             if let Some(text) = wait_text {
                 page.wait_for_text(&text, Duration::from_secs(wait_timeout))?;
