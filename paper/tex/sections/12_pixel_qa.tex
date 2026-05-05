@@ -2,16 +2,24 @@
 
 The browser is a real runtime, not a screenshot afterthought. Agents can create UI that compiles, passes component tests, and still fails through overlapping text, broken responsive layout, invisible controls, stale selectors, missing focus states, blank canvases, cramped buttons, clipped labels, sticky footer collisions, or layout shift. Playwright's official guidance emphasizes user-visible behavior, resilient locators, isolation, and web-first assertions, which fit agent repair better than brittle sleeps and CSS selectors \cite{playwrightBestPractices2026,playwrightWritingTests2026}.
 
-The human QA gap is rendered experience. A test can prove that a button exists and calls the correct API; it usually cannot prove that the button is too close to the viewport edge or that a German label breaks a card at 375px. A screenshot diff can prove that pixels changed, but not whether the change is intentional, harmful, or merely anti-aliasing noise. The standard therefore treats rendered UX as a layered proof system: design-system constraints, generated contracts, deterministic Storybook states, Playwright screenshots, DOM geometry rules, accessibility rules, visual regression, AI/CV triage, and human feedback labels.
+Rendered UX proof should be a contract, not a taste debate. The standard treats rendered UX as a layered proof system: design-system constraints, generated contracts, deterministic Storybook states, Playwright screenshots, DOM geometry rules, accessibility rules, visual regression, AI/CV triage, and human feedback labels. \texttt{@jankurai/ux-qa} is a reference implementation of the UX evidence contract, not the only conformant implementation.
 
-The first layer is prevention. Product teams should compose common UI from a constrained design system, not let agents invent raw buttons, modals, menus, forms, color scales, z-index ladders, and spacing systems per task. The W3C Design Tokens Community Group announced a stable 2025.10 design-token specification for sharing design decisions across tools and code \cite{designTokensCommunityGroup2025}. Figma Code Connect now maps design components to real code and feeds those mappings into Figma's MCP context for AI-enabled tools \cite{figmaCodeConnect2026}. This matters because an agent with code-connected design context is less likely to generate approximate HTML/CSS when the repository already owns a real component.
-
-Open-source tools already solve real pieces of the rest. Storybook can turn every story into a visual baseline \cite{storybookVisualTests2026}. Playwright can compare screenshots with \texttt{toHaveScreenshot()} and warns that rendering environments must be stable for reliable baselines \cite{playwrightVisualComparisons2026}. Playwright can also compare ARIA snapshots, giving agents a structured accessibility-tree proof instead of pixels alone \cite{playwrightAriaSnapshots2026}. Argos and BackstopJS provide visual review and screenshot-diff workflows \cite{argosVisualTesting2026,backstopJs2026}. Playwright and Storybook can run axe-based accessibility checks, while their docs warn that automation is only a first-line signal \cite{playwrightAccessibility2026,storybookAccessibility2026}. MSW lets Storybook stories use deterministic network responses rather than live API luck \cite{storybookMsw2026}.
-
-The right open-source posture is composition: use those tools for capture, baselines, a11y, mocks, and review, while jankurai owns the policy layer they do not share. The missing core library is a repo-local geometry oracle: a deterministic rule set over DOM boxes, computed styles, accessibility names, scroll sizes, focus state, and viewport state. In this repo, \texttt{@jankurai/ux-qa} is that seed runtime. Its report contract should include route/story identity, browser, viewport, screenshot or crop paths, ARIA snapshot path, rule IDs, selectors, severity, and the merge decision. A UI repair receipt without artifacts is a claim, not proof.
+\begin{lstlisting}[style=codebox]
+{
+  "route": "/checkout",
+  "viewport": "390x844",
+  "browser": "chromium-123",
+  "screenshot_hash": "sha256:...",
+  "aria_snapshot_hash": "sha256:...",
+  "rule_ids": ["HLT-013", "UX-OVERLAP"],
+  "selector": "[data-testid=submit-order]",
+  "severity": "high",
+  "decision": "block"
+}
+\end{lstlisting}
 
 \begin{table*}[t]
-\caption{Rendered UX QA detectors for the TypeScript product surface.}
+\caption{Rendered UX QA detectors for a conformant product surface.}
 \label{tab:rendered-ux-qa}
 \centering
 \small
@@ -31,26 +39,8 @@ Human feedback loop & Labels for true defect, intentional change, false positive
 \end{tabularx}
 \end{table*}
 
-Some criteria are already standards-backed. WCAG 2.2 target-size guidance defines a 24 by 24 CSS-pixel minimum or sufficient spacing exceptions for pointer targets \cite{wcagTargetSizeMinimum2026}. Core Web Vitals guidance keeps CLS of 0.1 or less as the good visual-stability threshold \cite{webDevCls2025}. Jankurai should therefore treat target-size failures, clipped required text, horizontal overflow, sticky obstruction, missing focus visibility, severe CLS, and unapproved token violations as hard evidence, not as taste debates.
+Some criteria are deterministic enough to be Jankurai evidence: overlap, clipping, horizontal overflow, target-size failures, missing focus visibility, severe CLS, blank critical surface, missing protected-route screenshot, clipped required text, sticky obstruction, and unapproved token violations. WCAG 2.2 target-size guidance defines a 24 by 24 CSS-pixel minimum or sufficient spacing exceptions for pointer targets \cite{wcagTargetSizeMinimum2026}. Core Web Vitals guidance keeps CLS of 0.1 or less as the good visual-stability threshold \cite{webDevCls2025}.
 
-The feedback loop must also be structured. A human approval should label whether a delta is a true layout bug, intentional visual change, acceptable variance, design-system violation, accessibility defect, copy/content issue, responsive-only issue, browser-only issue, false positive, or product/design review item. Storing those labels with the route, viewport, screenshot crop, DOM selector, rule ID, owner, and expiration turns taste review into training data for future thresholds and exceptions. AI or VLM review belongs after deterministic gates: it may summarize a suspicious crop, but it should not be the sole merge gate for taste.
+Open-source tools already solve real pieces. Storybook can turn every story into a visual baseline \cite{storybookVisualTests2026}. Playwright can compare screenshots and ARIA snapshots \cite{playwrightVisualComparisons2026,playwrightAriaSnapshots2026}. Argos and BackstopJS provide visual review and screenshot-diff workflows \cite{argosVisualTesting2026,backstopJs2026}. Playwright and Storybook can run axe-based accessibility checks, while their docs warn that automation is only a first-line signal \cite{playwrightAccessibility2026,storybookAccessibility2026}. Jankurai's role is to bind those outputs to route, viewport, browser, hashes, rule IDs, selector, severity, owner, and witness decision.
 
-\begin{table}[t]
-\caption{Browser-step QA routing.}
-\label{tab:browser-qa}
-\centering
-\small
-\begin{tabularx}{\columnwidth}{L{0.23\columnwidth} Y}
-\toprule
-\textbf{Risk} & \textbf{Required proof} \\
-\midrule
-Critical user journey & Playwright path with role/text/test-id locators, screenshot, and trace artifact. \\
-Responsive layout & Desktop and mobile screenshots with overlap, clipping, and safe-area checks. \\
-Canvas, map, video, 3D & Pixel nonblank check plus interaction or animation evidence. \\
-Design-system component & Storybook state matrix plus visual and ARIA snapshots for variant classes. \\
-Low-risk copy change & Component or lint proof; full matrix deferred unless release lane catches drift. \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-Pixel QA is first-class but not exhaustive on every pull request. The standard risk-routes it. Critical flows, high-risk UI surfaces, visual diff baselines, payments, auth, admin actions, onboarding, and canvas/3D surfaces need browser-step proof in the PR lane. Full viewport and device matrices belong in nightly or release lanes unless the changed path directly touches those surfaces.
+Pixel QA is first-class but not exhaustive on every pull request. Critical flows, high-risk UI surfaces, visual diff baselines, payments, auth, admin actions, onboarding, and canvas/3D surfaces need browser-step proof in the PR lane. Full viewport and device matrices belong in nightly or release lanes unless the changed path directly touches those surfaces.

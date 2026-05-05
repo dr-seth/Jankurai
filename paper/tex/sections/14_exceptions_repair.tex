@@ -1,29 +1,34 @@
-\section{Exceptions, Observability, and Repair Receipts}
+\section{Waivers, Observability, and Repair Receipts}
 
-Exceptions are where teams should pool hard-earned repair knowledge. A normal exception tells a human that something failed. An agent-friendly exception tells a repair system what invariant was protected, why it failed, where to read the rule, and what repairs are usually legal.
+This paper reserves \emph{exceptions} for runtime or program errors. Standards deviations are \emph{waivers}: named, scoped, owned, testable, and temporary departures from a required control. A waiver is not a suppression. A suppression hides or mutes a finding. A compensating control accepts a different proof mechanism for the same risk. A waiver records why the normal control cannot be satisfied yet, which compensating control applies, and when the risk must be repaired or renewed.
 
-The shape should combine language-native errors with standardized machine-readable fields. HTTP APIs should use RFC 9457 problem details for boundary errors \cite{rfc9457ProblemDetails2023}. Observability should emit OpenTelemetry exception attributes such as exception type, message, stack trace, and error type \cite{otelSemanticConventions2026,otelExceptionAttributes2026}. TypeScript can preserve underlying causes with \texttt{Error.cause} \cite{mdnErrorCause2026}. Rust should prefer typed errors for domain/application code, using context wrappers only at boundaries where opaque provider detail is acceptable \cite{rustByExampleError2026,anyhowDocs2026}.
+Waiver lifecycle states are \texttt{proposed}, \texttt{active}, \texttt{renewed}, \texttt{expired}, \texttt{closed}, and \texttt{superseded}. Active waivers require owner approval, scope, reason, proof requirements, residual risk, expiry, and repair plan. Expired waivers fail closed in ratchet and release modes.
 
-\begin{table}[t]
+Runtime exceptions still matter for repair. HTTP APIs should use RFC 9457 problem details for boundary errors \cite{rfc9457ProblemDetails2023}. Observability should emit OpenTelemetry exception attributes such as exception type, message, stack trace, and error type \cite{otelSemanticConventions2026,otelExceptionAttributes2026}. TypeScript can preserve underlying causes with \texttt{Error.cause} \cite{mdnErrorCause2026}. Rust should prefer typed errors for domain/application code, using context wrappers only at boundaries where opaque provider detail is acceptable \cite{rustByExampleError2026,anyhowDocs2026}.
+
+\begin{table*}[t]
 \caption{Minimum repair receipt fields.}
 \label{tab:repair-receipts}
 \centering
-\small
-\begin{tabularx}{\columnwidth}{L{0.30\columnwidth} Y}
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.24\textwidth} Y}
 \toprule
 \textbf{Field} & \textbf{Purpose} \\
 \midrule
-\texttt{rule\_id} & Stable jankurai rule or exception ID. \\
-\texttt{owner} & Owning path, team, or layer. \\
-\texttt{failure} & What invariant or proof lane failed. \\
-\texttt{changed\_paths} & Exact edit surface. \\
-\texttt{proof\_lane} & Command or CI job that accepted the repair. \\
-artifact versions & Standard, auditor, schema, paper, and generated artifact bindings. \\
-\texttt{next\_repair} & Bounded follow-up when the fix is partial. \\
+\texttt{receipt\_id} & Stable identifier for the repair evidence. \\
+\texttt{standard\_version}, \texttt{auditor\_version}, \texttt{schema\_version} & Version bindings for interpretation. \\
+\texttt{before\_commit}, \texttt{after\_commit} & Exact repair range. \\
+\texttt{started\_at}, \texttt{completed\_at} & Timing evidence and repair half-life input. \\
+\texttt{command\_digest}, \texttt{log\_digest}, \texttt{artifact\_digests} & Replay and tamper evidence. \\
+\texttt{decision} & \texttt{pass}, \texttt{review}, \texttt{block}, \texttt{ratchet\_fail}, or \texttt{release\_fail}. \\
+\texttt{waiver\_closed} & Whether a prior waiver was closed by the repair. \\
+\texttt{residual\_risk}, \texttt{redaction\_status} & Remaining risk and evidence privacy state. \\
+\texttt{owner\_approval} & Owner route or approval receipt. \\
+\texttt{expires\_at} & Required when the repair is partial or waiver-backed. \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 Every controlled error that can reach logs, API responses, background jobs, or tests should expose a stable name, stable code, purpose, reason, common fixes, documentation URL, safe user message, correlation ID, and source cause when safe. The point is not verbosity. The point is to make a failing test or production trace directly actionable for the next agent.
 
-Repair is a governed loop, not permission for unattended mutation. \texttt{jankurai repair-plan} reads audit output and turns findings into ordered, schema-validated candidate repairs. \texttt{jankurai repair --dry-run} produces a receipt without touching the repository. Real application is gated behind explicit environment variables, bounded risk, and reviewed flags; git commits, pushes, and draft PR creation require separate opt-ins. \texttt{jankurai optimize} can propose token, performance, dependency, or dead-code improvements, but those proposals still need the same owner and proof routing as any other change. \texttt{jankurai exceptions expire --strict} closes the other half of the loop: temporary waivers are allowed to exist only with owner, reason, and expiry evidence. Jankurai can prepare a proof-backed branch, commit, and draft PR, but high-risk autonomous mutation and auto-merge remain outside the standard.
+Repair is a governed loop, not permission for unattended mutation. \texttt{jankurai repair-plan} reads audit output and turns findings into ordered, schema-validated candidate repairs. \texttt{jankurai repair --dry-run} produces a receipt without touching the repository. Real application is gated behind explicit environment variables, bounded risk, and reviewed flags; git commits, pushes, and draft PR creation require separate opt-ins. Jankurai can prepare a proof-backed branch, commit, and draft PR, but high-risk autonomous mutation and auto-merge remain outside the standard.

@@ -4,45 +4,55 @@
 \caption{Core terms.}
 \label{tab:core-terms}
 \centering
-\small
+\scriptsize
 \begin{tabularx}{\textwidth}{L{0.20\textwidth} Y}
 \toprule
 \textbf{Term} & \textbf{Operational meaning} \\
 \midrule
-Agent-native repository & A repository structured so a human or agent can discover ownership, legal edit scope, proof lanes, and evidence requirements from versioned local artifacts. \\
+Vibe artifact & Repository residue that makes a change plausible but not auditable: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent authority, unproven UI changes, stale waivers, or review claims without receipts. \\
+Vibe-code drift & The measurable gap between claimed engineering intent and evidence attached to a change. \\
+Continuous repository alignment & The practice of keeping ownership, edit scope, proof lanes, generated boundaries, permissions, evidence, repair queues, and conformance metadata synchronized with each merge. \\
+Real-time repository conformance & A repeatable local/PR/CI loop in which each changed path is evaluated against current repository policy before merge; it is not a claim of an omniscient daemon. \\
+Proof freshness & A receipt is current for the changed-path scope, commit, tool identity, command identity, and declared lane it claims to prove. \\
+Receipt validity & A receipt is replayable or inspectable enough to bind command, cwd, inputs, tool version, result, artifacts, and digest to the current merge witness. \\
+Policy authority & The ordered source of truth used to decide which instructions, maps, lanes, and adapter claims are trusted. \\
+Adapter drift & Divergence between provider instruction files and canonical repository policy. \\
+Evidence bundle & A versioned group of reports, receipts, logs, screenshots, ARIA snapshots, digests, and witness artifacts used to audit a claim. \\
+Conformance claim & A machine-readable statement that a repository meets a named Jankurai level at a commit under a standard, auditor, and schema version. \\
 Proof receipt & A durable record of a proof command, tool identity, inputs, result, and artifact path. \\
-Merge witness & A versioned artifact binding changed paths, owner route, proof receipts, score delta, missing-evidence decision, commit identity, and tool version. \\
-Changed-path scope & The concrete path inventory and risk class used to select owners and proof lanes. \\
-Owner route & The path-to-owner mapping used to decide who or which policy cell is accountable for review and repair. \\
+Merge witness & A versioned artifact binding changed paths, owner route, proof receipts, score delta, missing-evidence decision, artifact digests, commit identity, and tool version. \\
 Generated zone & An output path repaired by changing the declared source contract or generator and regenerating, not by hand edit. \\
-Score delta & The difference between baseline and current audit posture; useful for prioritization, but not itself conformance. \\
 Repair queue & Ordered findings with rule IDs, owners, proof lanes, rerun commands, evidence requirements, and bounded next actions. \\
-Conformance level & A pass/fail claim that required artifacts and gates for HL1--HL5 are current and reproducible. \\
 Reference profile & A non-normative stack or implementation profile that can satisfy the standard without defining it. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-\emph{Vibe coding} is any development mode where plausible code is accepted without explicit ownership, proof routing, generated-boundary checks, security gates, and repair evidence. A \emph{continuous audit} is the local, pull-request, and CI loop that reruns those checks at merge time; it is not assumed to be a hosted daemon. The current implementation records an appendable, versioned evidence history of proof plans, command receipts, evidence indexes, audit reports, and score-history rows. This paper reserves stronger ``append-only ledger'' and transparency-log language for future signed receipt work.
-
-The threat model starts with false plausibility. Agents can produce code that looks idiomatic, compiles in isolation, and still violates architecture, security, data ownership, or runtime assumptions. DORA's amplifier finding matters here: AI improves strong systems and worsens weak ones \cite{doraStateAIAssistedSoftwareDevelopment2025}. The repo must therefore treat generated code as a hypothesis until proof lanes accept it.
+\emph{Vibe coding} is any development mode where plausible code is accepted without explicit ownership, proof routing, generated-boundary checks, security gates, UX evidence, and repair evidence. Jankurai does not merely criticize vibe coding. It serializes vibe artifacts, assigns stable rule IDs, routes them to proof lanes, and reduces them through repair receipts.
 
 \begin{table*}[t]
 \caption{Threat model for auditable merge.}
 \label{tab:threat-model}
 \centering
-\small
-\begin{tabularx}{\textwidth}{L{0.16\textwidth} Y Y}
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.18\textwidth} Y Y}
 \toprule
-\textbf{Scope} & \textbf{In this paper} & \textbf{Jankurai control} \\
+\textbf{Threat} & \textbf{Risk} & \textbf{Jankurai control} \\
 \midrule
-Assets & Source code, generated artifacts, CI config, proof receipts, audit history, policy files, owner maps, test maps, and generated-zone manifests. & Versioned manifests, generated-zone declarations, stable rule IDs, and report schemas. \\
-Actors & Human maintainer, coding agent, CI runner, malicious contributor, compromised dependency/tool, and stale generated artifact. & Bounded authority, owner routing, source-trust hierarchy, and proof receipts. \\
-Trust boundaries & Local workspace, CI, dependency registry, generated-code boundary, repository policy boundary, and release baseline. & Path scope, generated-zone rules, proof lanes, audit reports, and witness decisions. \\
-In scope & Missing tests, stale generated files, owner bypass, unproven generated-code edits, unsafe migrations, security-relevant config drift, prompt injection, and false-green tests. & HLT rule families, hard caps, repair queue, security/contract/db/web lanes, and missing-evidence decisions. \\
-Out of scope & Proving full semantic correctness, malicious compiler/runtime compromise, and organization-level governance outside the repository. & Explicit limitations, signed-receipt future work, and no claim of total program proof. \\
+False plausibility & Agent or human patch looks idiomatic but violates architecture, data, security, or runtime expectations. & Stable rule IDs, owner maps, proof lanes, generated-zone policy, and merge witness. \\
+Fabricated, stale, or copied receipts & A proof claim names evidence that did not run for this commit, path scope, tool, or command. & Proof freshness checks, artifact digests, receipt validity rules, and witness binding. \\
+Adapter drift & Tool-specific instruction files widen permissions or contradict canonical policy. & Source-of-authority hierarchy, adapter verification, policy digests, and generated mirrors. \\
+Flaky proof lanes & Intermittent tests hide real failures or make proof receipts unreliable. & Lane contracts with timeout, environment, retry policy, artifact paths, and failure classification. \\
+Emergency bypass & Urgent work merges without owner, security, release, or proof evidence. & Expiring waivers, compensating controls, release-fail decisions, and repair receipts. \\
+Evidence leakage & Screenshots, logs, traces, prompts, or artifacts expose secrets or customer data. & Redaction policy, artifact allowlists, secret scans, retention bounds, and privacy receipts. \\
+CI downgrade & A workflow disables proof, widens permissions, removes artifacts, or changes branch gates. & CI hardening rule, workflow diff checks, pinned actions, and required evidence uploads. \\
+Malicious MCP or tool schema & External tool output or schema attempts to change trusted policy or execute unsafe commands. & Untrusted-content isolation, schema validation, permission receipts, and no direct execution of generated text. \\
+Generated test self-confirmation & Generated code and generated tests confirm the same wrong assumption. & Owner-owned acceptance criteria, negative fixtures, semantic assertions, and changed-path routing. \\
+Human rubber-stamp review & Review approval lacks reproducible evidence or merely endorses plausible code. & Human-review evidence rule, receipt requirement, and merge witness decision record. \\
+Screenshots or logs leaking secrets & Browser and observability evidence captures tokens, PII, prompt text, or private data. & UX/security evidence redaction, hash-based references, and artifact privacy status. \\
+Out of scope & Full semantic correctness, malicious compiler/runtime integrity, and organizational governance outside the repository. & Explicit limitations, signed-receipt future work, and no claim of total program proof. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-The standard does not claim every repository using AI must adopt Jankurai. It claims a narrower and testable thing: a repository claiming Jankurai conformance must expose enough machine-readable structure for the claim to be audited. Conformance is a public interface, not a vibe. A repo that mentions Jankurai in prose but cannot emit current audit and proof artifacts is not conformant.
+The standard does not claim every repository using AI must adopt Jankurai. It claims a narrower and testable thing: a repository claiming Jankurai conformance must expose enough machine-readable structure for the claim to be audited. Conformance is a public interface, not a vibe.

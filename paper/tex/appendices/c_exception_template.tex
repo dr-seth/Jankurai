@@ -1,39 +1,56 @@
-\section{Exception and Repair Templates}
+\section{Waiver and Repair Templates}
 
-Exceptions are allowed only when they are named, scoped, owned, testable, and temporary enough for an agent to repair later.
+Waivers are allowed only when they are named, scoped, owned, testable, and temporary enough for an agent to repair later. Runtime exceptions are program errors; standards deviations are waivers.
 
 \begin{lstlisting}[style=codebox]
-docs/exceptions/<ID>.md
+---
+id: WVR-YYYY-NNN
+state: proposed | active | renewed | expired | closed | superseded
+owner: <team or owner cell>
+scope:
+  - <exact file, crate, service, contract, or zone>
+standard_version: "0.7.0"
+auditor_version: "0.7.0"
+schema_version: "1.5.0"
+reason: <why the normal standard cannot be followed now>
+compensating_control: <alternate evidence or manual gate>
+required_proof:
+  - <test-map lane name and command>
+residual_risk: <bounded risk statement>
+expires_at: <date or measurable exit condition>
+owner_approval: <receipt or reviewer>
+---
 
-# <ID>: <short name>
+# WVR-YYYY-NNN: <short name>
 
-Owner: <team or owner cell>
-Scope: <exact files, crates, services, contracts, or zones>
-Purpose: <what this exception permits>
-Reason: <why the normal standard cannot be followed now>
-Expiration: <date, milestone, or measurable exit condition>
-Allowed edits: <what agents may change without widening scope>
-Forbidden edits: <what agents must not touch>
-Required proof: <test-map lane names and commands>
-Common fixes:
-  - <first bounded repair pattern>
-  - <second bounded repair pattern>
-Audit behavior: <allowed term/path or score cap policy>
+## Repair path
+- <first bounded repair pattern>
+- <second bounded repair pattern>
 \end{lstlisting}
 
 \begin{lstlisting}[style=codebox]
-docs/repair/<YYYY-MM-DD>-<short-id>.md
+---
+receipt_id: RPR-YYYY-NNN
+standard_version: "0.7.0"
+auditor_version: "0.7.0"
+schema_version: "1.5.0"
+before_commit: <sha>
+after_commit: <sha>
+started_at: <timestamp>
+completed_at: <timestamp>
+command_digest: sha256:...
+log_digest: sha256:...
+artifact_digests:
+  agent/repo-score.json: sha256:...
+decision: pass | review | block | ratchet_fail | release_fail
+waiver_closed: <id or false>
+residual_risk: <none or bounded risk>
+redaction_status: clean | redacted | restricted
+owner_approval: <receipt or reviewer>
+expires_at: <required if partial>
+---
 
-Rule: <HLT rule id>
-Owner: <owner cell>
-Failure: <what failed and where>
-Changed paths:
-  - <path>
-Proof lane: <command or CI job>
-Artifacts:
-  - agent/repo-score.json
-  - trace.zip
-  - screenshot.png
-Result: <accepted, rejected, partial>
-Next repair: <bounded follow-up or none>
+# Repair receipt
+
+Changed paths, proof lane, result, and next repair.
 \end{lstlisting}

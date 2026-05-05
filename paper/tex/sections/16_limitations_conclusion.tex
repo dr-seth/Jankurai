@@ -1,10 +1,14 @@
 \section{Limitations and Research Agenda}
 
-Jankurai does not prove full semantic correctness. A merge witness can show that changed paths were routed to owners, required proof lanes ran, receipts exist, and missing evidence was handled; it cannot prove every business invariant or exclude malicious compiler, runtime, or organization-level compromise. Current evidence is conformance-oriented and repository-local. The reference implementation is young, some detectors are advisory or partial, and signed receipts, transparent evidence logs, cross-repo federation, and organizational trust remain future work.
+Jankurai does not prove full semantic correctness. A merge witness can show that changed paths were routed to owners, required proof lanes ran, receipts exist, and missing evidence was handled; it cannot prove every business invariant or exclude malicious compiler, runtime, or organizational governance compromise. Current evidence is conformance-oriented and repository-local. The reference implementation is young, some detectors are advisory or partial, and signed receipts, transparent evidence logs, cross-repo federation, and organizational trust remain future work.
 
-The scoring weights need empirical calibration across real repositories. Agent-friendly exception patterns need comparative studies across stacks. The file-size limits should be tested against repair accuracy, not taste. Tool-specific instruction behavior changes quickly. Public benchmarks still struggle to measure long-running maintenance, security regressions, UI correctness, and production repair quality. Alternate stacks can conform when they provide equivalent proof artifacts and merge witnesses.
+\subsection{Threats to Validity}
 
-The maturity model should therefore be explicit. Draft rules need examples and fixtures. Candidate rules need implementation evidence across more than one repository. Stable rules need schema-backed output, documented repairs, and regression tests. Superseded or obsolete rules need migration notes so old receipts remain interpretable.
+The taxonomy may reflect source-material bias. Detectors may have false positives and false negatives. Partial rows can be overinterpreted as stronger coverage than they deserve. Reference-profile scoring can bias readers toward Rust/TypeScript/PostgreSQL even when another stack can conform. Browser evidence is environment-sensitive. Screenshots, logs, and traces can leak secrets if redaction fails. Scores can be gamed. Compliance theater can produce artifacts without improving engineering. CI cost can become excessive. Small repositories may need a thinner profile than the paper emphasizes.
+
+\subsection{Failure Modes of Jankurai Itself}
+
+Jankurai can fail as artifact theater: reports exist but nobody trusts or uses them. Maps can go stale. Receipts can be faked or copied. Proof lanes can become flaky. Adapters can drift. Reference-profile guidance can harden into stack dogma. Ceremony can overload small changes. These are not reasons to abandon conformance; they are reasons to keep proof freshness, receipt validity, waiver expiry, seed fixtures, and independent implementation tests central.
 
 \begin{table*}[t]
 \caption{Concrete future work for Jankurai.}
@@ -24,17 +28,17 @@ Context-pack minimizer & Trust-labeled packs with measured token cost, recall, a
 Cross-agent adapter conformance tests & Codex, Claude, Cursor, Copilot, terminal-agent, hook, and MCP adapter fixtures. \\
 UI geometry oracle hardening & Viewport matrices, screenshot crops, ARIA snapshots, layout rules, and false-positive corpus. \\
 Semantic rule detector expansion & Fixtures and negative tests for authz, input boundaries, cost controls, release readiness, and human-review evidence. \\
-Exception libraries & Rust, TypeScript, Python, PostgreSQL, and HTTP problem-detail templates with docs links and repair hints. \\
+Waiver and exception libraries & Runtime exception templates plus standards-waiver templates with docs links and repair hints. \\
 Cost-budget and kill-switch tooling & Spend limits, quotas, stop conditions, alerts, and receipt-backed emergency controls. \\
 Reusable cell registry and certification & Cell manifests, install plans, proof lanes, benchmark receipts, and certification policy. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-The strongest version of the criticism is useful: a standard can become ceremony, and a reference profile can become dogma. Jankurai should be judged by whether it improves repair locality, reduces unsafe merges, shortens review cycles, and produces better evidence. If a team can prove those outcomes with a different stack and a compatible control plane, the profile should be documented and studied.
+The strongest version of the criticism is useful: a standard can become ceremony, and a reference profile can become dogma. Jankurai should be judged by whether it improves repair locality, reduces unsafe merges, shortens review cycles, reduces vibe-artifact density, and produces better evidence. If a team can prove those outcomes with a different stack and a compatible control plane, the profile should be documented and studied.
 
 \section{Conclusion}
 
 Agent-native engineering is an adaptation problem. Teams that optimize only for generation will get faster at creating ambiguity. Teams that optimize for verification will get faster at rejecting bad code, localizing mistakes, repairing real failures, and changing architecture without guessing.
 
-The durable contribution is not a stack ranking. It is the merge witness, the proof receipt, and the reproducible merge decision. Jankurai asks a repository to make conformance concrete: changed paths, owner route, required proof, observed evidence, score delta, missing-evidence decision, commit identity, and tool identity. The reference profile is one way to satisfy that standard. The standard itself is stack-neutral: no proof, no merge; no receipt, no trust.
+The durable contribution is not a stack ranking. It is the merge witness, the proof receipt, and the reproducible merge decision. Jankurai asks a repository to make conformance concrete: changed paths, owner route, required proof, observed evidence, missing-evidence decision, artifact digests, commit identity, and tool identity. Generation is cheap; reproducible merge evidence is the new standard. Anything less is faster vibe coding.

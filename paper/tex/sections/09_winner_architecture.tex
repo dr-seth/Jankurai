@@ -1,46 +1,46 @@
 \section{Reference Architecture Profile}
 
-The Rust/TypeScript/PostgreSQL profile is a reference architecture, not the definition of Jankurai conformance. It gives agents one concrete map, audit one concrete policy, and CI one concrete set of gates for projects that choose this profile. Other profiles can conform when they preserve the same ownership, proof, generated-boundary, security, and witness artifacts.
+The Rust/TypeScript/PostgreSQL profile is a reference architecture, not the definition of Jankurai conformance. It gives agents one concrete map, audit one concrete policy, and CI one concrete set of gates for projects that choose this profile. Other profiles can conform when they preserve the same ownership, proof, generated-boundary, security, UX, and witness artifacts.
 
 \begin{figure*}[t]
 \centering
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.31\textwidth}
 \begin{lstlisting}[style=codebox]
-repo/
-  apps/
-    web/              TS/React/Vite UI
-    api/              Rust HTTP/RPC edge
-  crates/
-    domain/           pure invariants
-    application/      use cases/authz/tx
-    adapters/         Postgres/queues/APIs
-    workers/          jobs/replay/backoff
-  contracts/          OpenAPI/Protobuf/JSON
-  db/                 migrations/constraints
-  python/ai-service/  model/eval boundary
-  ops/                CI/security/telemetry
+[CORE]
+AGENTS.md
+agent/
+  owner-map.json
+  test-map.json
+  generated-zones.toml
+  standard-version.toml
+  proof-lanes.toml
 \end{lstlisting}
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.31\textwidth}
 \begin{lstlisting}[style=codebox]
-repo/
-  AGENTS.md           short root router
-  agent/
-    owner-map.json    path -> owner
-    test-map.json     path -> proof lane
-    proof-lanes.toml  runnable commands
-    generated-zones.toml
-    standard-version.toml
-    agent/repo-score.json
-  docs/
-    decisions/
-    exceptions/
-    repair/
-    runbooks/
+[PROFILE]
+apps/web/        TS/React UI
+apps/api/        Rust edge
+crates/domain/   invariants
+crates/adapters/ DB/queues/APIs
+contracts/       OpenAPI/Proto
+db/              migrations
 \end{lstlisting}
 \end{minipage}
-\caption{Ownership spine and agent-control spine for the reference profile.}
+\hfill
+\begin{minipage}[t]{0.31\textwidth}
+\begin{lstlisting}[style=codebox]
+[EVIDENCE]
+agent/repo-score.json
+agent/repo-score.md
+target/jankurai/
+  merge-witness.json
+  evidence-index.json
+  receipts/
+\end{lstlisting}
+\end{minipage}
+\caption{Three spines: core control spine, reference profile implementation spine, and evidence output spine. Only the control and evidence interfaces are required by Jankurai Core.}
 \label{fig:repo-tree-main}
 \end{figure*}
 
@@ -58,7 +58,6 @@ repo/
 \texttt{domain} crate & IDs, value objects, invariants, state machines, pure decisions, stable error types. & I/O, env reads, network, filesystem, database clients, framework code. \\
 \texttt{application} crate & Commands, authz, transaction orchestration, idempotency, workflow use cases. & Transport details, SQL drivers, UI state, prompt/model logic. \\
 \texttt{adapters} crate & PostgreSQL access, queue/streaming clients, external APIs, filesystem, environment, provider clients. & Domain rules, authorization policy, or event schema ownership. \\
-\texttt{workers} crate & Async jobs, retries, backoff, workflow replay, scheduled tasks. & Duplicated invariants or unowned product truth. \\
 \texttt{contracts} & OpenAPI, Protobuf, JSON Schema, generated stubs and clients. & Hand-edited generated outputs or business logic. \\
 \texttt{db} & Migrations, constraints, indexes, RLS, seed rules, schema snapshots. & Application orchestration or hidden business process. \\
 \texttt{python/ai-service} & Inference, embeddings, evals, prompt experiments, offline transforms, typed AI API. & Product truth, authz, billing, direct production DB ownership. \\
@@ -67,6 +66,6 @@ repo/
 \end{tabularx}
 \end{table*}
 
-The filesystem should be a routing table. A patch touching a payment invariant should land in Rust domain/application and PostgreSQL constraints. A patch touching a form should land in TypeScript UI and generated client contracts. A patch touching model behavior should land in the bounded Python service and contract tests. If the agent must infer ownership from convention, the repo has already failed.
+The filesystem should be a routing table. In the reference profile, a patch touching a payment invariant should land in Rust domain/application and database constraints. A patch touching a form should land in TypeScript UI and generated client contracts. A patch touching model behavior should land in the bounded AI/data service and contract tests. If the agent must infer ownership from convention, the repo has already failed.
 
-Streaming follows the same rule. Event schemas belong in \texttt{contracts/}; generated event types belong in declared generated zones; Kafka, Tansu, Iggy, Fluvio, NATS, Redis Streams, or equivalent clients belong in \texttt{crates/adapters/queues} or an explicitly declared adapter path. Domain and application code may name business events, but it should not own broker protocol details.
+An alternate conformant profile can replace the implementation spine. A Go service profile might use \texttt{cmd/}, \texttt{internal/domain/}, \texttt{internal/app/}, \texttt{internal/adapters/}, \texttt{api/}, and \texttt{migrations/}. It can claim Jankurai conformance when those paths emit equivalent owner routes, proof receipts, generated-zone evidence, security evidence, UX evidence where applicable, and merge witnesses. The standard follows the evidence, not the mascot stack.

@@ -14,6 +14,7 @@
 \usepackage{listings}
 \usepackage{xurl}
 \usepackage{enumitem}
+\usepackage{placeins}
 \usepackage[hidelinks]{hyperref}
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
@@ -34,13 +35,13 @@
 }
 
 \hypersetup{
-  pdftitle={Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge},
+  pdftitle={Jankurai: The Anti-Vibe Coding Standard},
   pdfauthor={Jankurai Project},
-  pdfsubject={Repository conformance standard for auditable AI-assisted merge decisions},
-  pdfkeywords={trustworthy merge, proof receipts, AI-assisted software engineering, repository conformance, policy-as-code, CI/CD, generated code governance, supply-chain security}
+  pdfsubject={Continuous repository alignment for proof-carrying AI pull requests},
+  pdfkeywords={vibe coding, vibe artifacts, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence}
 }
 
-\title{Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge}
+\title{Jankurai: The Anti-Vibe Coding Standard}
 \author{\IEEEauthorblockN{Jankurai Project}}
 
 \begin{document}
@@ -50,32 +51,36 @@
 \vspace*{0.15in}
 {\Huge\bfseries Jankurai\par}
 \vspace{0.25em}
-{\Large\bfseries A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge\par}
+{\Large\bfseries The Anti-Vibe Coding Standard\par}
 \vspace{0.25em}
-{\large\bfseries Proof Receipts, Merge Witnesses, and Repair Queues for Agent-Native Software Engineering\par}
+{\large\bfseries Continuous Repository Alignment for Proof-Carrying AI Pull Requests\par}
+\vspace{0.25em}
+{\normalsize\bfseries Find the vibe. Prove the merge. Repair the repo.\par}
 \vspace{0.6em}
 {\normalsize Jankurai Project \textbullet{} \href{https://github.com/jeppsontaylor/jankurai}{github.com/jeppsontaylor/jankurai}\par}
 \vspace{0.35em}
-{\small\texttt{standard\_version=0.7.0} \textbullet{} \texttt{auditor\_version=0.7.0} \textbullet{} \texttt{schema\_bundle\_version=1.5.0} \textbullet{} \texttt{paper\_edition=2026.05-ed7}\par}
+{\small\texttt{status=public\_draft} \textbullet{} \texttt{standard\_version=0.7.0} \textbullet{} \texttt{auditor\_version=0.7.0}\par}
+\vspace{0.15em}
+{\small\texttt{schema\_version=1.5.0} \textbullet{} \texttt{paper\_edition=2026.05-ed7}\par}
 \vspace{0.65em}
 \IfFileExists{assets/jankurai_github_header_transparent.png}{%
-  \includegraphics[width=0.62\textwidth,height=0.18\textheight,keepaspectratio]{assets/jankurai_github_header_transparent.png}%
+  \includegraphics[width=0.44\textwidth,height=0.10\textheight,keepaspectratio]{assets/jankurai_github_header_transparent.png}%
 }{%
-  \includegraphics[width=0.62\textwidth,height=0.18\textheight,keepaspectratio]{../assets/jankurai_github_header_transparent.png}%
+  \includegraphics[width=0.44\textwidth,height=0.10\textheight,keepaspectratio]{../assets/jankurai_github_header_transparent.png}%
 }
 \vspace{0.8em}
 
 \begin{minipage}{0.92\textwidth}
 \begin{abstract}
-AI-assisted coding lowers the cost of producing plausible code but raises the importance of deciding whether a change is safe to merge. Jankurai turns a pull request merge decision into a reproducible, versioned audit artifact. It defines a repository conformance standard for human- and agent-authored changes whose central artifact is the merge witness: a binding among changed paths, owner routing, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool version, and commit identity.
+AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Jankurai is a versioned repository conformance standard for finding and reducing \emph{vibe artifacts}: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, and unreceipted review claims. Its central artifact is the \emph{merge witness}, a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool identity, artifact digests, and commit identity.
 
-The paper contributes a stack-neutral, agent-native repository model with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, and bounded authority; a conformance mechanism based on proof lanes, audit JSON/Markdown, repair queues, and merge witnesses; and a non-normative reference implementation and reference profile. Conformance is pass/fail against required artifacts. Scores are posture and prioritization signals, not merge approval by themselves.
+Jankurai treats the repository as the alignment layer for human- and agent-authored code. A local, pull-request, and CI loop maps each changed path to bounded authority, proof lanes, evidence receipts, repair queues, or expiring waivers. The result is not a larger prompt or a hosted trust service; it is a reproducible merge decision that can be audited at the current commit.
 
-The claim is deliberately bounded. Jankurai does not prove full program semantics, does not claim final empirical superiority, and does not require its Rust/TypeScript/PostgreSQL reference profile. It is a standards proposal with an early local CLI and a conformance-oriented evaluation path. The thesis is operational: repositories claiming Jankurai conformance need current machine-readable artifacts strong enough to audit the merge decision at merge time.
+The paper contributes a stack-neutral repository model with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, bounded authority, proof receipts, audit reports, repair queues, merge witnesses, and a seed conformance suite. The claim is bounded: Jankurai does not prove full program semantics, does not require a Rust/TypeScript/PostgreSQL stack, and does not treat scores as merge approval. It proposes a version-controlled standard for turning vibe coding into repairable evidence.
 \end{abstract}
 
 \begin{IEEEkeywords}
-AI-assisted software engineering, agentic coding, trustworthy merge, repository conformance, proof receipts, policy-as-code, CI/CD, generated code governance, supply-chain security.
+vibe coding, vibe artifacts, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence.
 \end{IEEEkeywords}
 \end{minipage}
 \vfill

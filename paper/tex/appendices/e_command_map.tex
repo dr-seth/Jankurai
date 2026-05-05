@@ -1,8 +1,6 @@
-\section{Command Examples for Adoption and Proof}
+\section{Golden First-Hour Command Path}
 
-The command map below is operational documentation for agents. It is not a claim that every repository should enable every lane on day one. The intended order is no-write adoption, minimal guidance, advisory scoring, observe-mode CI, full scaffold where useful, and ratchet only after a reviewed baseline.
-
-\subsection{Adoption, Update, Doctor}
+The command map below is operational documentation for agents. It is not a full CLI manual and not a claim that every repository should enable every lane on day one.
 
 \begin{lstlisting}[style=codebox]
 jankurai adopt . --profile auto --mode observe \
@@ -18,63 +16,7 @@ jankurai audit . --mode advisory \
   --json target/jankurai/repo-score.json \
   --md target/jankurai/repo-score.md
 
-jankurai init . --level ci --yes
-jankurai ci install . --github --mode observe --dry-run
-jankurai ci install . --github --mode observe
-
-jankurai init . --level full --profile rust-ts-postgres \
-  --dry-run --plan-json target/jankurai/init-full.json
-jankurai init . --level full --profile rust-ts-postgres --yes
-
-jankurai update . --check \
-  --out target/jankurai/update/update-plan.json \
-  --md target/jankurai/update/update-plan.md
-jankurai update . --self --apply --yes
-
-jankurai doctor . --fail-on high \
-  --json target/jankurai/doctor.json \
-  --md target/jankurai/doctor.md
-\end{lstlisting}
-
-\subsection{Adapters, Context, Hooks}
-
-\begin{lstlisting}[style=codebox]
-jankurai context-pack . \
-  --task "repair changed docs and paper" \
-  --changed README.md \
-  --out target/jankurai/context-pack.json \
-  --md target/jankurai/context-pack.md
-
-jankurai adapters verify .
-jankurai adapters sync . --ide all --dry-run
-jankurai agent verify .
-jankurai hooks install . --dry-run
-
-jankurai ci install . --github --mode observe --dry-run
-jankurai ci install . --github --mode observe
-jankurai ci install . --github --mode ratchet \
-  --baseline target/jankurai/baseline-score.json
-\end{lstlisting}
-
-\subsection{Scoring, Proof, and Issue Export}
-
-\begin{lstlisting}[style=codebox]
-jankurai audit . --mode advisory \
-  --json target/jankurai/repo-score.json \
-  --md target/jankurai/repo-score.md \
-  --sarif target/jankurai/jankurai.sarif \
-  --junit target/jankurai/jankurai.junit.xml \
-  --github-step-summary target/jankurai/summary.md \
-  --repair-queue-jsonl target/jankurai/repair-queue.jsonl
-
-jankurai issues export . --format jsonl \
-  --out target/jankurai/issues.jsonl
-
 jankurai lane . --changed README.md \
-  --out target/jankurai/proof-plan.json \
-  --md target/jankurai/proof-plan.md
-
-jankurai proof . --changed README.md \
   --out target/jankurai/proof-plan.json \
   --md target/jankurai/proof-plan.md
 
@@ -82,78 +24,22 @@ jankurai prove . --changed README.md \
   --plan-out target/jankurai/proof-plan.json \
   --plan-md target/jankurai/proof-plan.md
 
-jankurai proof-verify . \
-  --plan target/jankurai/proof-plan.json \
-  --evidence-index target/jankurai/evidence-index.json \
-  --out target/jankurai/proof-verify.json \
-  --md target/jankurai/proof-verify.md
+jankurai witness . --changed-from origin/main \
+  --baseline agent/repo-score.json \
+  --out target/jankurai/merge-witness.json \
+  --md target/jankurai/merge-witness.md
 \end{lstlisting}
 
-\subsection{Security, Repair, Migration, and Optimization}
+\subsection{Failure Example}
 
 \begin{lstlisting}[style=codebox]
-jankurai security run . \
-  --out target/jankurai/security/evidence.json
-jankurai security run . --strict \
-  --out target/jankurai/security/evidence.json
+jankurai witness . --changed-from origin/main \
+  --baseline agent/repo-score.json \
+  --out target/jankurai/merge-witness.json
 
-jankurai repair-plan . --from target/jankurai/repo-score.json \
-  --out target/jankurai/repair-plan.json \
-  --md target/jankurai/repair-plan.md
-jankurai repair . --plan target/jankurai/repair-plan.json \
-  --dry-run --out target/jankurai/repair-run.json \
-  --md target/jankurai/repair-run.md
-
-jankurai optimize . --mode token \
-  --out target/jankurai/optimize.json \
-  --md target/jankurai/optimize.md
-
-jankurai exceptions expire . --strict \
-  --out target/jankurai/exceptions.json \
-  --md target/jankurai/exceptions.md
-
-jankurai migrate . --analyze \
-  --out target/jankurai/migration-report.json \
-  --md target/jankurai/migration-report.md
-\end{lstlisting}
-
-\subsection{Cells, Rust Aids, and Publication}
-
-\begin{lstlisting}[style=codebox]
-jankurai registry . \
-  --out target/jankurai/cell-registry.json \
-  --md target/jankurai/cell-registry.md
-jankurai cell . --cell-id background-job --mode prove \
-  --out target/jankurai/background-job.json \
-  --md target/jankurai/background-job.md
-
-jankurai rust map . --out-dir target/jankurai/rust
-jankurai rust witness build . \
-  --out target/jankurai/rust/witness-graph.json
-jankurai rust witness diff . \
-  --old target/jankurai/rust/old-witness.json \
-  --new target/jankurai/rust/witness-graph.json \
-  --out target/jankurai/rust/witness-diff.json \
-  --md target/jankurai/rust/witness-diff.md
-jankurai rust diagnose . \
-  --out target/jankurai/rust/compile-packets.json
-jankurai explain HLT-004-UNMAPPED-PROOF
-
-jankurai bench . \
-  --out target/jankurai/p12-benchmark-report.json \
-  --md target/jankurai/p12-benchmark-report.md
-jankurai certify . \
-  --out target/jankurai/p12-certification.json \
-  --md target/jankurai/p12-certification.md
-jankurai govern . \
-  --out target/jankurai/p12-governance-policy.json \
-  --md target/jankurai/p12-governance-policy.md
-jankurai publish . \
-  --certification target/jankurai/p12-certification.json \
-  --benchmark target/jankurai/p12-benchmark-report.json \
-  --governance target/jankurai/p12-governance-policy.json \
-  --out target/jankurai/public/p12-public-evidence.json \
-  --md target/jankurai/public/p12-public-evidence.md \
-  --badge-json target/jankurai/public/jankurai-badge.json \
-  --badge-svg target/jankurai/public/jankurai-badge.svg
+# Expected decision when a changed generated file lacks
+# source regeneration proof:
+# decision = "block"
+# missing_evidence = ["contract_receipt"]
+# repair_queue[0].rule_id = "HLT-002-GENERATED-MUTATION"
 \end{lstlisting}

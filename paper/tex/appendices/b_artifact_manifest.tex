@@ -1,6 +1,6 @@
 \section{Versioned Artifact Manifest}
 
-The canonical manifest is \texttt{agent/standard-version.toml}. It binds the paper source, rendered paper, agent Markdown companion, full coding standard, and agent standard brief.
+The canonical manifest is \texttt{agent/standard-version.toml}. It binds the paper source, rendered paper, agent Markdown companion, full coding standard, and agent standard brief. \texttt{target\_stack} is the current manifest's profile label; emitted conformance/report/profile claims use \texttt{target\_stack\_id}.
 
 \begin{lstlisting}[style=codebox]
 standard = "jankurai"
@@ -10,14 +10,22 @@ auditor_version = "0.7.0"
 schema_version = "1.5.0"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 published = "2026-05-04"
+release_tag = "v0.7.0"
+supersedes = "v0.6.x"
+compatibility = "schema minor-compatible"
+license = "project license"
 
 [[artifact]]
 id = "paper-source"
 path = "paper/jankurai.tex"
 kind = "tex-wrapper"
 version_field = "paper_edition"
+schema_path = "n/a"
 source = "paper/tex/"
 command = "just paper"
+generated = false
+canonical = true
+sha256 = "sha256:..."
 
 [[artifact]]
 id = "paper-render"
@@ -27,24 +35,8 @@ version_field = "paper_edition"
 source = "paper/jankurai.tex"
 command = "just paper"
 generated = true
-
-[[artifact]]
-id = "paper-agent-md"
-path = "paper/jankurai.md"
-kind = "agent-markdown"
-version_field = "paper_edition"
-
-[[artifact]]
-id = "coding-standard"
-path = "docs/agent-native-standard.md"
-kind = "standard"
-version_field = "standard_version"
-
-[[artifact]]
-id = "agent-standard-brief"
-path = "agent/JANKURAI_STANDARD.md"
-kind = "agent-brief"
-version_field = "standard_version"
+canonical = false
+sha256 = "sha256:..."
 \end{lstlisting}
 
 \texttt{cargo run -p jankurai -- versions} verifies that \texttt{VERSION}, \texttt{crates/jankurai/Cargo.toml}, CLI constants, standard documents, companion Markdown, artifact bindings, and generated-zone registration agree.
