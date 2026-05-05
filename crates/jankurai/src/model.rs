@@ -278,6 +278,36 @@ pub struct SecurityEvidenceReadiness {
     pub artifact: Option<SecurityEvidenceArtifactSummary>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct BoundaryEvidenceArtifactSummary {
+    pub path: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    pub file_count: usize,
+    pub check_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BoundaryReclassification {
+    pub id: String,
+    pub paths: Vec<String>,
+    pub classification: String,
+    pub product_surface: bool,
+    pub runtime_language: String,
+    pub status: String,
+    pub reclassified_caps: Vec<String>,
+    pub covered_file_count: usize,
+    pub covered_line_count: usize,
+    pub covered_files: Vec<String>,
+    pub evidence_artifacts: Vec<BoundaryEvidenceArtifactSummary>,
+    pub missing_checks: Vec<String>,
+    pub failed_checks: Vec<String>,
+    pub rerun_command: String,
+    #[serde(skip_serializing)]
+    pub suppresses_python_stack_caps: bool,
+}
+
 /// Compact summary of validated `agent/boundaries.toml` for repo-score (audit-only).
 #[derive(Debug, Clone, Serialize)]
 pub struct BoundariesManifestSummary {
@@ -299,6 +329,8 @@ pub struct BoundariesManifestSummary {
 pub struct BoundariesReadiness {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artifact: Option<BoundariesManifestSummary>,
+    #[serde(default)]
+    pub reclassifications: Vec<BoundaryReclassification>,
 }
 
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]

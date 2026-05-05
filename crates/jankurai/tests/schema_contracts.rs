@@ -99,6 +99,18 @@ fn cell_registry_and_manifest_schemas_parse() {
         &fs::read_to_string(repo.join("schemas/proof-receipt.schema.json")).unwrap(),
     )
     .unwrap();
+    let proofbind_witness: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/proofbind-witness.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let proofbind_obligations: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/proofbind-obligations.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let proofmark_receipt: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/proofmark-receipt.schema.json")).unwrap(),
+    )
+    .unwrap();
     let proof_plan: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/proof-plan.schema.json")).unwrap(),
     )
@@ -111,6 +123,18 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert_eq!(
         proof_receipt["$id"],
         "https://jankurai.dev/schemas/proof-receipt.schema.json"
+    );
+    assert_eq!(
+        proofbind_witness["$id"],
+        "https://jankurai.dev/schemas/proofbind-witness.schema.json"
+    );
+    assert_eq!(
+        proofbind_obligations["$id"],
+        "https://jankurai.dev/schemas/proofbind-obligations.schema.json"
+    );
+    assert_eq!(
+        proofmark_receipt["$id"],
+        "https://jankurai.dev/schemas/proofmark-receipt.schema.json"
     );
     assert_eq!(
         proof_plan["$id"],
@@ -126,6 +150,26 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert!(proof_receipt["properties"].get("plan_digest").is_some());
     assert!(proof_receipt["properties"]
         .get("artifact_digests")
+        .is_some());
+    assert_eq!(
+        proofbind_witness["properties"]["surfaces"]["items"]["properties"]["surface_type"]["enum"],
+        serde_json::json!([
+            "rust_public_api",
+            "authz_boundary",
+            "input_boundary",
+            "sql_query",
+            "db_migration",
+            "cli_command",
+            "mcp_tool",
+            "unsafe_or_process_sink",
+            "business_invariant"
+        ])
+    );
+    assert!(proofbind_obligations["properties"]
+        .get("obligations")
+        .is_some());
+    assert!(proofmark_receipt["properties"]
+        .get("obligation_results")
         .is_some());
     assert!(proof_verification["properties"]
         .get("manifest_fingerprints")
@@ -654,6 +698,39 @@ fn cell_registry_and_manifest_schemas_parse() {
     let b_required = boundaries["required"].as_array().unwrap();
     assert!(b_required.iter().any(|value| value == "stack"));
     assert!(b_required.iter().any(|value| value == "queues"));
+    assert!(boundaries["properties"]
+        .get("audited_runtime_boundary")
+        .is_some());
+    let boundary_evidence: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/boundary-evidence.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        boundary_evidence["$id"],
+        "https://jankurai.dev/schemas/boundary-evidence.schema.json"
+    );
+    let boundary_evidence_fixture = serde_json::json!({
+        "boundary_id": "runtime-payload",
+        "classification": "audited-runtime-payload",
+        "runtime_language": "python",
+        "paths": ["runtime_payload/python/**/*.py"],
+        "files": [
+            {
+                "path": "runtime_payload/python/payload.py",
+                "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+            }
+        ],
+        "checks": [
+            { "id": "manifest-coverage", "status": "passed" }
+        ],
+        "summary": { "passed": true, "failed_count": 0 }
+    });
+    validation::validate_value(
+        &repo,
+        ArtifactSchema::BoundaryEvidence,
+        &boundary_evidence_fixture,
+    )
+    .unwrap();
 
     let ux_policy: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/ux-qa-policy.schema.json")).unwrap(),
@@ -817,6 +894,10 @@ fn cell_registry_and_manifest_schemas_parse() {
     );
     let b_ready = &repo_score["$defs"]["boundariesReadiness"];
     assert!(b_ready["properties"].get("artifact").is_some());
+    assert!(b_ready["properties"].get("reclassifications").is_some());
+    assert!(repo_score["$defs"]
+        .get("boundaryReclassification")
+        .is_some());
 }
 
 #[test]

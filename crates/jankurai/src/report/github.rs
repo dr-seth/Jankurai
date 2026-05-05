@@ -83,6 +83,20 @@ pub fn render_step_summary(report: &Report) -> String {
                 fp,
             );
         }
+        if !report.boundaries.reclassifications.is_empty() {
+            let passed = report
+                .boundaries
+                .reclassifications
+                .iter()
+                .filter(|boundary| boundary.status == "passed")
+                .count();
+            let rejected = report.boundaries.reclassifications.len() - passed;
+            let _ = writeln!(
+                out,
+                "- boundary reclassifications: passed=`{}` rejected=`{}`",
+                passed, rejected
+            );
+        }
     }
     let _ = writeln!(out);
     let _ = writeln!(out, "#### agent_fix_queue");

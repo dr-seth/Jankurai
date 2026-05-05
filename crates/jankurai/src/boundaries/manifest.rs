@@ -16,6 +16,8 @@ pub struct BoundaryManifest {
     pub db: Option<DbBoundary>,
     #[serde(default)]
     pub streaming_exception: Vec<StreamingException>,
+    #[serde(default)]
+    pub audited_runtime_boundary: Vec<AuditedRuntimeBoundary>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -80,6 +82,27 @@ pub struct StreamingException {
     pub migration_path: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuditedRuntimeBoundary {
+    pub id: String,
+    #[serde(default)]
+    pub paths: Vec<String>,
+    pub classification: String,
+    #[serde(default)]
+    pub product_surface: bool,
+    pub runtime_language: String,
+    #[serde(default)]
+    pub target_stack_exception: bool,
+    #[serde(default)]
+    pub reclassifies: Vec<String>,
+    pub proof_command: Option<String>,
+    pub rerun_command: Option<String>,
+    #[serde(default)]
+    pub required_evidence: Vec<String>,
+    #[serde(default)]
+    pub required_checks: Vec<String>,
+}
+
 pub fn parse(text: &str) -> Result<BoundaryManifest> {
     Ok(toml::from_str(text)?)
 }
@@ -109,7 +132,7 @@ forbidden_web_imports = ["pg", "postgres", "better-sqlite3"]
 generated_contract_paths = ["contracts/generated"]
 
 [python]
-allowed_truth_paths = ["python/ai-service", "tools"]
+allowed_truth_paths = ["python/ai-service"]
 
 [queues]
 adapter_paths = ["crates/adapters/queues", "crates/adapters/src/queues"]
@@ -128,6 +151,23 @@ classification = "brownfield"
 owner = "platform"
 expires = "2026-12-31"
 migration_path = "Keep Kafka behind queue adapters."
+
+[[audited_runtime_boundary]]
+id = "runtime-payload"
+paths = ["runtime_payload/python/**/*.py"]
+classification = "audited-runtime-payload"
+product_surface = true
+runtime_language = "python"
+target_stack_exception = true
+reclassifies = [
+  "non-optimal-product-language-found",
+  "too-much-python-in-product-surface",
+  "python-direct-product-truth-or-db-ownership"
+]
+proof_command = "python tools/check_runtime_payload_boundary.py"
+rerun_command = "python tools/check_runtime_payload_boundary.py"
+required_evidence = ["target/jankurai/boundaries/runtime-payload/evidence.json"]
+required_checks = ["manifest-coverage", "payload-hash-match", "no-direct-db-access"]
 "#;
         let manifest = parse(text).unwrap();
         assert_eq!(
@@ -165,7 +205,7 @@ migration_path = "Keep Kafka behind queue adapters."
                 .python
                 .as_ref()
                 .map(|python| python.allowed_truth_paths.as_slice()),
-            Some(&["python/ai-service".to_string(), "tools".to_string()][..])
+            Some(&["python/ai-service".to_string()][..])
         );
         assert_eq!(
             manifest.db.as_ref().map(|db| db.root_paths.as_slice()),
@@ -175,5 +215,7 @@ migration_path = "Keep Kafka behind queue adapters."
             manifest.streaming_exception[0].classification.as_deref(),
             Some("brownfield")
         );
+        assert_eq!(manifest.audited_runtime_boundary[0].id, "runtime-payload");
+        assert!(manifest.audited_runtime_boundary[0].target_stack_exception);
     }
 }

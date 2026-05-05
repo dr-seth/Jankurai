@@ -130,9 +130,13 @@ pub fn build_verify_report(repo: &Path) -> Result<RuleVerifyReport> {
         .map(|rule| rule.id.to_string())
         .collect();
     let references = collect_rule_references(repo)?;
+    let pseudo_rule_ids = ["HLT-000-SCORE-DIMENSION"];
     let unknown_references: Vec<RuleReference> = references
         .iter()
-        .filter(|reference| !known.contains(&reference.rule_id))
+        .filter(|reference| {
+            !known.contains(&reference.rule_id)
+                && !pseudo_rule_ids.contains(&reference.rule_id.as_str())
+        })
         .cloned()
         .collect();
     let standard = fs::read_to_string(repo.join("agent/JANKURAI_STANDARD.md")).unwrap_or_default();

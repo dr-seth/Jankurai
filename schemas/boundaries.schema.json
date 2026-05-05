@@ -37,6 +37,60 @@
           "migration_path": { "type": "string" }
         }
       }
+    },
+    "audited_runtime_boundary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "paths",
+          "classification",
+          "product_surface",
+          "runtime_language",
+          "target_stack_exception",
+          "reclassifies",
+          "required_evidence",
+          "required_checks"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "classification": { "type": "string", "minLength": 1 },
+          "product_surface": { "type": "boolean" },
+          "runtime_language": { "type": "string", "enum": ["python"] },
+          "target_stack_exception": { "type": "boolean" },
+          "reclassifies": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "non-optimal-product-language-found",
+                "too-much-python-in-product-surface",
+                "python-direct-product-truth-or-db-ownership"
+              ]
+            }
+          },
+          "proof_command": { "type": "string" },
+          "rerun_command": { "type": "string" },
+          "required_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "required_checks": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": true

@@ -453,7 +453,68 @@
     "boundariesReadiness": {
       "type": "object",
       "properties": {
-        "artifact": { "$ref": "#/$defs/boundariesManifestSummary" }
+        "artifact": { "$ref": "#/$defs/boundariesManifestSummary" },
+        "reclassifications": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/boundaryReclassification" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "boundaryEvidenceArtifactSummary": {
+      "type": "object",
+      "required": ["path", "status", "file_count", "check_count"],
+      "properties": {
+        "path": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["missing_evidence", "invalid", "loaded"]
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "file_count": { "type": "integer", "minimum": 0 },
+        "check_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "boundaryReclassification": {
+      "type": "object",
+      "required": [
+        "id",
+        "paths",
+        "classification",
+        "product_surface",
+        "runtime_language",
+        "status",
+        "reclassified_caps",
+        "covered_file_count",
+        "covered_line_count",
+        "covered_files",
+        "evidence_artifacts",
+        "missing_checks",
+        "failed_checks",
+        "rerun_command"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "paths": { "type": "array", "items": { "type": "string" } },
+        "classification": { "type": "string" },
+        "product_surface": { "type": "boolean" },
+        "runtime_language": { "type": "string", "enum": ["python"] },
+        "status": {
+          "type": "string",
+          "enum": ["passed", "missing_evidence", "failed", "invalid", "unsupported"]
+        },
+        "reclassified_caps": { "type": "array", "items": { "type": "string" } },
+        "covered_file_count": { "type": "integer", "minimum": 0 },
+        "covered_line_count": { "type": "integer", "minimum": 0 },
+        "covered_files": { "type": "array", "items": { "type": "string" } },
+        "evidence_artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/boundaryEvidenceArtifactSummary" }
+        },
+        "missing_checks": { "type": "array", "items": { "type": "string" } },
+        "failed_checks": { "type": "array", "items": { "type": "string" } },
+        "rerun_command": { "type": "string" }
       },
       "additionalProperties": false
     },

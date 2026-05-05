@@ -25,13 +25,20 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             notes,
         );
     }
+    if all_scope_python_files_are_accepted_boundaries(ctx) {
+        return make_dim(
+            "Python containment and polyglot hygiene",
+            100,
+            vec!["scope Python files are covered by passed audited runtime boundaries".into()],
+            vec![],
+        );
+    }
     let mut score = 40;
     let mut evidence = vec![];
     let mut notes = vec![];
-    let bad_paths: Vec<_> = python_files
-        .iter()
-        .filter(|f| !is_allowed_python_path(&f.rel_path))
-        .map(|f| f.rel_path.clone())
+    let bad_paths: Vec<_> = bad_python_path_hits(ctx)
+        .into_iter()
+        .map(|f| f.rel_path)
         .collect();
     if bad_paths.is_empty() {
         score += 30;

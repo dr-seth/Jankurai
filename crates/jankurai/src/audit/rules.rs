@@ -613,6 +613,26 @@ pub const RULES: &[RuleSpec] = &[
         cap_key: None,
         confidence_policy: ConfidencePolicy::Medium,
     },
+    RuleSpec {
+        id: "HLT-028-BOUNDARY-EVIDENCE-GAP",
+        name: "Audited runtime boundary evidence gap",
+        category: "boundary",
+        tlr: "Contracts/data",
+        lane: "contract",
+        docs_url: "docs/agent-native-standard.md",
+        owner_hint: "tools",
+        evidence_kind: "boundary-evidence",
+        severity: "high",
+        repairable: true,
+        repair_eligibility: RepairEligibility::HumanRequired,
+        repair_risk: RepairRisk::High,
+        repair_reason:
+            "runtime boundary reclassification can alter target-stack cap pressure and needs deterministic evidence",
+        status: RuleStatus::Stable,
+        standard_section: "Runtime Boundary Evidence",
+        cap_key: Some("boundary-reclassification-evidence-gap"),
+        confidence_policy: ConfidencePolicy::High,
+    },
 ];
 
 pub fn all() -> &'static [RuleSpec] {

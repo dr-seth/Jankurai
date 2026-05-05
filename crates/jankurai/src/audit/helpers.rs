@@ -24,9 +24,7 @@ pub const ALLOWED_PYTHON_ROOTS: &[&str] = &[
     "paper",
     "python/ai-service",
     "reference",
-    "scripts",
     "tests",
-    "tools",
 ];
 
 pub const OWNER_MAP_PREFIXES: &[(&str, &str)] = &[
@@ -54,6 +52,7 @@ pub struct AuditContext {
     pub scope_files: Vec<FileInfo>,
     pub scope_paths: Vec<String>,
     pub self_audit: bool,
+    pub boundary_reclassifications: Vec<BoundaryReclassification>,
 }
 
 pub fn weight_for(name: &str) -> u32 {
@@ -161,6 +160,24 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         ci_command: "cargo run -p jankurai -- audit . --mode ratchet --baseline agent/repo-score.json --json agent/repo-score.json --md agent/repo-score.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md", "target/jankurai/repair-queue.jsonl"],
         applicability: tool_proof_routing_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "proofbind",
+        category: "proof",
+        replaced_tools: &["manual changed-surface routing", "ad hoc proof obligation lists"],
+        local_command: "jankurai proofbind verify . --changed-from origin/main",
+        ci_command: "cargo run -p jankurai -- proofbind verify . --changed-from origin/main",
+        artifact_paths: &["target/jankurai/proofbind/surface-witness.json", "target/jankurai/proofbind/obligations.json"],
+        applicability: tool_proof_routing_applicable,
+    },
+    ToolAdoptionCatalogEntry {
+        id: "proofmark-rust",
+        category: "proof",
+        replaced_tools: &["line-only coverage review", "manual in-diff mutation review"],
+        local_command: "jankurai proofmark rust . --obligations target/jankurai/proofbind/obligations.json",
+        ci_command: "cargo run -p jankurai -- proofmark rust . --obligations target/jankurai/proofbind/obligations.json",
+        artifact_paths: &["target/jankurai/proofmark/proofmark-receipt.json", "target/jankurai/proofmark/proof-receipt.json"],
+        applicability: tool_rust_witness_applicable,
     },
     ToolAdoptionCatalogEntry {
         id: "security",
@@ -715,7 +732,10 @@ pub fn product_code_files(ctx: &AuditContext) -> Vec<FileInfo> {
 }
 
 pub fn python_ratio(ctx: &AuditContext) -> f64 {
-    let files = product_files(ctx);
+    let files = product_files(ctx)
+        .into_iter()
+        .filter(|f| !accepted_boundary_file_for_cap(ctx, &f.rel_path, TOO_MUCH_PYTHON_CAP))
+        .collect::<Vec<_>>();
     let total: usize = files.iter().map(|f| f.line_count).sum();
     let py: usize = files
         .iter()
@@ -736,9 +756,19 @@ pub fn is_allowed_python_path(path: &str) -> bool {
 }
 
 pub fn bad_python_paths(ctx: &AuditContext) -> bool {
+    !bad_python_path_hits(ctx).is_empty()
+}
+
+pub fn bad_python_path_hits(ctx: &AuditContext) -> Vec<FileInfo> {
     ctx.all_files
         .iter()
-        .any(|f| f.suffix == ".py" && !is_allowed_python_path(&f.rel_path))
+        .filter(|f| {
+            f.suffix == ".py"
+                && !is_allowed_python_path(&f.rel_path)
+                && !accepted_boundary_file_for_cap(ctx, &f.rel_path, PYTHON_DIRECT_CAP)
+        })
+        .cloned()
+        .collect()
 }
 
 pub fn max_loc(files: &[FileInfo]) -> Option<usize> {
@@ -859,15 +889,87 @@ pub fn non_optimal_language_hits(ctx: &AuditContext) -> Vec<FileInfo> {
     product_code_files(ctx)
         .into_iter()
         .filter(|f| {
-            [
-                ".c", ".cc", ".cpp", ".cs", ".dart", ".ex", ".exs", ".go", ".h", ".hh", ".hpp",
-                ".java", ".js", ".jsx", ".kt", ".kts", ".lua", ".m", ".mm", ".php", ".rb",
-                ".scala", ".swift",
-            ]
-            .contains(&f.suffix.as_str())
-                || (f.suffix == ".py" && !f.rel_path.starts_with("python/ai-service/"))
+            !accepted_boundary_file_for_cap(ctx, &f.rel_path, NON_OPTIMAL_LANGUAGE_CAP)
+                && ([
+                    ".c", ".cc", ".cpp", ".cs", ".dart", ".ex", ".exs", ".go", ".h", ".hh", ".hpp",
+                    ".java", ".js", ".jsx", ".kt", ".kts", ".lua", ".m", ".mm", ".php", ".rb",
+                    ".scala", ".swift",
+                ]
+                .contains(&f.suffix.as_str())
+                    || (f.suffix == ".py" && !f.rel_path.starts_with("python/ai-service/")))
         })
         .collect()
+}
+
+pub const PYTHON_DIRECT_CAP: &str = "python-direct-product-truth-or-db-ownership";
+pub const NON_OPTIMAL_LANGUAGE_CAP: &str = "non-optimal-product-language-found";
+pub const TOO_MUCH_PYTHON_CAP: &str = "too-much-python-in-product-surface";
+pub const BOUNDARY_RECLASSIFICATION_GAP_CAP: &str = "boundary-reclassification-evidence-gap";
+
+pub const PYTHON_STACK_RECLASSIFY_CAPS: &[&str] = &[
+    PYTHON_DIRECT_CAP,
+    NON_OPTIMAL_LANGUAGE_CAP,
+    TOO_MUCH_PYTHON_CAP,
+];
+
+pub fn accepted_boundary_file_for_cap(ctx: &AuditContext, rel_path: &str, cap: &str) -> bool {
+    ctx.boundary_reclassifications.iter().any(|boundary| {
+        boundary.status == "passed"
+            && boundary
+                .reclassified_caps
+                .iter()
+                .any(|declared| declared == cap)
+            && boundary.covered_files.iter().any(|path| path == rel_path)
+    })
+}
+
+pub fn suppressing_boundary_file_for_cap(ctx: &AuditContext, rel_path: &str, cap: &str) -> bool {
+    ctx.boundary_reclassifications.iter().any(|boundary| {
+        boundary.suppresses_python_stack_caps
+            && boundary
+                .reclassified_caps
+                .iter()
+                .any(|declared| declared == cap)
+            && boundary.covered_files.iter().any(|path| path == rel_path)
+    })
+}
+
+pub fn all_files_suppressed_for_cap(ctx: &AuditContext, files: &[FileInfo], cap: &str) -> bool {
+    !files.is_empty()
+        && files
+            .iter()
+            .all(|file| suppressing_boundary_file_for_cap(ctx, &file.rel_path, cap))
+}
+
+pub fn python_ratio_cap_suppressed(ctx: &AuditContext) -> bool {
+    let python_files = product_files(ctx)
+        .into_iter()
+        .filter(|f| {
+            f.suffix == ".py"
+                && !accepted_boundary_file_for_cap(ctx, &f.rel_path, TOO_MUCH_PYTHON_CAP)
+        })
+        .collect::<Vec<_>>();
+    all_files_suppressed_for_cap(ctx, &python_files, TOO_MUCH_PYTHON_CAP)
+}
+
+pub fn has_boundary_reclassification_gap(ctx: &AuditContext) -> bool {
+    ctx.boundary_reclassifications
+        .iter()
+        .any(|boundary| boundary.status != "passed" && !boundary.reclassified_caps.is_empty())
+}
+
+pub fn all_scope_python_files_are_accepted_boundaries(ctx: &AuditContext) -> bool {
+    let python_files = ctx
+        .scope_files
+        .iter()
+        .filter(|file| file.suffix == ".py")
+        .collect::<Vec<_>>();
+    !python_files.is_empty()
+        && python_files.iter().all(|file| {
+            PYTHON_STACK_RECLASSIFY_CAPS
+                .iter()
+                .any(|cap| accepted_boundary_file_for_cap(ctx, &file.rel_path, cap))
+        })
 }
 
 // --- Handwritten API detection ---

@@ -54,6 +54,15 @@ fn vibe_coverage_rules_are_registered() {
 }
 
 #[test]
+fn boundary_evidence_gap_rule_is_registered() {
+    let rule = rules::lookup("HLT-028-BOUNDARY-EVIDENCE-GAP")
+        .expect("HLT-028-BOUNDARY-EVIDENCE-GAP must exist in registry");
+    assert_eq!(rule.category, "boundary");
+    assert_eq!(rule.cap_key, Some("boundary-reclassification-evidence-gap"));
+    assert_eq!(rule.status, rules::RuleStatus::Stable);
+}
+
+#[test]
 fn every_rule_has_repair_policy_metadata() {
     for rule in rules::all() {
         assert!(

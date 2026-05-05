@@ -281,6 +281,49 @@ pub fn render_markdown(report: &Report) -> String {
         );
         let _ = writeln!(out, "- Content fingerprint: `{}`", art.content_fingerprint);
     }
+    let _ = writeln!(out);
+    let _ = writeln!(out, "## Boundary Reclassifications");
+    let _ = writeln!(out);
+    if report.boundaries.reclassifications.is_empty() {
+        let _ = writeln!(
+            out,
+            "No audited runtime boundary reclassifications declared."
+        );
+    } else {
+        let _ = writeln!(
+            out,
+            "| Boundary | Status | Files | Lines | Reclassified Caps | Rerun |"
+        );
+        let _ = writeln!(out, "| --- | --- | ---: | ---: | --- | --- |");
+        for boundary in &report.boundaries.reclassifications {
+            let caps = if boundary.reclassified_caps.is_empty() {
+                "none".into()
+            } else {
+                boundary.reclassified_caps.join(", ")
+            };
+            let _ = writeln!(
+                out,
+                "| `{}` | `{}` | {} | {} | `{}` | `{}` |",
+                boundary.id,
+                boundary.status,
+                boundary.covered_file_count,
+                boundary.covered_line_count,
+                caps,
+                boundary.rerun_command
+            );
+            if !boundary.missing_checks.is_empty() || !boundary.failed_checks.is_empty() {
+                let problems = boundary
+                    .missing_checks
+                    .iter()
+                    .chain(boundary.failed_checks.iter())
+                    .take(4)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                let _ = writeln!(out, "<br>Checks: {}", problems.replace('|', "\\|"));
+            }
+        }
+    }
     if let Some(summary) = &report.vibe_coverage {
         let _ = writeln!(out);
         let _ = writeln!(out, "## Vibe Coding Coverage");

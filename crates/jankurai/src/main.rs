@@ -3,8 +3,8 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, bench, cell, certify, context_pack, doctor, exceptions, govern, hooks, init,
-    migrate, optimize, proof, publish, registry, repair, repair_plan, rules, rust, score, security,
-    update, vibe, witness,
+    migrate, optimize, paper, proof, proofbind, proofmark, publish, registry, repair, repair_plan,
+    rules, rust, score, security, update, vibe, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -51,6 +51,16 @@ enum Commands {
     Proof(ProofPlanArgs),
     Prove(ProveArgs),
     ProofVerify(ProofVerifyArgs),
+    #[command(name = "proofbind")]
+    ProofBind {
+        #[command(subcommand)]
+        command: ProofBindCommand,
+    },
+    #[command(name = "proofmark")]
+    ProofMark {
+        #[command(subcommand)]
+        command: ProofMarkCommand,
+    },
     Registry(RegistryArgs),
     Cell(CellArgs),
     Migrate(MigrateArgs),
@@ -58,6 +68,10 @@ enum Commands {
     Certify(CertifyArgs),
     Govern(GovernArgs),
     Publish(PublishArgs),
+    Paper {
+        #[command(subcommand)]
+        command: PaperCommand,
+    },
     Repair(RepairArgs),
     Optimize(OptimizeArgs),
     Rust {
@@ -134,6 +148,11 @@ enum VibeCommand {
 }
 
 #[derive(Subcommand, Debug)]
+enum PaperCommand {
+    PublicRepoScores(PublicRepoScoresArgs),
+}
+
+#[derive(Subcommand, Debug)]
 enum ScoreCommand {
     Diff(ScoreDiffArgs),
     Trend(ScoreTrendArgs),
@@ -159,6 +178,17 @@ enum RustCommand {
 enum RustWitnessCommand {
     Build(RustWitnessBuildArgs),
     Diff(RustWitnessDiffArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum ProofBindCommand {
+    Map(ProofBindMapArgs),
+    Verify(ProofBindVerifyArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum ProofMarkCommand {
+    Rust(ProofMarkRustArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -391,6 +421,14 @@ struct ContextPackArgs {
 }
 
 #[derive(Args, Debug)]
+struct PublicRepoScoresArgs {
+    #[arg(long, value_name = "PATH")]
+    source: PathBuf,
+    #[arg(long, value_name = "PATH")]
+    out: PathBuf,
+}
+
+#[derive(Args, Debug)]
 struct WitnessArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -499,6 +537,120 @@ struct ProofVerifyArgs {
     #[arg(long, value_name = "PATH")]
     out: String,
     #[arg(long, value_name = "PATH")]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct ProofBindMapArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long)]
+    changed: Vec<PathBuf>,
+    #[arg(long, value_name = "REF")]
+    changed_from: Option<String>,
+    #[arg(long, default_value = "advisory", value_parser = ["advisory", "required"])]
+    mode: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proof-receipts"
+    )]
+    proof_receipts: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/surface-witness.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/obligations.json"
+    )]
+    obligations_out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/proofbind.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct ProofBindVerifyArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long)]
+    changed: Vec<PathBuf>,
+    #[arg(long, value_name = "REF")]
+    changed_from: Option<String>,
+    #[arg(long, default_value = "advisory", value_parser = ["advisory", "required"])]
+    mode: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proof-receipts"
+    )]
+    proof_receipts: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/surface-witness.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/obligations.json"
+    )]
+    obligations_out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/proofbind.md"
+    )]
+    md: String,
+}
+
+#[derive(Args, Debug)]
+struct ProofMarkRustArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long)]
+    changed: Vec<PathBuf>,
+    #[arg(long, value_name = "REF")]
+    changed_from: Option<String>,
+    #[arg(long, default_value = "advisory", value_parser = ["advisory", "required"])]
+    mode: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofbind/obligations.json"
+    )]
+    obligations: String,
+    #[arg(long, value_name = "PATH")]
+    coverage: Option<PathBuf>,
+    #[arg(long, value_name = "PATH")]
+    mutation: Option<PathBuf>,
+    #[arg(long)]
+    negative_proof: Vec<String>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofmark/proofmark-receipt.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofmark/proof-receipt.json"
+    )]
+    proof_receipt: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/proofmark/proofmark.md"
+    )]
     md: String,
 }
 
@@ -1098,6 +1250,49 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::ProofBind { command }) => match command {
+            ProofBindCommand::Map(args) => {
+                proofbind::run_map(proofbind::ProofBindMapArgs {
+                    repo: args.repo,
+                    changed: args.changed,
+                    changed_from: args.changed_from,
+                    mode: args.mode,
+                    proof_receipts: args.proof_receipts,
+                    out: args.out,
+                    obligations_out: args.obligations_out,
+                    md: args.md,
+                })?;
+            }
+            ProofBindCommand::Verify(args) => {
+                proofbind::run_verify(proofbind::ProofBindVerifyArgs {
+                    repo: args.repo,
+                    changed: args.changed,
+                    changed_from: args.changed_from,
+                    mode: args.mode,
+                    proof_receipts: args.proof_receipts,
+                    out: args.out,
+                    obligations_out: args.obligations_out,
+                    md: args.md,
+                })?;
+            }
+        },
+        Some(Commands::ProofMark { command }) => match command {
+            ProofMarkCommand::Rust(args) => {
+                proofmark::run_rust(proofmark::ProofMarkRustArgs {
+                    repo: args.repo,
+                    changed: args.changed,
+                    changed_from: args.changed_from,
+                    mode: args.mode,
+                    obligations: args.obligations,
+                    coverage: args.coverage,
+                    mutation: args.mutation,
+                    negative_proof: args.negative_proof,
+                    out: args.out,
+                    proof_receipt: args.proof_receipt,
+                    md: args.md,
+                })?;
+            }
+        },
         Some(Commands::Registry(args)) => {
             registry::run(registry::RegistryArgs {
                 repo: args.repo,
@@ -1161,6 +1356,14 @@ fn main() -> anyhow::Result<()> {
                 badge_svg: args.badge_svg,
             })?;
         }
+        Some(Commands::Paper { command }) => match command {
+            PaperCommand::PublicRepoScores(args) => {
+                paper::run_public_repo_scores(paper::PublicRepoScoresArgs {
+                    source: args.source,
+                    out: args.out,
+                })?;
+            }
+        },
         Some(Commands::Repair(args)) => {
             repair::run(repair::RepairArgs {
                 repo: args.repo,

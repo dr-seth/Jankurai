@@ -423,6 +423,7 @@ fn future_hostile_scan_does_not_flag_holdout_fold_or_kfold_identifiers() {
         scope_files: vec![file],
         scope_paths: vec!["crates/example/src/lib.rs".into()],
         self_audit: false,
+        boundary_reclassifications: vec![],
     };
     assert!(scan::future_hostile_hits(&ctx).is_empty());
 }

@@ -76,6 +76,12 @@ pub const CAP_SPECS: &[CapSpec] = &[
         hardness: "soft",
     },
     CapSpec {
+        key: "boundary-reclassification-evidence-gap",
+        max_score: 72,
+        rule_id: Some("HLT-028-BOUNDARY-EVIDENCE-GAP"),
+        hardness: "hard",
+    },
+    CapSpec {
         key: "vibe-placeholders-in-product-code",
         max_score: 68,
         rule_id: None,
@@ -215,6 +221,7 @@ pub const CAPS: &[(&str, i32)] = &[
     ("jankurai-required-tool-ci-evidence-gap", 88),
     ("non-optimal-product-language-found", 74),
     ("too-much-python-in-product-surface", 72),
+    ("boundary-reclassification-evidence-gap", 72),
     ("vibe-placeholders-in-product-code", 68),
     ("fallback-soup-in-product-code", 70),
     ("future-hostile-dead-language-in-product-code", 64),
@@ -257,7 +264,9 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     {
         caps.push("generated-contracts-or-public-api-drift-untested".into());
     }
-    if bad_python_paths(ctx) {
+    let bad_python = bad_python_path_hits(ctx);
+    if !bad_python.is_empty() && !all_files_suppressed_for_cap(ctx, &bad_python, PYTHON_DIRECT_CAP)
+    {
         caps.push("python-direct-product-truth-or-db-ownership".into());
     }
     if is_high_risk_repo(ctx) && !has_secret_or_dependency_scans(ctx) {
@@ -269,11 +278,17 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     if !crate::audit::analyzers::tool_adoption::missing_required_ci_tools(ctx).is_empty() {
         caps.push("jankurai-required-tool-ci-evidence-gap".into());
     }
-    if !non_optimal_language_hits(ctx).is_empty() {
+    let non_optimal = non_optimal_language_hits(ctx);
+    if !non_optimal.is_empty()
+        && !all_files_suppressed_for_cap(ctx, &non_optimal, NON_OPTIMAL_LANGUAGE_CAP)
+    {
         caps.push("non-optimal-product-language-found".into());
     }
-    if python_ratio(ctx) > 0.15 {
+    if python_ratio(ctx) > 0.15 && !python_ratio_cap_suppressed(ctx) {
         caps.push("too-much-python-in-product-surface".into());
+    }
+    if has_boundary_reclassification_gap(ctx) {
+        caps.push("boundary-reclassification-evidence-gap".into());
     }
     if !scan::todo_hits(ctx).is_empty() {
         caps.push("vibe-placeholders-in-product-code".into());

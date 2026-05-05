@@ -89,6 +89,31 @@ impl<'a> FindingBuilder<'a> {
         matched_term: Option<String>,
         reason: Option<String>,
     ) {
+        self.add_with_rule_and_rerun(
+            rule_id,
+            path,
+            problem,
+            fix,
+            evidence,
+            line,
+            matched_term,
+            reason,
+            None,
+        );
+    }
+
+    pub fn add_with_rule_and_rerun(
+        &mut self,
+        rule_id: &str,
+        path: &str,
+        problem: &str,
+        fix: &str,
+        evidence: Vec<String>,
+        line: Option<usize>,
+        matched_term: Option<String>,
+        reason: Option<String>,
+        rerun_command: Option<&str>,
+    ) {
         let rule = rules::lookup(rule_id).expect("rule_id must exist in registry");
         if rule.category == "context" {
             self.has_context_finding = true;
@@ -122,7 +147,9 @@ impl<'a> FindingBuilder<'a> {
             hardness: hardness_for_severity(rule.severity).into(),
             confidence,
             evidence_kind: rule.evidence_kind.into(),
-            rerun_command: rerun_command_for_lane(Some(rule.lane)).into(),
+            rerun_command: rerun_command
+                .unwrap_or_else(|| rerun_command_for_lane(Some(rule.lane)))
+                .into(),
             fingerprint,
             rule_id: Some(rule.id.into()),
             tlr: Some(rule.tlr.into()),
@@ -330,6 +357,7 @@ mod tests {
             scope_files: vec![],
             scope_paths: vec![],
             self_audit: false,
+            boundary_reclassifications: vec![],
         }
     }
 
@@ -468,7 +496,7 @@ pub fn dimension_soft_route(
             "python",
             "python/ai-service",
             "HLT-005-PYTHON-PRODUCT-TRUTH",
-            "keep Python bounded to AI/data tooling and move product truth into Rust, SQL, and generated contracts",
+            "keep Python bounded to hard AI/data service work and move product truth into Rust, SQL, and generated contracts",
         ),
         "Build speed signals" => (
             "proof",

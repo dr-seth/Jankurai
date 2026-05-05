@@ -26,7 +26,7 @@ AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Tra
 
 The repository is the alignment layer. In this paper, "proof" means repository-local evidence receipts, not formal proof of full program semantics. Jankurai maps changed paths to bounded authority, proof lanes, evidence receipts, repair queues, and expiring waivers. The central artifact is the merge witness: a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, missing-evidence decisions, artifact digests, tool identity, and commit identity.
 
-Jankurai Core is stack-neutral. Rust/TypeScript/PostgreSQL is a non-normative reference profile, not the standard. Go, .NET, JVM, TypeScript-heavy, Rails/Python, and Elixir profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence, and merge witnesses. Agent-first repository design means code and policy are shaped so agents can find owners, avoid generated zones, run one proof lane, receive stable failures, repair narrow scope, and leave receipts. Scores are posture signals, not merge approval.
+Jankurai Core is stack-neutral. Rust/TypeScript/PostgreSQL is a non-normative reference profile, not the standard. Go, .NET, JVM, TypeScript-heavy, Rails/Python, and Elixir profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence, and merge witnesses. This reference workspace remains Rust-first: agents must not add Python for product truth, proof lanes, repo tools, product services, authorization, database writes, or general backend glue. Python is allowed only for rare advanced ML/data library work with a dated exception under `python/ai-service`. Agent-first repository design means code and policy are shaped so agents can find owners, avoid generated zones, run one proof lane, receive stable failures, repair narrow scope, and leave receipts. Scores are posture signals, not merge approval.
 
 The May 5, 2026 public-repository advisory scan is the paper's field-evidence section. Jankurai 0.7.0 scanned 30 public GitHub repositories, succeeded on all 30, and observed a top score of 48, average score of 33.4, 15,391 total findings, and 15,017 hard findings. The scan is framed as repair-oriented posture evidence, not certification, defect attribution, or an incident study.
 
@@ -102,7 +102,8 @@ The current seed suite under `conformance/` has 10 fixture directories and 12 ex
 - Source data: `paper/data/public-repo-scores-20260505T184426Z.json`.
 - Receipt: `paper/data/public-repo-scores-20260505T184426Z.json.sha256`.
 - Generated tables: `paper/tex/generated/public_repo_score_tables.tex`.
-- Regeneration command: `python3 tools/render_public_repo_scores.py --source paper/data/public-repo-scores-20260505T184426Z.json --out paper/tex/generated/public_repo_score_tables.tex`.
+- Regeneration command: `cargo run -p jankurai -- paper public-repo-scores --source paper/data/public-repo-scores-20260505T184426Z.json --out paper/tex/generated/public_repo_score_tables.tex`.
+- Note: this paper-table helper is Rust and is not a product/runtime dependency.
 - Scope: 30 public GitHub repositories, 30 successful scans, 0 failed scans.
 - Aggregate posture: min 14, max 48, average 33.4, upper-middle score 34, hard finding share 97.6%.
 
@@ -112,7 +113,7 @@ The current seed suite under `conformance/` has 10 fixture directories and 12 ex
 - `HLT-002-GENERATED-MUTATION`: generated outputs are changed through source contracts and regeneration.
 - `HLT-003-OWNERLESS-PATH`: changed paths need an owner-map entry.
 - `HLT-004-UNMAPPED-PROOF`: changed paths need a mapped proof lane.
-- `HLT-005-PYTHON-PRODUCT-TRUTH`: Python must not silently own durable product truth in profiles that bound it to AI/data service work.
+- `HLT-005-PYTHON-PRODUCT-TRUTH`: Python must not silently own durable product truth, and this workspace permits Python only as a rare dated advanced-ML/data exception.
 - `HLT-006-DIRECT-DB-WRONG-LAYER`: DB access belongs in declared durable-truth or adapter boundaries.
 - `HLT-007-HANDWRITTEN-CONTRACT`: public contracts should generate clients/stubs.
 - `HLT-008-FALSE-GREEN-RISK`: tests must prove the changed behavior, not just pass nearby.

@@ -4,7 +4,8 @@ Standard version: `0.7.0`
 Published: `2026-05-04`
 Paper: `Jankurai: A Versioned Repository Conformance Standard for Trustworthy AI-Assisted Merge`
 Public thesis line: `No proof, no merge; no receipt, no trust.`
-Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, bounded Python AI/data service.
+Target stack: Rust core, TypeScript/React/Vite product surface, PostgreSQL truth, generated contracts, exception-only Python AI/data service.
+Implementation default: use Rust for repository tools, core behavior, proof lanes, and automation whenever practical. Agents must not create or expand Python for repo tooling, proof lanes, product services, general backend glue, product truth, authorization, or direct production DB access. The only allowed Python exception is rare: advanced ML/data work that depends on a Python-only library, is boxed under `python/ai-service`, and has a dated exception with owner, expiry, proof lane, and migration/containment plan.
 
 This is an operational standard for coding agents and maintainers. Repositories do not need jankurai merely because they use AI. Repositories claiming jankurai conformance should point root agent instructions to this file and to `agent/JANKURAI_STANDARD.md`.
 
@@ -91,6 +92,7 @@ Stable rule IDs:
 | `HLT-025-RELEASE-READINESS-GAP` | release or launch gate lacks artifact-backed readiness evidence |
 | `HLT-026-COST-BUDGET-GAP` | unbounded paid work lacks budget, quota, or stop-condition evidence |
 | `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP` | review or proof claim lacks reproducible receipts |
+| `HLT-028-BOUNDARY-EVIDENCE-GAP` | audited runtime boundary reclassification lacks deterministic evidence |
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 
@@ -109,8 +111,8 @@ These are blocking violations unless an approved, dated exception exists in `doc
 | Too-large function | Function exceeds hard LOC limit | Extract pure units before adding behavior |
 | Silent fallback | Code hides failure with default, retry, catch-all, or stale data | Replace with explicit policy and agent-friendly error |
 | Duplicate behavior | Same decision or transformation exists in multiple owner cells | Consolidate into owning layer |
-| Direct DB misuse | UI, domain, or Python writes product truth directly | Move write into Rust application/adapters |
-| Python sprawl | Python outside allowed AI/data service owns product behavior | Remove, migrate, or document temporary exception |
+| Direct DB misuse | UI, domain, or exception-only Python writes product truth directly | Move write into Rust application/adapters |
+| Python sprawl | Python appears outside a dated advanced-ML/data exception or owns product behavior | Remove it or migrate the behavior to Rust/TypeScript/PostgreSQL |
 | Security lane | High-risk change skips secret/dependency/static scanning | Add lane and block merge |
 | Disabled tests | New skipped/flaky/no-assertion test lands | Fix test or record reviewed quarantine with expiration |
 
@@ -129,8 +131,8 @@ Generated files are exempt only when listed in `agent/generated-zones.toml` and 
 | TypeScript hook/helper | 120 LOC | 220 LOC | Split by one responsibility |
 | TypeScript route/page | 220 LOC | 350 LOC | Split loader, action, view, test fixture |
 | TypeScript function | 35 LOC | 60 LOC | Extract named decision |
-| Python AI/data file | 180 LOC | 300 LOC | Split model IO, eval, transform, service boundary |
-| Python function | 35 LOC | 60 LOC | Extract typed pure step |
+| Exception-only Python AI/data file | 180 LOC | 300 LOC | Split model IO, eval, transform, service boundary |
+| Exception-only Python function | 35 LOC | 60 LOC | Extract typed pure step |
 | SQL migration | 180 LOC | 350 LOC | Split into semantic migration steps |
 | Markdown agent instruction | 100 lines | 180 lines | Move detail into linked topic docs |
 | Markdown design doc | 300 lines | 600 lines | Split into decision, protocol, and reference docs |
@@ -146,7 +148,7 @@ Refactor by ownership, not by convenience.
 - Name extracted code after the behavior it owns, not the syntax it uses.
 - Keep Rust domain pure: no IO, env, system time, random, network, database, filesystem, logging side effects, or framework types.
 - Keep TypeScript product surface UI-focused: generated clients only, no durable truth.
-- Keep Python boxed: model/data/eval service only, typed API, no product authorization or direct production DB writes.
+- Keep Python exception-only: use it only for approved advanced ML/data library work, behind a typed API, with no product authorization, product truth, proof lane, repo tooling, general backend glue, or direct production DB writes.
 - Replace inheritance ladders with enums, traits, composition, or explicit interfaces unless a framework requires inheritance.
 - When duplicate logic appears a second time, create an owning module or generated contract.
 - When a third call site appears, add table-driven tests or property tests for the owner.
@@ -183,7 +185,7 @@ repo/
     constraints/
     seeds/
   python/
-    ai-service/          # model/data/eval only; typed API; no product truth
+    ai-service/          # exception-only advanced ML/data; typed API; no product truth
   ops/
     ci/
     observability/
@@ -209,7 +211,7 @@ Allowed variants require `docs/exceptions/<id>.md` with owner, reason, expiratio
 | `crates/workers` | async jobs, backpressure, retries, durable workflow glue | product truth outside application layer |
 | `contracts` | OpenAPI/protobuf/JSON Schema source and generated artifacts | handwritten drift from server/client |
 | `db` | migrations, constraints, indexes, RLS, seeds, extension policy | ad hoc app-only invariants |
-| `python/ai-service` | models, embeddings, notebooks, eval pipelines, feature extraction, offline analysis | product truth, authz, direct prod DB writes, UI API ownership |
+| `python/ai-service` | approved advanced ML/data library work, embeddings, eval pipelines, feature extraction, offline analysis | product truth, authz, direct prod DB writes, UI API ownership, repo tools, proof lanes, general backend glue |
 | `ops` | CI, OTel, SBOM, SCA, secrets, deploy, provenance | hidden manual gates |
 | `docs` | decisions, exceptions, runbooks, public standard | stale generated truth |
 | `agent` | owner map, test map, generated zones, audit score, agent standard | prose-only policy with no machine check |
@@ -233,6 +235,7 @@ Forbidden direction:
 - `crates/domain` importing adapters, HTTP, SQL, env, time, logging, metrics, or filesystem.
 - `apps/web` importing SQL clients, secrets, database URLs, or product authorization internals.
 - Python importing application database clients for production truth.
+- Python added without a dated advanced-ML/data exception.
 - Kafka, Tansu, Iggy, Fluvio, NATS, Redis Streams, or similar clients outside declared queue adapters.
 - Adapters calling UI or product surface code.
 - Generated code importing handwritten implementation code.
@@ -300,7 +303,7 @@ Coverage means behavior proof, not line count.
 - Adapters need contract/integration tests against real or faithful services.
 - Database migrations need forward apply, rollback policy, constraint checks, and tenant isolation checks when multi-tenant.
 - TypeScript UI needs component tests, rendered UX geometry checks, visual/a11y evidence, and Playwright for critical browser journeys.
-- Python AI service needs golden evals, model IO contract tests, data-shape tests, and reproducibility seeds.
+- Approved Python AI/data exceptions need golden evals, model IO contract tests, data-shape tests, reproducibility seeds, and a containment/migration plan.
 - Bugs require regression tests in the owner cell that failed.
 - Every external boundary needs success, validation failure, retryable failure, and permanent failure coverage.
 - Snapshot tests are allowed only when paired with semantic assertions.
@@ -381,23 +384,12 @@ export class AgentFriendlyError extends Error {
 }
 ```
 
-Python pattern:
+Python exception boundary:
 
-```python
-@dataclass(frozen=True)
-class AgentErrorInfo:
-    name: str
-    purpose: str
-    reason_code: str
-    common_fixes: tuple[str, ...]
-    docs_url: str
-    retryable: bool
-
-class AgentFriendlyError(Exception):
-    def __init__(self, info: AgentErrorInfo) -> None:
-        super().__init__(info.reason_code)
-        self.info = info
-```
+Do not add Python as a pattern for repo tooling, proof lanes, product services,
+or backend glue. If a dated advanced-ML/data exception already exists, its
+service boundary must expose the same structured fields through generated
+contracts and must not leak raw provider exceptions across the product boundary.
 
 Forbidden:
 
@@ -482,7 +474,7 @@ The audit MUST detect or require explicit exceptions for these problems.
 | Mega function | Function exceeds LOC hard max |
 | Junk drawer | `utils`, `helpers`, `common`, `misc`, `legacy`, `stuff`, `shared` without owner README |
 | Duplicate behavior | same validation, mapping, authz, query, or transform in multiple cells |
-| Handwritten API type | frontend or Python declares types that should come from contract generation |
+| Handwritten API type | frontend or exception-only Python declares types that should come from contract generation |
 | Handwritten client drift | fetch/axios client duplicates generated client behavior |
 | Silent fallback | fallback value hides unavailable dependency, bad schema, auth failure, or model failure |
 | Broad catch | catch-all without reason_code, retry policy, and docs link |
@@ -497,9 +489,9 @@ The audit MUST detect or require explicit exceptions for these problems.
 | Overbroad agent agency | terminal/browser/network/filesystem permission exceeds lane scope |
 | Any sprawl | TypeScript `any`, `@ts-ignore`, unchecked JSON, or loose mode without exception |
 | Unsafe sprawl | Rust `unsafe`, `unwrap`, `expect`, or `panic` in production path without ledger |
-| Python creep | Python outside `python/ai-service` or Python owning product APIs/truth |
+| Python creep | Python outside a dated advanced-ML/data exception under `python/ai-service`, or Python owning product APIs/truth |
 | Notebook in prod | notebook checked into production path or CI path without export policy |
-| Direct DB in UI | browser code, BFF, or Python owns direct durable writes |
+| Direct DB in UI | browser code, BFF, or exception-only Python owns direct durable writes |
 | Domain IO | Rust domain reads env, clock, random, DB, filesystem, network, logger, metrics |
 | App-only invariant | database lacks constraint for durable invariant |
 | Migration hazard | destructive migration lacks rollback, lock, data backfill, and review note |

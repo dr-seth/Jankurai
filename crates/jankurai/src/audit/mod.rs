@@ -1,5 +1,6 @@
 pub mod analyzers;
 pub mod boundaries_artifact;
+pub mod boundary_reclassification;
 pub mod caps;
 pub mod evidence;
 pub mod file_kinds;
@@ -9,6 +10,7 @@ pub mod fs;
 pub mod fs_policy;
 pub mod helpers;
 pub mod policy;
+pub mod proofbind_artifact;
 pub mod rule_analyzer;
 pub mod rules;
 pub mod scan;
@@ -110,12 +112,18 @@ pub fn run_audit_timed_with_options(
     };
 
     let index_started = Instant::now();
-    let ctx = AuditContext {
+    let base_ctx = AuditContext {
         root: root.to_path_buf(),
         all_files,
         scope_files,
         scope_paths,
         self_audit: options.self_audit,
+        boundary_reclassifications: vec![],
+    };
+    let boundary_reclassifications = boundary_reclassification::evaluate(&base_ctx);
+    let ctx = AuditContext {
+        boundary_reclassifications,
+        ..base_ctx
     };
     timings.record_duration("index_build", index_started.elapsed());
     let analyzers_started = Instant::now();
@@ -210,6 +218,7 @@ pub fn run_audit_timed_with_options(
         },
         boundaries: BoundariesReadiness {
             artifact: boundaries_artifact::load_manifest_summary(root),
+            reclassifications: ctx.boundary_reclassifications.clone(),
         },
         vibe_coverage: crate::commands::vibe::audit_summary(root),
         findings,
@@ -532,13 +541,42 @@ fn build_findings(
             None,
         );
     }
+    if caps_applied.contains(&"boundary-reclassification-evidence-gap".into()) {
+        for boundary in ctx.boundary_reclassifications.iter().filter(|boundary| {
+            boundary.status != "passed" && !boundary.reclassified_caps.is_empty()
+        }) {
+            let mut evidence = vec![
+                format!("boundary `{}` status `{}`", boundary.id, boundary.status),
+                format!("paths: {}", boundary.paths.join(", ")),
+                format!("reclassifies: {}", boundary.reclassified_caps.join(", ")),
+            ];
+            evidence.extend(boundary.missing_checks.iter().take(4).cloned());
+            evidence.extend(boundary.failed_checks.iter().take(4).cloned());
+            let path = boundary
+                .evidence_artifacts
+                .first()
+                .map(|artifact| artifact.path.as_str())
+                .unwrap_or("agent/boundaries.toml");
+            b.add_with_rule_and_rerun(
+                "HLT-028-BOUNDARY-EVIDENCE-GAP",
+                path,
+                "audited runtime boundary reclassification evidence is missing, invalid, incomplete, or failing",
+                "fix the boundary evidence artifact and rerun the configured boundary proof command; do not move or broaden product assets to bypass the check",
+                evidence,
+                None,
+                Some(boundary.id.clone()),
+                Some("declared runtime boundary reclassification needs deterministic evidence before Python stack caps can be removed".into()),
+                Some(&boundary.rerun_command),
+            );
+        }
+    }
     if caps_applied.contains(&"python-direct-product-truth-or-db-ownership".into()) {
         b.add(
             "high",
             "python",
             "python/",
             "Python appears outside the bounded AI/data service or owns product truth",
-            "move Python into `python/ai-service` or keep it tooling-only under `tools/`",
+            "move Python into `python/ai-service` only when it is hard AI/data work; otherwise remove or migrate it to Rust",
             vec!["Python should stay away from product truth and production DB ownership".into()],
             Some("HLT-005-PYTHON-PRODUCT-TRUTH"),
             None,
@@ -603,12 +641,14 @@ fn build_findings(
         );
     }
 
-    if !helpers::non_optimal_language_hits(ctx).is_empty() {
+    if caps_applied.contains(&"non-optimal-product-language-found".into())
+        && !helpers::non_optimal_language_hits(ctx).is_empty()
+    {
         let hit = helpers::non_optimal_language_hits(ctx)[0].clone();
         b.add("high", "stack", &hit.rel_path, "runtime code uses a language outside the chosen optimal stack", "move product runtime behavior to Rust core, TypeScript web, SQL migrations, generated contracts, or bounded `python/ai-service` only", vec![format!("{} uses `{}`", hit.rel_path, hit.suffix), TARGET_STACK.into()], None, None);
     }
     let ratio = helpers::python_ratio(ctx);
-    if ratio > 0.15 {
+    if caps_applied.contains(&"too-much-python-in-product-surface".into()) && ratio > 0.15 {
         b.add(if ratio > 0.30 { "high" } else { "medium" }, "python", "python/ai-service", "Python is too large a share of runtime product code for this standard", "keep Python bounded to model/data work and move durable product truth, authz, workflows, and core behavior into Rust", vec!["Python share is above the soft cap".into()], None, None);
     }
     if !scan::todo_hits(ctx).is_empty() {
@@ -884,6 +924,35 @@ fn build_findings(
             None,
             None,
         );
+    }
+    if let Some(summary) = proofbind_artifact::load_summary(&ctx.root) {
+        if summary.mode == "required" {
+            for obligation in summary.missing_obligations.iter().take(10) {
+                let rule_id = obligation
+                    .rule_ids
+                    .iter()
+                    .find(|rule| rules::lookup(rule).is_some())
+                    .map(String::as_str)
+                    .unwrap_or("HLT-008-FALSE-GREEN-RISK");
+                b.add(
+                    "high",
+                    "proof",
+                    &summary.path,
+                    &format!(
+                        "proofbind obligation `{}` for `{}` is missing receipt evidence",
+                        obligation.surface_type, obligation.path
+                    ),
+                    &obligation.repair_task,
+                    vec![
+                        format!("obligation_id={}", obligation.obligation_id),
+                        format!("surface severity={}", obligation.severity),
+                        format!("proofbind verdict={}", summary.verdict),
+                    ],
+                    Some(rule_id),
+                    None,
+                );
+            }
+        }
     }
     if caps_applied.contains(&"missing-rust-property-or-integration-tests".into()) {
         b.add_with_rule("HLT-008-FALSE-GREEN-RISK", "crates/", "Rust surface lacks required property and/or integration tests", "add `proptest` or equivalent invariant tests plus `tests/` integration coverage routed through `cargo nextest` or `cargo test`", vec!["Rust surface detected".into()], None, None, None);

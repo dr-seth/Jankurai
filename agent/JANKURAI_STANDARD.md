@@ -17,7 +17,16 @@ Target stack:
 - TypeScript/React/Vite product surface
 - PostgreSQL durable truth
 - generated contracts
-- bounded Python AI/data service only
+- exception-only Python AI/data service, only when an advanced ML/data library
+  has no practical Rust, TypeScript, or service alternative
+
+Implementation default: use Rust for repository tools, core logic, proof lanes,
+and automation whenever practical. Agents must not create or expand Python for
+repo tooling, proof lanes, product services, general backend glue,
+authorization, or PostgreSQL access. The only allowed Python exception is rare:
+advanced ML/data work that depends on a Python-only library, is boxed under
+`python/ai-service`, and has a dated exception with owner, expiry, proof lane,
+and a migration/containment plan.
 
 ## Start Ritual
 
@@ -59,8 +68,10 @@ Stop or fix first when any condition is true:
 - non-generated file exceeds hard LOC max without an exception
 - generated file would need hand edit
 - public API/schema changes without contract regeneration
-- UI, Python, or domain code writes product truth directly
-- Python owns product authorization or production DB writes
+- UI, exception-only Python, or domain code writes product truth directly
+- Python is added without an approved advanced-ML/data exception
+- Python owns product authorization, product truth, proof lanes, repo tooling,
+  general backend glue, or production DB writes
 - new silent fallback, broad catch, disabled test, or duplicate behavior
 - product/runtime code contains future-hostile markers without allowlisted docs/generated/vendor/product-copy context or dated exception
 - high-risk change lacks security lane
@@ -103,6 +114,7 @@ Stop or fix first when any condition is true:
 | `HLT-025-RELEASE-READINESS-GAP` | release or launch gate lacks artifact-backed readiness evidence |
 | `HLT-026-COST-BUDGET-GAP` | unbounded paid work lacks budget, quota, or stop-condition evidence |
 | `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP` | review or proof claim lacks reproducible receipts |
+| `HLT-028-BOUNDARY-EVIDENCE-GAP` | audited runtime boundary reclassification lacks deterministic evidence |
 
 ## Ownership Boundaries
 
@@ -116,7 +128,7 @@ Stop or fix first when any condition is true:
 | `crates/workers` | jobs, backpressure, workflow glue | product truth outside application |
 | `contracts` | OpenAPI/protobuf/JSON Schema and generated clients | handwritten drift |
 | `db` | migrations, constraints, indexes, RLS | app-only durable invariants |
-| `python/ai-service` | models, embeddings, evals, data transforms | product truth, authz, production DB writes |
+| `python/ai-service` | exception-only advanced ML/data library work behind typed boundaries | product truth, authz, production DB writes, proof lanes, repo tools, general backend glue |
 | `ops` | CI, OTel, SBOM, SCA, secrets, provenance | hidden manual gates |
 
 ## Generated Zones
