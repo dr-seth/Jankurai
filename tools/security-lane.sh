@@ -52,7 +52,7 @@ run_required() {
   fi
   local err code
   err="$(mktemp)"
-  if bash -lc "$cmd" 2>"$err"; then
+  if bash -c "$cmd" 2>"$err"; then
     emit_step "$tool" "$tool" "$cmd" "ran" "0" "0"
     if [ -s "$err" ]; then
       cat "$err" >&2
@@ -80,7 +80,7 @@ run_advisory() {
   fi
   local err code
   err="$(mktemp)"
-  if bash -lc "$cmd" 2>"$err"; then
+  if bash -c "$cmd" 2>"$err"; then
     emit_step "$tool" "$tool" "$cmd" "ran" "1" "0"
     if [ -s "$err" ]; then
       cat "$err" >&2

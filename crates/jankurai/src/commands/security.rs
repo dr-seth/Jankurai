@@ -138,7 +138,7 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
     let started = Instant::now();
 
     let mut cmd = Command::new("bash");
-    cmd.arg("-lc").arg(&shell_command).current_dir(&repo);
+    cmd.arg(&script_rel).current_dir(&repo);
     if args.strict {
         cmd.env("JANKURAI_SECURITY_STRICT", "1");
     } else {
