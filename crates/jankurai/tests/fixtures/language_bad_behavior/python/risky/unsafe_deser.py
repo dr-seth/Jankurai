@@ -1,1 +1,0 @@
-data = pickle.loads(blob)
