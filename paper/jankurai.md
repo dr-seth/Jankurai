@@ -50,9 +50,10 @@ The May 5, 2026 public-repository advisory scan is the paper's field-evidence se
 16. Non-Normative Reference Profile Score
 17. Reference Profile Comparison
 18. Reference Architecture Profile
-19. Related Work
-20. Limitations and Research Agenda
-21. Conclusion
+19. Vibe Coding Bad Behavior Across Toolchains
+20. Related Work
+21. Limitations and Research Agenda
+22. Conclusion
 
 Appendices:
 
@@ -62,6 +63,7 @@ Appendices:
 - Reference-Profile File Tree Diagrams
 - Golden First-Hour Command Path
 - Public Repository Score Details
+- Language Bad-Behavior Matrix
 
 ## Core Interfaces
 
@@ -136,6 +138,14 @@ The current seed suite under `conformance/` has 10 fixture directories and 12 ex
 - `HLT-025-RELEASE-READINESS-GAP`: release claims need backup, monitoring, rollback, security, and abuse-control evidence.
 - `HLT-026-COST-BUDGET-GAP`: paid or unbounded operations need budgets, quotas, and stop conditions.
 - `HLT-027-HUMAN-REVIEW-EVIDENCE-GAP`: review and proof claims need receipts and replayable commands.
+- `HLT-028-BOUNDARY-EVIDENCE-GAP`: runtime boundary reclassification needs deterministic owner, proof, contract, and compatibility evidence.
+- `HLT-029-RUST-BAD-BEHAVIOR`: Rust unsafe, unchecked, shell, FFI, or lint-suppression shortcuts need local proof.
+- `HLT-030-SQL-BAD-BEHAVIOR`: SQL strings, destructive migrations, and unscoped writes need DB proof.
+- `HLT-031-TYPESCRIPT-BAD-BEHAVIOR`: TypeScript casts, suppressions, disabled strictness, and dynamic sinks need boundary proof.
+- `HLT-032-DOCKER-BAD-BEHAVIOR`: Docker privilege, mutable images, baked secrets, and unverified remote installs need security evidence.
+- `HLT-033-PYTHON-BAD-BEHAVIOR`: Python dynamic execution, unsafe deserialization, shell, DB, TLS, or product-truth paths need exception and containment proof.
+- `HLT-034-CI-BAD-BEHAVIOR`: CI privileged trust-boundary violations, mutable actions, secret leaks, and nonblocking security need blocking proof.
+- `HLT-035-GIT-BAD-BEHAVIOR`: Git automation that hides state, stages broadly, bypasses checks, or mutates refs destructively needs explicit receipts.
 
 ## Metrics
 

@@ -25,8 +25,9 @@ Paper edition: `2026.05-ed7`
 | 16. Non-Normative Reference Profile Score | `paper/tex/sections/07_stack_rubric.tex` | done |
 | 17. Reference Profile Comparison | `paper/tex/sections/08_stack_ranking.tex` | done |
 | 18. Reference Architecture Profile | `paper/tex/sections/09_winner_architecture.tex` | done |
-| 19. Related Work | `paper/tex/sections/15_related_work.tex` | done |
-| 20. Limitations and Research Agenda / Conclusion | `paper/tex/sections/16_limitations_conclusion.tex` | done |
+| 19. Vibe Coding Bad Behavior Across Toolchains | `paper/tex/sections/15_vibe_bad_behavior_discussion.tex` | done |
+| 20. Related Work | `paper/tex/sections/15_related_work.tex` | done |
+| 21. Limitations and Research Agenda / Conclusion | `paper/tex/sections/16_limitations_conclusion.tex` | done |
 
 ## Appendices
 
@@ -38,6 +39,7 @@ Paper edition: `2026.05-ed7`
 | Reference-Profile File Tree Diagrams | `paper/tex/appendices/d_file_trees.tex` | done |
 | Golden First-Hour Command Path | `paper/tex/appendices/e_command_map.tex` | done |
 | Public Repository Score Details | `paper/tex/appendices/f_public_repo_scores.tex` | done |
+| Language Bad-Behavior Matrix | `paper/tex/appendices/g_language_bad_behavior_matrix.tex` | done |
 
 ## Working Notes
 

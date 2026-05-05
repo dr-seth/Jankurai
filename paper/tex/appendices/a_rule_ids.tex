@@ -39,6 +39,14 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-025} & Release readiness gap & HL5 & mapped & release & governance-backed \\
 \texttt{HLT-026} & Cost budget gap & HL4 & mapped & budget & governance-backed \\
 \texttt{HLT-027} & Human-review evidence gap & HL3 & mapped & review & evidence-routed \\
+\texttt{HLT-028} & Boundary evidence gap & HL3 & mapped & owner/contract & evidence-routed \\
+\texttt{HLT-029} & Rust bad behavior & HL3 & detector-backed & fast/security & deterministic \\
+\texttt{HLT-030} & SQL bad behavior & HL3 & detector-backed & db & deterministic \\
+\texttt{HLT-031} & TypeScript bad behavior & HL3 & detector-backed & fast/security & deterministic \\
+\texttt{HLT-032} & Docker bad behavior & HL3 & detector-backed & security & deterministic \\
+\texttt{HLT-033} & Python bad behavior & HL3 & detector-backed & contract/security & deterministic \\
+\texttt{HLT-034} & CI bad behavior & HL3 & detector-backed & security/ci & deterministic \\
+\texttt{HLT-035} & Git bad behavior & HL3 & detector-backed & audit/security & deterministic \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -62,6 +70,14 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-021-DESTRUCTIVE-MIGRATION} & Destructive SQL under migration paths without rollback, backfill, lock, or DB proof evidence. & Add migration safety evidence or replace with a non-destructive transition. \\
 \texttt{HLT-022-AUTHZ-ISOLATION-GAP} & Authorization, RLS, tenant, or role surfaces lack owner/non-owner negative proof. & Add role matrix, RLS, and cross-user denial tests. \\
 \texttt{HLT-023-INPUT-BOUNDARY-GAP} & Unsafe input boundary, dynamic execution, string SQL, shell, fetch, or rendering sink lacks negative proof. & Add schemas, parameterization, allowlists, sandboxing, and exploit fixtures. \\
+\texttt{HLT-028-BOUNDARY-EVIDENCE-GAP} & Runtime boundary reclassification lacks owner, proof-lane, contract, or compatibility evidence. & Keep the boundary stable or add deterministic owner/proof/contract receipts. \\
+\texttt{HLT-029-RUST-BAD-BEHAVIOR} & Unsafe, unchecked, shell, FFI, or lint-suppression shortcuts lack local proof. & Remove the shortcut or add local safety contracts, negative tests, and security proof. \\
+\texttt{HLT-030-SQL-BAD-BEHAVIOR} & SQL strings, destructive migrations, or unscoped writes lack DB proof. & Parameterize, constrain, stage, and add migration safety receipts. \\
+\texttt{HLT-031-TYPESCRIPT-BAD-BEHAVIOR} & TypeScript hides runtime uncertainty behind casts, suppressions, disabled strictness, or dynamic sinks. & Validate at boundaries, restore strictness, and add generated contract or negative-input proof. \\
+\texttt{HLT-032-DOCKER-BAD-BEHAVIOR} & Container builds or compose files weaken isolation, bake secrets, or use mutable/unverified inputs. & Pin, verify, remove privilege, isolate secrets, and attach security scan evidence. \\
+\texttt{HLT-033-PYTHON-BAD-BEHAVIOR} & Python dynamic execution, unsafe deserialization, shell, DB, TLS, or product-truth paths lack exception proof. & Box Python behind a typed approved boundary or move behavior to the owning layer. \\
+\texttt{HLT-034-CI-BAD-BEHAVIOR} & CI runs untrusted privileged code, leaks secrets, weakens permissions, or makes security nonblocking. & Split trust contexts, pin actions, minimize scopes, and make security proof blocking. \\
+\texttt{HLT-035-GIT-BAD-BEHAVIOR} & Git automation hides state, stages broadly, bypasses checks, or mutates refs destructively. & Use explicit paths, status receipts, reviewed ref operations, and verification-on workflows. \\
 \bottomrule
 \end{tabularx}
 \end{table}
