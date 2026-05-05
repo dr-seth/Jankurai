@@ -4,6 +4,8 @@ This paper reserves \emph{exceptions} for runtime or program errors. Standards d
 
 Waiver lifecycle states are \texttt{proposed}, \texttt{active}, \texttt{renewed}, \texttt{expired}, \texttt{closed}, and \texttt{superseded}. Active waivers require owner approval, scope, reason, proof requirements, residual risk, expiry, and repair plan. Expired waivers fail closed in ratchet and release modes.
 
+Technical debt should not disappear into waiver language. A debt waiver names a temporary evidence gap and the compensating control that makes the next merge tolerable. A refactoring receipt proves the opposite: the debt was reduced, deleted, or moved behind a clearer boundary without changing behavior beyond the declared scope. This follows the technical-debt literature's central lesson that debt becomes dangerous when it loses ownership, visibility, and repayment discipline \cite{cunninghamTechnicalDebt1992,brownManagingTechnicalDebt2010,kruchtenTechnicalDebt2012}. In Jankurai terms, the repayment artifact is not a promise to clean up later; it is a receipt with changed paths, owner route, behavior claim, proof command, and residual risk.
+
 \begin{table}[t]
 \caption{Waiver lifecycle.}
 \label{tab:waiver-lifecycle}
@@ -11,6 +13,7 @@ Waiver lifecycle states are \texttt{proposed}, \texttt{active}, \texttt{renewed}
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.22\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{State} & \textbf{Required behavior} \\
 \midrule
 \texttt{proposed} & Not merge-authorizing; must name owner, scope, reason, proof, expiry, and repair path. \\
@@ -32,6 +35,7 @@ Runtime exceptions still matter for repair. HTTP APIs should use RFC 9457 proble
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.24\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Field} & \textbf{Purpose} \\
 \midrule
 \texttt{receipt\_id} & Stable identifier for the repair evidence. \\
@@ -43,6 +47,8 @@ Runtime exceptions still matter for repair. HTTP APIs should use RFC 9457 proble
 \texttt{waiver\_closed} & Whether a prior waiver was closed by the repair. \\
 \texttt{residual\_risk}, \texttt{redaction\_status} & Remaining risk and evidence privacy state. \\
 \texttt{owner\_approval} & Owner route or approval receipt. \\
+\texttt{debt\_or\_refactor\_scope} & Debt item, deleted path, moved boundary, or narrowed owner cell. \\
+\texttt{behavior\_change\_claim} & Declares no behavior change, intended behavior change, or unknown behavior requiring review. \\
 \texttt{expires\_at} & Required when the repair is partial or waiver-backed. \\
 \bottomrule
 \end{tabularx}

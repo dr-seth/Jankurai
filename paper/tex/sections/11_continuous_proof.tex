@@ -9,6 +9,7 @@ Agent-native testing should be organized by proof question, not author convenien
 \small
 \begin{tabularx}{\columnwidth}{L{0.28\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Layer} & \textbf{Minimum proof} \\
 \midrule
 Domain & Unit tests plus property tests for invariants and state machines. \\
@@ -24,6 +25,8 @@ Ops/security & Secret scan, dependency scan, provenance, audit gate. \\
 \end{table}
 
 The explosion of tests is useful only if routed. A repo with thousands of tests and no \texttt{test-map.json} still asks agents to guess. The standard therefore requires a fast lane for changed files, a contract lane for generated interfaces, a security lane for dependency and secret risk, a DB lane for migrations, a web lane for component and rendered UX proof, an e2e lane for critical browser behavior, and a release lane for full confidence.
+
+Refactoring is safe only when changed behavior has routed proof. A rename, extraction, deletion, or boundary move should be rewarded when it reduces debt, but it still needs receipts proving that the owner route, generated boundaries, and behavior claims remain valid. Agents otherwise tend toward additive patches: new wrappers, new tests beside old ones, new adapters beside stale paths. A Jankurai repository should make deletion, narrow repair, and proof-backed refactoring cheaper than piling on another plausible layer.
 
 \begin{lstlisting}[style=codebox]
 [[lane]]
@@ -50,13 +53,16 @@ The continuous proof loop is concrete and local. A changed path enters \texttt{a
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.26\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Check} & \textbf{Invalid when} \\
 \midrule
 Commit binding & Receipt \texttt{git\_head} differs from witness head. \\
-Path scope & Receipt omits a changed path in its declared lane. \\
+Changed path set & Receipt omits a changed path in its declared lane or covers paths no longer in the witness. \\
+Routing maps & Owner map, test map, or generated-zone map changed after the receipt was produced. \\
 Lane authority & Command is absent from the current proof lane map. \\
-Tool identity & Tool version or command digest is missing or mismatched. \\
+Tool identity & Tool version, command digest, standard version, auditor version, or schema version is missing or mismatched. \\
 Artifact digest & Named log, report, screenshot, or trace is missing or hash-mismatched. \\
+Dirty state & Worktree is dirty when the lane, witness, or release policy requires a clean tree. \\
 Privacy status & Required redaction status is absent for restricted evidence. \\
 \bottomrule
 \end{tabularx}

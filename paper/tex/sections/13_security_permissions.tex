@@ -13,6 +13,7 @@ Jankurai evidence can itself become sensitive. A conformant implementation MUST 
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.22\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Class} & \textbf{Merge and publication rule} \\
 \midrule
 Public & Safe to publish with report or badge. \\
@@ -30,6 +31,7 @@ Secret-bearing & Fails the lane until removed, rotated where needed, and replace
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.16\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Level} & \textbf{Security obligation} \\
 \midrule
 HL1 & Advisory scan output records missing security tools. \\
@@ -48,6 +50,7 @@ HL5 & Release evidence includes security, provenance, redaction, and rollback re
 \small
 \begin{tabularx}{\textwidth}{L{0.22\textwidth} Y Y}
 \toprule
+\JKTableHeader
 \textbf{Permission surface} & \textbf{Allowed evidence} & \textbf{Blocking concern} \\
 \midrule
 Repo reads & Changed-path inventory, source-trust labels, context-pack receipt. & Reading secrets, private transcripts, or unrelated customer data into context. \\
@@ -71,6 +74,7 @@ Auto-merge & Out of scope for this edition. & Merge without current witness and 
 \small
 \begin{tabularx}{\textwidth}{L{0.18\textwidth} Y Y}
 \toprule
+\JKTableHeader
 \textbf{Risk} & \textbf{Control} & \textbf{Repair evidence} \\
 \midrule
 Prompt injection and hostile context & Source hierarchy: root instructions, local owner rules, trusted docs, then untrusted issue/web text. & Receipt names ignored instruction, trusted rule, and resulting safe action. \\

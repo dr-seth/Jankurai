@@ -22,34 +22,37 @@ Naming policy: paper artifacts use the `jankurai.*` prefix. Do not create `main.
 
 ## Executive Abstract
 
-AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Jankurai is a versioned repository conformance standard for finding and reducing vibe artifacts: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, and unreceipted review claims.
+AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Traditional technical debt becomes evidence debt when a repository cannot prove ownership, generated boundaries, changed behavior, or refactoring safety. Jankurai is a versioned repository conformance standard for finding and reducing vibe artifacts: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, stale waivers, and unreceipted review claims.
 
 The repository is the alignment layer. In this paper, "proof" means repository-local evidence receipts, not formal proof of full program semantics. Jankurai maps changed paths to bounded authority, proof lanes, evidence receipts, repair queues, and expiring waivers. The central artifact is the merge witness: a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, missing-evidence decisions, artifact digests, tool identity, and commit identity.
 
-Jankurai Core is stack-neutral. Rust/TypeScript/PostgreSQL is a non-normative reference profile, not the standard. Go, .NET, JVM, TypeScript-heavy, Rails/Python, and Elixir profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence, and merge witnesses. Scores are posture signals, not merge approval.
+Jankurai Core is stack-neutral. Rust/TypeScript/PostgreSQL is a non-normative reference profile, not the standard. Go, .NET, JVM, TypeScript-heavy, Rails/Python, and Elixir profiles can conform when they emit equivalent owner routes, proof receipts, generated-zone evidence, security/UX evidence, and merge witnesses. Agent-first repository design means code and policy are shaped so agents can find owners, avoid generated zones, run one proof lane, receive stable failures, repair narrow scope, and leave receipts. Scores are posture signals, not merge approval.
+
+The May 5, 2026 public-repository advisory scan is the paper's field-evidence section. Jankurai 0.7.0 scanned 30 public GitHub repositories, succeeded on all 30, and observed a top score of 48, average score of 33.4, 15,391 total findings, and 15,017 hard findings. The scan is framed as repair-oriented posture evidence, not certification, defect attribution, or an incident study.
 
 ## Section Map
 
-1. From Vibe Coding to Verified Merge
+1. From Language Chaos to Verified Merge
 2. Running Example: Checkout PR
 3. Definitions and Threat Model
 4. Jankurai Core Standard and Conformance
 5. Vibe-Artifact Taxonomy and Stable Rule IDs
 6. Evaluation and Conformance Evidence
-7. Agent Repository Controls and Tool Adapters
-8. Continuous Proof: From Changed Paths to Merge Witness
-9. Rendered UX and Browser-Step QA
-10. Security, Supply Chain, and Permissions
-11. Waivers, Observability, and Repair Receipts
-12. Migration, Versioning, and Governance
-13. Languages as Proof-Cost Compression
-14. Technical Promise Versus Standard Gravity
-15. Non-Normative Reference Profile Score
-16. Reference Profile Comparison
-17. Reference Architecture Profile
-18. Related Work
-19. Limitations and Research Agenda
-20. Conclusion
+7. Public Repository Scoring in the Wild
+8. Agent Repository Controls and Tool Adapters
+9. Continuous Proof: From Changed Paths to Merge Witness
+10. Rendered UX and Browser-Step QA
+11. Security, Supply Chain, and Permissions
+12. Waivers, Observability, and Repair Receipts
+13. Migration, Versioning, and Governance
+14. Languages as Proof-Cost Compression
+15. Technical Promise Versus Standard Gravity
+16. Non-Normative Reference Profile Score
+17. Reference Profile Comparison
+18. Reference Architecture Profile
+19. Related Work
+20. Limitations and Research Agenda
+21. Conclusion
 
 Appendices:
 
@@ -58,6 +61,7 @@ Appendices:
 - Waiver and Repair Templates
 - Reference-Profile File Tree Diagrams
 - Golden First-Hour Command Path
+- Public Repository Score Details
 
 ## Core Interfaces
 
@@ -92,6 +96,15 @@ The current seed suite under `conformance/` has 10 fixture directories and 12 ex
 - Nine fail fixtures expect `block`.
 - Primary rule examples: `HLT-002`, `HLT-003`, `HLT-004`, `HLT-010`, `HLT-012`, `HLT-013`, `HLT-021`, `HLT-022`, `HLT-023`.
 - Validation command: `rtk just conformance`.
+
+## Public Repository Field Scan
+
+- Source data: `paper/data/public-repo-scores-20260505T184426Z.json`.
+- Receipt: `paper/data/public-repo-scores-20260505T184426Z.json.sha256`.
+- Generated tables: `paper/tex/generated/public_repo_score_tables.tex`.
+- Regeneration command: `python3 tools/render_public_repo_scores.py --source paper/data/public-repo-scores-20260505T184426Z.json --out paper/tex/generated/public_repo_score_tables.tex`.
+- Scope: 30 public GitHub repositories, 30 successful scans, 0 failed scans.
+- Aggregate posture: min 14, max 48, average 33.4, upper-middle score 34, hard finding share 97.6%.
 
 ## Key Rules
 

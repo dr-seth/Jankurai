@@ -9,6 +9,7 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.17\textwidth} L{0.20\textwidth} L{0.10\textwidth} L{0.14\textwidth} L{0.15\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Rule} & \textbf{Family} & \textbf{Required at} & \textbf{Fixture status} & \textbf{Receipt type} & \textbf{Detector maturity} \\
 \midrule
 \texttt{HLT-001} & Dead markers / entropy & HL2 & detector-backed & fast/audit & deterministic \\
@@ -49,6 +50,7 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.28\textwidth} Y Y}
 \toprule
+\JKTableHeader
 \textbf{Rule ID} & \textbf{Required evidence} & \textbf{Default repair} \\
 \midrule
 \texttt{HLT-002-GENERATED-MUTATION} & Generated path, source path, regeneration command, diff context. & Change the source contract or generator and regenerate. \\
@@ -80,8 +82,9 @@ emitted under \texttt{target/jankurai/} by the documented coverage command.
 \label{tab:vibe-coverage-summary}
 \centering
 \scriptsize
-\begin{tabularx}{\textwidth}{L{0.23\textwidth} L{0.12\textwidth} Y}
+\begin{tabularx}{\textwidth}{L{0.23\textwidth} R{0.12\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Status or family} & \textbf{Count} & \textbf{Interpretation} \\
 \midrule
 Source rows mapped & 260 & Every parsed row from \texttt{tips/vibe\_coding/tip1.txt} through \texttt{tip5.txt} has one canonical issue. \\

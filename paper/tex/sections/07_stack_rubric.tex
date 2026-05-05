@@ -9,8 +9,9 @@ This section is non-normative. The Jankurai standard is stack-neutral: a Go, JVM
 \label{tab:stack-rubric}
 \centering
 \small
-\begin{tabularx}{\textwidth}{L{0.21\textwidth} L{0.07\textwidth} Y Y}
+\begin{tabularx}{\textwidth}{L{0.21\textwidth} R{0.07\textwidth} Y Y}
 \toprule
+\JKTableHeader
 \textbf{Criterion} & \textbf{Weight} & \textbf{Full-credit signal} & \textbf{Evidence and argument} \\
 \midrule
 Agent-verifiable correctness loop & 18 & Fast type/compile checks, deterministic test routing, generated contracts, property tests, reproducible local and CI lanes. & AI output must be treated as suspect until a proof loop rejects or accepts it; setup and context benchmarks show environment and retrieval reliability are central bottlenecks \cite{setupBench2025,contextBench2026}. \\
@@ -36,8 +37,9 @@ Hard filters apply before points. A profile with no deterministic local proof la
 \label{tab:hard-caps}
 \centering
 \scriptsize
-\begin{tabularx}{\columnwidth}{Y L{0.18\columnwidth}}
+\begin{tabularx}{\columnwidth}{Y R{0.18\columnwidth}}
 \toprule
+\JKTableHeader
 \textbf{Missing or unsafe control} & \textbf{Max score} \\
 \midrule
 No deterministic local proof lane & 65 \\

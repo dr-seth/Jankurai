@@ -15,6 +15,7 @@ Jankurai Core is the standard interface. It is not a claim that all repositories
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.32\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Layer} & \textbf{Status} \\
 \midrule
 Jankurai Core & Stack-neutral normative conformance model: levels, decision enum, artifact validity, rule IDs, and witness semantics. \\
@@ -80,6 +81,7 @@ The standard's public primitive is the merge witness:
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.24\textwidth} L{0.18\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Artifact} & \textbf{Core role} & \textbf{Validity signal} \\
 \midrule
 \texttt{standard-version.toml} & Version identity. & Binds standard, auditor, schema, paper provenance, and registered artifacts. \\
@@ -102,6 +104,7 @@ Evidence index & Artifact ledger. & Receipts, logs, screenshots, traces, reports
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.34\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Field} & \textbf{Why required} \\
 \midrule
 \texttt{lane}, \texttt{command}, \texttt{cwd} & Shows which approved proof ran and from where. \\
@@ -121,6 +124,7 @@ Evidence index & Artifact ledger. & Receipts, logs, screenshots, traces, reports
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.34\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Field group} & \textbf{Required meaning} \\
 \midrule
 Version identity & \texttt{standard\_version}, \texttt{auditor\_version}, \texttt{schema\_version}. \\
@@ -141,6 +145,7 @@ The machine field is \texttt{schema\_version}. A schema bundle is prose for the 
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.28\textwidth} L{0.09\textwidth} L{0.09\textwidth} L{0.09\textwidth} L{0.09\textwidth} L{0.09\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Artifact or behavior} & \textbf{HL1} & \textbf{HL2} & \textbf{HL3} & \textbf{HL4} & \textbf{HL5} & \textbf{Requirement} \\
 \midrule
 Versioned policy files and stable rule IDs & MUST & MUST & MUST & MUST & MUST & The repository exposes a versioned standard target and machine-readable rule families. \\
@@ -165,6 +170,7 @@ The decision enum is closed in this edition: \texttt{pass}, \texttt{review}, \te
 \small
 \begin{tabularx}{\columnwidth}{L{0.16\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Level} & \textbf{Meaning} \\
 \midrule
 HL0 & Unscored or unrouted. \\
@@ -190,6 +196,7 @@ Jankurai borrows standards mechanics without claiming institutional equivalence.
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.30\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Surface} & \textbf{Status and role} \\
 \midrule
 Adoption/drift & \texttt{adopt}, \texttt{init}, \texttt{update}, \texttt{doctor}; implemented/candidate no-surprise onboarding. \\

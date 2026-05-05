@@ -11,8 +11,9 @@ The v0.7.0 coverage method is mechanical: parse source rows, normalize issue fam
 \label{tab:fault-taxonomy}
 \centering
 \scriptsize
-\begin{tabularx}{\textwidth}{L{0.12\textwidth} L{0.04\textwidth} L{0.16\textwidth} L{0.15\textwidth} Y L{0.13\textwidth}}
+\begin{tabularx}{\textwidth}{L{0.12\textwidth} R{0.04\textwidth} L{0.16\textwidth} L{0.15\textwidth} Y L{0.13\textwidth}}
 \toprule
+\JKTableHeader
 \textbf{TLR} & \textbf{RPN} & \textbf{Fault} & \textbf{Rule/lane} & \textbf{Required control} & \textbf{Detector maturity} \\
 \midrule
 Business truth & 125 & False-green business logic & HLT-008 / fast & Domain invariants, property tests, golden workflows, DB constraints, incident replay tests. & evidence-routed \\
@@ -50,8 +51,9 @@ Context/setup & 30 & Documentation or instruction drift & HLT-015 / audit & Cano
 \scriptsize
 \caption{TLR RPN share. TLR means Top-Level Risk; shares are computed from Table~\ref{tab:fault-taxonomy}.}
 \label{tab:tlr-bars}
-\begin{tabularx}{\columnwidth}{L{0.28\columnwidth} L{0.16\columnwidth} Y}
+\begin{tabularx}{\columnwidth}{L{0.28\columnwidth} R{0.16\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{TLR bucket} & \textbf{RPN share} & \textbf{Relative weight} \\
 \midrule
 Security & 32\% & \rule{2.6cm}{0.55em} \\
@@ -67,7 +69,7 @@ Repair & 3\% & \rule{0.24cm}{0.55em} \\
 
 \begin{center}
 \fbox{\begin{minipage}{0.93\columnwidth}
-\textbf{Highest-priority controls.} A Jankurai-conformant repo should block merges when a changed path has no proof lane, a public boundary has handwritten contract mirrors, durable truth moves outside the declared durable-truth owner, database constraint layer, or approved domain/application boundary, security or secret scans are absent for risky changes, agent permissions are broader than the lane requires, user-facing UI lacks rendered proof, or \texttt{fallback}/\texttt{TODO}/\texttt{stub} ships without a scoped waiver.
+\textbf{Highest-priority controls.} A Jankurai-conformant repo should block merges when a changed path has no proof lane, a public boundary has handwritten contract mirrors, durable truth moves outside the declared durable-truth owner, database constraint layer, or approved domain/application boundary, security or secret scans are absent for risky changes, agent permissions are broader than the lane requires, user-facing UI lacks rendered proof, or \texttt{fallback}/\texttt{todo}/\texttt{stub} ships without a scoped waiver.
 \end{minipage}}
 \end{center}
 

@@ -7,11 +7,14 @@
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.20\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Term} & \textbf{Operational meaning} \\
 \midrule
 Vibe artifact & Repository residue that makes a change plausible but not auditable: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent authority, unproven UI changes, stale waivers, or review claims without receipts. \\
 Vibe-code drift & The measurable gap between claimed engineering intent and evidence attached to a change. \\
 Continuous repository alignment & The practice of keeping ownership, edit scope, proof lanes, generated boundaries, permissions, evidence, repair queues, and conformance metadata synchronized with each merge. \\
+Evidence debt & Missing or stale merge evidence that accumulates like technical debt: absent owner routes, unmapped proof lanes, unvalidated generated boundaries, undocumented waivers, or receipts that cannot prove the current change. \\
+Review subjectivity gap & Reliance on taste, memory, seniority, or local convention where a rule ID, owner route, proof lane, receipt, or explicit waiver should exist. \\
 Real-time repository conformance & A repeatable local/PR/CI loop in which each changed path is evaluated against current repository policy before merge; it is not a claim of an omniscient daemon. \\
 Proof freshness & A receipt is current for the changed-path scope, commit, tool identity, command identity, and declared lane it claims to prove. \\
 Receipt validity & A receipt is replayable or inspectable enough to bind command, cwd, inputs, tool version, result, artifacts, and digest to the current merge witness. \\
@@ -37,6 +40,7 @@ Reference profile & A non-normative stack or implementation profile that can sat
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.18\textwidth} Y Y}
 \toprule
+\JKTableHeader
 \textbf{Threat} & \textbf{Risk} & \textbf{Jankurai control} \\
 \midrule
 False plausibility & Agent or human patch looks idiomatic but violates architecture, data, security, or runtime expectations. & Stable rule IDs, owner maps, proof lanes, generated-zone policy, and merge witness. \\
@@ -48,7 +52,7 @@ Evidence leakage & Screenshots, logs, traces, prompts, or artifacts expose secre
 CI downgrade & A workflow disables proof, widens permissions, removes artifacts, or changes branch gates. & CI hardening rule, workflow diff checks, pinned actions, and required evidence uploads. \\
 Malicious MCP or tool schema & External tool output or schema attempts to change trusted policy or execute unsafe commands. & Untrusted-content isolation, schema validation, permission receipts, and no direct execution of generated text. \\
 Generated test self-confirmation & Generated code and generated tests confirm the same wrong assumption. & Owner-owned acceptance criteria, negative fixtures, semantic assertions, and changed-path routing. \\
-Human rubber-stamp review & Review approval lacks reproducible evidence or merely endorses plausible code. & Human-review evidence rule, receipt requirement, and merge witness decision record. \\
+Subjective or rubber-stamp review & Review approval relies on taste, memory, or plausibility instead of reproducible evidence. & Stable rule IDs, human-review evidence rule, receipt requirement, explicit waiver/review evidence, and merge witness decision record. \\
 Screenshots or logs leaking secrets & Browser and observability evidence captures tokens, PII, prompt text, or private data. & UX/security evidence redaction, hash-based references, and artifact privacy status. \\
 Out of scope & Full semantic correctness, malicious compiler/runtime integrity, and organizational governance outside the repository. & Explicit limitations, signed-receipt future work, and no claim of total program proof. \\
 \bottomrule

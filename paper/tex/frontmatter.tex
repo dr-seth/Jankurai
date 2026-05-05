@@ -26,8 +26,43 @@
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 \setlist[itemize]{leftmargin=*, itemsep=1pt, topsep=2pt}
 \setlist[enumerate]{leftmargin=*, itemsep=1pt, topsep=2pt}
+
+\definecolor{JKBlue}{HTML}{244C6A}
+\definecolor{JKHeader}{HTML}{DCE8F2}
+\definecolor{JKRowAlt}{HTML}{F5F8FB}
+\definecolor{JKLine}{HTML}{CAD3DC}
+\definecolor{JKGood}{HTML}{DDEDDC}
+\definecolor{JKWarn}{HTML}{FFF1CC}
+\definecolor{JKBad}{HTML}{F5D7D7}
+\definecolor{JKNeutral}{HTML}{ECEFF3}
+
+\arrayrulecolor{JKLine}
+\setlength{\heavyrulewidth}{0.52pt}
+\setlength{\lightrulewidth}{0.34pt}
+\setlength{\cmidrulewidth}{0.34pt}
+\renewcommand{\arraystretch}{1.13}
+
+\newcommand{\JKTableHeader}{\rowcolor{JKHeader}}
+\newcommand{\JKDenseRows}{\rowcolors{2}{white}{JKRowAlt}}
+\newcommand{\JKResetRows}{\rowcolors{2}{}{}}
+\newcommand{\JKStatusGood}[1]{\cellcolor{JKGood}#1}
+\newcommand{\JKStatusWarn}[1]{\cellcolor{JKWarn}#1}
+\newcommand{\JKStatusBad}[1]{\cellcolor{JKBad}#1}
+\newcommand{\JKStatusNeutral}[1]{\cellcolor{JKNeutral}#1}
+\newcommand{\JKScoreCell}[1]{%
+  \ifnum#1<50 \cellcolor{JKBad}\textbf{#1}%
+  \else\ifnum#1<75 \cellcolor{JKWarn}\textbf{#1}%
+  \else\ifnum#1<85 \cellcolor{JKNeutral}\textbf{#1}%
+  \else \cellcolor{JKGood}\textbf{#1}%
+  \fi\fi\fi
+}
+\newcommand{\JKScoreCellBest}[1]{%
+  \cellcolor{JKBad}\begin{tabular}{@{}r@{}}\textbf{#1}\\[-0.15em]{\tiny best observed}\end{tabular}%
+}
 \lstdefinestyle{codebox}{%
   basicstyle=\ttfamily\scriptsize,
   columns=fullflexible,
@@ -129,16 +164,16 @@
       \setlength{\parskip}{0.48em}
       \emergencystretch=2em
 
-      AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Jankurai is a versioned repository conformance standard for finding and reducing \emph{vibe artifacts}: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, and unreceipted review claims. In this paper, \emph{proof} means repository-local evidence receipts, not a formal proof of full program semantics. Its central artifact is the \emph{merge witness}, a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool identity, artifact digests, and commit identity.
+      AI-assisted coding makes plausible code cheap and vibe-code drift expensive. Traditional technical debt becomes \emph{evidence debt} when a repository cannot prove who owns a changed path, which generated boundaries apply, which behavior changed, or which proof makes a refactor safe. Jankurai is a versioned repository conformance standard for finding and reducing \emph{vibe artifacts}: ownerless paths, unmapped proof, hand-edited generated zones, stale contracts, false-green tests, missing security evidence, overbroad agent permissions, unproven UI changes, stale waivers, and unreceipted review claims. In this paper, \emph{proof} means repository-local evidence receipts, not a formal proof of full program semantics.
 
-      Jankurai treats the repository as the alignment layer for human- and agent-authored code. AI makes plausible code cheap; Jankurai makes merge evidence explicit. A local, pull-request, and CI loop maps each changed path to bounded authority, proof lanes, evidence receipts, repair queues, or expiring waivers. The result is not a larger prompt or a hosted trust service; it is a reproducible merge decision that can be audited at the current commit.
+      Jankurai treats the repository as the alignment layer for human- and agent-authored code. A local, pull-request, and CI loop maps each changed path to bounded authority, proof lanes, evidence receipts, repair queues, or expiring waivers. Its central artifact is the \emph{merge witness}, a versioned binding among changed paths, owner routes, required proof receipts, observed evidence, score deltas, missing-evidence decisions, tool identity, artifact digests, and commit identity. The result is not a larger prompt or a hosted trust service; it is a reproducible merge decision that can be audited at the current commit.
 
-      The paper contributes a stack-neutral repository model with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, bounded authority, proof receipts, audit reports, repair queues, merge witnesses, and a seed conformance suite. The claim is bounded: Jankurai does not prove full program semantics, does not require a Rust/TypeScript/PostgreSQL stack, and does not treat scores as merge approval. It proposes a version-controlled standard for turning vibe coding into repairable evidence.
+      The paper contributes a stack-neutral repository model for continuous repository alignment with owner maps, test maps, generated-zone policy, stable rule identifiers, version manifests, bounded authority, proof receipts, audit reports, repair queues, merge witnesses, and a seed conformance suite. It also frames \emph{agent-first repository design}: code and policy shaped so agents can find owners, avoid generated zones, select one proof lane, receive stable errors, repair narrow scope, and leave receipts. The claim is bounded: Jankurai does not prove full program semantics, does not require a Rust/TypeScript/PostgreSQL stack, and does not treat scores as merge approval. It proposes a version-controlled standard for turning vibe coding into repairable evidence.
       \par
       \endgroup
 
       \vspace{0.35em}
-      {\small\noindent\textbf{Index Terms---}vibe coding, vibe artifacts, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence.\par}
+      {\small\noindent\textbf{Index Terms---}vibe coding, vibe artifacts, technical debt, evidence debt, refactoring, agent-first repository design, continuous repository alignment, proof-carrying pull requests, merge witness, repair queues, agent efficiency, repository governance, software evidence.\par}
     \end{minipage}%
   }%
   \par

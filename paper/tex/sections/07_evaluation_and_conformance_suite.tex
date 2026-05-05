@@ -13,6 +13,7 @@ The \texttt{jankurai} CLI audits this repository and emits JSON and Markdown rep
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.36\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Artifact or count} & \textbf{Current value} \\
 \midrule
 Audit JSON/Markdown & \texttt{agent/repo-score.json}, \texttt{agent/repo-score.md}. \\
@@ -39,6 +40,7 @@ The current seed suite contains 10 fixture directories and 12 expected JSON file
 \small
 \begin{tabularx}{\columnwidth}{L{0.25\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Fixture class} & \textbf{Expected signal} \\
 \midrule
 HL3 pass & Known-good HL3 shape; expected audit and witness decision: \texttt{pass}. \\
@@ -62,6 +64,7 @@ Input boundary & \texttt{HLT-023} requires deterministic negative proof for unsa
 \scriptsize
 \begin{tabularx}{\textwidth}{L{0.24\textwidth} L{0.12\textwidth} L{0.22\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Fixture} & \textbf{Expected witness} & \textbf{Primary rule} & \textbf{Current validation status} \\
 \midrule
 \texttt{hl3-pass-minimal} & \texttt{pass} & none & Inventory and expected JSON present. \\
@@ -89,6 +92,7 @@ Input boundary & \texttt{HLT-023} requires deterministic negative proof for unsa
 \small
 \begin{tabularx}{\textwidth}{L{0.24\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Metric} & \textbf{Meaning} \\
 \midrule
 Vibe artifact density & Open HLT findings per changed path, pull request, KLOC, or module. \\

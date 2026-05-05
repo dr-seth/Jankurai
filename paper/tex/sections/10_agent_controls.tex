@@ -11,6 +11,7 @@ The adapter problem is an authority problem, not a formatting problem. Jankurai 
 \scriptsize
 \begin{tabularx}{\columnwidth}{L{0.20\columnwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Rank} & \textbf{Authority} \\
 \midrule
 1 & Standard/version manifest and schema bundle. \\
@@ -32,6 +33,7 @@ For example, if \texttt{AGENTS.md} appears to permit generated edits but \texttt
 \small
 \begin{tabularx}{\textwidth}{L{0.24\textwidth} Y}
 \toprule
+\JKTableHeader
 \textbf{Check} & \textbf{Required evidence} \\
 \midrule
 Root router points to canonical policy & \texttt{AGENTS.md} or equivalent names the standard brief, maps, generated zones, and validation lanes. \\
@@ -50,6 +52,7 @@ Conflicts fail closed & Contradictions select the narrower authority and produce
 \small
 \begin{tabularx}{\textwidth}{L{0.16\textwidth} L{0.21\textwidth} Y Y}
 \toprule
+\JKTableHeader
 \textbf{Tool family} & \textbf{Native surface} & \textbf{Jankurai adapter} & \textbf{Non-negotiable rule} \\
 \midrule
 Codex & \texttt{AGENTS.md}, local scoped instructions. & Root router plus local ownership files and mapped proof commands. & Do not duplicate durable policy outside the standard. \\
@@ -61,6 +64,33 @@ Terminal agents & CLI prompt files, repo maps, shell wrappers. & Root router, fi
 \bottomrule
 \end{tabularx}
 \end{table*}
+
+\subsection{Agent-First Repository Design}
+
+Agent-first repository design means shaping code, policy, and proof surfaces so an agent can find the owner, identify the allowed edit cell, avoid generated zones, choose one credible proof lane, receive stable failures, repair narrow scope, and leave receipts. It is not a demand that every repository use the reference stack. It is the repository-design counterpart to modularity and refactoring discipline: make boundaries explicit enough that a non-human contributor can be useful without inventing hidden context.
+
+\begin{table*}[t]
+\caption{Agent-first design transformations.}
+\label{tab:agent-first-design}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{L{0.24\textwidth} Y}
+\toprule
+\JKTableHeader
+\textbf{Hidden or fragile shape} & \textbf{Agent-first repository shape} \\
+\midrule
+Hidden convention & Owner map, path-local rule, and routeable proof lane. \\
+Giant utility module & Bounded owner cell with narrow imports, tests, and repair responsibility. \\
+Handwritten DTO or client mirror & Generated contract with source path, generator command, and drift check. \\
+Direct database write from feature code & Adapter or DB boundary with migration, constraint, and transaction proof. \\
+Subjective review claim & Stable rule ID, receipt, reviewer evidence, or explicit waiver. \\
+Vague failure or log line & Stable error code, problem detail, trace attribute, and repair hint. \\
+Broad agent permission & Lane-scoped permission receipt with changed paths and allowed writes. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The practical test is whether a fresh agent can answer seven questions from repository state: what changed, who owns it, what must not be edited by hand, which command proves it, what evidence was produced, what failure is actionable, and where the repair receipt goes. If any answer lives only in reviewer memory, the repository is carrying evidence debt.
 
 Token minimization is not a prompting trick; it is repository design. Large root instructions, duplicate architecture documents, stale docs, broad rereads, and noisy command output waste context and invite contradiction. ContextBench and SWE-Effi support this direction by treating useful context and resource constraints as first-class bottlenecks \cite{contextBench2026,sweEffi2025}. Context-pack metrics should include token count, stale docs excluded, proof-selection precision, route confidence, false-exclusion rate, and first-pass repair success.
 
