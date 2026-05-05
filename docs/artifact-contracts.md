@@ -25,12 +25,14 @@ Every durable or generated machine-readable surface should either validate again
 | `agent/boundaries.toml` | `schemas/boundaries.schema.json`; `doctor` | |
 | `agent/security-policy.toml` | `schemas/security-policy.schema.json`; `doctor` | |
 | `agent/ux-qa.toml` | `schemas/ux-qa-policy.schema.json`; `doctor` | |
-| `target/jankurai/security/evidence.json` | `schemas/security-evidence.schema.json`; `security_evidence_smoke` | Written by `jankurai security run`. Optional multi-row **`commands[]`**: lines prefixed with **`jankurai-security-step=`** in the lane log (bundled script uses **`python3`** to emit JSON); otherwise one wrapper step. |
+| `target/jankurai/security/evidence.json` | `schemas/security-evidence.schema.json`; `security_evidence_smoke` | Written by `jankurai security run`. Optional multi-row **`commands[]`**: lines prefixed with **`jankurai-security-step=`** in the lane log; otherwise one wrapper step. The bundled script emits those rows without Python. |
 | `target/jankurai/proof-verification.json` | `schemas/proof-verification.schema.json`; `proof_surface_smoke` | Tamper-evident proof verification envelope from `jankurai proof-verify`. |
 | `target/jankurai/merge-witness.json` | `schemas/merge-witness.schema.json`; `schema_contracts`, command smoke tests | PR merge witness with changed paths, route decisions, proof matrix, score delta, missing evidence, and merge decision. |
 | `target/jankurai/score-diff.json` | `schemas/score-diff.schema.json`; `schema_contracts`, command smoke tests | Baseline/head score, cap, and finding diff. |
 | `target/jankurai/score-trend.json` | `schemas/score-trend.schema.json`; `schema_contracts`, command smoke tests | Recent score-history window and trust-ledger trend summary. |
 | `target/jankurai/rule-registry.json` | `schemas/rule-registry.schema.json`; `rule_registry_smoke` | Exported Rust rule registry for docs/paper parity checks. |
+
+New artifact producers must be Rust-first. Agents must not add Python helpers for proof lanes, repository tools, product truth, product services, authorization, general backend glue, or PostgreSQL write paths. Python is allowed only for rare dated advanced-ML/data exceptions boxed under `python/ai-service`.
 | `target/jankurai/rules-verify.json` | `schemas/rule-verify.schema.json`; `rule_registry_smoke` | Rule-reference drift report across paper, docs, proof lanes, and code. |
 | `target/jankurai/p12-benchmark-report.json` | `schemas/benchmark-report.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 benchmark artifact |
 | `target/jankurai/p12-certification.json` | `schemas/certification.schema.json`; `phase_12_public_evidence`, `command_surface_smoke` | Phase 12 certification artifact |

@@ -14,7 +14,7 @@ The paper becomes operational through the audit. A standard without a scanner is
 | Data truth and workflow safety | 8 | migrations, constraints, DB isolated to adapters/db |
 | Observability and repair evidence | 8 | OTel, tracing, request IDs, structured errors |
 | Context economy and agent instructions | 8 | concise docs, generated zones, repair links |
-| Python containment and polyglot hygiene | 4 | Python boxed to AI/data or tooling only |
+| Python containment and polyglot hygiene | 4 | Python appears only in rare advanced-ML/data exceptions or explicit detector fixtures |
 | Build speed signals | 4 | incremental-friendly fast commands |
 
 ### Hard Caps
@@ -56,7 +56,7 @@ These are not style nits. They are known patterns that make agent repair slower,
 | `unreachable!`/`unimplemented!`/panic TODOs | runtime trap hidden from tests | typed error and proof |
 | handwritten DTOs | API drift becomes invisible | generate from contract source |
 | handwritten fetch wrappers | every endpoint forks the contract | generated client plus one transport wrapper |
-| direct DB from UI/API/domain/Python | product truth leaks | isolate DB in adapters and PostgreSQL |
+| direct DB from UI/API/domain/exception-only Python | product truth leaks | isolate DB in adapters and PostgreSQL |
 | Python product truth | dynamic runtime owns durable behavior | move to Rust/PostgreSQL |
 | unnecessary runtime languages | more tooling and failure modes | converge to target stack |
 | mega files | agents lose locality | split by owner before adding behavior |
@@ -85,7 +85,7 @@ The audit must emit JSON and Markdown. JSON is for agents and CI. Markdown is fo
 {
   "standard": "jankurai",
   "standard_version": "0.3.0",
-  "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + bounded Python AI/data service",
+  "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service",
   "score": 86,
   "raw_score": 91,
   "caps_applied": ["no-security-lane"],

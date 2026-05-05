@@ -11,28 +11,31 @@ emit_step() {
   local status="$4"
   local advisory_flag="$5"
   local ec="${6-}"
-  if command -v python3 >/dev/null 2>&1; then
-    _JS_LABEL="$label" _JS_TOOL="$tool" _JS_CMD="$scmd" _JS_STATUS="$status" \
-      _JS_ADV="$advisory_flag" _JS_EC="$ec" python3 - <<'PY'
-import json, os
-label = os.environ["_JS_LABEL"]
-tool = os.environ["_JS_TOOL"]
-cmd = os.environ["_JS_CMD"]
-status = os.environ["_JS_STATUS"]
-adv = os.environ["_JS_ADV"] == "1"
-ec_raw = os.environ.get("_JS_EC", "")
-d = {
-    "label": label,
-    "tool": tool,
-    "shell_command": cmd,
-    "status": status,
-    "advisory": adv,
-}
-if ec_raw != "":
-    d["exit_code"] = int(ec_raw)
-print("jankurai-security-step=" + json.dumps(d, ensure_ascii=False))
-PY
+  local advisory_json="false"
+  if [ "$advisory_flag" = "1" ]; then
+    advisory_json="true"
   fi
+
+  printf 'jankurai-security-step={"label":"%s","tool":"%s","shell_command":"%s","status":"%s","advisory":%s' \
+    "$(json_escape "$label")" \
+    "$(json_escape "$tool")" \
+    "$(json_escape "$scmd")" \
+    "$(json_escape "$status")" \
+    "$advisory_json"
+  if [ -n "$ec" ]; then
+    printf ',"exit_code":%s' "$ec"
+  fi
+  printf '}\n'
+}
+
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\t'/\\t}"
+  printf '%s' "$value"
 }
 
 run_required() {

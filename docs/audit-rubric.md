@@ -2,7 +2,7 @@
 
 Version: `0.7.0`
 
-Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + bounded Python AI/data service.
+Target stack: Rust core + TypeScript/React/Vite product surface + PostgreSQL truth + generated contracts + exception-only Python AI/data service.
 
 The audit is strict on purpose. It is not a general-purpose repo quality score. It asks one question: can an agent safely reject, localize, prove, audit, and repair this codebase without turning human-friendly shortcuts into production behavior?
 
@@ -18,7 +18,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | `crates/workers/` | async jobs, durable workflow glue, CPU workers | no UI truth, no bypass of application/domain invariants |
 | `contracts/` | OpenAPI, protobuf, JSON Schema, generated contract outputs | generated outputs must be marked and repaired from source contracts |
 | `db/` | migrations, constraints, seeds, indexes, RLS where useful | no ad hoc app-only durable invariants |
-| `python/ai-service/` | models, embeddings, evals, notebooks, typed model/data API | no product truth, no core authz, no direct production DB ownership |
+| `python/ai-service/` | rare approved advanced ML/data library work, embeddings, evals, typed model/data API | no product truth, no core authz, no repo tools, no proof lanes, no general backend glue, no direct production DB ownership |
 | `ops/` | CI, observability, security, provenance, deployment | no hidden manual gates |
 
 ## Score Dimensions
@@ -33,7 +33,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | Data truth and workflow safety | 8 | migrations, constraints, DB isolated to adapters/db, no DB writes from wrong layers |
 | Observability and repair evidence | 8 | tracing, request IDs, structured diagnostics, repair receipts, agent-friendly exceptions |
 | Context economy and agent instructions | 8 | concise docs, generated zones, root router, evidence paths, no token-heavy maze |
-| Python containment and polyglot hygiene | 4 | Python only in bounded AI/data or tooling, minimal runtime share, no unnecessary languages |
+| Python containment and polyglot hygiene | 4 | Python only in rare dated advanced-ML/data exceptions or explicit detector fixtures, no Python tooling or unnecessary runtime languages |
 | Build speed signals | 4 | fast checks, caching, nextest/vitest, targeted commands, locked dependencies |
 
 ## Hard Rule Caps
@@ -48,8 +48,8 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | Python owns product truth or DB ownership | 72 | move truth/authz/workflows into Rust and DB migrations |
 | no secret or dependency scan in CI | 78 | add gitleaks/detect-secrets plus dependency review or equivalent |
 | no jankurai audit lane in CI | 82 | run `jankurai` in every PR and publish JSON/Markdown |
-| non-optimal product language found | 74 | migrate product runtime code to Rust, TypeScript, SQL, contracts, or bounded Python |
-| too much Python in product surface | 72 | box Python into model/data service and move durable behavior to Rust |
+| non-optimal product language found | 74 | migrate product runtime code to Rust, TypeScript, SQL, or generated contracts |
+| too much Python in product surface | 72 | remove Python or box a rare approved advanced-ML/data exception under `python/ai-service` and move durable behavior to Rust |
 | vibe placeholders in product code | 68 | replace TODO/stub/unimplemented/unreachable with real behavior or typed exceptions |
 | fallback soup in product code | 70 | replace fallback chains with explicit states, bounded retries, telemetry, docs |
 | future-hostile/dead-language in product runtime code | 64 | remove or rename dead/temporary/legacy wording, implement the state, or move copy/docs/generated/vendor text into an allowlisted context |
@@ -84,7 +84,7 @@ These are hard repair signals, not style nits.
 | TLR | Hard findings | Soft findings |
 | --- | --- | --- |
 | Security, secrets, agency | generated code touches auth/input/crypto/filesystem without security proof; secret-like value; missing scan; overbroad terminal/browser/network permission | missing threat-model note, weak redaction evidence, broad env access, new dependency without rationale |
-| Business truth | false-green domain behavior; authz/data isolation in UI/API/Python; app-only durable invariant | missing role matrix, missing negative test, unclear owner of invariant |
+| Business truth | false-green domain behavior; authz/data isolation in UI/API/exception-only Python; app-only durable invariant | missing role matrix, missing negative test, unclear owner of invariant |
 | Contracts and data truth | handwritten DTO/client; generated mutation; direct DB from wrong layer; missing generated-zone source | contract docs stale, generated-zone metadata incomplete |
 | Verification and rendered UX | missing proof lane; disabled/no-assertion/snapshot-only test; no rendered UX proof for critical UI | weak visual baseline governance, missing edge fixtures, missing accessibility expert review |
 | Context and setup | missing one-command setup; owner/test map gap; contradictory agent instructions | root docs too long, noisy command output, stale local guidance |
@@ -163,7 +163,7 @@ Every controlled error that can reach logs, API responses, background jobs, or t
 | `source` | underlying provider/system error, when safe |
 | `correlation_id` | trace/request/job id for production repair |
 
-Rust should prefer enum error types with `thiserror` or equivalent plus structured diagnostic fields. TypeScript should mirror boundary errors with `Error` subclasses or discriminated result unions. Python AI/data services should return typed API errors, not raw provider exceptions.
+Rust should prefer enum error types with `thiserror` or equivalent plus structured diagnostic fields. TypeScript should mirror boundary errors with `Error` subclasses or discriminated result unions. Approved Python AI/data exceptions should return typed API errors, not raw provider exceptions.
 
 ## Test Standard
 
@@ -175,7 +175,7 @@ Rust should prefer enum error types with `thiserror` or equivalent plus structur
 | TypeScript web | unit/component tests for pure UI logic plus rendered UX QA and Playwright e2e critical paths |
 | Contracts | generation test, drift check, schema compatibility check |
 | PostgreSQL | migration apply/rollback where possible, constraint tests, seed validation |
-| Python AI/data | eval tests, contract tests, no product-truth tests that imply ownership |
+| Exception-only Python AI/data | eval tests, contract tests, no product-truth tests that imply ownership |
 | Ops/security | secret scan, dependency/SBOM scan, workflow lint, audit scorer in CI |
 
 ## CI Contract
