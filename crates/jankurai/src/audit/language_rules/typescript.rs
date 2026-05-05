@@ -1,4 +1,6 @@
-use super::catalog::{ConfidencePolicy, Language, LanguageFinding, LanguageRule, Matcher, ProofWindow};
+use super::catalog::{
+    ConfidencePolicy, Language, LanguageFinding, LanguageRule, Matcher, ProofWindow,
+};
 use crate::audit::helpers::AuditContext;
 use crate::audit::scan;
 use crate::model::FileInfo;
@@ -31,7 +33,13 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "boundary",
         lane: "fast",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["as any", "as unknown as", "json.parse(", "response.json(", "req.body"]),
+        matcher: Matcher::ContainsAny(&[
+            "as any",
+            "as unknown as",
+            "json.parse(",
+            "response.json(",
+            "req.body",
+        ]),
         proof_window: ProofWindow::None,
         problem: "unchecked boundary cast or parse result crosses a trust boundary",
         fix: "validate the value first, then narrow it with a proof-aware decoder",
@@ -223,10 +231,7 @@ fn ts_source_hard_hits(file: &FileInfo) -> Vec<LanguageFinding> {
 fn tsconfig_hard_hits(file: &FileInfo) -> Vec<LanguageFinding> {
     let mut out = Vec::new();
     if let Ok(parsed) = serde_json::from_str::<JsonValue>(&file.text) {
-        if let Some(options) = parsed
-            .get("compilerOptions")
-            .and_then(JsonValue::as_object)
-        {
+        if let Some(options) = parsed.get("compilerOptions").and_then(JsonValue::as_object) {
             for (key, detector_id, _matched_term, problem, reason, fix) in [
                 (
                     "strict",
@@ -324,15 +329,8 @@ fn ts_source_advisory_hits(file: &FileInfo) -> Vec<LanguageFinding> {
 fn tsconfig_advisory_hits(file: &FileInfo) -> Vec<LanguageFinding> {
     let mut out = Vec::new();
     if let Ok(parsed) = serde_json::from_str::<JsonValue>(&file.text) {
-        if let Some(options) = parsed
-            .get("compilerOptions")
-            .and_then(JsonValue::as_object)
-        {
-            if options
-                .get("skipLibCheck")
-                .and_then(JsonValue::as_bool)
-                == Some(true)
-            {
+        if let Some(options) = parsed.get("compilerOptions").and_then(JsonValue::as_object) {
+            if options.get("skipLibCheck").and_then(JsonValue::as_bool) == Some(true) {
                 if let Some(line_no) = json_key_line(&file.text, "skipLibCheck", true) {
                     out.push(finding(
                         HLT_RULE_ID,

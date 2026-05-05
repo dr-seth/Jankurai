@@ -1,8 +1,7 @@
 use super::catalog::{ConfidencePolicy, Language, LanguageRule, Matcher, ProofWindow};
 use super::common::{
-    contains_secret_name, finding, is_docs_reference_tips_or_generated,
-    is_test_fixture_or_example, nearby_proof, sort_and_cap_findings,
-    strip_comments_for_line_language,
+    contains_secret_name, finding, is_docs_reference_tips_or_generated, is_test_fixture_or_example,
+    nearby_proof, sort_and_cap_findings, strip_comments_for_line_language,
 };
 use super::LanguageFinding;
 use crate::audit::helpers::AuditContext;
@@ -134,8 +133,7 @@ fn advisory_signals(ctx: &AuditContext) -> usize {
     let mut total = 0;
     for file in ci_files(ctx) {
         let text = file.text.to_ascii_lowercase();
-        if (text.contains("jobs:") || text.contains("steps:"))
-            && !text.contains("timeout-minutes:")
+        if (text.contains("jobs:") || text.contains("steps:")) && !text.contains("timeout-minutes:")
         {
             total += 1;
         }
@@ -169,18 +167,14 @@ fn is_ci_file(file: &FileInfo) -> bool {
         return false;
     }
     let lower = file.rel_path.to_ascii_lowercase();
-    lower.starts_with(".github/workflows/")
-        && (lower.ends_with(".yml") || lower.ends_with(".yaml"))
+    lower.starts_with(".github/workflows/") && (lower.ends_with(".yml") || lower.ends_with(".yaml"))
         || lower == ".gitlab-ci.yml"
         || lower == "bitbucket-pipelines.yml"
         || lower == "jenkinsfile"
         || lower == "azure-pipelines.yml"
-        || lower.starts_with(".circleci/")
-            && lower.ends_with("config.yml")
-        || lower.starts_with(".buildkite/")
-            && (lower.ends_with(".yml") || lower.ends_with(".yaml"))
-        || lower.contains("buildkite")
-            && (lower.ends_with(".yml") || lower.ends_with(".yaml"))
+        || lower.starts_with(".circleci/") && lower.ends_with("config.yml")
+        || lower.starts_with(".buildkite/") && (lower.ends_with(".yml") || lower.ends_with(".yaml"))
+        || lower.contains("buildkite") && (lower.ends_with(".yml") || lower.ends_with(".yaml"))
 }
 
 fn findings_for_file(file: &FileInfo) -> Vec<LanguageFinding> {
@@ -195,12 +189,15 @@ fn findings_for_file(file: &FileInfo) -> Vec<LanguageFinding> {
             || text_lower.contains("github.event.pull_request.head.ref")
             || text_lower.contains("github.event.pull_request.head"))
     {
-        let line = find_line(file, &[
-            "github.event.pull_request.head.sha",
-            "github.event.pull_request.head.ref",
-            "github.event.pull_request.head",
-            "actions/checkout",
-        ])
+        let line = find_line(
+            file,
+            &[
+                "github.event.pull_request.head.sha",
+                "github.event.pull_request.head.ref",
+                "github.event.pull_request.head",
+                "actions/checkout",
+            ],
+        )
         .unwrap_or(1);
         push_once(
             &mut out,
@@ -406,14 +403,7 @@ fn privileged_runner_hit(text: &str) -> bool {
 
 fn secret_path_hit(lower: &str) -> bool {
     [
-        ".env",
-        ".ssh",
-        ".aws",
-        ".docker",
-        ".npmrc",
-        ".pypirc",
-        ".netrc",
-        ".kube",
+        ".env", ".ssh", ".aws", ".docker", ".npmrc", ".pypirc", ".netrc", ".kube",
     ]
     .iter()
     .any(|needle| lower.contains(needle))
@@ -444,6 +434,10 @@ fn line_kind(file: &FileInfo) -> &'static str {
     }
 }
 
-fn push_once(out: &mut Vec<LanguageFinding>, _seen: &mut BTreeSet<&'static str>, finding: LanguageFinding) {
+fn push_once(
+    out: &mut Vec<LanguageFinding>,
+    _seen: &mut BTreeSet<&'static str>,
+    finding: LanguageFinding,
+) {
     out.push(finding);
 }

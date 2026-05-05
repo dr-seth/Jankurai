@@ -4,9 +4,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::BTreeSet;
 
-static ALLOW_EXPIRES_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"expires=\d{4}-\d{2}-\d{2}").expect("allow expiry regex is valid")
-});
+static ALLOW_EXPIRES_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"expires=\d{4}-\d{2}-\d{2}").expect("allow expiry regex is valid"));
 
 pub fn is_docs_reference_tips_or_generated(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
@@ -125,7 +124,10 @@ pub fn strip_comments_for_line_language(line: &str, kind: &str) -> String {
     }
     let lower = kind.to_ascii_lowercase();
     let stripped = match lower.as_str() {
-        "sql" => trimmed.split_once("--").map(|(left, _)| left).unwrap_or(trimmed),
+        "sql" => trimmed
+            .split_once("--")
+            .map(|(left, _)| left)
+            .unwrap_or(trimmed),
         "yaml" | "yml" | "toml" | "shell" | "sh" => trimmed
             .split_once('#')
             .map(|(left, _)| left)
@@ -196,7 +198,10 @@ pub fn finding(
     )
 }
 
-pub fn sort_and_cap_findings(mut findings: Vec<LanguageFinding>, max: usize) -> Vec<LanguageFinding> {
+pub fn sort_and_cap_findings(
+    mut findings: Vec<LanguageFinding>,
+    max: usize,
+) -> Vec<LanguageFinding> {
     findings.sort_by(|a, b| {
         a.path
             .cmp(&b.path)

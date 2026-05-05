@@ -1,7 +1,9 @@
-use super::catalog::{ConfidencePolicy, Language, LanguageFinding, LanguageRule, Matcher, ProofWindow};
+use super::catalog::{
+    ConfidencePolicy, Language, LanguageFinding, LanguageRule, Matcher, ProofWindow,
+};
 use super::common::{
-    finding, is_docs_reference_tips_or_generated, is_test_fixture_or_example, sort_and_cap_findings,
-    strip_comments_for_line_language,
+    finding, is_docs_reference_tips_or_generated, is_test_fixture_or_example,
+    sort_and_cap_findings, strip_comments_for_line_language,
 };
 use crate::audit::helpers::AuditContext;
 use crate::model::FileInfo;
@@ -75,7 +77,11 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "security",
         lane: "security",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["seccomp=unconfined", "apparmor=unconfined", "security.insecure"]),
+        matcher: Matcher::ContainsAny(&[
+            "seccomp=unconfined",
+            "apparmor=unconfined",
+            "security.insecure",
+        ]),
         proof_window: ProofWindow::None,
         problem: "container confinement is explicitly disabled",
         fix: "remove the unconfined profile and keep the default sandbox in place",
@@ -88,7 +94,17 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "security",
         lane: "security",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["arg ", "env ", "copy .env", "copy id_rsa", "copy .npmrc", "copy .pypirc", "copy .aws", "copy .kube", "copy .docker"]),
+        matcher: Matcher::ContainsAny(&[
+            "arg ",
+            "env ",
+            "copy .env",
+            "copy id_rsa",
+            "copy .npmrc",
+            "copy .pypirc",
+            "copy .aws",
+            "copy .kube",
+            "copy .docker",
+        ]),
         proof_window: ProofWindow::None,
         problem: "secret-like material is copied or baked into an image layer",
         fix: "mount the secret at runtime or replace it with a non-secret build input",
@@ -101,7 +117,15 @@ const HARD_RULES: &[LanguageRule] = &[
         category: "security",
         lane: "security",
         confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["curl", "wget", "| sh", "| bash", "--no-check-certificate", "curl -k", "--allow-unauthenticated"]),
+        matcher: Matcher::ContainsAny(&[
+            "curl",
+            "wget",
+            "| sh",
+            "| bash",
+            "--no-check-certificate",
+            "curl -k",
+            "--allow-unauthenticated",
+        ]),
         proof_window: ProofWindow::None,
         problem: "remote install step is not pinned or verified",
         fix: "pin the download, verify a checksum or signature, and avoid shell piping",
@@ -233,7 +257,9 @@ fn docker_files(ctx: &AuditContext) -> Vec<FileInfo> {
 
 fn is_docker_surface(file: &FileInfo) -> bool {
     let lower = file.rel_path.to_ascii_lowercase();
-    if is_docs_reference_tips_or_generated(&file.rel_path) || is_test_fixture_or_example(&file.rel_path) {
+    if is_docs_reference_tips_or_generated(&file.rel_path)
+        || is_test_fixture_or_example(&file.rel_path)
+    {
         return false;
     }
     lower == ".dockerignore"
@@ -363,9 +389,7 @@ fn hard_hits_for_file(file: &FileInfo) -> Vec<LanguageFinding> {
             ));
         }
 
-        if (lower.starts_with("from ")
-            || lower.starts_with("image:")
-            || lower.contains(" image:"))
+        if (lower.starts_with("from ") || lower.starts_with("image:") || lower.contains(" image:"))
             && lower.contains(":latest")
         {
             out.push(finding(
@@ -420,7 +444,10 @@ fn advisory_hits_for_file(ctx: &AuditContext, file: &FileInfo) -> Vec<LanguageFi
 
     if (file.rel_path.to_ascii_lowercase().starts_with("dockerfile")
         || file.rel_path.to_ascii_lowercase().ends_with(".dockerfile")
-        || file.rel_path.to_ascii_lowercase().contains("docker-compose")
+        || file
+            .rel_path
+            .to_ascii_lowercase()
+            .contains("docker-compose")
         || file.rel_path.to_ascii_lowercase().contains("compose"))
         && !ctx_has_dockerignore(ctx)
     {
@@ -472,9 +499,11 @@ fn advisory_hits_for_file(ctx: &AuditContext, file: &FileInfo) -> Vec<LanguageFi
 }
 
 fn ctx_has_dockerignore(ctx: &AuditContext) -> bool {
-    ctx.all_files
-        .iter()
-        .any(|file| file.rel_path.to_ascii_lowercase().ends_with(".dockerignore"))
+    ctx.all_files.iter().any(|file| {
+        file.rel_path
+            .to_ascii_lowercase()
+            .ends_with(".dockerignore")
+    })
 }
 
 fn is_secret_layer_hit(lower: &str) -> bool {
@@ -508,15 +537,7 @@ fn is_unverified_remote_install(lower: &str) -> bool {
 
 fn is_public_db_port(lower: &str, full_text: &str) -> bool {
     let db_ports = [
-        ":5432",
-        ":3306",
-        ":6379",
-        ":9200",
-        ":27017",
-        ":11211",
-        ":15672",
-        ":8080",
-        ":8443",
+        ":5432", ":3306", ":6379", ":9200", ":27017", ":11211", ":15672", ":8080", ":8443",
     ];
     if !db_ports.iter().any(|needle| lower.contains(needle)) {
         return false;
