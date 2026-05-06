@@ -6,6 +6,8 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ## Unreleased
 
+## 0.8.10 - 2026-05-06
+
 ### Added
 
 - Added default audit inventory exclusion for `tips/`, plus user-configurable `[scan] excluded_paths` entries in `agent/audit-policy.toml`.
@@ -16,8 +18,11 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 ### Changed
 
 - Routed `jankurai score trend` through the shared score-history loader and added stable score-history entry/export schemas.
-- Bumped the auditor/action package release to `0.8.9`; standard compatibility remains `0.8.0` and report schema remains `1.5.0`.
+- Bumped the auditor/action package release to `0.8.10`; standard compatibility remains `0.8.0` and report schema remains `1.5.0`.
 - Hardened CI scoring order, required proof/security evidence, SHA-pinned Actions usage, SARIF upload, and badge source routing for release readiness.
+- Fixed the isolated empty-repository ratchet regression so `decision.ratchet.score_delta` is always emitted, including `--no-score-history` runs.
+- Prepared the `v0.8.10` GitHub Marketplace action release for the hardened scoring-integrity lane.
+- Scoped crates.io publication out of this Marketplace release until the proof crates are published first.
 
 ## 0.8.0 - 2026-05-05
 

@@ -1,6 +1,6 @@
 [package]
 name = "jankurai"
-version = "0.8.9"
+version = "0.8.10"
 edition = "2021"
 description = "Agent-native repository audit CLI and standard."
 license = "MIT"
@@ -18,8 +18,8 @@ cargo_metadata = "0.19"
 globset = "0.4"
 ignore = "0.4"
 indicatif = "0.17"
-jankurai-proofbind = { path = "../jankurai-proofbind" }
-jankurai-proofmark = { path = "../jankurai-proofmark" }
+jankurai-proofbind = { path = "../jankurai-proofbind", version = "0.8.0" }
+jankurai-proofmark = { path = "../jankurai-proofmark", version = "0.8.0" }
 once_cell = "1.21"
 rayon = "1.11"
 regex = "1.12"
