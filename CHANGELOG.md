@@ -6,6 +6,10 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ## Unreleased
 
+### Changed
+
+- Hardened `jankurai upgrade` for source-checkout upgrades: `--source auto` now prefers a newer local `crates/jankurai` package over registry lookup and reinstalls into the current Cargo root instead of a nested `bin` path.
+
 ## 0.8.10 - 2026-05-06
 
 ### Added

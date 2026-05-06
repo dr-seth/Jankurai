@@ -677,13 +677,8 @@ fn resolve_latest_version(
     if args.offline {
         return Ok(None);
     }
-    let source = match args.source.as_str() {
-        "auto" => install_manifest
-            .map(|manifest| manifest.install_source.as_str())
-            .unwrap_or(DEFAULT_INSTALL_SOURCE),
-        other => other,
-    };
-    match source {
+    let source = resolved_update_source(repo, args, install_manifest);
+    match source.as_str() {
         "local" => Ok(read_local_version(repo).ok()),
         "crates-io" => fetch_crates_io_version(),
         "git" => {
@@ -697,6 +692,31 @@ fn resolve_latest_version(
         }
         _ => Ok(None),
     }
+}
+
+fn resolved_update_source(
+    repo: &Path,
+    args: &UpdateArgs,
+    install_manifest: Option<&InstallManifest>,
+) -> String {
+    if args.source != "auto" {
+        return args.source.clone();
+    }
+    if local_checkout_is_newer(repo) {
+        return "local".into();
+    }
+    install_manifest
+        .map(|manifest| manifest.install_source.clone())
+        .unwrap_or_else(|| DEFAULT_INSTALL_SOURCE.into())
+}
+
+fn local_checkout_is_newer(repo: &Path) -> bool {
+    read_local_version(repo)
+        .ok()
+        .and_then(|version| Version::parse(&version).ok())
+        .zip(Version::parse(&current_version()).ok())
+        .map(|(local, current)| local > current)
+        .unwrap_or(false)
 }
 
 fn fetch_crates_io_version() -> Result<Option<String>> {
@@ -750,9 +770,18 @@ fn read_local_version(repo: &Path) -> Result<String> {
     let cargo = repo.join("crates/jankurai/Cargo.toml");
     let text = fs::read_to_string(&cargo)?;
     let value: toml::Value = toml::from_str(&text)?;
-    value
+    let package = value
         .get("package")
-        .and_then(|package| package.get("version"))
+        .ok_or_else(|| anyhow::anyhow!("missing crates/jankurai package"))?;
+    let name = package
+        .get("name")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
+    if name != "jankurai" {
+        bail!("crates/jankurai package.name: expected jankurai, got {name}");
+    }
+    package
+        .get("version")
         .and_then(|value| value.as_str())
         .map(|s| s.to_string())
         .ok_or_else(|| anyhow::anyhow!("missing crates/jankurai package version"))
@@ -1082,11 +1111,9 @@ fn build_self_update_command(
     plan: &UpdatePlan,
 ) -> Result<Vec<String>> {
     let mut cmd = Vec::new();
-    let source = match args.source.as_str() {
-        "auto" => DEFAULT_INSTALL_SOURCE,
-        other => other,
-    };
-    match source {
+    let install_manifest = load_install_manifest(&install_manifest_path(repo)).ok();
+    let source = resolved_update_source(repo, args, install_manifest.as_ref());
+    match source.as_str() {
         "local" => {
             cmd.push("cargo".into());
             cmd.push("install".into());
@@ -1120,16 +1147,30 @@ fn build_self_update_command(
             cmd.push("--force".into());
         }
     }
-    cmd.push("--root".into());
-    cmd.push(cargo_root());
+    if let Some(root) = cargo_install_root() {
+        cmd.push("--root".into());
+        cmd.push(root);
+    }
     let _ = plan;
     Ok(cmd)
 }
 
-fn cargo_root() -> String {
-    std::env::var("CARGO_HOME")
-        .map(|home| format!("{home}/bin"))
-        .unwrap_or_else(|_| "~/.cargo/bin".into())
+fn cargo_install_root() -> Option<String> {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(bin_dir) = exe.parent() {
+            if bin_dir.file_name().and_then(|name| name.to_str()) == Some("bin") {
+                if let Some(root) = bin_dir.parent() {
+                    return Some(root.display().to_string());
+                }
+            }
+        }
+    }
+    if let Ok(home) = std::env::var("CARGO_HOME") {
+        return Some(home);
+    }
+    std::env::var("HOME")
+        .ok()
+        .map(|home| Path::new(&home).join(".cargo").display().to_string())
 }
 
 fn has_jankurai_files(repo: &Path) -> bool {
@@ -1266,4 +1307,85 @@ fn render_receipt(receipt: &UpdateReceipt) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn auto_self_update_command_prefers_newer_local_checkout() {
+        let repo = tempdir().unwrap();
+        fs::create_dir_all(repo.path().join("crates/jankurai")).unwrap();
+        fs::write(
+            repo.path().join("crates/jankurai/Cargo.toml"),
+            "[package]\nname = \"jankurai\"\nversion = \"999.0.0\"\n",
+        )
+        .unwrap();
+        let args = UpdateArgs {
+            repo: repo.path().to_path_buf(),
+            check: false,
+            apply: true,
+            yes: true,
+            self_update: true,
+            skip_self: false,
+            client_start: false,
+            quiet: true,
+            channel: DEFAULT_UPDATE_CHANNEL.into(),
+            source: "auto".into(),
+            offline: false,
+            fail_if_outdated: false,
+            install_missing: false,
+            profile: "rust-ts-postgres".into(),
+            level: "full".into(),
+            ide: "all".into(),
+            out: "target/jankurai/update/update-plan.json".into(),
+            md: "target/jankurai/update/update-plan.md".into(),
+            state: "target/jankurai/update/state.json".into(),
+        };
+        let plan = UpdatePlan {
+            schema_version: UPDATE_SCHEMA_VERSION.into(),
+            command: "jankurai update".into(),
+            status: "outdated".into(),
+            generated_at: now_string(),
+            repo_root: repo.path().display().to_string(),
+            current_version: current_version(),
+            latest_version: Some("999.0.0".into()),
+            standard_version: STANDARD_VERSION.into(),
+            auditor_version: AUDITOR_VERSION.into(),
+            schema_contract_version: SCHEMA_VERSION.into(),
+            paper_edition: PAPER_EDITION.into(),
+            target_stack_id: TARGET_STACK_ID.into(),
+            update_channel: DEFAULT_UPDATE_CHANNEL.into(),
+            source: "auto".into(),
+            offline: false,
+            client_start: false,
+            self_update_requested: true,
+            self_update_available: true,
+            install_state: "legacy-install".into(),
+            install_manifest_path: "agent/jankurai-install.toml".into(),
+            state_path: args.state.clone(),
+            plan_path: args.out.clone(),
+            md_path: args.md.clone(),
+            warnings: Vec::new(),
+            actions: Vec::new(),
+            artifacts: Vec::new(),
+        };
+
+        let command = build_self_update_command(repo.path(), &args, &plan).unwrap();
+
+        assert_eq!(command[0], "cargo");
+        assert_eq!(command[1], "install");
+        assert_eq!(command[2], "--path");
+        assert_eq!(
+            command[3],
+            repo.path().join("crates/jankurai").display().to_string()
+        );
+        assert!(command.iter().any(|arg| arg == "--locked"));
+        assert!(command.iter().any(|arg| arg == "--force"));
+        if let Some(root_pos) = command.iter().position(|arg| arg == "--root") {
+            assert!(!command[root_pos + 1].ends_with("/bin"));
+        }
+    }
 }

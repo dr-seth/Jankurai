@@ -121,6 +121,11 @@ When audit reports an available upgrade, run:
 jankurai upgrade
 ```
 
+When run from a Jankurai source checkout, `jankurai upgrade` automatically
+prefers the local `crates/jankurai` package if it is newer than the installed
+binary. This covers the common case where `jankurai --version` is still the old
+installed client after pulling or updating the repository.
+
 For advanced review-only checks, preview what would change:
 
 ```bash

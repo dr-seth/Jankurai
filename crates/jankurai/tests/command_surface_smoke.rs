@@ -481,6 +481,39 @@ fn update_self_update_alias_is_accepted() {
 }
 
 #[test]
+fn update_auto_prefers_newer_local_source_checkout() {
+    let repo = tempdir().unwrap();
+    fs::write(
+        repo.path().join("AGENTS.md"),
+        "Read `agent/JANKURAI_STANDARD.md` first.\n",
+    )
+    .unwrap();
+    fs::create_dir_all(repo.path().join("crates/jankurai")).unwrap();
+    fs::write(
+        repo.path().join("crates/jankurai/Cargo.toml"),
+        "[package]\nname = \"jankurai\"\nversion = \"999.0.0\"\n",
+    )
+    .unwrap();
+
+    let plan_path = repo.path().join("target/jankurai/update/update-plan.json");
+    let status = Command::new(binary_path())
+        .arg("update")
+        .arg(repo.path())
+        .arg("--source")
+        .arg("auto")
+        .arg("--quiet")
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let plan: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(plan_path).unwrap()).unwrap();
+    assert_eq!(plan["current_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(plan["latest_version"], "999.0.0");
+    assert_eq!(plan["self_update_available"], true);
+}
+
+#[test]
 fn upgrade_offline_writes_update_artifacts_and_receipt() {
     let repo = tempdir().unwrap();
     let status = Command::new(binary_path())
