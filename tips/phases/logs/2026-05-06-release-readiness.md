@@ -31,3 +31,33 @@
 ## Implementation Receipts
 
 - Clippy lint fixes applied to the three reported mechanical issues. Full clippy rerun pending.
+- `rtk cargo fmt --all -- --check`: pass
+- `rtk cargo check --workspace --locked`: pass
+- `rtk cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`: pass
+- Focused scoring/security/badge/CI tests: pass, 51 tests across 8 suites
+- `rtk cargo test -p jankurai-proofbind`: pass
+- `rtk cargo test -p jankurai-proofmark`: pass
+- `rtk cargo test -p jankurai`: pass, 381 tests
+- `rtk cargo test --workspace --all-targets --all-features --locked`: pass, 403 tests
+- `rtk npm ci`: pass
+- `rtk npm --workspace @jankurai/ux-qa run build`: pass
+- `rtk npm --workspace @jankurai/ux-qa run test`: pass, 20 tests
+- `rtk just conformance`: pass
+- `rtk just security-strict`: initially failed closed on missing/failing `zizmor`; installed `zizmor` 1.24.1 and fixed checkout credential persistence; pass
+- `rtk just paper`: pass
+- `rtk just check`: pass
+- `rtk git diff --check`: pass
+- `rtk cargo install --path crates/jankurai --locked --force`: pass; refreshed installed `jankurai` 0.8.9 before commit hook
+- Commit `be636f3` (`Harden scoring integrity for release`) created from the green tree.
+
+## Baseline Receipts
+
+- Clean-tree guard before baseline: `rtk git diff --quiet` pass; `rtk git diff --cached --quiet` pass.
+- Standard audit to `target/jankurai/repo-score.json`: pass, `score=97 raw=97 caps=0 findings=0`, `dirty_worktree=false`.
+- Accepted baseline report fingerprint: `sha256:6a0936f12951d00e4058837ce577cb0f6fe2df592b8ba018e38da7d3c80ea354`.
+- Accepted baseline input fingerprint: `sha256:ad6ddbcedcaee081ce23752506a0e20419678a24c7ff7dc8231d4d29e3795e26`.
+- Accepted baseline policy fingerprint: `sha256:4cada2563bc061cb649c364949b0bb3e2460a6702c088681bc2eb6a31f9b482a`.
+- `agent/baselines/main.repo-score.json` sha256: `1a887bed0e700479b1324a9debf580af87b32395d64df8c45dc86003eac6c07a`.
+- `agent/jankurai-badge.json` sha256: `af71981056f26b40fa2ae0513783e67ddf38fe4e52c89df974069c2855d49955`.
+- `agent/jankurai-badge.svg` sha256: `e750b114e3928338da9a8c480a94aac356e062a1882b95bb1c74b083f7b36b2d`.
+- `rtk cargo run -p jankurai -- badge ... --check`: pass, badge current against `agent/baselines/main.repo-score.json`.

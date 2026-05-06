@@ -55,6 +55,13 @@ read_only = false
 write_policy = "auditor_output"
 
 [[zone]]
+path = "agent/baselines/main.repo-score.json"
+source = "target/jankurai/repo-score.json from a clean accepted main audit"
+command = "test -z \"$(git status --short)\" && cargo run -p jankurai -- audit . --mode standard --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md && cp target/jankurai/repo-score.json agent/baselines/main.repo-score.json"
+read_only = true
+write_policy = "auditor_output"
+
+[[zone]]
 path = "package-lock.json"
 source = "package.json and packages/*/package.json"
 command = "npm install"
