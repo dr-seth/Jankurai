@@ -167,7 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jeppsontaylor/Jankurai@v0.8.0
+      - uses: jeppsontaylor/Jankurai@v0.8.8
         with:
           mode: advisory
       - uses: actions/upload-artifact@v7
@@ -192,6 +192,44 @@ The action emits `agent/repo-score.json`, `agent/repo-score.md`,
 `target/jankurai/jankurai.sarif`, `target/jankurai/summary.md`, and
 `target/jankurai/repair-queue.jsonl`. No secrets are required. The CLI installs
 from the action checkout and runs locally on the GitHub-hosted runner.
+
+## Public Repository Advisory Scores
+
+The May 6, 2026 paper scan is advisory posture evidence, not certification or defect attribution. Source data is tracked at [`paper/data/public-repo-scores-20260506T014156Z.json`](paper/data/public-repo-scores-20260506T014156Z.json).
+
+| Rank | Repository | Score | Issues |
+| ---: | --- | ---: | ---: |
+| 1 | [jeppsontaylor/Jankurai](https://github.com/jeppsontaylor/Jankurai) | 100 | 0 |
+| 2 | [zed-industries/zed](https://github.com/zed-industries/zed) | 47 | 3,328 |
+| 3 | [astral-sh/ruff](https://github.com/astral-sh/ruff) | 44 | 2,842 |
+| 4 | [denoland/deno](https://github.com/denoland/deno) | 42 | 3,130 |
+| 5 | [RightNow-AI/openfang](https://github.com/RightNow-AI/openfang) | 42 | 695 |
+| 6 | [nearai/ironclaw](https://github.com/nearai/ironclaw) | 42 | 1,968 |
+| 7 | [meilisearch/meilisearch](https://github.com/meilisearch/meilisearch) | 41 | 793 |
+| 8 | [googleworkspace/cli](https://github.com/googleworkspace/cli) | 40 | 114 |
+| 9 | [zeroclaw-labs/zeroclaw](https://github.com/zeroclaw-labs/zeroclaw) | 40 | 1,317 |
+| 10 | [kevinpiao1025/tauri-react-typescript-tailwind](https://github.com/kevinpiao1025/tauri-react-typescript-tailwind) | 39 | 21 |
+| 11 | [kvnxiao/tauri-tanstack-start-react-template](https://github.com/kvnxiao/tauri-tanstack-start-react-template) | 39 | 24 |
+| 12 | [astral-sh/uv](https://github.com/astral-sh/uv) | 38 | 1,258 |
+| 13 | [tauri-apps/tauri](https://github.com/tauri-apps/tauri) | 38 | 485 |
+| 14 | [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser) | 38 | 226 |
+| 15 | [AlexsJones/llmfit](https://github.com/AlexsJones/llmfit) | 35 | 110 |
+| 16 | [alacritty/alacritty](https://github.com/alacritty/alacritty) | 33 | 231 |
+| 17 | [exit-zero-labs/threat-forge](https://github.com/exit-zero-labs/threat-forge) | 32 | 142 |
+| 18 | [typst/typst](https://github.com/typst/typst) | 32 | 398 |
+| 19 | [microsoft/RustTraining](https://github.com/microsoft/RustTraining) | 31 | 34 |
+| 20 | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | 30 | 80 |
+| 21 | [octasoft-ltd/wsl-ui](https://github.com/octasoft-ltd/wsl-ui) | 30 | 321 |
+| 22 | [rustdesk/rustdesk](https://github.com/rustdesk/rustdesk) | 29 | 1,345 |
+| 23 | [Duri686/RustQuantLab](https://github.com/Duri686/RustQuantLab) | 26 | 45 |
+| 24 | [MarkShawn2020/lovtauri](https://github.com/MarkShawn2020/lovtauri) | 26 | 30 |
+| 25 | [h4ckf0r0day/obscura](https://github.com/h4ckf0r0day/obscura) | 25 | 63 |
+| 26 | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) | 25 | 451 |
+| 27 | [xai-org/x-algorithm](https://github.com/xai-org/x-algorithm) | 24 | 38 |
+| 28 | [fudanglp/tauri-fastapi-full-stack-template](https://github.com/fudanglp/tauri-fastapi-full-stack-template) | 23 | 87 |
+| 29 | [lostf1sh/rustune](https://github.com/lostf1sh/rustune) | 23 | 38 |
+| 30 | [sergioadevita/notemac-plus-plus](https://github.com/sergioadevita/notemac-plus-plus) | 23 | 344 |
+| 31 | [ianho7/maptoposter-online](https://github.com/ianho7/maptoposter-online) | 14 | 66 |
 
 ## Control-Plane Surfaces
 
@@ -360,7 +398,7 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 This repository is the working source for the paper *Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests*.
 
-Current release: standard `0.8.0`, schema `1.5.0`, paper edition `2026.05-ed8`.
+Current release: standard `0.8.0`, auditor/action `0.8.8`, schema `1.5.0`, paper edition `2026.05-ed8`.
 
 Public thesis line: *Find the vibe. Prove the merge. Repair the repo.*
 

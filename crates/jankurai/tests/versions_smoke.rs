@@ -5,11 +5,11 @@ use tempfile::tempdir;
 #[test]
 fn versions_bindings_validate() {
     let dir = tempdir().unwrap();
-    fs::write(dir.path().join("VERSION"), "0.8.0\n").unwrap();
+    fs::write(dir.path().join("VERSION"), "0.8.8\n").unwrap();
     fs::create_dir_all(dir.path().join("crates/jankurai")).unwrap();
     fs::write(
         dir.path().join("crates/jankurai/Cargo.toml"),
-        "[package]\nname = \"jankurai\"\nversion = \"0.8.0\"\n",
+        "[package]\nname = \"jankurai\"\nversion = \"0.8.8\"\n",
     )
     .unwrap();
     fs::create_dir_all(dir.path().join("agent")).unwrap();
@@ -19,7 +19,7 @@ fn versions_bindings_validate() {
 standard = "jankurai"
 standard_version = "0.8.0"
 paper_edition = "2026.05-ed8"
-auditor_version = "0.8.0"
+auditor_version = "0.8.8"
 schema_version = "1.5.0"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 
@@ -57,7 +57,7 @@ version = "0.8.0"
 id = "ux-qa-runtime"
 path = "packages/ux-qa"
 version_field = "auditor_version"
-version = "0.8.0"
+version = "0.8.8"
 "#,
     )
     .unwrap();
@@ -87,7 +87,7 @@ version = "0.8.0"
     fs::create_dir_all(dir.path().join("packages/ux-qa")).unwrap();
     fs::write(
         dir.path().join("packages/ux-qa/package.json"),
-        "{\n  \"name\": \"@jankurai/ux-qa\",\n  \"version\": \"0.8.0\"\n}\n",
+        "{\n  \"name\": \"@jankurai/ux-qa\",\n  \"version\": \"0.8.8\"\n}\n",
     )
     .unwrap();
 

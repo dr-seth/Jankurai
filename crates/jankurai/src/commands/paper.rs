@@ -10,7 +10,6 @@ pub struct PublicRepoScoresArgs {
 }
 
 const REQUIRED_TOP_LEVEL_KEYS: &[&str] = &[
-    "run_root",
     "generated_at",
     "jankurai_version",
     "repo_count",
@@ -19,7 +18,7 @@ const REQUIRED_TOP_LEVEL_KEYS: &[&str] = &[
     "rows",
 ];
 
-const REQUIRED_ROW_KEYS: &[&str] = &[
+const REQUIRED_OLD_ROW_KEYS: &[&str] = &[
     "rank",
     "repo",
     "score",
@@ -27,6 +26,18 @@ const REQUIRED_ROW_KEYS: &[&str] = &[
     "hard_findings",
     "status",
     "weak_dimensions",
+];
+
+const REQUIRED_NEW_ROW_KEYS: &[&str] = &[
+    "star_rank",
+    "repo",
+    "stars",
+    "score",
+    "issues",
+    "hard_findings",
+    "soft_findings",
+    "severity",
+    "top_categories",
 ];
 
 pub fn run_public_repo_scores(args: PublicRepoScoresArgs) -> Result<()> {
@@ -60,11 +71,23 @@ fn load_source(path: &PathBuf) -> Result<Value> {
             rows.len()
         );
     }
+    let new_shape = rows.iter().any(|row| row.get("star_rank").is_some());
+    if !object.contains_key("run_root") && !object.contains_key("source_artifact") {
+        bail!(
+            "{} is missing top-level key `run_root` or `source_artifact`",
+            path.display()
+        );
+    }
     for (idx, row) in rows.iter().enumerate() {
         let Some(row_object) = row.as_object() else {
             bail!("{} row {} must be an object", path.display(), idx + 1);
         };
-        for key in REQUIRED_ROW_KEYS {
+        let required_keys = if new_shape {
+            REQUIRED_NEW_ROW_KEYS
+        } else {
+            REQUIRED_OLD_ROW_KEYS
+        };
+        for key in required_keys {
             if !row_object.contains_key(*key) {
                 bail!(
                     "{} row {} is missing key `{}`",
@@ -74,7 +97,14 @@ fn load_source(path: &PathBuf) -> Result<Value> {
                 );
             }
         }
-        if !row["weak_dimensions"].is_array() {
+        if new_shape && !row["top_categories"].is_array() {
+            bail!(
+                "{} row {} top_categories must be an array",
+                path.display(),
+                idx + 1
+            );
+        }
+        if !new_shape && !row["weak_dimensions"].is_array() {
             bail!(
                 "{} row {} weak_dimensions must be an array",
                 path.display(),
@@ -140,23 +170,140 @@ fn fmt_float(value: f64) -> String {
 
 fn ranked_rows(rows: &[Value]) -> Vec<&Value> {
     let mut ranked = rows.iter().collect::<Vec<_>>();
-    ranked.sort_by(|a, b| {
-        integer(&b["score"])
-            .unwrap_or(0)
-            .cmp(&integer(&a["score"]).unwrap_or(0))
-            .then(
-                integer(&a["finding_count"])
-                    .unwrap_or(0)
-                    .cmp(&integer(&b["finding_count"]).unwrap_or(0)),
-            )
-            .then(
-                text(&a["repo"])
-                    .unwrap_or_default()
-                    .to_ascii_lowercase()
-                    .cmp(&text(&b["repo"]).unwrap_or_default().to_ascii_lowercase()),
-            )
-    });
+    if rows.iter().all(|row| row.get("star_rank").is_some()) {
+        ranked.sort_by(|a, b| {
+            row_rank(a)
+                .unwrap_or(0)
+                .cmp(&row_rank(b).unwrap_or(0))
+                .then(
+                    text(&a["repo"])
+                        .unwrap_or_default()
+                        .to_ascii_lowercase()
+                        .cmp(&text(&b["repo"]).unwrap_or_default().to_ascii_lowercase()),
+                )
+        });
+    } else {
+        ranked.sort_by(|a, b| {
+            integer(&b["score"])
+                .unwrap_or(0)
+                .cmp(&integer(&a["score"]).unwrap_or(0))
+                .then(
+                    finding_count(a)
+                        .unwrap_or(0)
+                        .cmp(&finding_count(b).unwrap_or(0)),
+                )
+                .then(
+                    text(&a["repo"])
+                        .unwrap_or_default()
+                        .to_ascii_lowercase()
+                        .cmp(&text(&b["repo"]).unwrap_or_default().to_ascii_lowercase()),
+                )
+        });
+    }
     ranked
+}
+
+fn row_rank(row: &Value) -> Result<u64> {
+    if row.get("star_rank").is_some() {
+        integer(&row["star_rank"])
+    } else {
+        integer(&row["rank"])
+    }
+}
+
+fn stars(row: &Value) -> Result<String> {
+    if row.get("stars").is_some() {
+        Ok(tex_escape(text(&row["stars"])?))
+    } else {
+        Ok("n/a".into())
+    }
+}
+
+fn finding_count(row: &Value) -> Result<u64> {
+    if row.get("issues").is_some() {
+        integer(&row["issues"])
+    } else {
+        integer(&row["finding_count"])
+    }
+}
+
+fn soft_findings(row: &Value) -> Result<u64> {
+    if row.get("soft_findings").is_some() {
+        integer(&row["soft_findings"])
+    } else {
+        Ok(finding_count(row)?.saturating_sub(integer(&row["hard_findings"])?))
+    }
+}
+
+fn severity_value<'a>(row: &'a Value) -> Option<&'a Value> {
+    row.get("severity").or_else(|| {
+        row.get("shortcomings")
+            .and_then(|shortcomings| shortcomings.get("finding_summary"))
+            .and_then(|summary| summary.get("by_severity"))
+    })
+}
+
+fn severity_summary(row: &Value) -> String {
+    let Some(severity) = severity_value(row).and_then(Value::as_object) else {
+        return "none reported".into();
+    };
+    let labels = [
+        ("low", "low"),
+        ("medium", "med"),
+        ("high", "high"),
+        ("critical", "crit"),
+    ]
+    .into_iter()
+    .filter_map(|(key, label)| {
+        severity
+            .get(key)
+            .and_then(Value::as_u64)
+            .filter(|count| *count > 0)
+            .map(|count| format!("{label} {}", fmt_int(count)))
+    })
+    .collect::<Vec<_>>();
+    if labels.is_empty() {
+        "none reported".into()
+    } else {
+        labels.join("; ")
+    }
+}
+
+fn top_categories(row: &Value) -> String {
+    if let Some(categories) = row.get("top_categories").and_then(Value::as_array) {
+        let labels = categories
+            .iter()
+            .filter_map(|item| {
+                let name = item.get("name").and_then(Value::as_str)?;
+                let count = item.get("count").and_then(Value::as_u64)?;
+                Some(format!("{} {}", tex_escape(name), fmt_int(count)))
+            })
+            .collect::<Vec<_>>();
+        if labels.is_empty() {
+            "none reported".into()
+        } else {
+            labels.join("; ")
+        }
+    } else if let Some(categories) = row
+        .get("shortcomings")
+        .and_then(|shortcomings| shortcomings.get("finding_summary"))
+        .and_then(|summary| summary.get("by_category"))
+        .and_then(Value::as_object)
+    {
+        let mut labels = categories
+            .iter()
+            .filter_map(|(name, count)| count.as_u64().map(|count| (name, count)))
+            .collect::<Vec<_>>();
+        labels.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+        labels
+            .into_iter()
+            .take(3)
+            .map(|(name, count)| format!("{} {}", tex_escape(name), fmt_int(count)))
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        dimension_labels(row)
+    }
 }
 
 fn dimension_label(name: &str) -> String {
@@ -208,7 +355,7 @@ fn aggregate_rows(data: &Value) -> Result<Vec<(String, String)>> {
     scores.sort_unstable();
     let findings_total = rows
         .iter()
-        .map(|row| integer(&row["finding_count"]))
+        .map(|row| finding_count(row))
         .collect::<Result<Vec<_>>>()?
         .into_iter()
         .sum::<u64>();
@@ -254,7 +401,24 @@ fn aggregate_rows(data: &Value) -> Result<Vec<(String, String)>> {
     ])
 }
 
-fn weak_dimension_rows(rows: &[Value]) -> Vec<(&'static str, u64)> {
+fn category_rows(rows: &[Value]) -> Vec<(String, u64)> {
+    if rows.iter().all(|row| row.get("top_categories").is_some()) {
+        let mut counter = BTreeMap::<String, u64>::new();
+        for row in rows {
+            for item in row["top_categories"].as_array().into_iter().flatten() {
+                if let (Some(name), Some(count)) = (
+                    item.get("name").and_then(Value::as_str),
+                    item.get("count").and_then(Value::as_u64),
+                ) {
+                    *counter.entry(name.to_string()).or_default() += count;
+                }
+            }
+        }
+        let mut rows = counter.into_iter().collect::<Vec<_>>();
+        rows.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        rows.truncate(6);
+        return rows;
+    }
     let mut counter = BTreeMap::<String, u64>::new();
     for row in rows {
         for item in row["weak_dimensions"].as_array().into_iter().flatten() {
@@ -271,7 +435,7 @@ fn weak_dimension_rows(rows: &[Value]) -> Vec<(&'static str, u64)> {
         "Proof lanes and test routing",
     ]
     .into_iter()
-    .map(|name| (name, counter.get(name).copied().unwrap_or(0)))
+    .map(|name| (name.into(), counter.get(name).copied().unwrap_or(0)))
     .collect()
 }
 
@@ -281,30 +445,41 @@ fn render_top_table(rows: &[Value]) -> Result<String> {
     for line in [
         r"\newcommand{\PublicRepoScoreTopTable}{%",
         r"\begin{table*}[t]",
-        r"\caption{Top observed advisory public-repository scores. The top score is best observed in this run, not a certification threshold.}",
+        r"\caption{Star-rank ordered advisory public-repository sample. Scores are advisory posture signals, not certification results.}",
         r"\label{tab:public-repo-top-scores}",
         r"\centering",
         r"\scriptsize",
         r"\setlength{\tabcolsep}{3pt}",
-        r"\begin{tabularx}{\textwidth}{R{0.045\textwidth} L{0.245\textwidth} R{0.105\textwidth} R{0.075\textwidth} R{0.065\textwidth} Y}",
+        r"\begin{tabularx}{\textwidth}{R{0.035\textwidth} L{0.205\textwidth} R{0.060\textwidth} R{0.050\textwidth} R{0.065\textwidth} R{0.070\textwidth} L{0.150\textwidth} Y}",
         r"\toprule",
         r"\JKTableHeader",
-        r"\textbf{Rank} & \textbf{Repo} & \textbf{Score} & \textbf{Findings} & \textbf{Hard} & \textbf{Dominant gaps} \\",
+        r"\textbf{Rank} & \textbf{Repo} & \textbf{Stars} & \textbf{Score} & \textbf{Issues} & \textbf{Hard/Soft} & \textbf{Severity} & \textbf{Top categories} \\",
         r"\midrule",
         r"\JKDenseRows",
     ] {
         writeln!(out, "{line}")?;
     }
-    for (rank, row) in ranked.iter().take(10).enumerate() {
+    let best_score = ranked
+        .iter()
+        .map(|row| integer(&row["score"]).unwrap_or(0))
+        .max()
+        .unwrap_or(0);
+    for row in ranked.iter().take(10) {
         writeln!(
             out,
-            "{} & {} & {} & {} & {} & {} \\\\",
-            rank + 1,
+            "{} & {} & {} & {} & {} & {}/{} & {} & {} \\\\",
+            row_rank(row)?,
             repo_path(text(&row["repo"])?),
-            score_cell(integer(&row["score"])?, rank == 0),
-            fmt_int(integer(&row["finding_count"])?),
+            stars(row)?,
+            score_cell(
+                integer(&row["score"])?,
+                integer(&row["score"])? == best_score
+            ),
+            fmt_int(finding_count(row)?),
             fmt_int(integer(&row["hard_findings"])?),
-            dimension_labels(row)
+            fmt_int(soft_findings(row)?),
+            severity_summary(row),
+            top_categories(row)
         )?;
     }
     for line in [
@@ -353,12 +528,12 @@ fn render_aggregate_table(data: &Value) -> Result<String> {
     Ok(out.trim_end().into())
 }
 
-fn render_weak_dimension_table(rows: &[Value]) -> Result<String> {
+fn render_category_table(rows: &[Value]) -> Result<String> {
     let mut out = String::new();
     for line in [
         r"\newcommand{\PublicRepoWeakDimensionTable}{%",
         r"\begin{table}[t]",
-        r"\caption{Most frequent weak-dimension sets in the advisory scan.}",
+        r"\caption{Most frequent top finding categories in the advisory scan.}",
         r"\label{tab:public-repo-weak-dimensions}",
         r"\centering",
         r"\scriptsize",
@@ -366,14 +541,14 @@ fn render_weak_dimension_table(rows: &[Value]) -> Result<String> {
         r"\begin{tabularx}{\columnwidth}{Y R{0.18\columnwidth}}",
         r"\toprule",
         r"\JKTableHeader",
-        r"\textbf{Weak dimension} & \textbf{Repos} \\",
+        r"\textbf{Category} & \textbf{Findings} \\",
         r"\midrule",
         r"\JKDenseRows",
     ] {
         writeln!(out, "{line}")?;
     }
-    for (label, count) in weak_dimension_rows(rows) {
-        writeln!(out, "{} & {}/{} \\\\", tex_escape(label), count, rows.len())?;
+    for (label, count) in category_rows(rows) {
+        writeln!(out, "{} & {} \\\\", tex_escape(&label), fmt_int(count))?;
     }
     for line in [
         r"\bottomrule",
@@ -398,32 +573,42 @@ fn render_appendix_table(rows: &[Value]) -> Result<String> {
         r"\setlength{\LTleft}{0pt}",
         r"\setlength{\LTright}{0pt}",
         r"\JKDenseRows",
-        r"\begin{longtable}{@{}R{0.040\textwidth} R{0.045\textwidth} L{0.235\textwidth} R{0.055\textwidth} R{0.070\textwidth} R{0.065\textwidth} L{0.355\textwidth}@{}}",
+        r"\begin{longtable}{@{}R{0.035\textwidth} L{0.180\textwidth} R{0.055\textwidth} R{0.045\textwidth} R{0.060\textwidth} R{0.070\textwidth} L{0.145\textwidth} L{0.300\textwidth}@{}}",
         r"\caption{Full 30-repository advisory scoring run.}\label{tab:public-repo-full}\\",
         r"\toprule",
         r"\JKTableHeader",
-        r"\textbf{Rank} & \textbf{Run \#} & \textbf{Repo} & \textbf{Score} & \textbf{Findings} & \textbf{Hard} & \textbf{Dominant gaps} \\",
+        r"\textbf{Rank} & \textbf{Repo} & \textbf{Stars} & \textbf{Score} & \textbf{Issues} & \textbf{Hard/Soft} & \textbf{Severity} & \textbf{Top categories} \\",
         r"\midrule",
         r"\endfirsthead",
         r"\toprule",
         r"\JKTableHeader",
-        r"\textbf{Rank} & \textbf{Run \#} & \textbf{Repo} & \textbf{Score} & \textbf{Findings} & \textbf{Hard} & \textbf{Dominant gaps} \\",
+        r"\textbf{Rank} & \textbf{Repo} & \textbf{Stars} & \textbf{Score} & \textbf{Issues} & \textbf{Hard/Soft} & \textbf{Severity} & \textbf{Top categories} \\",
         r"\midrule",
         r"\endhead",
     ] {
         writeln!(out, "{line}")?;
     }
-    for (rank, row) in ranked.iter().enumerate() {
+    let best_score = ranked
+        .iter()
+        .map(|row| integer(&row["score"]).unwrap_or(0))
+        .max()
+        .unwrap_or(0);
+    for row in ranked.iter() {
         writeln!(
             out,
-            "{} & {} & {} & {} & {} & {} & {} \\\\",
-            rank + 1,
-            integer(&row["rank"])?,
+            "{} & {} & {} & {} & {} & {}/{} & {} & {} \\\\",
+            row_rank(row)?,
             repo_path(text(&row["repo"])?),
-            score_cell(integer(&row["score"])?, rank == 0),
-            fmt_int(integer(&row["finding_count"])?),
+            stars(row)?,
+            score_cell(
+                integer(&row["score"])?,
+                integer(&row["score"])? == best_score
+            ),
+            fmt_int(finding_count(row)?),
             fmt_int(integer(&row["hard_findings"])?),
-            dimension_labels(row)
+            fmt_int(soft_findings(row)?),
+            severity_summary(row),
+            top_categories(row)
         )?;
     }
     for line in [
@@ -438,20 +623,110 @@ fn render_appendix_table(rows: &[Value]) -> Result<String> {
     Ok(out.trim_end().into())
 }
 
+fn plot_label(repo: &str) -> String {
+    match repo {
+        "jankurai" | "Jankurai" => r"\textbf{Jankurai}".into(),
+        _ => format!(r"\texttt{{{}}}", tex_escape(repo)),
+    }
+}
+
+fn render_score_plot(rows: &[Value]) -> Result<String> {
+    let mut plot_rows = rows
+        .iter()
+        .map(|row| Ok((text(&row["repo"])?.to_string(), integer(&row["score"])?)))
+        .collect::<Result<Vec<_>>>()?;
+    plot_rows.push(("Jankurai".into(), 100));
+    plot_rows.sort_by(|a, b| {
+        b.1.cmp(&a.1)
+            .then(a.0.to_ascii_lowercase().cmp(&b.0.to_ascii_lowercase()))
+    });
+
+    let mut out = String::new();
+    for line in [
+        r"\newcommand{\PublicRepoScoreAppendixPlot}{%",
+        r"\begin{figure*}[t]",
+        r"\centering",
+        r"\definecolor{JKPlotRed}{HTML}{B54B4B}",
+        r"\definecolor{JKPlotAmber}{HTML}{D8A33A}",
+        r"\definecolor{JKPlotGreen}{HTML}{2F8F5B}",
+        r"\resizebox{\textwidth}{!}{%",
+        r"\begin{tikzpicture}[x=0.36cm,y=0.050cm]",
+        r"\fill[JKHeader!55] (-0.85,-31) rectangle (25.25,106);",
+        r"\draw[JKLine] (-0.45,0) -- (24.95,0);",
+        r"\draw[JKLine] (-0.45,50) -- (24.95,50);",
+        r"\draw[JKLine] (-0.45,85) -- (24.95,85);",
+        r"\draw[JKLine] (-0.45,100) -- (24.95,100);",
+        r"\node[anchor=east,scale=0.72,text=JKNavy] at (-0.55,0) {0};",
+        r"\node[anchor=east,scale=0.72,text=JKNavy] at (-0.55,50) {50};",
+        r"\node[anchor=east,scale=0.72,text=JKNavy] at (-0.55,85) {85};",
+        r"\node[anchor=east,scale=0.72,text=JKNavy] at (-0.55,100) {100};",
+        r"\node[anchor=south,scale=0.78,text=JKNavy] at (12.2,103) {Advisory Jankurai score};",
+    ] {
+        writeln!(out, "{line}")?;
+    }
+    for (idx, (repo, score)) in plot_rows.iter().enumerate() {
+        let x = idx as f64 * 0.78;
+        let label = plot_label(repo);
+        let score_color = if *score >= 85 {
+            "JKPlotGreen".to_string()
+        } else {
+            format!("JKPlotRed!{}!JKPlotAmber", score * 2)
+        };
+        writeln!(
+            out,
+            r"\filldraw[draw=JKNavy!45,fill={}] ({:.2},0) rectangle ({:.2},{});",
+            score_color,
+            x,
+            x + 0.52,
+            score
+        )?;
+        writeln!(
+            out,
+            r"\node[anchor=south,rotate=90,scale=0.62,text=JKNavy] at ({:.2},{}) {{{}}};",
+            x + 0.26,
+            score + 1,
+            score
+        )?;
+        writeln!(
+            out,
+            r"\node[anchor=east,rotate=45,scale=0.52,text=black] at ({:.2},-3) {{{}}};",
+            x + 0.40,
+            label
+        )?;
+    }
+    for line in [
+        r"\end{tikzpicture}%",
+        r"}",
+        r"\caption{Advisory public-repository score ranking with the Jankurai repository baseline included. Bars are sorted by score; color moves from red through amber to green as scores approach the merge-witness-ready band.}",
+        r"\label{fig:public-repo-score-ranking}",
+        r"\end{figure*}",
+        r"}",
+    ] {
+        writeln!(out, "{line}")?;
+    }
+    Ok(out.trim_end().into())
+}
+
 fn render(data: &Value, source: &PathBuf, out: &PathBuf) -> Result<String> {
     let source_posix = source.to_string_lossy().replace('\\', "/");
     let out_posix = out.to_string_lossy().replace('\\', "/");
+    let source_artifact = data
+        .get("source_artifact")
+        .and_then(Value::as_str)
+        .or_else(|| data.get("run_root").and_then(Value::as_str))
+        .unwrap_or(&source_posix);
     let command = format!(
         "cargo run -p jankurai -- paper public-repo-scores --source {source_posix} --out {out_posix}"
     );
     Ok(format!(
-        "% Generated by: cargo run -p jankurai -- paper public-repo-scores\n% Source: {source_posix}\n% Command: {command}\n% DO NOT EDIT BY HAND.\n% Run root: {}\n% Generated at: {}\n% Jankurai version: {}\n\n{}\n\n{}\n\n{}\n\n{}\n",
-        text(&data["run_root"])?,
+        "% Generated by: cargo run -p jankurai -- paper public-repo-scores\n% Source: {source_posix}\n% Command: {command}\n% DO NOT EDIT BY HAND.\n% Source artifact: {}\n% Generated at: {}\n% Jankurai version: {}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n",
+        tex_escape(source_artifact),
         text(&data["generated_at"])?,
         text(&data["jankurai_version"])?,
         render_top_table(rows(data)?)?,
         render_aggregate_table(data)?,
-        render_weak_dimension_table(rows(data)?)?,
+        render_category_table(rows(data)?)?,
         render_appendix_table(rows(data)?)?,
+        render_score_plot(rows(data)?)?,
     ))
 }

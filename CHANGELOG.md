@@ -9,10 +9,12 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 ### Added
 
 - Added bounded score history commands: `jankurai history latest/export/compact/restore`, plus bounded audit retention and optional mirror sink support.
+- Added May 6 public-repository paper evidence, score tables, and a README score table for the `v0.8.8` Marketplace action release.
 
 ### Changed
 
 - Routed `jankurai score trend` through the shared score-history loader and added stable score-history entry/export schemas.
+- Bumped the auditor/action package release to `0.8.8`; standard compatibility remains `0.8.0` and report schema remains `1.5.0`.
 
 ## 0.8.0 - 2026-05-05
 

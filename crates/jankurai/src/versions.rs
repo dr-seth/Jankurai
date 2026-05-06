@@ -18,7 +18,7 @@ pub fn check_versions(repo: &Path) -> Result<()> {
     let paper_edition = scalar(&manifest, "paper_edition")?;
     let target_stack = scalar(&manifest, "target_stack")?;
 
-    assert_contains(root.join("VERSION"), standard_version.as_str(), "VERSION")?;
+    assert_contains(root.join("VERSION"), auditor_version.as_str(), "VERSION")?;
     assert_contains(
         root.join("docs/agent-native-standard.md"),
         &format!("Standard version: `{}`", STANDARD_VERSION),
@@ -46,7 +46,7 @@ pub fn check_versions(repo: &Path) -> Result<()> {
     assert_str(
         &pkg_val,
         &["package", "version"],
-        STANDARD_VERSION,
+        AUDITOR_VERSION,
         "crates/jankurai/Cargo.toml package.version",
     )?;
 
@@ -57,9 +57,9 @@ pub fn check_versions(repo: &Path) -> Result<()> {
         .get("version")
         .and_then(|value| value.as_str())
         .ok_or_else(|| anyhow!("missing packages/ux-qa/package.json version"))?;
-    if ux_version != STANDARD_VERSION {
+    if ux_version != AUDITOR_VERSION {
         return Err(anyhow!(
-            "packages/ux-qa/package.json version: expected {STANDARD_VERSION}, got {ux_version}"
+            "packages/ux-qa/package.json version: expected {AUDITOR_VERSION}, got {ux_version}"
         ));
     }
 

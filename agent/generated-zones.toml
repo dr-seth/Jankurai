@@ -28,8 +28,8 @@ write_policy = "generator_only"
 
 [[zone]]
 path = "paper/tex/generated/public_repo_score_tables.tex"
-source = "paper/data/public-repo-scores-20260505T184426Z.json"
-command = "cargo run -p jankurai -- paper public-repo-scores --source paper/data/public-repo-scores-20260505T184426Z.json --out paper/tex/generated/public_repo_score_tables.tex"
+source = "paper/data/public-repo-scores-20260506T014156Z.json"
+command = "cargo run -p jankurai -- paper public-repo-scores --source paper/data/public-repo-scores-20260506T014156Z.json --out paper/tex/generated/public_repo_score_tables.tex"
 read_only = false
 write_policy = "generator_only"
 

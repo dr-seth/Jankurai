@@ -1,6 +1,6 @@
 {
   "name": "@jankurai/ux-qa",
-  "version": "0.8.0",
+  "version": "0.8.8",
   "description": "Playwright DOM geometry checks for rendered UX quality.",
   "type": "module",
   "bin": {

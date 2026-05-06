@@ -17,8 +17,8 @@ Canonical release source is `paper/jankurai.tex` and the TeX files under
 ## Generated Tables
 
 - `paper/tex/generated/public_repo_score_tables.tex`
-  - Source: `paper/data/public-repo-scores-20260505T184426Z.json`
-  - Command: `cargo run -p jankurai -- paper public-repo-scores --source paper/data/public-repo-scores-20260505T184426Z.json --out paper/tex/generated/public_repo_score_tables.tex`
+  - Source: `paper/data/public-repo-scores-20260506T014156Z.json`
+  - Command: `cargo run -p jankurai -- paper public-repo-scores --source paper/data/public-repo-scores-20260506T014156Z.json --out paper/tex/generated/public_repo_score_tables.tex`
 - `paper/tex/generated/vibe_coverage_table.tex`
   - Source: `agent/vibe-coverage.toml`
   - Command: `cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --tex paper/tex/generated/vibe_coverage_table.tex`

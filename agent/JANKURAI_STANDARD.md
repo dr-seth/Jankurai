@@ -94,8 +94,8 @@ Operational surfaces:
 - Badge and paper publication: README badge state is generated from
   `agent/badge.toml`, `agent/repo-score.json`, and the installed `jankurai`
   binary. The README citation block must link to `paper/jankurai.pdf`. Public
-  repository scan tables generated from the May 5, 2026 data remain historical
-  `0.7.0` evidence unless the scan is actually rerun with `0.8.0`.
+  repository scan tables are generated from the tracked source JSON and must
+  not reference external run roots or tip filenames in paper artifacts.
 - Release governance: coding projects need a release control surface before
   release or publish claims are credible. At minimum, keep a version source,
   changelog, release process doc, release automation or command policy,
