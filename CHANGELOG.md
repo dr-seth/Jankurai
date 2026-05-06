@@ -26,6 +26,7 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 - Bumped the standard and auditor release to `0.8.0` and the paper edition to `2026.05-ed8`; report schema remains `1.5.0`.
 - Reframed the paper around Jankurai as a versioned agent-native repository standard and bumped the paper edition to `2026.05-ed6`.
 - Fixed generated adapter templates so every generated adapter satisfies the startup update marker verification and shows a valid client-start command.
+- Fixed Marketplace action packaging so external consumers install the CLI from the action checkout, and documented `v0.8.0` GitHub Action usage, inputs, artifacts, and local runner behavior.
 
 ## 0.6.1 - 2026-05-04
 

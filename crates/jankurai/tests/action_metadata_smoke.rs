@@ -29,7 +29,8 @@ fn root_action_metadata_is_a_composite_jankurai_action() {
         .collect::<Vec<_>>()
         .join("\n");
 
-    assert!(step_text.contains("cargo install --path crates/jankurai --locked --force"));
+    assert!(step_text
+        .contains("cargo install --path \"$GITHUB_ACTION_PATH/crates/jankurai\" --locked --force"));
     assert!(step_text.contains("jankurai audit . --mode ratchet"));
     assert!(step_text.contains("target/jankurai/jankurai.sarif"));
     assert!(step_text.contains("target/jankurai/repair-queue.jsonl"));

@@ -22,7 +22,7 @@ runs:
 
     - name: Install local jankurai
       shell: bash
-      run: cargo install --path crates/jankurai --locked --force
+      run: cargo install --path "$GITHUB_ACTION_PATH/crates/jankurai" --locked --force
 
     - name: Prepare jankurai artifact directories
       shell: bash

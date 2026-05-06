@@ -149,20 +149,49 @@ The project does not send repository contents to a hosted Jankurai service. The 
 
 ## GitHub Action
 
-You can easily run Jankurai in your CI using the provided GitHub Action:
+Run Jankurai in GitHub Actions with the Marketplace action tag:
 
 ```yaml
 name: Jankurai Audit
-on: [pull_request, push]
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jeppsontaylor/Jankurai@main
+      - uses: jeppsontaylor/Jankurai@v0.8.0
         with:
           mode: advisory
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jankurai-audit
+          path: |
+            agent/repo-score.json
+            agent/repo-score.md
+            target/jankurai/jankurai.sarif
+            target/jankurai/summary.md
+            target/jankurai/repair-queue.jsonl
 ```
+
+Inputs:
+
+| Input | Default | Values | Purpose |
+| --- | --- | --- | --- |
+| `mode` | `advisory` | `observe`, `advisory`, `ratchet` | Selects audit strictness. |
+| `baseline` | `agent/repo-score.json` | Any repository-relative JSON path | Baseline score file used by `ratchet` mode. |
+
+The action emits `agent/repo-score.json`, `agent/repo-score.md`,
+`target/jankurai/jankurai.sarif`, `target/jankurai/summary.md`, and
+`target/jankurai/repair-queue.jsonl`. No secrets are required. The CLI installs
+from the action checkout and runs locally on the GitHub-hosted runner.
 
 ## Control-Plane Surfaces
 
