@@ -1,6 +1,6 @@
 {
-  "report_fingerprint": "sha256:34e19fd99e94166a1fffbf52bcca2cf7e1d2454fb8e739f0638e0f929771b1b9",
-  "input_fingerprint": "sha256:1e6d95b4c1d43a8aba27d2defd1dfb799d5279d746417951beb8759a0f6646a7",
+  "report_fingerprint": "sha256:e43c434b7c1635dd4d079c166c4e0ebbf6e91efcaf3aa24539b04792cd976579",
+  "input_fingerprint": "sha256:a4eeaf9b9a61df573d1bc1ccd07ed8befe155cafdd2dce84569f01a55ebdc8f2",
   "policy_fingerprint": "sha256:4cada2563bc061cb649c364949b0bb3e2460a6702c088681bc2eb6a31f9b482a",
   "manifest_fingerprints": {
     "owner_map": "sha256:02e6d9f93dbe5535ba31f76518da9523235d241194879c29b2a31a11affcc4a0",
@@ -11,7 +11,7 @@
     "standard_version": "sha256:9b3fc9c5e1045dcaaa62af7c481bd326ff86885ba8c9c506a92be712e6ab1f65"
   },
   "dirty_worktree": false,
-  "generated_at": "1778044511",
+  "generated_at": "1778045096",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778044511",
-  "started_at": "1778044511",
-  "elapsed_ms": 123,
+  "run_id": "1778045096",
+  "started_at": "1778045096",
+  "elapsed_ms": 145,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "d87b208",
+    "head": "2a63a5d",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -298,7 +298,8 @@
         "web e2e lane present or no web surface",
         "rendered UX QA lane present or no web surface",
         "DOM geometry UX QA runtime found",
-        "Rust property/integration tests present or no Rust surface"
+        "Rust property/integration tests present or no Rust surface",
+        "proofbind artifact found: surfaces=0 missing=0 high_or_critical_missing=0 verdict=pass"
       ],
       "notes": []
     },
@@ -493,6 +494,33 @@
         "crates/jankurai/src/audit/analyzers/mod.rs",
         "crates/jankurai/src/audit/mod.rs"
       ]
+    },
+    "artifact": {
+      "path": "target/jankurai/ux-qa.json",
+      "report_count": 10,
+      "worst_decision": "pass",
+      "total_violations": 0,
+      "summary_errors": 0,
+      "summary_warnings": 0,
+      "reports_missing_required_states": 0,
+      "missing_state_names": [],
+      "artifact_counts_by_kind": {
+        "accessibility": 10,
+        "aria-snapshot": 10,
+        "screenshot": 10,
+        "visual-baseline": 10
+      },
+      "reports_missing_required_artifacts": 0,
+      "missing_artifact_kinds": [],
+      "reports_missing_required_accessibility_artifact": 0,
+      "accessibility_violation_total": 0,
+      "accessibility_incomplete_total": 0,
+      "accessibility_pass_total": 200,
+      "artifact_fingerprint_count": 40,
+      "visual_baseline_missing": 0,
+      "visual_baseline_changed": 0,
+      "visual_baseline_review": 0,
+      "visual_baseline_block": 0
     }
   },
   "tool_adoption": {
@@ -1001,7 +1029,7 @@
     "artifact": {
       "path": "target/jankurai/security/evidence.json",
       "envelope_exit_code": 0,
-      "elapsed_ms": 4138,
+      "elapsed_ms": 4103,
       "wrapper_strict": true,
       "profile": "ci",
       "commands_ran": 4,
@@ -1010,8 +1038,8 @@
       "required_commands_skipped": 0,
       "required_commands_failed": 0,
       "blocking_commands": [],
-      "generated_at": "1778044190",
-      "git_head": "cdde4d0b724cbd08bcd476e9f5f0d2627dd44848"
+      "generated_at": "1778044633",
+      "git_head": "117b181c4a34c4a0d1d99ec1e719f72300426c5a"
     }
   },
   "boundaries": {
