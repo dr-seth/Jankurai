@@ -29,6 +29,7 @@
       "properties": {
         "text_capture_chars": { "type": "integer", "minimum": 1 },
         "max_capture_chars": { "type": "integer", "minimum": 1 },
+        "excluded_paths": { "type": "array", "items": { "type": "string" } },
         "extra_excluded_paths": { "type": "array", "items": { "type": "string" } },
         "extra_excluded_globs": { "type": "array", "items": { "type": "string" } }
       }

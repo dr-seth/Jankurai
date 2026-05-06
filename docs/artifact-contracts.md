@@ -21,7 +21,7 @@ Every durable or generated machine-readable surface should either validate again
 | `agent/generated-zones.toml` | `schemas/generated-zones.schema.json`; `schema_contracts`, `doctor` | |
 | `agent/proof-lanes.toml` | `schemas/proof-lanes.schema.json`; `schema_contracts`, `doctor` | |
 | `agent/standard-version.toml` | `schemas/standard-version.schema.json`; `schema_contracts`, `doctor` | |
-| `agent/audit-policy.toml` | `schemas/audit-policy.schema.json`; `schema_contracts`, `doctor` | |
+| `agent/audit-policy.toml` | `schemas/audit-policy.schema.json`; `schema_contracts`, `doctor` | `[scan].excluded_paths` is the user-editable audit inventory exclusion list; `tips/` is excluded by default |
 | `agent/boundaries.toml` | `schemas/boundaries.schema.json`; `doctor` | |
 | `agent/security-policy.toml` | `schemas/security-policy.schema.json`; `doctor` | |
 | `agent/ux-qa.toml` | `schemas/ux-qa-policy.schema.json`; `doctor` | |

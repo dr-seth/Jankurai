@@ -4,11 +4,12 @@ use serde::Deserialize;
 use std::path::Path;
 
 const DEFAULT_MAX_CAPTURE_CHARS: usize = 120_000;
+const DEFAULT_EXCLUDED_PATHS: &[&str] = &["tips/"];
 
 #[derive(Debug, Clone)]
 pub struct InventoryOptions {
     pub text_capture_chars: usize,
-    pub extra_excluded_paths: Vec<String>,
+    pub excluded_paths: Vec<String>,
     pub extra_excluded_globs: Option<GlobSet>,
 }
 
@@ -16,7 +17,7 @@ impl Default for InventoryOptions {
     fn default() -> Self {
         Self {
             text_capture_chars: DEFAULT_MAX_CAPTURE_CHARS,
-            extra_excluded_paths: vec![],
+            excluded_paths: normalize_excluded_paths(DEFAULT_EXCLUDED_PATHS.iter().copied()),
             extra_excluded_globs: None,
         }
     }
@@ -35,6 +36,8 @@ impl InventoryOptions {
             text_capture_chars: Option<usize>,
             max_capture_chars: Option<usize>,
             #[serde(default)]
+            excluded_paths: Vec<String>,
+            #[serde(default)]
             extra_excluded_paths: Vec<String>,
             #[serde(default)]
             extra_excluded_globs: Vec<String>,
@@ -50,17 +53,14 @@ impl InventoryOptions {
                 .text_capture_chars
                 .or(scan.max_capture_chars)
                 .unwrap_or(DEFAULT_MAX_CAPTURE_CHARS),
-            extra_excluded_paths: scan
-                .extra_excluded_paths
-                .into_iter()
-                .map(|path| {
-                    path.trim()
-                        .trim_start_matches("./")
-                        .trim_end_matches('/')
-                        .to_string()
-                })
-                .filter(|path| !path.is_empty())
-                .collect(),
+            excluded_paths: normalize_excluded_paths(
+                DEFAULT_EXCLUDED_PATHS
+                    .iter()
+                    .copied()
+                    .map(str::to_string)
+                    .chain(scan.excluded_paths)
+                    .chain(scan.extra_excluded_paths),
+            ),
             extra_excluded_globs: build_globset(&scan.extra_excluded_globs),
         };
         if options.text_capture_chars == 0 {
@@ -68,6 +68,27 @@ impl InventoryOptions {
         }
         options
     }
+}
+
+fn normalize_excluded_paths<I, S>(paths: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut normalized = paths
+        .into_iter()
+        .map(|path| {
+            path.as_ref()
+                .trim()
+                .trim_start_matches("./")
+                .trim_end_matches('/')
+                .to_string()
+        })
+        .filter(|path| !path.is_empty())
+        .collect::<Vec<_>>();
+    normalized.sort();
+    normalized.dedup();
+    normalized
 }
 
 fn build_globset(globs: &[String]) -> Option<GlobSet> {

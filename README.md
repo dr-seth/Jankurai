@@ -167,7 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jeppsontaylor/Jankurai@v0.8.8
+      - uses: jeppsontaylor/Jankurai@v0.8.9
         with:
           mode: advisory
       - uses: actions/upload-artifact@v7
@@ -187,6 +187,13 @@ Inputs:
 | --- | --- | --- | --- |
 | `mode` | `advisory` | `observe`, `advisory`, `ratchet` | Selects audit strictness. |
 | `baseline` | `agent/repo-score.json` | Any repository-relative JSON path | Baseline score file used by `ratchet` mode. |
+
+Audit path exclusions live in `agent/audit-policy.toml`. New scaffolds exclude `tips/` by default; add repository-relative folder prefixes to keep local planning notes, scratch directories, or generated side inputs out of the audit inventory:
+
+```toml
+[scan]
+excluded_paths = ["tips/", "scratch/"]
+```
 
 The action emits `agent/repo-score.json`, `agent/repo-score.md`,
 `target/jankurai/jankurai.sarif`, `target/jankurai/summary.md`, and
@@ -398,7 +405,7 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 This repository is the working source for the paper *Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests*.
 
-Current release: standard `0.8.0`, auditor/action `0.8.8`, schema `1.5.0`, paper edition `2026.05-ed8`.
+Current release: standard `0.8.0`, auditor/action `0.8.9`, schema `1.5.0`, paper edition `2026.05-ed8`.
 
 Public thesis line: *Find the vibe. Prove the merge. Repair the repo.*
 

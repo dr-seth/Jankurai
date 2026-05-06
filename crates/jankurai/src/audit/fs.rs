@@ -232,7 +232,7 @@ fn should_skip(path: &Path, options: &InventoryOptions) -> bool {
     {
         return true;
     }
-    if options.extra_excluded_paths.iter().any(|excluded| {
+    if options.excluded_paths.iter().any(|excluded| {
         rel == *excluded || rel.starts_with(&format!("{}/", excluded.trim_end_matches('/')))
     }) {
         return true;

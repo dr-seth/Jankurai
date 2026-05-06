@@ -322,9 +322,11 @@ fn inventory_is_sorted_prunes_excluded_dirs_and_uses_bounded_capture() {
     let dir = tempdir().unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::create_dir_all(dir.path().join("node_modules/pkg")).unwrap();
+    fs::create_dir_all(dir.path().join("tips")).unwrap();
     fs::write(dir.path().join("src/b.rs"), "b\n").unwrap();
     fs::write(dir.path().join("src/a.rs"), "line1\nline2\n").unwrap();
     fs::write(dir.path().join("node_modules/pkg/index.rs"), "excluded\n").unwrap();
+    fs::write(dir.path().join("tips/phase.md"), "excluded\n").unwrap();
     fs::create_dir_all(dir.path().join("agent")).unwrap();
     fs::write(
         dir.path().join("agent/audit-policy.toml"),
@@ -351,16 +353,20 @@ fn inventory_is_sorted_prunes_excluded_dirs_and_uses_bounded_capture() {
 }
 
 #[test]
-fn inventory_policy_can_prune_extra_paths_and_globs() {
+fn inventory_policy_can_prune_default_excluded_paths_user_paths_and_globs() {
     let dir = tempdir().unwrap();
     fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::create_dir_all(dir.path().join("scratch/nested")).unwrap();
+    fs::create_dir_all(dir.path().join("tips")).unwrap();
     fs::create_dir_all(dir.path().join("tmp")).unwrap();
     fs::create_dir_all(dir.path().join("src")).unwrap();
     fs::write(
         dir.path().join("agent/audit-policy.toml"),
-        "[scan]\nextra_excluded_paths = [\"tmp\"]\nextra_excluded_globs = [\"**/*.snap\"]\n",
+        "[scan]\nexcluded_paths = [\"scratch/\"]\nextra_excluded_paths = [\"tmp\"]\nextra_excluded_globs = [\"**/*.snap\"]\n",
     )
     .unwrap();
+    fs::write(dir.path().join("scratch/nested/local.rs"), "excluded\n").unwrap();
+    fs::write(dir.path().join("tips/default.rs"), "excluded\n").unwrap();
     fs::write(dir.path().join("tmp/large.rs"), "excluded\n").unwrap();
     fs::write(dir.path().join("src/kept.rs"), "kept\n").unwrap();
     fs::write(dir.path().join("src/ui.snap"), "excluded\n").unwrap();
