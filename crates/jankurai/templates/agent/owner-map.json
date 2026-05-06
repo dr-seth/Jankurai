@@ -3,6 +3,7 @@
   "owners": {
     "AGENTS.md": "agent",
     "README.md": "workspace",
+    "apps/": "apps",
     ".github/": "ops",
     "agent/": "agent",
     "contracts/": "contracts",
@@ -12,6 +13,7 @@
     "tools/": "ops",
     "packages/": "tools",
     "python/ai-service/": "ai",
+    "ops/": "ops",
     "tools/": "tools"
   }
 }

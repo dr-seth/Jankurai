@@ -261,6 +261,18 @@ pub const CAP_SPECS: &[CapSpec] = &[
         rule_id: Some("HLT-037-RELEASE-BAD-BEHAVIOR"),
         hardness: "hard",
     },
+    CapSpec {
+        key: "web-security-bad-behavior",
+        max_score: 68,
+        rule_id: Some("HLT-039-WEB-SECURITY-BAD-BEHAVIOR"),
+        hardness: "hard",
+    },
+    CapSpec {
+        key: "repo-rot-bad-behavior",
+        max_score: 88,
+        rule_id: Some("HLT-040-REPO-ROT-BAD-BEHAVIOR"),
+        hardness: "soft",
+    },
 ];
 
 pub const CAPS: &[(&str, i32)] = &[
@@ -306,6 +318,8 @@ pub const CAPS: &[(&str, i32)] = &[
     ("git-bad-behavior", 70),
     ("gittools-bad-behavior", 70),
     ("release-bad-behavior", 70),
+    ("web-security-bad-behavior", 68),
+    ("repo-rot-bad-behavior", 88),
 ];
 
 pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> Vec<String> {
@@ -445,6 +459,12 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     }
     if crate::audit::language_rules::release::summary(ctx).hard_findings > 0 {
         caps.push("release-bad-behavior".into());
+    }
+    if crate::audit::web_security::summary(ctx).hard_findings > 0 {
+        caps.push("web-security-bad-behavior".into());
+    }
+    if crate::audit::repo_rot::summary(ctx).hard_findings > 0 {
+        caps.push("repo-rot-bad-behavior".into());
     }
     caps
 }

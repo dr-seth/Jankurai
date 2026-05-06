@@ -5,6 +5,10 @@
       "command": "just score",
       "purpose": "verify root routing remains visible to the audit"
     },
+    "apps/": {
+      "command": "just fast",
+      "purpose": "verify app surfaces remain routed through the audit"
+    },
     "agent/": {
       "command": "just score",
       "purpose": "verify manifests remain parseable and authoritative"
@@ -37,12 +41,16 @@
       "command": "jankurai doctor --fail-on critical",
       "purpose": "verify scaffold marker does not hide missing control-plane files"
     },
-"tools/": {
+    "ops/": {
+      "command": "just fast",
+      "purpose": "verify ops surfaces remain visible to the audit"
+    },
+    "tools/": {
     "command": "just fast",
     "purpose": "verify Rust behavior and audit checks"
   },
-  "examples/perfect-web-api-db/backend/src/background_job.rs": {
-    "command": "just fast",
+    "examples/perfect-web-api-db/backend/src/background_job.rs": {
+      "command": "just fast",
     "purpose": "run proofs for background‑job cell"
   },
     "crates/": {

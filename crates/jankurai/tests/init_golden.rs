@@ -1,5 +1,5 @@
-use jankurai::commands::init;
 use jankurai::init::profiles::BUNDLED_PROFILE_IDS;
+use jankurai::{audit, commands::init};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -196,6 +196,8 @@ fn init_level_agents_only_plans_agent_and_provider_guidance() {
     assert!(!paths.contains(&".github/workflows/jankurai.yml".to_string()));
     assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
     assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
+    assert!(!paths.iter().any(|path| path.starts_with("apps/")));
+    assert!(!paths.iter().any(|path| path.starts_with("ops/")));
     assert!(!paths.iter().any(|path| path.starts_with("docs/")));
     assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
     assert!(!paths.iter().any(|path| path.starts_with("db/")));
@@ -219,6 +221,9 @@ fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
     let paths = plan_paths(&value);
     for expected in [
         "Justfile",
+        "apps/api/AGENTS.md",
+        "apps/web/AGENTS.md",
+        "contracts/AGENTS.md",
         "agent/audit-policy.toml",
         "agent/generated-zones.toml",
         "agent/owner-map.json",
@@ -226,6 +231,13 @@ fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
         "agent/standard-version.toml",
         "agent/tool-adoption.toml",
         "agent/test-map.json",
+        "crates/adapters/AGENTS.md",
+        "crates/application/AGENTS.md",
+        "crates/domain/AGENTS.md",
+        "crates/workers/AGENTS.md",
+        "db/AGENTS.md",
+        "ops/AGENTS.md",
+        "python/ai-service/AGENTS.md",
     ] {
         assert!(paths.contains(&expected.to_string()), "missing {expected}");
     }
@@ -235,8 +247,6 @@ fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
     assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
     assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
     assert!(!paths.iter().any(|path| path.starts_with("docs/")));
-    assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
-    assert!(!paths.iter().any(|path| path.starts_with("db/")));
 
     let rust_api_plan = dir.path().join("init-score-rust-api.json");
     let mut rust_api_args = dry_run_plan_args(
@@ -248,7 +258,12 @@ fn init_level_score_adds_local_scoring_without_ci_or_full_scaffold() {
     init::run(rust_api_args).unwrap();
     let rust_api: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(rust_api_plan).unwrap()).unwrap();
-    assert!(plan_paths(&rust_api).contains(&"Justfile".to_string()));
+    let rust_api_paths = plan_paths(&rust_api);
+    assert!(rust_api_paths.contains(&"Justfile".to_string()));
+    assert!(rust_api_paths.contains(&"apps/api/AGENTS.md".to_string()));
+    assert!(rust_api_paths.contains(&"contracts/AGENTS.md".to_string()));
+    assert!(rust_api_paths.contains(&"crates/domain/AGENTS.md".to_string()));
+    assert!(rust_api_paths.contains(&"ops/AGENTS.md".to_string()));
 }
 
 #[test]
@@ -274,8 +289,6 @@ fn init_level_ci_adds_observe_workflow_and_preserves_existing_workflow() {
     assert!(!paths.contains(&"tools/jankurai-hooks/pre-commit".to_string()));
     assert!(!paths.contains(&"tools/jankurai-hooks/prepare-commit-msg".to_string()));
     assert!(!paths.iter().any(|path| path.starts_with("docs/")));
-    assert!(!paths.iter().any(|path| path.starts_with("contracts/")));
-    assert!(!paths.iter().any(|path| path.starts_with("db/")));
 
     let mut apply = greenfield_apply_args(dir.path().to_path_buf(), "rust-ts-postgres");
     apply.level = "ci".into();
@@ -657,10 +670,52 @@ fn init_greenfield_apply_then_audit_and_doctor() {
     ))
     .unwrap();
 
+    let report = audit::run_audit(dir.path(), &[]).unwrap();
     assert!(dir.path().join("contracts/README.md").exists());
+    assert!(dir.path().join("apps/web/AGENTS.md").exists());
+    assert!(dir.path().join("apps/api/AGENTS.md").exists());
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
+    assert!(dir.path().join("crates/domain/AGENTS.md").exists());
+    assert!(dir.path().join("crates/application/AGENTS.md").exists());
+    assert!(dir.path().join("crates/adapters/AGENTS.md").exists());
+    assert!(dir.path().join("crates/workers/AGENTS.md").exists());
+    assert!(dir.path().join("db/AGENTS.md").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
+    assert!(dir.path().join("python/ai-service/AGENTS.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("db/README.md").exists());
+    for cell_id in [
+        "web",
+        "api",
+        "domain",
+        "application",
+        "adapters",
+        "workers",
+        "contracts",
+        "db",
+        "ops",
+        "python-ai",
+    ] {
+        let cell = report
+            .profile_structure
+            .cells
+            .iter()
+            .find(|cell| cell.id == cell_id)
+            .unwrap();
+        assert_eq!(cell.status, "canonical", "{cell_id} should be canonical");
+        assert_eq!(
+            cell.guidance_status, "present",
+            "{cell_id} should have local guidance in the generated scaffold"
+        );
+    }
+    assert!(
+        report
+            .findings
+            .iter()
+            .all(|finding| finding.rule_id.as_deref() != Some("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP")),
+        "generated scaffold with canonical cell guidance should not emit profile-structure findings"
+    );
 
     assert_audit_and_doctor(dir.path());
 }
@@ -708,8 +763,14 @@ fn init_greenfield_apply_rust_api_then_audit_and_doctor() {
     init::run(greenfield_apply_args(dir.path().to_path_buf(), "rust-api")).unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
+    assert!(dir.path().join("apps/api/AGENTS.md").exists());
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
+    assert!(dir.path().join("crates/domain/AGENTS.md").exists());
+    assert!(dir.path().join("crates/application/AGENTS.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
     assert!(dir.path().join("db/README.md").exists());
+    assert!(dir.path().join("db/AGENTS.md").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
     assert!(
         !dir.path().join("agent/ux-qa.toml").exists(),
         "rust-api does not include UX QA"
@@ -724,9 +785,12 @@ fn init_greenfield_apply_react_web_then_audit_and_doctor() {
     init::run(greenfield_apply_args(dir.path().to_path_buf(), "react-web")).unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
+    assert!(dir.path().join("apps/web/AGENTS.md").exists());
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("agent/ux-qa.toml").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
     assert!(
         !dir.path().join("db/README.md").exists(),
         "react-web does not include DB path"
@@ -741,9 +805,14 @@ fn init_greenfield_apply_b2b_saas_then_audit_and_doctor() {
     init::run(greenfield_apply_args(dir.path().to_path_buf(), "b2b-saas")).unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
+    assert!(dir.path().join("apps/web/AGENTS.md").exists());
+    assert!(dir.path().join("apps/api/AGENTS.md").exists());
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
     assert!(dir.path().join("tools/security-lane.sh").exists());
     assert!(dir.path().join("agent/ux-qa.toml").exists());
     assert!(dir.path().join("db/README.md").exists());
+    assert!(dir.path().join("db/AGENTS.md").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
     assert!(
         dir.path().join("docs/auth/README.md").exists(),
         "b2b-saas includes auth docs"
@@ -766,9 +835,13 @@ fn init_greenfield_apply_ai_product_then_audit_and_doctor() {
     .unwrap();
 
     assert!(dir.path().join("contracts/README.md").exists());
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
+    assert!(dir.path().join("db/AGENTS.md").exists());
     assert!(dir.path().join("python/ai-service/README.md").exists());
+    assert!(dir.path().join("python/ai-service/AGENTS.md").exists());
     assert!(dir.path().join("prompts/README.md").exists());
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
     assert!(
         !dir.path().join("agent/ux-qa.toml").exists(),
         "ai-product omits web UX controls by default"
@@ -786,9 +859,14 @@ fn init_greenfield_apply_regulated_saas_then_audit_and_doctor() {
     ))
     .unwrap();
 
+    assert!(dir.path().join("apps/web/AGENTS.md").exists());
+    assert!(dir.path().join("apps/api/AGENTS.md").exists());
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
+    assert!(dir.path().join("db/AGENTS.md").exists());
     assert!(dir.path().join("docs/privacy/README.md").exists());
     assert!(dir.path().join("docs/compliance/README.md").exists());
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
     assert!(dir.path().join("agent/ux-qa.toml").exists());
 
     assert_audit_and_doctor(dir.path());
@@ -803,8 +881,10 @@ fn init_greenfield_apply_migration_target_then_audit_and_doctor() {
     ))
     .unwrap();
 
+    assert!(dir.path().join("contracts/AGENTS.md").exists());
     assert!(dir.path().join("docs/migration/boundary-map.md").exists());
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
+    assert!(dir.path().join("ops/AGENTS.md").exists());
     assert!(
         !dir.path().join("db/README.md").exists(),
         "migration-target does not claim database ownership"

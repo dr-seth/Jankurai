@@ -903,6 +903,7 @@ fn cell_registry_and_manifest_schemas_parse() {
         "scope",
         "caps_applied",
         "hard_rules",
+        "profile_structure",
         "decision",
         "git",
         "policy",
@@ -920,6 +921,15 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert!(repo_score["$defs"].get("dimensionResult").is_some());
     assert!(repo_score["$defs"].get("scope").is_some());
     assert!(repo_score["properties"].get("ux_qa").is_some());
+    assert!(repo_score["properties"].get("profile_structure").is_some());
+    assert_eq!(
+        repo_score["properties"]["profile_structure"]["$ref"],
+        "#/$defs/profileStructureReadiness"
+    );
+    assert!(repo_score["$defs"].get("profileStructureCell").is_some());
+    assert!(repo_score["$defs"]
+        .get("profileStructureReadiness")
+        .is_some());
     assert_eq!(
         repo_score["properties"]["ux_qa"]["$ref"],
         "#/$defs/uxQaReadiness"
@@ -1008,7 +1018,7 @@ fn vibe_coverage_schemas_parse_and_source_validates() {
     );
     assert_eq!(
         source_schema["properties"]["schema_version"]["const"],
-        "1.5.0"
+        "1.6.0"
     );
     let issue_required = source_schema["$defs"]["issue"]["required"]
         .as_array()

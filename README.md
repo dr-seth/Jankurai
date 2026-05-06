@@ -14,7 +14,7 @@
 Jankurai is an anti-vibe coding standard and local audit CLI for auditable AI-assisted merge. Its public loop is simple: find vibe artifacts, prove the merge, repair the repo.
 
 - Turns ownership maps, proof lanes, generated zones, security boundaries, rolling scores, merge witnesses, and repair queues into files agents and humans can both read.
-- Checks 37 stable HLT rule families and maps 260 vibe-coding failure rows into auditable controls, including release readiness, bad CI/Git/tooling behavior, secret sprawl, generated drift, false-green tests, UX proof gaps, and missing evidence.
+- Checks 40 stable HLT rule families and maps 260 vibe-coding failure rows into auditable controls, including release readiness, web security hazards, repo rot, bad CI/Git/tooling behavior, secret sprawl, generated drift, false-green tests, UX proof gaps, and missing evidence.
 - Starts with read-only reports, then lets teams adopt guidance, CI, hooks, and ratchets only when they choose.
 - Leaves receipts: JSON/Markdown reports, score history, proof artifacts, and command evidence under predictable paths.
 
@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jeppsontaylor/Jankurai@v0.8.10
+      - uses: jeppsontaylor/Jankurai@v0.8.11
         with:
           mode: advisory
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -332,6 +332,8 @@ Jankurai's tool adoption catalog ([`agent/tool-adoption.toml`](agent/tool-adopti
 | `vibe-coverage` | auto | Vibe-coding coverage analysis |
 | `tui-testing` | advisory | TUI black-box testing via Tuiwright |
 | `release-bad-behavior` | advisory | Release tag, artifact, provenance, and rollback bad-behavior checks |
+| `web-security-bad-behavior` | auto | Vite exposure, client secret, browser token storage, and credentialed wildcard CORS checks |
+| `repo-rot-bad-behavior` | advisory | Active-source old, backup, copy, archive, and hard-disabled-code checks |
 
 ## Project Status
 
@@ -410,7 +412,7 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 This repository is the working source for the paper *Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests*.
 
-Current release: standard `0.8.0`, auditor/action `0.8.10`, schema `1.5.0`, paper edition `2026.05-ed8`.
+Current release: standard `0.8.0`, auditor/action `0.8.11`, schema `1.6.0`, paper edition `2026.05-ed8`.
 
 Public thesis line: *Find the vibe. Prove the merge. Repair the repo.*
 

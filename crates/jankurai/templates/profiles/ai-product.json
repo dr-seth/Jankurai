@@ -28,7 +28,9 @@
     "agent/standard-version.toml",
     "agent/test-map.json",
     "agent/jankurai-install.toml",
+    "contracts/AGENTS.md",
     "contracts/README.md",
+    "db/AGENTS.md",
     "db/constraints/README.md",
     "db/migrations/README.md",
     "db/README.md",
@@ -43,7 +45,9 @@
     "evals/golden/README.md",
     "evals/README.md",
     "prompts/README.md",
+    "ops/AGENTS.md",
     "python/ai-service/README.md",
+    "python/ai-service/AGENTS.md",
     "tools/security-lane.sh",
     "tools/jankurai-hooks/pre-commit",
     "tools/jankurai-hooks/prepare-commit-msg"
@@ -61,6 +65,11 @@
     "agent/standard-version.toml": "merge-toml",
     "agent/test-map.json": "merge-json",
     "agent/jankurai-install.toml": "merge-toml"
+    ,
+    "contracts/AGENTS.md": "merge-marker",
+    "db/AGENTS.md": "merge-marker",
+    "ops/AGENTS.md": "merge-marker",
+    "python/ai-service/AGENTS.md": "merge-marker"
   },
   "requiredLanes": ["fast", "audit", "security"],
   "optionalLanes": ["eval"],

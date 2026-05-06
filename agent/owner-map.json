@@ -33,6 +33,7 @@
     "schemas/": "standard",
     "contracts/": "standard",
     "db/": "standard",
+    "ops/": "ops",
     "examples/perfect-web-api-db/": "standard",
     "examples/legacy-node-api/": "tools",
     "examples/tuiwright-demo/": "tools",

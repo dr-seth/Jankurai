@@ -126,6 +126,11 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             crate::audit::language_rules::release::summary(ctx).hard_findings,
             crate::audit::language_rules::release::summary(ctx).advisory_signals,
         ),
+        (
+            "web security",
+            crate::audit::web_security::summary(ctx).hard_findings,
+            crate::audit::web_security::summary(ctx).advisory_signals,
+        ),
     ] {
         hard_language_findings += hard;
         if hard > 0 {

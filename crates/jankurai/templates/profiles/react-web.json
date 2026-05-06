@@ -7,6 +7,7 @@
     "CLAUDE.md",
     "GEMINI.md",
     "README-jankurai-scaffold.md",
+    "apps/web/AGENTS.md",
     ".agents/agents.md",
     ".agents/skills/jankurai/SKILL.md",
     ".agents/workflows/jankurai-audit.md",
@@ -28,6 +29,7 @@
     "agent/test-map.json",
     "agent/jankurai-install.toml",
     "agent/ux-qa.toml",
+    "contracts/AGENTS.md",
     "contracts/README.md",
     "docs/agent-native-standard.md",
     "docs/architecture/README.md",
@@ -35,6 +37,7 @@
     "docs/exceptions/README.md",
     "docs/ide-integrations.md",
     "docs/install.md",
+    "ops/AGENTS.md",
     "tools/security-lane.sh",
     "tools/jankurai-hooks/pre-commit",
     "tools/jankurai-hooks/prepare-commit-msg"
@@ -52,7 +55,10 @@
     "agent/standard-version.toml": "merge-toml",
     "agent/test-map.json": "merge-json",
     "agent/jankurai-install.toml": "merge-toml",
-    "agent/ux-qa.toml": "merge-toml"
+    "agent/ux-qa.toml": "merge-toml",
+    "apps/web/AGENTS.md": "merge-marker",
+    "contracts/AGENTS.md": "merge-marker",
+    "ops/AGENTS.md": "merge-marker"
   },
   "requiredLanes": ["fast", "audit", "ux", "security"],
   "optionalLanes": [],

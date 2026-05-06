@@ -12,12 +12,15 @@ pub mod speed;
 pub mod tool_adoption;
 
 use super::helpers::AuditContext;
+use crate::model::ProfileStructureReadiness;
 use crate::model::*;
 use rayon::prelude::*;
 
-pub fn all_dimensions(ctx: &AuditContext) -> Vec<DimensionResult> {
-    let analyzers: [fn(&AuditContext) -> DimensionResult; 11] = [
-        ownership::analyze,
+pub fn all_dimensions(
+    ctx: &AuditContext,
+    profile_structure: &ProfileStructureReadiness,
+) -> Vec<DimensionResult> {
+    let analyzers: [fn(&AuditContext) -> DimensionResult; 10] = [
         contracts::analyze,
         proof::analyze,
         security::analyze,
@@ -29,7 +32,14 @@ pub fn all_dimensions(ctx: &AuditContext) -> Vec<DimensionResult> {
         python::analyze,
         speed::analyze,
     ];
-    analyzers.par_iter().map(|analyze| analyze(ctx)).collect()
+    let mut dimensions = vec![ownership::analyze(ctx, profile_structure)];
+    dimensions.extend(
+        analyzers
+            .par_iter()
+            .map(|analyze| analyze(ctx))
+            .collect::<Vec<_>>(),
+    );
+    dimensions
 }
 
 pub fn ux_qa_status(ctx: &AuditContext) -> UxQaReadiness {

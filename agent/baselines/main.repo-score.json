@@ -1,22 +1,22 @@
 {
-  "report_fingerprint": "sha256:d57d997fe98f64530f1815ab946d09b138eae43358a1b6efe77d235c1b312f1f",
-  "input_fingerprint": "sha256:9f52e2073bf541dada816007dd6e60b1d8f2991a100e871e3a08f31110f3a177",
-  "policy_fingerprint": "sha256:ea0d1adf78581893bc9ac5e6000c772558e7df75499b80a04c26a8a9fccdcb03",
+  "report_fingerprint": "sha256:eaa7dbd192750edfd11fb907d00858d0374dea3f0848fa209160bea7ef57522e",
+  "input_fingerprint": "sha256:d69b2f94f0e3989f752cb7edb6727ec3a1f97608f0df542711c14b87fb8e4e37",
+  "policy_fingerprint": "sha256:b611c60891bbe909864e3b18682f34d172a019c1edfa1599619c60af97e13c76",
   "manifest_fingerprints": {
-    "owner_map": "sha256:02e6d9f93dbe5535ba31f76518da9523235d241194879c29b2a31a11affcc4a0",
-    "test_map": "sha256:99a4ff608849e0c1c456617533c67fab78892709359e46da0469d8dc2e52d60d",
+    "owner_map": "sha256:3bd706525d0620e9e6ff460abf269f9ad91e7b77a76c2286a637c0d89a9d40c3",
+    "test_map": "sha256:52c01e86eb96a5f2f2fbe9906ccf3da5da9801f34dae00bfa143111793b5d1fd",
     "generated_zones": "sha256:362e46400aaf3ed924edc3985f56f201859cbf214de4a5516da1112b16e2abe5",
     "boundaries": "sha256:51292d205b2ab7672cda0da1f49ce3bf812dc66dde10b9cf707e32f913f4fb50",
     "proof_lanes": "sha256:a51fde4292de99662c641d617b6c83f3b710aedc6261678089dcaa30c9d2bfab",
-    "standard_version": "sha256:db43b0a5b547ff2adde2f47759578d069456b2151f8d4bc7215a6697fd99670f"
+    "standard_version": "sha256:e365b408383d45b8b62273b7fc21002d3fbabf3f0384e6142e75285804ce25f2"
   },
   "dirty_worktree": false,
-  "generated_at": "1778048659",
+  "generated_at": "1778085866",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
-  "auditor_version": "0.8.10",
-  "schema_version": "1.5.0",
+  "auditor_version": "0.8.11",
+  "schema_version": "1.6.0",
   "paper_edition": "2026.05-ed8",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778048659",
-  "started_at": "1778048659",
-  "elapsed_ms": 1999,
+  "run_id": "1778085866",
+  "started_at": "1778085866",
+  "elapsed_ms": 22855,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "0e7c780",
+    "head": "cf7d7d7",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -73,8 +73,8 @@
     ],
     "mode": "standard",
     "standard_version": "0.8.0",
-    "auditor_version": "0.8.10",
-    "schema_version": "1.5.0",
+    "auditor_version": "0.8.11",
+    "schema_version": "1.6.0",
     "paper_edition": "2026.05-ed8",
     "target_stack": "rust-ts-vite-react-postgres-bounded-python"
   },
@@ -247,6 +247,14 @@
     {
       "id": "release-bad-behavior",
       "max_score": 70
+    },
+    {
+      "id": "web-security-bad-behavior",
+      "max_score": 68
+    },
+    {
+      "id": "repo-rot-bad-behavior",
+      "max_score": 88
     }
   ],
   "dimensions": [
@@ -261,6 +269,12 @@
         "owner map present",
         "test/proof routing map present",
         "local `AGENTS.md` file(s)",
+        "reference-profile cell `contracts` is canonical",
+        "reference-profile cell `contracts` has local AGENTS.md guidance",
+        "reference-profile cell `db` is canonical",
+        "reference-profile cell `db` has local AGENTS.md guidance",
+        "reference-profile cell `ops` is canonical",
+        "reference-profile cell `ops` has local AGENTS.md guidance",
         "root `README.md` routes to workspace layout",
         "owner map covers audited paths",
         "test map covers audited paths"
@@ -298,8 +312,7 @@
         "web e2e lane present or no web surface",
         "rendered UX QA lane present or no web surface",
         "DOM geometry UX QA runtime found",
-        "Rust property/integration tests present or no Rust surface",
-        "proofbind artifact found: surfaces=0 missing=0 high_or_critical_missing=0 verdict=pass"
+        "Rust property/integration tests present or no Rust surface"
       ],
       "notes": []
     },
@@ -365,6 +378,7 @@
       "weighted_points": 8.0,
       "evidence": [
         "observability libraries or patterns found",
+        "ops/observability directory present",
         "repair receipts or raw artifact language found",
         "repair queue schema is present",
         "structured report and receipt emitters are present",
@@ -1030,7 +1044,7 @@
     "artifact": {
       "path": "target/jankurai/security/evidence.json",
       "envelope_exit_code": 0,
-      "elapsed_ms": 3848,
+      "elapsed_ms": 4062,
       "wrapper_strict": true,
       "profile": "ci",
       "commands_ran": 4,
@@ -1039,8 +1053,8 @@
       "required_commands_skipped": 0,
       "required_commands_failed": 0,
       "blocking_commands": [],
-      "generated_at": "1778048637",
-      "git_head": "0e7c78014d896a3356b849788fc8a83f71d47228"
+      "generated_at": "1778085843",
+      "git_head": "cf7d7d74fa7df16ea446847caa0a291cd8624707"
     }
   },
   "boundaries": {
@@ -1056,6 +1070,226 @@
       "streaming_exception_count": 1
     },
     "reclassifications": []
+  },
+  "profile_structure": {
+    "applicable_count": 3,
+    "canonical_count": 3,
+    "noncanonical_count": 0,
+    "guidance_missing_count": 0,
+    "cells": [
+      {
+        "id": "web",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "apps/web/",
+        "detected_paths": [],
+        "aliases": [
+          "frontend/",
+          "ui/",
+          "packages/web/",
+          "packages/ui/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "apps/web",
+        "proof_lane": "rendered UX / Playwright",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "api",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "apps/api/",
+        "detected_paths": [],
+        "aliases": [
+          "api/",
+          "server/",
+          "backend/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "apps/api",
+        "proof_lane": "edge handler / contract tests",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "domain",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "crates/domain/",
+        "detected_paths": [],
+        "aliases": [
+          "domain/",
+          "core/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "crates/domain",
+        "proof_lane": "unit / property tests",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "application",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "crates/application/",
+        "detected_paths": [],
+        "aliases": [
+          "application/",
+          "usecases/",
+          "use-cases/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "crates/application",
+        "proof_lane": "use-case / authz tests",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "adapters",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "crates/adapters/",
+        "detected_paths": [],
+        "aliases": [
+          "adapters/",
+          "infra/",
+          "integrations/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "crates/adapters",
+        "proof_lane": "adapter integration tests",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "workers",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "crates/workers/",
+        "detected_paths": [],
+        "aliases": [
+          "workers/",
+          "jobs/",
+          "scheduler/",
+          "queue/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "crates/workers",
+        "proof_lane": "workflow / replay tests",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "contracts",
+        "applicable": true,
+        "status": "canonical",
+        "canonical_path": "contracts/",
+        "detected_paths": [
+          "contracts"
+        ],
+        "aliases": [
+          "openapi/",
+          "protobuf/",
+          "json-schema/",
+          "generated/"
+        ],
+        "guidance_status": "present",
+        "owner": "contracts",
+        "proof_lane": "generation / drift checks",
+        "agent_fix": "keep `contracts/AGENTS.md` aligned with owns / forbidden / proof lane guidance"
+      },
+      {
+        "id": "db",
+        "applicable": true,
+        "status": "canonical",
+        "canonical_path": "db/",
+        "detected_paths": [
+          "db"
+        ],
+        "aliases": [
+          "migrations/",
+          "constraints/",
+          "sql/"
+        ],
+        "guidance_status": "present",
+        "owner": "db",
+        "proof_lane": "migration / constraint tests",
+        "agent_fix": "keep `db/AGENTS.md` aligned with owns / forbidden / proof lane guidance"
+      },
+      {
+        "id": "python-ai",
+        "applicable": false,
+        "status": "not_applicable",
+        "canonical_path": "python/ai-service/",
+        "detected_paths": [],
+        "aliases": [
+          "python/",
+          "ai-service/",
+          "evals/",
+          "embeddings/",
+          "model/"
+        ],
+        "guidance_status": "not_required",
+        "owner": "python/ai-service",
+        "proof_lane": "eval / contract tests",
+        "agent_fix": "no action"
+      },
+      {
+        "id": "ops",
+        "applicable": true,
+        "status": "canonical",
+        "canonical_path": "ops/",
+        "detected_paths": [
+          ".github",
+          ".github/workflows",
+          "ops"
+        ],
+        "aliases": [
+          ".github/",
+          ".github/workflows/",
+          "ci/",
+          "release/",
+          "observability/",
+          "security/"
+        ],
+        "guidance_status": "present",
+        "owner": "ops",
+        "proof_lane": "security lane / workflow lint",
+        "agent_fix": "keep `ops/AGENTS.md` aligned with owns / forbidden / proof lane guidance"
+      }
+    ],
+    "evidence": {
+      "applicable_count": 3,
+      "canonical_count": 3,
+      "detected_cells": [
+        {
+          "canonical_path": "contracts/",
+          "detected_paths": [
+            "contracts"
+          ],
+          "guidance_status": "present",
+          "id": "contracts",
+          "status": "canonical"
+        },
+        {
+          "canonical_path": "db/",
+          "detected_paths": [
+            "db"
+          ],
+          "guidance_status": "present",
+          "id": "db",
+          "status": "canonical"
+        },
+        {
+          "canonical_path": "ops/",
+          "detected_paths": [
+            ".github",
+            ".github/workflows",
+            "ops"
+          ],
+          "guidance_status": "present",
+          "id": "ops",
+          "status": "canonical"
+        }
+      ],
+      "guidance_missing_count": 0,
+      "noncanonical_count": 0
+    }
   },
   "vibe_coverage": {
     "source_path": "agent/vibe-coverage.toml",

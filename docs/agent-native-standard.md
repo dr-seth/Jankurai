@@ -102,8 +102,11 @@ Stable rule IDs:
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
 | `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
 | `HLT-037-RELEASE-BAD-BEHAVIOR` | Release automation mutates tags/artifacts, skips proof, ships mutable latest-only outputs, or publishes without integrity evidence |
+| `HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP` | Reference-profile cells drift from canonical folder names or miss local AGENTS guidance |
+| `HLT-039-WEB-SECURITY-BAD-BEHAVIOR` | Web apps expose high-confidence security hazards such as public Vite dev servers, client secrets, browser token storage, or credentialed wildcard CORS |
+| `HLT-040-REPO-ROT-BAD-BEHAVIOR` | Active source contains ambiguous old, backup, copied, parked, or hard-disabled code without owner, proof lane, expiry, and cleanup plan |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-037` are detector-backed catalog IDs in the language bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-040` are detector-backed catalog IDs in the bad-behavior family.
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 
@@ -463,7 +466,9 @@ Audit findings MUST include:
 - validation lane
 - docs link
 
-Audit JSON MUST include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, raw score, final score, hard caps, dimension breakdown, findings, and ordered `agent_fix_queue`.
+Audit JSON MUST include `standard_version`, `auditor_version`, `schema_version`, `paper_edition`, `target_stack_id`, raw score, final score, hard caps, dimension breakdown, `profile_structure`, findings, and ordered `agent_fix_queue`.
+
+The Markdown report MUST include a `## Reference Profile Structure` section that summarizes detected cells, canonical folders, local guidance status, and migration steering.
 
 Plotting integrations that want rolling score plots MUST use the bounded history export command; `jankurai score trend` remains the summary command. Do not scrape full audit JSON for trend plots.
 

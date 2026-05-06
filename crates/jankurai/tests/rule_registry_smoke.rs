@@ -63,6 +63,33 @@ fn boundary_evidence_gap_rule_is_registered() {
 }
 
 #[test]
+fn reference_profile_structure_rule_is_registered() {
+    let rule = rules::lookup("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP")
+        .expect("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP must exist in registry");
+    assert_eq!(rule.category, "context");
+    assert_eq!(rule.lane, "fast");
+    assert_eq!(rule.cap_key, None);
+    assert_eq!(rule.status, rules::RuleStatus::Stable);
+}
+
+#[test]
+fn web_security_and_repo_rot_rules_are_registered() {
+    let web = rules::lookup("HLT-039-WEB-SECURITY-BAD-BEHAVIOR")
+        .expect("HLT-039-WEB-SECURITY-BAD-BEHAVIOR must exist in registry");
+    assert_eq!(web.category, "security");
+    assert_eq!(web.lane, "security");
+    assert_eq!(web.cap_key, Some("web-security-bad-behavior"));
+    assert_eq!(web.status, rules::RuleStatus::Stable);
+
+    let rot = rules::lookup("HLT-040-REPO-ROT-BAD-BEHAVIOR")
+        .expect("HLT-040-REPO-ROT-BAD-BEHAVIOR must exist in registry");
+    assert_eq!(rot.category, "context");
+    assert_eq!(rot.lane, "audit");
+    assert_eq!(rot.cap_key, Some("repo-rot-bad-behavior"));
+    assert_eq!(rot.status, rules::RuleStatus::Stable);
+}
+
+#[test]
 fn language_bad_behavior_rules_are_registered() {
     for (rule_id, category, lane, cap_key) in [
         (

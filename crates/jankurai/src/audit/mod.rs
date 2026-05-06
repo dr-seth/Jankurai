@@ -12,13 +12,16 @@ pub mod fs_policy;
 pub mod helpers;
 pub mod language_rules;
 pub mod policy;
+pub mod profile_structure;
 pub mod proofbind_artifact;
 pub mod prose;
+pub mod repo_rot;
 pub mod rule_analyzer;
 pub mod rules;
 pub mod scan;
 pub mod security_artifact;
 pub mod ux_artifact;
+pub mod web_security;
 
 use crate::model::*;
 use anyhow::Result;
@@ -129,8 +132,9 @@ pub fn run_audit_timed_with_options(
         ..base_ctx
     };
     timings.record_duration("index_build", index_started.elapsed());
+    let profile_structure = profile_structure::analyze(&ctx);
     let analyzers_started = Instant::now();
-    let dimensions = analyzers::all_dimensions(&ctx);
+    let dimensions = analyzers::all_dimensions(&ctx, &profile_structure);
     timings.record_duration("analyzers", analyzers_started.elapsed());
     let raw_score = dimensions
         .iter()
@@ -151,6 +155,7 @@ pub fn run_audit_timed_with_options(
     let findings = build_findings(
         &ctx,
         &dimensions,
+        &profile_structure,
         &caps_applied,
         final_score,
         policy.minimum_score,
@@ -225,6 +230,7 @@ pub fn run_audit_timed_with_options(
             artifact: boundaries_artifact::load_manifest_summary(root),
             reclassifications: ctx.boundary_reclassifications.clone(),
         },
+        profile_structure: profile_structure.clone(),
         vibe_coverage: crate::commands::vibe::audit_summary(root),
         findings,
         agent_fix_queue,
@@ -528,6 +534,7 @@ pub fn report_fingerprint(report: &Report) -> String {
 fn build_findings(
     ctx: &AuditContext,
     dimensions: &[DimensionResult],
+    profile_structure: &ProfileStructureReadiness,
     caps_applied: &[String],
     final_score: i32,
     minimum_score: i32,
@@ -784,6 +791,84 @@ fn build_findings(
         let hit = scan::wrong_layer_db_hits(ctx)[0].clone();
         b.add_with_rule("HLT-006-DIRECT-DB-WRONG-LAYER", &hit.path, "direct database access appears in a wrong layer", "move SQL and DB clients to `crates/adapters` or `db/`; expose typed application/domain APIs upward", vec![hit.problem.clone()], hit.line, None, None);
     }
+    for cell in profile_structure
+        .cells
+        .iter()
+        .filter(|cell| cell.applicable)
+    {
+        if cell.status == "noncanonical" {
+            let detected_path = cell
+                .detected_paths
+                .first()
+                .cloned()
+                .unwrap_or_else(|| cell.canonical_path.clone());
+            b.add_with_rule(
+                "HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP",
+                &detected_path,
+                &format!(
+                    "reference-profile cell `{}` is detected at a noncanonical path",
+                    cell.id
+                ),
+                &cell.agent_fix,
+                vec![
+                    format!("canonical_path={}", cell.canonical_path),
+                    format!(
+                        "detected_paths={}",
+                        if cell.detected_paths.is_empty() {
+                            "-".into()
+                        } else {
+                            cell.detected_paths.join(", ")
+                        }
+                    ),
+                    format!(
+                        "aliases={}",
+                        if cell.aliases.is_empty() {
+                            "-".into()
+                        } else {
+                            cell.aliases.join(", ")
+                        }
+                    ),
+                    format!("guidance_status={}", cell.guidance_status),
+                    format!("owner={}", cell.owner),
+                    format!("proof_lane={}", cell.proof_lane),
+                ],
+                None,
+                None,
+                None,
+            );
+        }
+        if cell.guidance_status == "missing" {
+            b.add_with_rule(
+                "HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP",
+                &cell.canonical_path,
+                &format!(
+                    "reference-profile cell `{}` lacks local AGENTS.md guidance",
+                    cell.id
+                ),
+                &format!(
+                    "add `{}` with owns / forbidden / proof lane guidance",
+                    cell.canonical_path.trim_end_matches('/').to_string() + "/AGENTS.md"
+                ),
+                vec![
+                    format!("canonical_path={}", cell.canonical_path),
+                    format!(
+                        "detected_paths={}",
+                        if cell.detected_paths.is_empty() {
+                            "-".into()
+                        } else {
+                            cell.detected_paths.join(", ")
+                        }
+                    ),
+                    format!("guidance_status={}", cell.guidance_status),
+                    format!("owner={}", cell.owner),
+                    format!("proof_lane={}", cell.proof_lane),
+                ],
+                None,
+                None,
+                None,
+            );
+        }
+    }
 
     // AST / Graph Pilot findings
     if !crate::audit::analyzers::ast::run_ast_pilot(ctx).is_empty() {
@@ -943,6 +1028,30 @@ fn build_findings(
         );
     }
     for hit in scan::language_bad_behavior_hits(ctx) {
+        b.add_with_rule(
+            hit.rule_id,
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            hit.evidence,
+            hit.line,
+            Some(hit.matched_term.into()),
+            Some(hit.reason),
+        );
+    }
+    for hit in web_security::findings(ctx) {
+        b.add_with_rule(
+            hit.rule_id,
+            &hit.path,
+            &hit.problem,
+            &hit.agent_fix,
+            hit.evidence,
+            hit.line,
+            Some(hit.matched_term.into()),
+            Some(hit.reason),
+        );
+    }
+    for hit in repo_rot::findings(ctx) {
         b.add_with_rule(
             hit.rule_id,
             &hit.path,

@@ -91,6 +91,8 @@ fn repo_score_json_validates_and_matches_committed_standard_versions() {
         "report target_stack_id should track agent/standard-version.toml target_stack"
     );
     assert_eq!(report["schema_url"], "schemas/repo-score.schema.json");
+    assert!(report["profile_structure"].as_object().is_some());
+    assert!(report["profile_structure"]["cells"].as_array().is_some());
 
     let scope = report["scope"].as_object().expect("scope object");
     assert!(
@@ -173,22 +175,34 @@ fn sidecar_report_exports_stay_semantically_parseable() {
 fn repo_score_markdown_keeps_stable_sections() {
     let tmp = tempfile::tempdir().unwrap();
     let repo = repo_root();
-    let _ = run_full_audit_export(&repo, tmp.path());
+    let report = run_full_audit_export(&repo, tmp.path());
     let md = fs::read_to_string(tmp.path().join("repo-score.md")).unwrap();
     for needle in [
         "# jankurai Repo Score",
         "## Hard Rule Caps",
         "## Dimensions",
+        "## Reference Profile Structure",
         "## Rendered UX QA",
         "## Tool Adoption",
         "## Boundary Reclassifications",
-        "## Vibe Coding Coverage",
         "## Findings",
         "## Agent Fix Queue",
     ] {
         assert!(
             md.contains(needle),
             "repo-score.md missing stable section `{needle}`"
+        );
+    }
+
+    if report["vibe_coverage"].is_object() {
+        assert!(
+            md.contains("## Vibe Coding Coverage"),
+            "repo-score.md should include vibe coverage when the report carries it"
+        );
+    } else {
+        assert!(
+            !md.contains("## Vibe Coding Coverage"),
+            "repo-score.md should not invent vibe coverage when the report omits it"
         );
     }
 }

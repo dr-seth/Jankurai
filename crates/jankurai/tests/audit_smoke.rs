@@ -92,6 +92,177 @@ fn audit_report_serializes_against_repo_score_schema() {
 }
 
 #[test]
+fn profile_structure_leaves_unrelated_cells_not_applicable() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+
+    let web = report
+        .profile_structure
+        .cells
+        .iter()
+        .find(|cell| cell.id == "web")
+        .unwrap();
+    let api = report
+        .profile_structure
+        .cells
+        .iter()
+        .find(|cell| cell.id == "api")
+        .unwrap();
+    let db = report
+        .profile_structure
+        .cells
+        .iter()
+        .find(|cell| cell.id == "db")
+        .unwrap();
+
+    assert_eq!(web.status, "not_applicable");
+    assert_eq!(api.status, "not_applicable");
+    assert_eq!(db.status, "not_applicable");
+    assert_eq!(report.profile_structure.applicable_count, 0);
+    assert!(
+        report.findings.iter().all(|finding| {
+            finding.rule_id.as_deref() != Some("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP")
+        }),
+        "no profile-structure findings should be emitted when no reference-profile cells are detected"
+    );
+}
+
+#[test]
+fn profile_structure_marks_canonical_cells_and_missing_guidance() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+    fs::create_dir_all(dir.path().join("contracts")).unwrap();
+    fs::write(dir.path().join("contracts/README.md"), "# contracts\n").unwrap();
+    fs::write(dir.path().join("contracts/openapi.json"), "{}\n").unwrap();
+    fs::create_dir_all(dir.path().join("db/migrations")).unwrap();
+    fs::write(dir.path().join("db/README.md"), "# db\n").unwrap();
+    fs::write(dir.path().join("db/migrations/001_init.sql"), "-- init\n").unwrap();
+    fs::create_dir_all(dir.path().join(".github/workflows")).unwrap();
+    fs::write(dir.path().join(".github/workflows/ci.yml"), "name: ci\n").unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let profile = &report.profile_structure;
+
+    let contracts = profile
+        .cells
+        .iter()
+        .find(|cell| cell.id == "contracts")
+        .unwrap();
+    let db = profile.cells.iter().find(|cell| cell.id == "db").unwrap();
+    let ops = profile.cells.iter().find(|cell| cell.id == "ops").unwrap();
+
+    assert_eq!(contracts.status, "canonical");
+    assert_eq!(contracts.guidance_status, "missing");
+    assert_eq!(db.status, "canonical");
+    assert_eq!(db.guidance_status, "missing");
+    assert_eq!(ops.status, "noncanonical");
+    assert_eq!(ops.guidance_status, "missing");
+    assert!(ops
+        .detected_paths
+        .iter()
+        .any(|path| path == ".github/workflows"));
+
+    let hlt038 = report
+        .findings
+        .iter()
+        .filter(|finding| {
+            finding.rule_id.as_deref() == Some("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        hlt038.len(),
+        4,
+        "contracts/db guidance gaps and ops migration guidance should each produce actionable findings"
+    );
+    assert!(hlt038.iter().any(|finding| {
+        finding.path == "contracts/" && finding.problem.contains("lacks local AGENTS.md guidance")
+    }));
+    assert!(hlt038.iter().any(|finding| {
+        finding.path == "db/" && finding.problem.contains("lacks local AGENTS.md guidance")
+    }));
+    assert!(hlt038.iter().any(|finding| {
+        (finding.path == ".github" || finding.path == ".github/workflows")
+            && finding.problem.contains("detected at a noncanonical path")
+    }));
+}
+
+#[test]
+fn profile_structure_accepts_canonical_cells_with_local_guidance() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+    fs::create_dir_all(dir.path().join("contracts")).unwrap();
+    fs::write(dir.path().join("contracts/README.md"), "# contracts\n").unwrap();
+    fs::write(
+        dir.path().join("contracts/AGENTS.md"),
+        "contracts guidance\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("contracts/openapi.json"), "{}\n").unwrap();
+    fs::create_dir_all(dir.path().join("db/migrations")).unwrap();
+    fs::write(dir.path().join("db/README.md"), "# db\n").unwrap();
+    fs::write(dir.path().join("db/AGENTS.md"), "db guidance\n").unwrap();
+    fs::write(dir.path().join("db/migrations/001_init.sql"), "-- init\n").unwrap();
+    fs::create_dir_all(dir.path().join("ops")).unwrap();
+    fs::write(dir.path().join("ops/README.md"), "# ops\n").unwrap();
+    fs::write(dir.path().join("ops/AGENTS.md"), "ops guidance\n").unwrap();
+    fs::write(dir.path().join("ops/security.sh"), "#!/usr/bin/env bash\n").unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let profile = &report.profile_structure;
+
+    for cell_id in ["contracts", "db", "ops"] {
+        let cell = profile
+            .cells
+            .iter()
+            .find(|cell| cell.id == cell_id)
+            .unwrap();
+        assert_eq!(cell.status, "canonical", "{cell_id} should stay canonical");
+        assert_eq!(
+            cell.guidance_status, "present",
+            "{cell_id} should have local AGENTS.md guidance"
+        );
+    }
+
+    assert!(
+        report
+            .findings
+            .iter()
+            .all(|finding| finding.rule_id.as_deref()
+                != Some("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP")),
+        "canonical cells with local guidance should not emit profile-structure findings"
+    );
+}
+
+#[test]
+fn profile_structure_flags_python_outside_the_bounded_service() {
+    let dir = tempdir().unwrap();
+    write_audit_notice_fixture(dir.path());
+    fs::create_dir_all(dir.path().join("python")).unwrap();
+    fs::write(dir.path().join("python/worker.py"), "print('hello')\n").unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let python = report
+        .profile_structure
+        .cells
+        .iter()
+        .find(|cell| cell.id == "python-ai")
+        .unwrap();
+
+    assert_eq!(python.status, "noncanonical");
+    assert_eq!(python.guidance_status, "missing");
+    assert!(report
+        .caps_applied
+        .iter()
+        .any(|cap| cap == "python-direct-product-truth-or-db-ownership"));
+    assert!(report.findings.iter().any(|finding| {
+        finding.rule_id.as_deref() == Some("HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP")
+            && finding.path == "python"
+    }));
+}
+
+#[test]
 fn free_prose_words_do_not_emit_findings_or_repair_tasks() {
     let dir = tempdir().unwrap();
     write_prose_neutral_fixture(
