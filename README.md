@@ -1,5 +1,5 @@
 <!-- jankurai-badge:start -->
-[![Jankurai score: 92/100](agent/jankurai-badge.svg)](agent/jankurai-badge.json)
+[![Jankurai score: 100/100](agent/jankurai-badge.svg)](agent/jankurai-badge.json)
 <!-- jankurai-badge:end -->
 
 <p align="center">

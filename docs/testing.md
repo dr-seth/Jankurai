@@ -68,6 +68,15 @@ Critical UI proof must be artifact-backed. A useful receipt names the route or s
 
 Tool adoption is scored separately from the core proof lanes. The built-in catalog currently tracks `audit-ci`, `proof-routing`, `security`, `ux-qa`, `db-migration-analyze`, `contract-drift`, `rust-witness`, `vibe-coverage`, `authz-matrix`, `input-boundary`, `agent-tool-supply`, `release-readiness`, `release-bad-behavior`, and `cost-budget`. `agent/tool-adoption.toml` records per-tool mode as `auto`, `required`, `advisory`, or `disabled`. In the audit report, a tool only counts as replaced when CI runs the relevant Jankurai-backed lane and uploads the expected artifact evidence; local config is readiness only.
 
+Tool adoption counters have distinct meanings:
+
+- `configured_count` is the number of applicable catalog tools with an explicit `agent/tool-adoption.toml` entry, even when stronger CI evidence upgrades the item status to `ci_evidence` or `artifact_verified`.
+- `ci_evidence_count` is the number of applicable tools whose catalog CI command is present in GitHub Actions.
+- `artifact_verified_count` is the number of applicable tools whose CI command and expected uploaded artifact paths are both present.
+- `replaced_count` follows CI-backed adoption and currently equals `ci_evidence_count`; local configuration alone does not count as replacement proof.
+
+Item status remains a strongest-observed-evidence label: `configured` for local config only, `ci_evidence` when CI runs the lane, `artifact_verified` when CI also uploads the expected artifacts, `missing` when an applicable tool has no evidence, and `not_applicable` when the tool does not apply to the repository.
+
 The adoption score is intentionally soft-capped. It rewards control-plane presence, configured applicable tools, CI evidence, and artifact verification, then applies a soft cap when a required applicable tool lacks CI-backed evidence. Non-web repos do not get UX QA pressure unless they actually have a web surface.
 
 When required states or required screenshot/ARIA/accessibility artifacts are missing, the UX CLI marks the report `block`. State generation can be driven by `stateQueryParam` so each configured state becomes a concrete URL variant without changing the underlying route contract. Validated `target/jankurai/ux-qa.json` evidence is ingested into repo-score as `ux_qa.artifact`, including artifact counts by kind, missing state names, missing required artifact kinds, and accessibility violation/incomplete/pass totals. The audit adds `HLT-013-RENDERED-UX-GAP` for incomplete state or non-a11y artifact coverage and `HLT-014-A11Y-GAP` for axe violations or missing accessibility artifacts. This slice does not add numeric score caps.

@@ -39,6 +39,17 @@ fn write_audit_notice_fixture(repo: &Path) {
     .unwrap();
 }
 
+fn dimension<'a>(
+    report: &'a jankurai::model::Report,
+    name: &str,
+) -> &'a jankurai::model::DimensionResult {
+    report
+        .dimensions
+        .iter()
+        .find(|dim| dim.name == name)
+        .unwrap_or_else(|| panic!("missing dimension {name}"))
+}
+
 #[test]
 fn audit_report_serializes_against_repo_score_schema() {
     let dir = tempdir().unwrap();
@@ -643,8 +654,14 @@ fn audit_tool_adoption_ux_qa_counts_only_with_ci_command_and_artifact_upload() {
         .expect("ux-qa item");
 
     assert_eq!(ux.status, "artifact_verified");
+    assert_eq!(report.tool_adoption.configured_count, 1);
     assert_eq!(report.tool_adoption.ci_evidence_count, 1);
     assert_eq!(report.tool_adoption.artifact_verified_count, 1);
+    assert!(report.tool_adoption.evidence["configured_tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|tool| tool == "ux-qa"));
 }
 
 #[test]
@@ -671,6 +688,181 @@ fn audit_tool_adoption_non_web_repo_skips_ux_qa_pressure() {
         .caps_applied
         .iter()
         .any(|cap| cap == "jankurai-required-tool-ci-evidence-gap"));
+}
+
+#[test]
+fn audit_calibrates_clean_data_boundary_policy() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/boundaries.toml"),
+        "[db]\nroot_paths = [\"db\"]\nmigration_paths = [\"db/migrations\"]\nconstraint_paths = [\"db/constraints\"]\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("db/migrations")).unwrap();
+    fs::create_dir_all(dir.path().join("db/constraints")).unwrap();
+    fs::write(
+        dir.path().join("db/README.md"),
+        "PostgreSQL durable truth uses rollback, backfill, and lock notes.\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("db/constraints/README.md"),
+        "Foreign key, check constraint, and row level security policy live here.\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("db/migrations/README.md"),
+        "Each migration documents rollback, backfill, and lock behavior.\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let data = dimension(&report, "Data truth and workflow safety");
+
+    assert_eq!(data.score, 100);
+    assert!(data
+        .evidence
+        .iter()
+        .any(|e| e == "db boundary routes roots, migrations, and constraints"));
+    assert!(data
+        .evidence
+        .iter()
+        .any(|e| e == "constraint or RLS language found"));
+}
+
+#[test]
+fn audit_calibrates_clean_shape_from_zero_hard_language_findings() {
+    let dir = tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::write(
+        dir.path().join("src/lib.rs"),
+        "pub fn classify(value: u32) -> u32 { value + 1 }\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let shape = dimension(&report, "Code shape and semantic surface");
+
+    assert!(shape.score >= 90);
+    assert!(shape.evidence.iter().any(|e| {
+        e == "no hard bad-behavior findings across detector-backed language families"
+    }));
+}
+
+#[test]
+fn audit_calibrates_fast_lane_target_artifacts() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Cargo.lock"), "# lock\n").unwrap();
+    fs::write(
+        dir.path().join("Justfile"),
+        "check:\n    cargo test\nfast:\n    cargo check -p jankurai\n    cargo run -p jankurai -- . --json target/jankurai/fast-score.json --md target/jankurai/fast-score.md\naudit-fast:\n    cargo run -p jankurai -- audit . --changed-fast --json target/jankurai/audit-fast.json --md target/jankurai/audit-fast.md\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let speed = dimension(&report, "Build speed signals");
+
+    assert!(speed
+        .evidence
+        .iter()
+        .any(|e| { e == "fast lane uses targeted commands and target-only audit artifacts" }));
+}
+
+#[test]
+fn audit_calibrates_complete_operational_security_posture() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Cargo.lock"), "# lock\n").unwrap();
+    fs::write(dir.path().join("package-lock.json"), "{}\n").unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.path().join("tools")).unwrap();
+    fs::write(
+        dir.path().join("tools/security-lane.sh"),
+        "gitleaks detect\ncargo audit\nnpm audit\nsyft .\nzizmor .github/workflows\n",
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join(".github/workflows")).unwrap();
+    fs::write(
+        dir.path().join(".github/workflows/jankurai.yml"),
+        "name: ci\non: [push]\njobs:\n  audit:\n    runs-on: ubuntu-latest\n    steps:\n      - run: jankurai audit . --json agent/repo-score.json --md agent/repo-score.md\n      - run: tools/security-lane.sh\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let security = dimension(&report, "Security and supply-chain posture");
+
+    assert!(security.evidence.iter().any(|e| {
+        e == "complete operational security command posture with zero hard language findings"
+    }));
+}
+
+#[test]
+fn audit_calibrates_clean_schema_tooling_contract_surface() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("AGENTS.md"), "Read agent standard\n").unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Repo\n\nworkspace layout map validate\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::create_dir_all(dir.path().join("contracts/generated")).unwrap();
+    fs::create_dir_all(dir.path().join("schemas")).unwrap();
+    fs::write(
+        dir.path().join("contracts/openapi.json"),
+        "{\"openapi\":\"3.1.0\",\"info\":{\"title\":\"x\",\"version\":\"1\"},\"paths\":{}}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("contracts/generated/openapi.rs"),
+        "Generated by: test\nSource: contracts/openapi.json\nCommand: test\nDO NOT EDIT BY HAND.\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("schemas/repo.schema.json"),
+        "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\"}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("agent/generated-zones.toml"),
+        "[[zone]]\npath = \"contracts/generated/openapi.rs\"\nsource = \"contracts/openapi.json\"\ncommand = \"test\"\nread_only = false\nwrite_policy = \"generator_only\"\n",
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let contract = dimension(&report, "Contract and boundary integrity");
+
+    assert!(contract
+        .evidence
+        .iter()
+        .any(|e| e == "schema/tooling contract posture is clean"));
 }
 
 #[test]

@@ -92,7 +92,7 @@ pub fn status(ctx: &AuditContext) -> ToolAdoptionReadiness {
         if applicable {
             applicable_count += 1;
         }
-        if status == "configured" {
+        if config_entry_present {
             configured_count += 1;
         }
         if matches!(status, "ci_evidence" | "artifact_verified") {
@@ -149,7 +149,7 @@ pub fn status(ctx: &AuditContext) -> ToolAdoptionReadiness {
     let applicable_tools = applicable_tool_ids(ctx, &config);
     let configured_tools = items
         .iter()
-        .filter(|item| item.status == "configured")
+        .filter(|item| item.applicable && config.has_entry(&item.id))
         .map(|item| item.id.clone())
         .collect::<Vec<_>>();
     let ci_evidence_tools = items

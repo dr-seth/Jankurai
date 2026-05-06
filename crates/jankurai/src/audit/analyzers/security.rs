@@ -72,6 +72,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         notes.push("CI does not run the jankurai audit".into());
     }
     let rust_summary = crate::audit::language_rules::rust::summary(ctx);
+    let mut hard_language_findings = rust_summary.hard_findings;
     if rust_summary.hard_findings > 0 {
         evidence.push(format!(
             "rust bad-behavior hard findings: {}",
@@ -120,7 +121,13 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             crate::audit::language_rules::gittools::summary(ctx).hard_findings,
             crate::audit::language_rules::gittools::summary(ctx).advisory_signals,
         ),
+        (
+            "release",
+            crate::audit::language_rules::release::summary(ctx).hard_findings,
+            crate::audit::language_rules::release::summary(ctx).advisory_signals,
+        ),
     ] {
+        hard_language_findings += hard;
         if hard > 0 {
             evidence.push(format!("{label} bad-behavior hard findings: {hard}"));
         } else if advisory > 0 {
@@ -134,6 +141,25 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
     if security_text.contains("gitleaks detect") {
         score += 6;
         evidence.push("secret scanning command is operational".into());
+    }
+    if hard_language_findings == 0
+        && has_security_lane(ctx)
+        && has_jankurai_audit_ci_lane(ctx)
+        && security_text.contains("tools/security-lane.sh")
+        && security_text.contains("cargo audit")
+        && security_text.contains("npm audit")
+        && security_text.contains("gitleaks detect")
+        && ["syft", "grype", "slsa", "sbom", "cosign"]
+            .iter()
+            .any(|n| security_text.contains(n))
+        && ["actionlint", "zizmor"]
+            .iter()
+            .any(|n| security_text.contains(n))
+    {
+        score += 8;
+        evidence.push(
+            "complete operational security command posture with zero hard language findings".into(),
+        );
     }
     make_dim("Security and supply-chain posture", score, evidence, notes)
 }

@@ -77,5 +77,17 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score -= 12;
         evidence.push("streaming client found outside queue adapter boundary".into());
     }
+    if ctx
+        .all_files
+        .iter()
+        .any(|f| f.rel_path.starts_with("schemas/") && f.name.ends_with(".schema.json"))
+        && has_generated_contracts(ctx)
+        && scan::contract_source_hits(ctx).is_empty()
+        && scan::wrong_layer_db_hits(ctx).is_empty()
+        && scan::streaming_runtime_hits(ctx).is_empty()
+    {
+        score += 5;
+        evidence.push("schema/tooling contract posture is clean".into());
+    }
     make_dim("Contract and boundary integrity", score, evidence, notes)
 }

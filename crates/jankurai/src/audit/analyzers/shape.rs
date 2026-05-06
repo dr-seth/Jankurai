@@ -74,6 +74,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         evidence.push("authored code stays below hard LOC limits with no shape markers".into());
     }
     let rust_summary = crate::audit::language_rules::rust::summary(ctx);
+    let mut hard_language_findings = rust_summary.hard_findings;
     if rust_summary.hard_findings > 0 {
         evidence.push(format!(
             "rust bad-behavior hard findings: {}",
@@ -122,12 +123,23 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
             crate::audit::language_rules::gittools::summary(ctx).hard_findings,
             crate::audit::language_rules::gittools::summary(ctx).advisory_signals,
         ),
+        (
+            "release",
+            crate::audit::language_rules::release::summary(ctx).hard_findings,
+            crate::audit::language_rules::release::summary(ctx).advisory_signals,
+        ),
     ] {
+        hard_language_findings += hard;
         if hard > 0 {
             evidence.push(format!("{label} bad-behavior hard findings: {hard}"));
         } else if advisory > 0 {
             evidence.push(format!("{label} bad-behavior advisory signals: {advisory}"));
         }
+    }
+    if hard_language_findings == 0 {
+        score += 15;
+        evidence
+            .push("no hard bad-behavior findings across detector-backed language families".into());
     }
     make_dim("Code shape and semantic surface", score, evidence, notes)
 }

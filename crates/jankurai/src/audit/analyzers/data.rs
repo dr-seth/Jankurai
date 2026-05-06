@@ -29,26 +29,43 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score += 15;
         evidence.push("database surface present".into());
     }
-    if boundary_manifest(ctx)
-        .and_then(|manifest| manifest.db)
+    let db_boundary = boundary_manifest(ctx).and_then(|manifest| manifest.db);
+    if db_boundary
+        .as_ref()
         .map(|db| !db.root_paths.is_empty())
         .unwrap_or(false)
     {
+        score += 5;
         evidence.push("structured db boundary manifest present".into());
+    }
+    if db_boundary
+        .as_ref()
+        .map(|db| {
+            !db.root_paths.is_empty()
+                && !db.migration_paths.is_empty()
+                && !db.constraint_paths.is_empty()
+        })
+        .unwrap_or(false)
+    {
+        score += 5;
+        evidence.push("db boundary routes roots, migrations, and constraints".into());
     }
     if has_prefix(ctx, "db/migrations") || has_prefix(ctx, "migrations") {
         score += 10;
         evidence.push("migration directory present".into());
     }
+    let db_docs = db_policy_text(ctx);
     if files.iter().any(|f| {
         f.text.to_ascii_lowercase().contains("foreign key")
             || f.text.to_ascii_lowercase().contains("check constraint")
             || f.text.to_ascii_lowercase().contains("row level security")
-    }) {
+    }) || db_docs.contains("foreign key")
+        || db_docs.contains("check constraint")
+        || db_docs.contains("row level security")
+    {
         score += 10;
         evidence.push("constraint or RLS language found".into());
     }
-    let db_docs = db_policy_text(ctx);
     if db_docs.contains("foreign key")
         || db_docs.contains("check constraint")
         || db_docs.contains("row level security")

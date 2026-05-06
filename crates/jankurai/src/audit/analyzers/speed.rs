@@ -83,5 +83,14 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score += 15;
         evidence.push("focused Rust and UX QA build/test lanes are available".into());
     }
+    if has_fast_lane(ctx)
+        && real_command_surface_contains(ctx, &["cargo check -p jankurai"])
+        && surface_text.contains("target/jankurai/fast-score.json")
+        && surface_text.contains("--changed-fast")
+        && surface_text.contains("target/jankurai/audit-fast.json")
+    {
+        score += 15;
+        evidence.push("fast lane uses targeted commands and target-only audit artifacts".into());
+    }
     make_dim("Build speed signals", score, evidence, notes)
 }
