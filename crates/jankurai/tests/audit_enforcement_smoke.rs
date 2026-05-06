@@ -123,3 +123,37 @@ fn invalid_policy_severity_fails_loading() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("invalid audit policy severity"));
 }
+
+#[test]
+fn isolated_empty_repo_report_includes_ratchet_score_delta() {
+    let repo = tempdir().unwrap();
+    let home = tempdir().unwrap();
+    let config = tempdir().unwrap();
+    let cache = tempdir().unwrap();
+
+    let output = Command::new(binary_path())
+        .arg("audit")
+        .arg(repo.path())
+        .arg("--mode")
+        .arg("advisory")
+        .arg("--json")
+        .arg(repo.path().join("repo-score.json"))
+        .arg("--md")
+        .arg(repo.path().join("repo-score.md"))
+        .arg("--no-score-history")
+        .env("HOME", home.path())
+        .env("XDG_CONFIG_HOME", config.path())
+        .env("XDG_CACHE_HOME", cache.path())
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(repo.path().join("repo-score.json")).unwrap())
+            .unwrap();
+    assert_eq!(value["decision"]["ratchet"]["score_delta"], 0);
+}
