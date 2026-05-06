@@ -1,21 +1,21 @@
 {
-  "report_fingerprint": "sha256:e43c434b7c1635dd4d079c166c4e0ebbf6e91efcaf3aa24539b04792cd976579",
-  "input_fingerprint": "sha256:a4eeaf9b9a61df573d1bc1ccd07ed8befe155cafdd2dce84569f01a55ebdc8f2",
-  "policy_fingerprint": "sha256:4cada2563bc061cb649c364949b0bb3e2460a6702c088681bc2eb6a31f9b482a",
+  "report_fingerprint": "sha256:e41b902db2570613a0c5dfb53a26c9bc5ca94750ab74eb0be5b2514abefc008f",
+  "input_fingerprint": "sha256:d720ccf52ddcef319f2faad5f9acd4f024afb338bc7cfbc588638d77046ad598",
+  "policy_fingerprint": "sha256:ea0d1adf78581893bc9ac5e6000c772558e7df75499b80a04c26a8a9fccdcb03",
   "manifest_fingerprints": {
     "owner_map": "sha256:02e6d9f93dbe5535ba31f76518da9523235d241194879c29b2a31a11affcc4a0",
     "test_map": "sha256:99a4ff608849e0c1c456617533c67fab78892709359e46da0469d8dc2e52d60d",
     "generated_zones": "sha256:362e46400aaf3ed924edc3985f56f201859cbf214de4a5516da1112b16e2abe5",
     "boundaries": "sha256:51292d205b2ab7672cda0da1f49ce3bf812dc66dde10b9cf707e32f913f4fb50",
     "proof_lanes": "sha256:a51fde4292de99662c641d617b6c83f3b710aedc6261678089dcaa30c9d2bfab",
-    "standard_version": "sha256:9b3fc9c5e1045dcaaa62af7c481bd326ff86885ba8c9c506a92be712e6ab1f65"
+    "standard_version": "sha256:db43b0a5b547ff2adde2f47759578d069456b2151f8d4bc7215a6697fd99670f"
   },
   "dirty_worktree": false,
-  "generated_at": "1778045096",
+  "generated_at": "1778046249",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
-  "auditor_version": "0.8.9",
+  "auditor_version": "0.8.10",
   "schema_version": "1.5.0",
   "paper_edition": "2026.05-ed8",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778045096",
-  "started_at": "1778045096",
-  "elapsed_ms": 145,
+  "run_id": "1778046249",
+  "started_at": "1778046249",
+  "elapsed_ms": 2099,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "2a63a5d",
+    "head": "77bea96",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -73,7 +73,7 @@
     ],
     "mode": "standard",
     "standard_version": "0.8.0",
-    "auditor_version": "0.8.9",
+    "auditor_version": "0.8.10",
     "schema_version": "1.5.0",
     "paper_edition": "2026.05-ed8",
     "target_stack": "rust-ts-vite-react-postgres-bounded-python"
@@ -1029,7 +1029,7 @@
     "artifact": {
       "path": "target/jankurai/security/evidence.json",
       "envelope_exit_code": 0,
-      "elapsed_ms": 4103,
+      "elapsed_ms": 5216,
       "wrapper_strict": true,
       "profile": "ci",
       "commands_ran": 4,
@@ -1038,8 +1038,8 @@
       "required_commands_skipped": 0,
       "required_commands_failed": 0,
       "blocking_commands": [],
-      "generated_at": "1778044633",
-      "git_head": "117b181c4a34c4a0d1d99ec1e719f72300426c5a"
+      "generated_at": "1778046236",
+      "git_head": "77bea967ad325b7d2089923ec402cac11b893e8e"
     }
   },
   "boundaries": {
