@@ -129,6 +129,33 @@ command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/re
 }
 
 #[test]
+fn audit_allows_missing_auditor_output_generated_zone() {
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("README.md"), "# thin\n").unwrap();
+    fs::create_dir_all(dir.path().join("agent")).unwrap();
+    fs::write(
+        dir.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "agent/repo-score.json"
+source = "crates/jankurai"
+command = "cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md"
+write_policy = "auditor_output"
+"#,
+    )
+    .unwrap();
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        !report.findings.iter().any(|f| {
+            f.path == "agent/generated-zones.toml"
+                && f.rule_id.as_deref() == Some("HLT-002-GENERATED-MUTATION")
+        }),
+        "{:?}",
+        report.findings
+    );
+}
+
+#[test]
 fn audit_allows_package_lock_json_native_lockfile_identity() {
     let dir = tempdir().unwrap();
     fs::write(dir.path().join("README.md"), "# thin\n").unwrap();

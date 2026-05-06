@@ -39,6 +39,8 @@ pub struct GeneratedZone {
     pub command: String,
     #[serde(default)]
     pub read_only: bool,
+    #[serde(default)]
+    pub write_policy: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

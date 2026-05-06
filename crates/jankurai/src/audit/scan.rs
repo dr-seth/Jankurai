@@ -1676,8 +1676,13 @@ pub fn generated_zone_existence_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         if path.is_empty() {
             continue; // already caught by generated_zone_manifest_metadata_issues
         }
+        let write_policy = zone.write_policy.trim();
+        let optional_auditor_output = write_policy == "auditor_output";
         let full = ctx.root.join(path);
         if !full.exists() {
+            if optional_auditor_output {
+                continue;
+            }
             hits.push(FindingHit {
                 path: GENERATED_ZONES_MANIFEST.into(),
                 line: Some(1),
