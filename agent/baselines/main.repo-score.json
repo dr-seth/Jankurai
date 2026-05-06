@@ -1,6 +1,6 @@
 {
-  "report_fingerprint": "sha256:c5e63929a0d2ac40d1ac28d0282aa1a1243a41fa5ca2f12b5cb08593773179d9",
-  "input_fingerprint": "sha256:3b52785cfd4848a8f71f9ed486f544f78bf4fa866b74b16310b62558571ccb3d",
+  "report_fingerprint": "sha256:dc07466e906710bfb94dce3c4fdcfe82fe78f5f9c1df0df2d88b239774bffb9c",
+  "input_fingerprint": "sha256:d46c0932d282d7b6238939e4d6964ab5a8791d976a07f06cb40a24d03c531355",
   "policy_fingerprint": "sha256:ea0d1adf78581893bc9ac5e6000c772558e7df75499b80a04c26a8a9fccdcb03",
   "manifest_fingerprints": {
     "owner_map": "sha256:02e6d9f93dbe5535ba31f76518da9523235d241194879c29b2a31a11affcc4a0",
@@ -11,7 +11,7 @@
     "standard_version": "sha256:db43b0a5b547ff2adde2f47759578d069456b2151f8d4bc7215a6697fd99670f"
   },
   "dirty_worktree": false,
-  "generated_at": "1778047678",
+  "generated_at": "1778047866",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778047678",
-  "started_at": "1778047678",
-  "elapsed_ms": 2087,
+  "run_id": "1778047866",
+  "started_at": "1778047866",
+  "elapsed_ms": 2056,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "6bdab86",
+    "head": "5075d2d",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -1029,7 +1029,7 @@
     "artifact": {
       "path": "target/jankurai/security/evidence.json",
       "envelope_exit_code": 0,
-      "elapsed_ms": 4171,
+      "elapsed_ms": 3750,
       "wrapper_strict": true,
       "profile": "ci",
       "commands_ran": 4,
@@ -1038,8 +1038,8 @@
       "required_commands_skipped": 0,
       "required_commands_failed": 0,
       "blocking_commands": [],
-      "generated_at": "1778047676",
-      "git_head": "6bdab86a4aaf1d3cc422f4f0b7343d88713cf36f"
+      "generated_at": "1778047864",
+      "git_head": "5075d2d1845f408a71e97aaec0e49685fce88afa"
     }
   },
   "boundaries": {
