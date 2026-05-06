@@ -1,6 +1,6 @@
 {
-  "report_fingerprint": "sha256:dc07466e906710bfb94dce3c4fdcfe82fe78f5f9c1df0df2d88b239774bffb9c",
-  "input_fingerprint": "sha256:d46c0932d282d7b6238939e4d6964ab5a8791d976a07f06cb40a24d03c531355",
+  "report_fingerprint": "sha256:d57d997fe98f64530f1815ab946d09b138eae43358a1b6efe77d235c1b312f1f",
+  "input_fingerprint": "sha256:9f52e2073bf541dada816007dd6e60b1d8f2991a100e871e3a08f31110f3a177",
   "policy_fingerprint": "sha256:ea0d1adf78581893bc9ac5e6000c772558e7df75499b80a04c26a8a9fccdcb03",
   "manifest_fingerprints": {
     "owner_map": "sha256:02e6d9f93dbe5535ba31f76518da9523235d241194879c29b2a31a11affcc4a0",
@@ -11,7 +11,7 @@
     "standard_version": "sha256:db43b0a5b547ff2adde2f47759578d069456b2151f8d4bc7215a6697fd99670f"
   },
   "dirty_worktree": false,
-  "generated_at": "1778047866",
+  "generated_at": "1778048659",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778047866",
-  "started_at": "1778047866",
-  "elapsed_ms": 2056,
+  "run_id": "1778048659",
+  "started_at": "1778048659",
+  "elapsed_ms": 1999,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "5075d2d",
+    "head": "0e7c780",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -508,17 +508,18 @@
         "accessibility": 10,
         "aria-snapshot": 10,
         "screenshot": 10,
-        "visual-baseline": 10
+        "visual-baseline": 10,
+        "visual-diff": 10
       },
       "reports_missing_required_artifacts": 0,
       "missing_artifact_kinds": [],
       "reports_missing_required_accessibility_artifact": 0,
       "accessibility_violation_total": 0,
       "accessibility_incomplete_total": 0,
-      "accessibility_pass_total": 200,
-      "artifact_fingerprint_count": 40,
+      "accessibility_pass_total": 220,
+      "artifact_fingerprint_count": 50,
       "visual_baseline_missing": 0,
-      "visual_baseline_changed": 0,
+      "visual_baseline_changed": 10,
       "visual_baseline_review": 0,
       "visual_baseline_block": 0
     }
@@ -1029,7 +1030,7 @@
     "artifact": {
       "path": "target/jankurai/security/evidence.json",
       "envelope_exit_code": 0,
-      "elapsed_ms": 3750,
+      "elapsed_ms": 3848,
       "wrapper_strict": true,
       "profile": "ci",
       "commands_ran": 4,
@@ -1038,8 +1039,8 @@
       "required_commands_skipped": 0,
       "required_commands_failed": 0,
       "blocking_commands": [],
-      "generated_at": "1778047864",
-      "git_head": "5075d2d1845f408a71e97aaec0e49685fce88afa"
+      "generated_at": "1778048637",
+      "git_head": "0e7c78014d896a3356b849788fc8a83f71d47228"
     }
   },
   "boundaries": {
