@@ -97,6 +97,20 @@ jobs:
       - name: Security lane
         run: jankurai security run . --strict --profile ci --out target/jankurai/security/evidence.json
 
+      - name: Start UX QA smoke server
+        run: |
+          set -euo pipefail
+          node tools/ux-qa-smoke-server.mjs > target/jankurai/ux-qa-server.log 2>&1 &
+          echo "$!" > target/jankurai/ux-qa-server.pid
+          for attempt in {1..30}; do
+            if curl -fsS "http://127.0.0.1:3000/?ux_state=success" >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat target/jankurai/ux-qa-server.log >&2
+          exit 1
+
       - name: UX QA smoke
         run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
 
@@ -147,4 +161,5 @@ jobs:
             target/jankurai/proofmark/proof-receipt.json
             target/jankurai/rust/witness-graph.json
             target/jankurai/ux-qa.json
+            target/jankurai/ux-qa-server.log
             target/jankurai/security/evidence.json
