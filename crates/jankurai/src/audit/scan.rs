@@ -422,6 +422,7 @@ pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let mut hits = vec![];
     for file in &ctx.all_files {
         if file.is_generated
+            || is_tracked_auditor_score_artifact(&file.rel_path)
             || file.rel_path.starts_with("crates/jankurai/")
             || file.rel_path.starts_with("docs/")
             || file.rel_path.starts_with("paper/")
@@ -463,6 +464,11 @@ pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         }
     }
     hits
+}
+
+fn is_tracked_auditor_score_artifact(path: &str) -> bool {
+    path == "agent/repo-score.json"
+        || (path.starts_with("agent/baselines/") && path.ends_with(".repo-score.json"))
 }
 
 pub fn prompt_injection_hits(ctx: &AuditContext) -> Vec<FindingHit> {
