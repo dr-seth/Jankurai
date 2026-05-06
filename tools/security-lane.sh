@@ -108,7 +108,7 @@ required_commands=(
 
 advisory_tool_names=(cargo-audit npm syft zizmor)
 advisory_commands=(
-  "cargo audit"
+  "db=\"\${JANKURAI_CARGO_AUDIT_DB:-target/jankurai/security/advisory-db}\"; if [ -d \"\$db/.git\" ]; then git -C \"\$db\" pull --ff-only --depth 1; else git clone --depth 1 https://github.com/RustSec/advisory-db.git \"\$db\"; fi; cargo audit --db \"\$db\" --no-fetch --stale"
   "npm audit --audit-level=high"
   "syft . -o spdx-json=target/jankurai/sbom.spdx.json"
   "zizmor .github/workflows"
