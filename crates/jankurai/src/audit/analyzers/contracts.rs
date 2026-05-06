@@ -69,7 +69,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score += 5;
         evidence.push("all contract sources have generated zone entries".into());
     }
-    if scan::wrong_layer_db_hits(ctx).is_empty() == false {
+    if !scan::wrong_layer_db_hits(ctx).is_empty() {
         score -= 10;
         evidence.push("DB access found in likely wrong layer".into());
     }

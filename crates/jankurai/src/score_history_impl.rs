@@ -17,9 +17,10 @@ const DEFAULT_HISTORY_MIRROR_ENV: &str = "JANKURAI_HISTORY_MIRROR";
 const DEFAULT_DEDUPE_POLICY: &str = "consecutive-equivalent";
 const HISTORY_LOCK_STALE_SECS: u64 = 30;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum HistorySource {
+    #[default]
     Auto,
     Local,
     Mirror,
@@ -32,12 +33,6 @@ impl HistorySource {
             Self::Local => "local",
             Self::Mirror => "mirror",
         }
-    }
-}
-
-impl Default for HistorySource {
-    fn default() -> Self {
-        Self::Auto
     }
 }
 

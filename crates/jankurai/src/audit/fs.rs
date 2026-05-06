@@ -198,7 +198,7 @@ fn inventory_from_paths(
 }
 
 fn file_seed(root: &Path, rel: &Path) -> Option<FileSeed> {
-    let abs = root.join(&rel);
+    let abs = root.join(rel);
     let meta = abs.metadata().ok()?;
     let rel_path = rel.to_string_lossy().replace('\\', "/");
     let name = abs

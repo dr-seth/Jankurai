@@ -555,7 +555,13 @@ fn ci_fixture_corpus_covers_risky_and_safe_cases() {
         ),
         (
             "ci/safe/safe.yml",
-            &["pull_request", "contents: read", "actions/checkout@v6"],
+            &[
+                "pull_request",
+                "contents: read",
+                "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+                "timeout-minutes",
+                "concurrency",
+            ],
         ),
     ];
 
@@ -876,7 +882,19 @@ fn ci_risky_fixtures_emit_hlt034_findings() {
     );
 
     let findings = findings_for(repo.path(), "HLT-034-CI-BAD-BEHAVIOR");
-    assert_eq!(findings.len(), 9, "{findings:?}");
+    assert_eq!(findings.len(), 13, "{findings:?}");
+    assert_has_finding(
+        &findings,
+        ".github/workflows/risky.yml",
+        "ci.timeout.missing",
+        "detector=ci.timeout.missing",
+    );
+    assert_has_finding(
+        &findings,
+        ".github/workflows/risky.yml",
+        "ci.concurrency.missing",
+        "detector=ci.concurrency.missing",
+    );
     assert_has_finding(
         &findings,
         ".github/workflows/risky.yml",
@@ -912,6 +930,18 @@ fn ci_risky_fixtures_emit_hlt034_findings() {
         ".github/workflows/risky.yml",
         "ci.action.mutable-ref",
         "detector=ci.action.mutable-ref",
+    );
+    assert_has_finding(
+        &findings,
+        ".github/workflows/risky.yml",
+        "ci.action.not-full-sha",
+        "detector=ci.action.not-full-sha",
+    );
+    assert_has_finding(
+        &findings,
+        ".github/workflows/risky.yml",
+        "ci.action.not-full-sha",
+        "detector=ci.action.not-full-sha",
     );
     assert_has_finding(
         &findings,

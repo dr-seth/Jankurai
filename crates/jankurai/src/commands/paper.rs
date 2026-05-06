@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fmt::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct PublicRepoScoresArgs {
     pub source: PathBuf,
@@ -235,7 +235,7 @@ fn soft_findings(row: &Value) -> Result<u64> {
     }
 }
 
-fn severity_value<'a>(row: &'a Value) -> Option<&'a Value> {
+fn severity_value(row: &Value) -> Option<&Value> {
     row.get("severity").or_else(|| {
         row.get("shortcomings")
             .and_then(|shortcomings| shortcomings.get("finding_summary"))
@@ -355,7 +355,7 @@ fn aggregate_rows(data: &Value) -> Result<Vec<(String, String)>> {
     scores.sort_unstable();
     let findings_total = rows
         .iter()
-        .map(|row| finding_count(row))
+        .map(finding_count)
         .collect::<Result<Vec<_>>>()?
         .into_iter()
         .sum::<u64>();
@@ -707,7 +707,7 @@ fn render_score_plot(rows: &[Value]) -> Result<String> {
     Ok(out.trim_end().into())
 }
 
-fn render(data: &Value, source: &PathBuf, out: &PathBuf) -> Result<String> {
+fn render(data: &Value, source: &Path, out: &Path) -> Result<String> {
     let source_posix = source.to_string_lossy().replace('\\', "/");
     let out_posix = out.to_string_lossy().replace('\\', "/");
     let source_artifact = data

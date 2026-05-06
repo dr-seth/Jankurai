@@ -1,6 +1,15 @@
+use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 use tuiwright::{Key, Page, SpawnConfig};
+
+static DEMO_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+fn demo_test_lock() -> MutexGuard<'static, ()> {
+    DEMO_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 /// Helper to get the demo binary path.
 /// Builds the demo if needed and extracts the binary path from cargo output.
@@ -48,6 +57,7 @@ fn spawn_demo() -> Page {
 
 #[test]
 fn can_spawn_and_see_initial_text() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter", Duration::from_secs(5))
         .expect("should see 'Counter' on screen");
@@ -55,6 +65,7 @@ fn can_spawn_and_see_initial_text() {
 
 #[test]
 fn can_see_counter_at_zero() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter: 0", Duration::from_secs(5))
         .expect("should see 'Counter: 0'");
@@ -62,6 +73,7 @@ fn can_see_counter_at_zero() {
 
 #[test]
 fn can_press_up_and_increment() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter: 0", Duration::from_secs(5))
         .unwrap();
@@ -73,6 +85,7 @@ fn can_press_up_and_increment() {
 
 #[test]
 fn can_press_multiple_times() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter: 0", Duration::from_secs(5))
         .unwrap();
@@ -86,6 +99,7 @@ fn can_press_multiple_times() {
 
 #[test]
 fn can_press_down_and_decrement() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter: 0", Duration::from_secs(5))
         .unwrap();
@@ -102,6 +116,7 @@ fn can_press_down_and_decrement() {
 
 #[test]
 fn screenshot_produces_valid_png() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter", Duration::from_secs(5))
         .unwrap();
@@ -120,6 +135,7 @@ fn screenshot_produces_valid_png() {
 
 #[test]
 fn gif_recording_produces_valid_file() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter", Duration::from_secs(5))
         .unwrap();
@@ -141,6 +157,7 @@ fn gif_recording_produces_valid_file() {
 
 #[test]
 fn locator_finds_text() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter", Duration::from_secs(5))
         .unwrap();
@@ -153,6 +170,7 @@ fn locator_finds_text() {
 
 #[test]
 fn expect_screen_assertions() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter", Duration::from_secs(5))
         .unwrap();
@@ -164,6 +182,7 @@ fn expect_screen_assertions() {
 
 #[test]
 fn screen_snapshot_has_correct_dimensions() {
+    let _guard = demo_test_lock();
     let page = spawn_demo();
     page.wait_for_text("Counter", Duration::from_secs(5))
         .unwrap();

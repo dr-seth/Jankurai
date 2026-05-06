@@ -540,7 +540,7 @@ fn build_agent_map(snapshot: &WorkspaceSnapshot) -> AgentMap {
 fn build_test_map(snapshot: &WorkspaceSnapshot) -> TestMap {
     let smoke_tests = collect_profile_commands(snapshot, "pull-request", "smoke")
         .into_iter()
-        .chain(default_smoke_commands(snapshot).into_iter())
+        .chain(default_smoke_commands(snapshot))
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
@@ -561,7 +561,7 @@ fn build_test_map(snapshot: &WorkspaceSnapshot) -> TestMap {
                 .iter()
                 .filter(|command| !command.contains("--doc"))
                 .cloned()
-                .chain(default_unit_commands(package).into_iter())
+                .chain(default_unit_commands(package))
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect(),
@@ -571,7 +571,7 @@ fn build_test_map(snapshot: &WorkspaceSnapshot) -> TestMap {
                 .iter()
                 .filter(|command| command.contains("--doc"))
                 .cloned()
-                .chain(default_doctest_commands(package).into_iter())
+                .chain(default_doctest_commands(package))
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect(),
@@ -581,7 +581,7 @@ fn build_test_map(snapshot: &WorkspaceSnapshot) -> TestMap {
                 .boundary_validate
                 .iter()
                 .cloned()
-                .chain(reverse_dependency_commands(package).into_iter())
+                .chain(reverse_dependency_commands(package))
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect(),

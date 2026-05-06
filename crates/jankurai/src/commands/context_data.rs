@@ -201,7 +201,7 @@ impl RepoCatalog {
         for lane in &self.proof_lanes {
             allow.insert(Self::normalize_proof_command(&lane.command));
         }
-        for (_, spec) in &self.tests {
+        for spec in self.tests.values() {
             allow.insert(Self::normalize_proof_command(&spec.command));
         }
         allow

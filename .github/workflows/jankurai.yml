@@ -5,119 +5,119 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: jankurai-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v6
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: "22"
           cache: npm
-      - name: Install UX QA dependencies
+
+      - name: Install dependencies
         run: npm ci
-      - name: Build UX QA package
-        run: npm --workspace @jankurai/ux-qa run build
-      - name: Install UX QA browser
-        run: npx playwright install --with-deps chromium
+
+      - name: Quality gates
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo test --workspace --all-targets --all-features --locked
+          npm --workspace @jankurai/ux-qa run build
+          npm --workspace @jankurai/ux-qa run test
+
       - name: Install local jankurai
         run: cargo install --path crates/jankurai --locked --force
+
       - name: Prepare jankurai artifact directories
-        run: mkdir -p target/jankurai target/jankurai/public
-      - name: Check audit versions
-        run: jankurai versions
-      - name: Generate CI ratchet baseline
-        run: |
-          jankurai . --json agent/repo-score.json --md agent/repo-score.md
-          cp agent/repo-score.json target/jankurai/baseline-score.json
-          cp agent/repo-score.md target/jankurai/baseline-score.md
-      - name: jankurai audit
-        run: jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl
-      - name: Publish jankurai summary
-        run: cat target/jankurai/summary.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Proofbind verify
-        run: jankurai proofbind verify . --changed-from origin/main
-      - name: Proofmark rust
-        run: jankurai proofmark rust . --obligations target/jankurai/proofbind/obligations.json
-      - name: Rust witness build
-        run: jankurai rust witness build .
-      - name: UX QA smoke
+        run: mkdir -p target/jankurai target/jankurai/security target/jankurai/public
+
+      - name: Resolve accepted baseline
         run: |
           set -euo pipefail
-          node <<'NODE' > target/jankurai/ux-smoke-server.log 2>&1 &
-          const http = require("node:http");
-          const server = http.createServer((req, res) => {
-            const url = new URL(req.url, "http://localhost:3000");
-            const state = url.searchParams.get("ux_state") || "success";
-            const html = `<!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <title>Jankurai UX ${state}</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 32px; color: #111827; background: #fff; }
-              .wrap { max-width: 720px; margin: 0 auto; }
-              .button { display: inline-flex; min-width: 96px; min-height: 44px; align-items: center; justify-content: center; border: 1px solid #1f2937; border-radius: 4px; background: #f3f4f6; color: #111827; }
-            </style>
-          </head>
-          <body>
-            <main class="wrap">
-              <h1>Jankurai UX ${state}</h1>
-              <p role="status">State ${state} is rendered for CI smoke evidence.</p>
-              <button class="button" type="button">Continue</button>
-            </main>
-          </body>
-          </html>`;
-            res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-            res.end(html);
-          });
-          server.listen(3000, "127.0.0.1");
-          NODE
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          for _ in {1..50}; do
-            node -e 'require("node:http").get("http://127.0.0.1:3000", r => process.exit(r.statusCode === 200 ? 0 : 1)).on("error", () => process.exit(1))' && break
-            sleep 0.2
-          done
-          jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin main --depth=1
+            git show origin/main:agent/baselines/main.repo-score.json > target/jankurai/accepted-baseline.json
+          elif [ -f agent/baselines/main.repo-score.json ]; then
+            cp agent/baselines/main.repo-score.json target/jankurai/accepted-baseline.json
+          else
+            echo "missing accepted baseline: commit agent/baselines/main.repo-score.json from a reviewed clean main audit" >&2
+            exit 1
+          fi
+
+      - name: Proofbind verify
+        run: jankurai proofbind verify . --changed-from origin/main --mode required
+
+      - name: Proofmark rust
+        run: jankurai proofmark rust . --mode required --obligations target/jankurai/proofbind/obligations.json
+
+      - name: Rust witness build
+        run: jankurai rust witness build .
+
       - name: Security lane
-        run: jankurai security run . --out target/jankurai/security/evidence.json
-      - name: Vibe coverage
-        run: jankurai vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md --tex paper/tex/generated/vibe_coverage_table.tex
+        run: jankurai security run . --strict --profile ci --out target/jankurai/security/evidence.json
+
+      - name: UX QA smoke
+        run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
+
       - name: Language bad-behavior fixtures
+        run: cargo test -p jankurai --test language_bad_behavior
+
+      - name: Final jankurai audit
         run: |
-          mkdir -p target/jankurai
-          set -o pipefail
-          cargo test -p jankurai --test language_bad_behavior 2>&1 | tee target/jankurai/language-bad-behavior.log
-      - name: Phase 12 public evidence
+          jankurai audit . \
+            --mode ratchet \
+            --baseline target/jankurai/accepted-baseline.json \
+            --json target/jankurai/repo-score.json \
+            --md target/jankurai/repo-score.md \
+            --sarif target/jankurai/jankurai.sarif \
+            --github-step-summary target/jankurai/summary.md \
+            --repair-queue-jsonl target/jankurai/repair-queue.jsonl \
+            --proof-receipts target/jankurai/proofmark/proof-receipt.json
+
+      - name: Publish jankurai summary
+        if: always()
         run: |
-          mkdir -p target/jankurai/public
-          jankurai bench . --out target/jankurai/p12-benchmark-report.json --md target/jankurai/p12-benchmark-report.md
-          jankurai certify . --out target/jankurai/p12-certification.json --md target/jankurai/p12-certification.md
-          jankurai govern . --out target/jankurai/p12-governance-policy.json --md target/jankurai/p12-governance-policy.md
-          jankurai publish . \
-            --certification target/jankurai/p12-certification.json \
-            --benchmark target/jankurai/p12-benchmark-report.json \
-            --governance target/jankurai/p12-governance-policy.json \
-            --out target/jankurai/public/p12-public-evidence.json \
-            --md target/jankurai/public/p12-public-evidence.md \
-            --badge-json target/jankurai/public/jankurai-badge.json \
-            --badge-svg target/jankurai/public/jankurai-badge.svg
-      - name: Phase 13 optimization and exception expiry
-        run: |
-          mkdir -p target/jankurai
-          jankurai optimize . --mode all --out target/jankurai/p13-optimization-report.json --md target/jankurai/p13-optimization-report.md
-          jankurai exceptions expire . --warning-days 7 --strict --out target/jankurai/p13-exception-expiry.json --md target/jankurai/p13-exception-expiry.md
-      - uses: actions/upload-artifact@v7
+          if [ -f target/jankurai/summary.md ]; then
+            cat target/jankurai/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@53e96ec3b35fce51c141c0d6f0e31028a448722d
+        with:
+          sarif_file: target/jankurai/jankurai.sarif
+
+      - name: Upload jankurai evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: jankurai-score
+          if-no-files-found: ignore
           path: |
-            agent/repo-score.json
-            agent/repo-score.md
+            target/jankurai/accepted-baseline.json
+            target/jankurai/repo-score.json
+            target/jankurai/repo-score.md
             target/jankurai/jankurai.sarif
+            target/jankurai/summary.md
             target/jankurai/repair-queue.jsonl
             target/jankurai/proofbind/obligations.json
             target/jankurai/proofbind/surface-witness.json
@@ -126,44 +126,3 @@ jobs:
             target/jankurai/rust/witness-graph.json
             target/jankurai/ux-qa.json
             target/jankurai/security/evidence.json
-            target/jankurai/vibe-coverage.json
-            target/jankurai/vibe-coverage.md
-            target/jankurai/language-bad-behavior.log
-            target/jankurai/p12-benchmark-report.json
-            target/jankurai/p12-benchmark-report.md
-            target/jankurai/p12-certification.json
-            target/jankurai/p12-certification.md
-            target/jankurai/p12-governance-policy.json
-            target/jankurai/p12-governance-policy.md
-            target/jankurai/public/p12-public-evidence.json
-            target/jankurai/public/p12-public-evidence.md
-            target/jankurai/public/jankurai-badge.json
-            target/jankurai/public/jankurai-badge.svg
-            target/jankurai/p13-optimization-report.json
-            target/jankurai/p13-optimization-report.md
-            target/jankurai/p13-exception-expiry.json
-            target/jankurai/p13-exception-expiry.md
-
-  ux-qa:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm --workspace @jankurai/ux-qa run build
-      - run: npm --workspace @jankurai/ux-qa run test
-
-  paper:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Install TeX dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-publishers
-      - name: Build paper
-        run: latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex

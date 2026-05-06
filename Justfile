@@ -16,10 +16,14 @@ ux-qa:
     npm --workspace @jankurai/ux-qa run build
     npm --workspace @jankurai/ux-qa run test
 
-check:
-    cargo run -p jankurai -- versions
-    cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv
-    latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex
+quality:
+    cargo fmt --all -- --check
+    cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+    cargo test --workspace --all-targets --all-features --locked
+    npm --workspace @jankurai/ux-qa run build
+    npm --workspace @jankurai/ux-qa run test
+
+check: quality security-strict conformance score paper
 
 validate: check
 
@@ -49,7 +53,7 @@ security:
     cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
 
 security-strict:
-    cargo run -p jankurai -- security run . --strict --out target/jankurai/security/evidence.json
+    cargo run -p jankurai -- security run . --strict --profile ci --out target/jankurai/security/evidence.json
 
 security-bash:
     bash tools/security-lane.sh

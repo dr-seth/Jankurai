@@ -361,6 +361,8 @@ fn emit_line_findings(
     }
 }
 
+// Deduplicated finding helper threads detector context through to the shared report shape.
+#[allow(clippy::too_many_arguments)]
 fn push_once(
     out: &mut Vec<LanguageFinding>,
     seen: &mut BTreeSet<(String, usize, &'static str)>,

@@ -49,14 +49,10 @@ pub(crate) fn changed_lines_for_paths(
             continue;
         }
         let lines = match changed_lines_from_git(repo, changed_from, path) {
-            Ok(lines) => lines,
-            Err(_) => BTreeSet::new(),
+            Ok(lines) if !lines.is_empty() => lines,
+            Ok(_) | Err(_) => BTreeSet::from([1]),
         };
-        if lines.is_empty() {
-            out.insert(path.clone(), BTreeSet::from([1]));
-        } else {
-            out.insert(path.clone(), lines);
-        }
+        out.insert(path.clone(), lines);
     }
     out
 }

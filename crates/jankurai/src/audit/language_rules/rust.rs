@@ -393,7 +393,7 @@ pub fn findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
         a.path
             .cmp(&b.path)
             .then(a.line.unwrap_or(0).cmp(&b.line.unwrap_or(0)))
-            .then(a.matched_term.cmp(&b.matched_term))
+            .then(a.matched_term.cmp(b.matched_term))
     });
     out
 }
@@ -424,7 +424,7 @@ fn hard_findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
         a.path
             .cmp(&b.path)
             .then(a.line.unwrap_or(0).cmp(&b.line.unwrap_or(0)))
-            .then(a.matched_term.cmp(&b.matched_term))
+            .then(a.matched_term.cmp(b.matched_term))
     });
     out
 }
@@ -452,23 +452,22 @@ fn hard_hit_for_line(
 ) -> Option<LanguageFinding> {
     let lower = line.to_ascii_lowercase();
 
-    if lower.contains("pub unsafe fn")
+    if (lower.contains("pub unsafe fn")
         || lower.contains("pub(crate) unsafe fn")
-        || lower.contains("pub(super) unsafe fn")
+        || lower.contains("pub(super) unsafe fn"))
+        && !scan::public_unsafe_has_safety_docs(full_text, line_no)
     {
-        if !scan::public_unsafe_has_safety_docs(full_text, line_no) {
-            return Some(finding(
-                "rust.unsafe.public-fn-missing-safety-doc",
-                "pub unsafe fn",
-                file,
-                line_no,
-                line,
-                "public unsafe API lacks a `# Safety` contract",
-                "missing `# Safety` docs above the public unsafe item",
-                "document caller obligations with a `# Safety` section",
-                "NearbySafetyDocs",
-            ));
-        }
+        return Some(finding(
+            "rust.unsafe.public-fn-missing-safety-doc",
+            "pub unsafe fn",
+            file,
+            line_no,
+            line,
+            "public unsafe API lacks a `# Safety` contract",
+            "missing `# Safety` docs above the public unsafe item",
+            "document caller obligations with a `# Safety` section",
+            "NearbySafetyDocs",
+        ));
     }
 
     if lower.contains("unsafe impl send") || lower.contains("unsafe impl sync") {
@@ -738,7 +737,7 @@ fn lint_suppression_hits(ctx: &AuditContext) -> Vec<LanguageFinding> {
                 .position(|candidate| {
                     candidate
                         .to_ascii_lowercase()
-                        .contains(term.split('.').last().unwrap_or(term))
+                        .contains(term.split('.').next_back().unwrap_or(term))
                 })
                 .map(|idx| idx + 1);
             let text = line
@@ -896,6 +895,8 @@ fn shell_command_is_dynamic(lower: &str) -> bool {
             || lower.contains("cmd"))
 }
 
+// Rust rule findings keep detector, source, proof-window, and repair text explicit.
+#[allow(clippy::too_many_arguments)]
 fn finding(
     matched_term: &'static str,
     detector_id: &'static str,

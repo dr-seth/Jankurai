@@ -4,8 +4,9 @@ Every durable or generated machine-readable surface should either validate again
 
 | Artifact / surface | Schema or guard | Notes |
 | --- | --- | --- |
-| `agent/repo-score.json` | `schemas/repo-score.schema.json`; `audit_smoke`, `report_compatibility_guard` | Canonical audit report JSON, including `tool_adoption` readiness |
-| `agent/repo-score.md` | Semantic: `report_compatibility_guard` (title + stable `##` sections) | Human score; see `render.rs` |
+| `agent/repo-score.json` | `schemas/repo-score.schema.json`; `audit_smoke`, `report_compatibility_guard` | Local generated audit report JSON; ignored and not a trusted ratchet baseline |
+| `agent/repo-score.md` | Semantic: `report_compatibility_guard` (title + stable `##` sections) | Local generated human score; see `render.rs` |
+| `agent/baselines/main.repo-score.json` | `schemas/repo-score.schema.json`; `baseline_ratchet_smoke`, `badge_schema_smoke` | Tracked accepted baseline and public badge source; copy only from reviewed clean audit output |
 | `target/jankurai/jankurai.sarif` | Semantic: `report_compatibility_guard` | SARIF 2.1.0 envelope |
 | `target/jankurai/jankurai.junit.xml` (or path passed to `--junit`) | Semantic: `report_compatibility_guard` | JUnit-style XML |
 | `target/jankurai/summary.md` | Semantic: `report_compatibility_guard` | GitHub step summary |

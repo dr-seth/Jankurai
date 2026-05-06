@@ -149,9 +149,7 @@ fn hard_hit_for_line(
     line: &str,
     full_text: &str,
 ) -> Option<LanguageFinding> {
-    let Some(normalized) = normalize_sql_line(line) else {
-        return None;
-    };
+    let normalized = normalize_sql_line(line)?;
     let lower = normalized.to_ascii_lowercase();
     if lower.is_empty() {
         return None;
@@ -203,9 +201,7 @@ fn hard_hit_for_line(
 }
 
 fn advisory_hit_for_line(file: &FileInfo, line_no: usize, line: &str) -> Option<LanguageFinding> {
-    let Some(normalized) = normalize_sql_line(line) else {
-        return None;
-    };
+    let normalized = normalize_sql_line(line)?;
     let lower = normalized.to_ascii_lowercase();
     if lower.contains("select *") {
         return Some(finding(
@@ -312,10 +308,12 @@ fn sort_key(a: &LanguageFinding, b: &LanguageFinding) -> std::cmp::Ordering {
     a.path
         .cmp(&b.path)
         .then(a.line.unwrap_or(0).cmp(&b.line.unwrap_or(0)))
-        .then(a.matched_term.cmp(&b.matched_term))
+        .then(a.matched_term.cmp(b.matched_term))
         .then(a.problem.cmp(&b.problem))
 }
 
+// SQL rule findings keep detector, source, proof-window, and repair text explicit.
+#[allow(clippy::too_many_arguments)]
 fn finding(
     detector_id: &'static str,
     matched_term: &'static str,

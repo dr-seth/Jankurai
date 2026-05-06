@@ -25,6 +25,8 @@ pub struct PlannedAction {
     pub action: String,
 }
 
+// Init plan construction carries CLI-selected profile, level, IDE, CI, and UX knobs.
+#[allow(clippy::too_many_arguments)]
 pub fn build_plan(
     repo: &Path,
     profile: &str,

@@ -296,14 +296,13 @@ pub fn run(args: UpdateArgs) -> Result<()> {
                     .status()
                     .context("run self-update command")?;
                 if !status.success() {
-                    receipt.next_command = Some(format!(
-                        "{}",
+                    receipt.next_command = Some(
                         command
                             .iter()
                             .map(|s| shell_quote(s))
                             .collect::<Vec<_>>()
-                            .join(" ")
-                    ));
+                            .join(" "),
+                    );
                     write_receipt(&repo, &receipt)?;
                     return Err(anyhow::anyhow!(
                         "self-update command failed with {}",
@@ -409,7 +408,7 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
         .unwrap_or(args.level.as_str());
     let cargo_repo = repo.join("Cargo.toml").exists();
     let desired_paths = desired_paths(&profile_manifest, level);
-    let latest_version = resolve_latest_version(repo, &args, install_manifest.as_ref())?;
+    let latest_version = resolve_latest_version(repo, args, install_manifest.as_ref())?;
     let current_version = current_version();
     let self_update_available = latest_version
         .as_ref()
@@ -443,7 +442,7 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
                 current_hash: current_hash(&install_manifest_path),
                 installed_hash: None,
                 desired_hash: Some(sha256_text(&render_install_manifest_text(
-                    &build_install_manifest(repo, &profile_manifest, &args, &latest_version),
+                    &build_install_manifest(repo, &profile_manifest, args, &latest_version),
                 ))),
                 merge_policy: Some("keep-existing".into()),
             });

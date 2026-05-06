@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
@@ -65,7 +65,8 @@ pub(crate) fn obligation_result(
     } else {
         "missing".to_string()
     };
-    let mutation_ok = mutation.status == "pass" || mutation.status == "unavailable";
+    let mutation_ok =
+        mutation.status == "pass" || (!boundary_sensitive && mutation.status == "unavailable");
     let negative_ok = negative_proof_status != "missing";
     let status = if coverage_pass && mutation_ok && negative_ok {
         "pass"
@@ -236,10 +237,8 @@ pub(crate) fn load_mutation(repo: &Path, path: Option<&Path>) -> Result<Mutation
     let path = resolve_repo_path(repo, path);
     let text =
         fs::read_to_string(&path).with_context(|| format!("read mutation {}", path.display()))?;
-    let value: Value = match serde_json::from_str(&text) {
-        Ok(value) => value,
-        Err(_) => json!({}),
-    };
+    let value: Value = serde_json::from_str(&text)
+        .with_context(|| format!("parse mutation {}", path.display()))?;
     let killed = number_at(&value, &["killed", "caught", "success"]);
     let survived = number_at(&value, &["survived", "missed", "unmutated"]);
     let timeout = number_at(&value, &["timeout", "timed_out"]);

@@ -37,7 +37,7 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score += 10;
         evidence.push("most code files stay under 300 LOC".into());
     }
-    if scan::duplicate_blocks(ctx).is_empty() == false {
+    if !scan::duplicate_blocks(ctx).is_empty() {
         score -= 18;
         evidence.push("duplicate code block marker found".into());
     }

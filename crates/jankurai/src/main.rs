@@ -28,6 +28,8 @@ struct Cli {
     audit: AuditArgs,
 }
 
+// Clap subcommands keep argument structs inline so generated help and defaults stay direct.
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Debug)]
 enum Commands {
     Audit(AuditArgs),
@@ -1159,6 +1161,8 @@ struct SecurityRunArgs {
     out: String,
     #[arg(long)]
     strict: bool,
+    #[arg(long, default_value = "local", value_parser = ["local", "ci", "release"])]
+    profile: String,
 }
 
 #[derive(Args, Debug)]
@@ -1723,6 +1727,7 @@ fn main() -> anyhow::Result<()> {
                     script: args.script,
                     out: args.out,
                     strict: args.strict,
+                    profile: args.profile,
                 })?;
             }
         },
@@ -2076,17 +2081,13 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
         if let Some(policy) = report.policy.as_mut() {
             policy.minimum_score = minimum_score;
         }
-        if let Some(decision) = report.decision.as_mut() {
-            decision.minimum_score = minimum_score;
-            decision.passed = report.score >= minimum_score && decision.hard_findings == 0;
-            decision.status = if decision.passed { "pass" } else { "fail" }.into();
-        }
     }
     if !args.fail_on.is_empty() {
         if let Some(policy) = report.policy.as_mut() {
             policy.fail_on = args.fail_on.clone();
         }
     }
+    recompute_report_decision(&mut report);
     progress.tick("apply mode and baseline");
     apply_mode_and_baseline(&mut report, mode, args.baseline.as_deref())?;
     if matches!(mode, AuditMode::Release) {
@@ -2098,17 +2099,8 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
         if !proof_findings.is_empty() {
             report.findings.extend(proof_findings);
             jankurai::audit::rebuild_agent_fix_queue(&mut report);
-            if let Some(decision) = report.decision.as_mut() {
-                decision.hard_findings = report
-                    .findings
-                    .iter()
-                    .filter(|finding| matches!(finding.severity.as_str(), "high" | "critical"))
-                    .count();
-                decision.soft_findings =
-                    report.findings.len().saturating_sub(decision.hard_findings);
-                decision.passed = false;
-                decision.status = "fail".into();
-            }
+            recompute_report_decision(&mut report);
+            apply_mode_and_baseline(&mut report, mode, args.baseline.as_deref())?;
         }
     }
     progress.tick("render artifacts");
@@ -2214,6 +2206,7 @@ fn run_audit_and_write(args: AuditArgs) -> anyhow::Result<()> {
             );
         }
     }
+    enforce_audit_decision(&report, mode)?;
     Ok(())
 }
 
@@ -2278,28 +2271,57 @@ fn apply_mode_and_baseline(
     if let Some(policy) = report.policy.as_mut() {
         policy.mode = Some(mode.as_str().into());
     }
+    let ratchet = baseline
+        .map(|path| {
+            jankurai::audit::baseline::compare_report_to_baseline(
+                report,
+                &std::path::PathBuf::from(path),
+            )
+        })
+        .transpose()?;
     if let Some(decision) = report.decision.as_mut() {
-        if mode == AuditMode::Advisory {
-            decision.status = "advisory".into();
-            decision.passed = true;
-        }
-        if let Some(path) = baseline {
-            let text = std::fs::read_to_string(path)?;
-            let baseline_score = serde_json::from_str::<serde_json::Value>(&text)
-                .ok()
-                .and_then(|value| value.get("score").and_then(|score| score.as_i64()))
-                .unwrap_or(report.score as i64) as i32;
-            let ratchet_passed = report.score >= baseline_score;
-            decision.ratchet = Some(jankurai::model::ReportRatchet {
-                baseline_score,
-                allowed_drop: 0,
-                passed: ratchet_passed,
-            });
+        if let Some(ratchet) = ratchet {
+            let ratchet_passed = ratchet.passed;
+            decision.ratchet = Some(ratchet);
             if matches!(mode, AuditMode::Ratchet | AuditMode::Release) && !ratchet_passed {
                 decision.status = "fail".into();
                 decision.passed = false;
             }
         }
+        if mode == AuditMode::Advisory {
+            decision.status = "advisory".into();
+            decision.passed = true;
+        }
+    }
+    Ok(())
+}
+
+fn recompute_report_decision(report: &mut jankurai::model::Report) {
+    if let Some(policy) = report.policy.as_ref() {
+        report.decision = Some(jankurai::audit::report_decision(
+            report.score,
+            &report.findings,
+            policy,
+        ));
+    }
+}
+
+fn enforce_audit_decision(report: &jankurai::model::Report, mode: AuditMode) -> anyhow::Result<()> {
+    if matches!(mode, AuditMode::Advisory) {
+        return Ok(());
+    }
+    let Some(decision) = report.decision.as_ref() else {
+        anyhow::bail!("non-advisory audit produced no decision");
+    };
+    if !decision.passed {
+        anyhow::bail!(
+            "audit decision failed in {} mode: status={} score={} minimum_score={} hard_findings={}",
+            mode.as_str(),
+            decision.status,
+            report.score,
+            decision.minimum_score,
+            decision.hard_findings
+        );
     }
     Ok(())
 }

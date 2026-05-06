@@ -20,9 +20,11 @@ fn minimal_valid_envelope() -> serde_json::Value {
         "log_path": "target/jankurai/security/run.log",
         "policy": {
             "schema_version": "1.0.0",
+            "profile": "ci",
             "enabled_tools": ["gitleaks"],
             "required_tools": ["gitleaks"],
             "advisory_tools": [],
+            "require_one_of": [],
             "fail_lane_on": "high"
         },
         "commands": [
@@ -79,6 +81,10 @@ fn audit_ingests_valid_security_evidence_summary() {
     assert_eq!(art.commands_ran, 1);
     assert_eq!(art.commands_skipped, 1);
     assert_eq!(art.commands_failed, 1);
+    assert_eq!(art.required_commands_skipped, 1);
+    assert_eq!(art.required_commands_failed, 0);
+    assert_eq!(art.blocking_commands, vec!["step-b".to_string()]);
+    assert_eq!(art.profile, "ci");
     assert_eq!(
         art.generated_at.as_deref(),
         Some("2026-05-02T12:00:00.000Z")

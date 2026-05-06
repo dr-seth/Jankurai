@@ -170,7 +170,7 @@ impl TerminalRenderer {
                 );
 
                 // Draw cell text using font8x8
-                if cell.text.len() > 0 && cell.text != " " {
+                if !cell.text.is_empty() && cell.text != " " {
                     let ch = cell.text.chars().next().unwrap_or(' ');
                     draw_char_8x8(
                         &mut img,

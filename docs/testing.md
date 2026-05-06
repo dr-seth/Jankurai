@@ -34,12 +34,13 @@ For this workspace:
 - `just versions` checks version and artifact bindings through the Rust auditor.
 - `just ux-qa` builds and tests the optional Playwright geometry runtime.
 - `just fast` writes a deterministic audit snapshot under `target/jankurai/`.
-- `just score` writes `agent/repo-score.json` and `agent/repo-score.md`.
+- `just score` writes local generated audit outputs at `agent/repo-score.json` and `agent/repo-score.md`; these files are ignored and are not accepted ratchet baselines.
+- Accepted ratchet and public badge baselines live under `agent/baselines/`. CI copies the reviewed baseline to `target/jankurai/accepted-baseline.json` before the final audit.
 - `just conformance` runs the observed seed fixture suite, validates the
   conformance report schema through Rust tests, and regenerates
   `paper/tex/generated/conformance_results_table.tex`.
 - `just paper` builds `paper/jankurai.pdf`.
-- `just check` runs version checks, audit, and paper build.
+- `just check` runs quality, strict CI-profile security evidence, conformance, final score, and paper build.
 - `jankurai doctor` and `jankurai init` write receipts under `target/jankurai/receipts/` for handoff evidence.
 - `jankurai prove` executes a proof-plan JSON. Commands must match `agent/proof-lanes.toml` and `agent/test-map.json` after whitespace normalization, unless `--allow-unsigned-commands` is passed together with `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1` (emergency only; keep CI on the default allowlist).
 - `jankurai proof-verify` compares a proof plan and evidence index against the current repo state and writes a tamper-evident verification envelope.

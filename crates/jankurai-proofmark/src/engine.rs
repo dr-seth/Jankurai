@@ -12,6 +12,7 @@ use crate::report::{
 use crate::shared::{elapsed_ms, git_output, resolve_changed_paths, unix_seconds};
 use crate::{ProofMarkMode, ProofMarkOutput, ProofMarkReceipt};
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_proofmark_output(
     repo: PathBuf,
     changed_paths: Vec<PathBuf>,

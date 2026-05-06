@@ -31,9 +31,13 @@ fn root_action_metadata_is_a_composite_jankurai_action() {
 
     assert!(step_text
         .contains("cargo install --path \"$GITHUB_ACTION_PATH/crates/jankurai\" --locked --force"));
-    assert!(step_text.contains("jankurai audit . --mode ratchet"));
+    assert!(step_text.contains("rustup toolchain install stable --profile minimal"));
+    assert!(step_text.contains("jankurai audit . --mode"));
+    assert!(step_text.contains("--baseline"));
     assert!(step_text.contains("target/jankurai/jankurai.sarif"));
     assert!(step_text.contains("target/jankurai/repair-queue.jsonl"));
+    assert!(!step_text.contains("dtolnay/rust-toolchain@stable"));
+    assert!(!step_text.contains("continue-on-error"));
     assert!(!step_text.contains("pull_request_target"));
     assert!(!step_text.contains("write-all"));
 }

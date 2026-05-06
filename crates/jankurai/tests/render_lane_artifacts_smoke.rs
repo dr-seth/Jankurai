@@ -92,9 +92,11 @@ fn minimal_security_envelope() -> serde_json::Value {
         "log_path": "target/jankurai/security/run.log",
         "policy": {
             "schema_version": "1.0.0",
+            "profile": "local",
             "enabled_tools": ["gitleaks"],
             "required_tools": ["gitleaks"],
             "advisory_tools": [],
+            "require_one_of": [],
             "fail_lane_on": "high"
         },
         "commands": [{

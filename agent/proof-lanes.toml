@@ -47,12 +47,12 @@ destructive = false
 [[lane]]
 name = "full"
 command = "just check"
-purpose = "run audit and paper build"
+purpose = "run quality, strict security, conformance, final score, and paper build"
 command_id = "lane.full"
 kind = "release"
 cost = 50
-supersedes = ["fast", "audit", "security"]
-required_artifacts = ["agent/repo-score.json", "agent/repo-score.md", "paper/jankurai.pdf"]
+supersedes = ["fast", "audit", "security", "language-bad-behavior", "proofbind", "proofmark-rust"]
+required_artifacts = ["agent/repo-score.json", "agent/repo-score.md", "target/jankurai/security/evidence.json", "target/jankurai/conformance-results.json", "paper/jankurai.pdf"]
 timeout_seconds = 3600
 requires_network = false
 destructive = false

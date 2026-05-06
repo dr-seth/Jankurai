@@ -594,13 +594,13 @@ fn line_bytes_for_path(files: &[SourceFile], path: &str, line: &str) -> usize {
             file.text
                 .lines()
                 .find(|candidate| normalize_line(candidate) == line)
-                .map(|candidate| candidate.as_bytes().len() + 1)
+                .map(|candidate| candidate.len() + 1)
         })
-        .unwrap_or_else(|| line.as_bytes().len() + 1)
+        .unwrap_or_else(|| line.len() + 1)
 }
 
 fn estimate_tokens(bytes: usize) -> usize {
-    (bytes + 3) / 4
+    bytes.div_ceil(4)
 }
 
 fn repo_relative_path(repo: &Path, path: &Path) -> String {

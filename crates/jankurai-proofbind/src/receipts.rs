@@ -13,6 +13,7 @@ pub(crate) struct ReceiptEvidence {
     pub path: String,
     pub changed_paths: Vec<String>,
     pub rules_covered: Vec<String>,
+    pub full_repository_scope: bool,
     pub satisfied_obligations: Vec<String>,
     pub proofmark_results: BTreeMap<String, String>,
 }
@@ -81,7 +82,7 @@ pub(crate) fn receipt_satisfies(
     if !lane_matches {
         return false;
     }
-    let path_matches = receipt.changed_paths.is_empty()
+    let path_matches = (receipt.changed_paths.is_empty() && receipt.full_repository_scope)
         || receipt
             .changed_paths
             .iter()
@@ -92,8 +93,8 @@ pub(crate) fn receipt_satisfies(
     if surface.required_rules.is_empty() {
         return true;
     }
-    receipt.rules_covered.is_empty()
-        || surface
+    !receipt.rules_covered.is_empty()
+        && surface
             .required_rules
             .iter()
             .any(|rule| receipt.rules_covered.iter().any(|covered| covered == rule))
@@ -105,10 +106,7 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
     } else {
         "unknown".into()
     };
-    let exit_code = match value.get("exit_code").and_then(Value::as_i64) {
-        Some(code) => code,
-        None => 1,
-    };
+    let exit_code = value.get("exit_code").and_then(Value::as_i64).unwrap_or(1);
     let changed_paths = if let Some(items) = value.get("changed_paths").and_then(Value::as_array) {
         items
             .iter()
@@ -124,11 +122,10 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
             if let Some(rule) = item.as_str() {
                 rules_covered.push(rule.to_string());
             } else if let Some(rule) = item.get("rule_id").and_then(Value::as_str) {
-                let status = if let Some(status) = item.get("status").and_then(Value::as_str) {
-                    status
-                } else {
-                    "covered"
-                };
+                let status = item
+                    .get("status")
+                    .and_then(Value::as_str)
+                    .unwrap_or("covered");
                 if !matches!(status, "covered" | "pass" | "satisfied") {
                     continue;
                 }
@@ -164,20 +161,30 @@ fn receipt_from_value(repo: &Path, entry: &Path, value: &Value) -> ReceiptEviden
             let Some(id) = item.get("obligation_id").and_then(Value::as_str) else {
                 continue;
             };
-            let status = if let Some(status) = item.get("status").and_then(Value::as_str) {
-                status
-            } else {
-                "unknown"
-            };
+            let status = item
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
             proofmark_results.insert(id.to_string(), status.to_string());
         }
     }
+    let full_repository_scope = value
+        .get("extensions")
+        .and_then(|extensions| extensions.get("full_repository_scope"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        || value
+            .get("extensions")
+            .and_then(|extensions| extensions.get("scope"))
+            .and_then(Value::as_str)
+            .is_some_and(|scope| scope == "full-repository" || scope == "full_repository");
     ReceiptEvidence {
         lane,
         exit_code,
         path: display_rel(repo, entry),
         changed_paths,
         rules_covered,
+        full_repository_scope,
         satisfied_obligations,
         proofmark_results,
     }

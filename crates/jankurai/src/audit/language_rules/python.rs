@@ -177,9 +177,7 @@ fn is_python_candidate(file: &FileInfo) -> bool {
 }
 
 fn hard_hit_for_line(file: &FileInfo, line_no: usize, line: &str) -> Option<LanguageFinding> {
-    let Some(normalized) = normalize_python_line(line) else {
-        return None;
-    };
+    let normalized = normalize_python_line(line)?;
     let lower = normalized.to_ascii_lowercase();
     if lower.is_empty() {
         return None;
@@ -254,9 +252,7 @@ fn hard_hit_for_line(file: &FileInfo, line_no: usize, line: &str) -> Option<Lang
 }
 
 fn advisory_hit_for_line(file: &FileInfo, line_no: usize, line: &str) -> Option<LanguageFinding> {
-    let Some(normalized) = normalize_python_line(line) else {
-        return None;
-    };
+    let normalized = normalize_python_line(line)?;
     let lower = normalized.to_ascii_lowercase();
     if lower.contains("except exception") || lower.contains("except baseexception") {
         return Some(finding(
@@ -331,6 +327,7 @@ fn is_tls_debug_line(lower: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
     use crate::audit::helpers::AuditContext;

@@ -24,7 +24,7 @@ pub fn install(args: CiInstallArgs) -> Result<()> {
         );
     }
     if args.mode == "ratchet" && args.baseline.is_none() {
-        bail!("ratchet CI requires --baseline PATH; install observe/advisory until an accepted baseline exists");
+        bail!("ratchet CI requires --baseline PATH; use agent/baselines/main.repo-score.json after an accepted baseline exists");
     }
     progress.tick("render workflow");
     let path = args.repo.join(".github/workflows/jankurai.yml");
@@ -72,28 +72,17 @@ pub fn install(args: CiInstallArgs) -> Result<()> {
     Ok(())
 }
 
-fn workflow(mode: &str, min_score: i32, baseline: Option<&str>) -> String {
+fn workflow(mode: &str, _min_score: i32, baseline: Option<&str>) -> String {
     let audit_mode = if mode == "ratchet" {
         "ratchet"
     } else {
         "advisory"
     };
-    let baseline_arg = baseline
-        .map(|path| format!(" --baseline {path}"))
-        .unwrap_or_default();
-    let gate = if mode == "ratchet" {
-        format!(
-            r#"
-      - name: jankurai merge witness
-        run: jankurai witness . --changed-from origin/main{baseline_arg} --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
-      - name: jankurai score diff
-        run: jankurai score diff --base {baseline} --head target/jankurai/repo-score.json --out target/jankurai/score-diff.json --md target/jankurai/score-diff.md
-      - name: Enforce score floor
-        run: test "$(jq -r '.score' target/jankurai/repo-score.json)" -ge {min_score}"#,
-            baseline = baseline.unwrap_or("agent/repo-score.json")
-        )
+    let baseline = baseline.unwrap_or("agent/baselines/main.repo-score.json");
+    let baseline_arg = if mode == "ratchet" {
+        " --baseline target/jankurai/accepted-baseline.json"
     } else {
-        String::new()
+        ""
     };
     format!(
         r#"name: jankurai
@@ -103,33 +92,60 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: jankurai-${{{{ github.workflow }}}}-${{{{ github.ref }}}}
+  cancel-in-progress: true
+
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - name: Prepare accepted baseline
+        run: |
+          set -euo pipefail
+          mkdir -p target/jankurai
+          if [ "${{{{ github.event_name }}}}" = "pull_request" ]; then
+            git fetch origin main --depth=1
+            git show origin/main:{baseline} > target/jankurai/accepted-baseline.json
+          elif [ -f {baseline} ]; then
+            cp {baseline} target/jankurai/accepted-baseline.json
+          else
+            echo "missing accepted baseline {baseline}" >&2
+            exit 1
+          fi
       - name: Install jankurai
         run: cargo install jankurai --locked
       - run: jankurai --version
-      - name: jankurai audit
-        run: jankurai audit . --mode {audit_mode}{baseline_arg} --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl{gate}
       - name: Proofbind verify
-        run: jankurai proofbind verify . --changed-from origin/main
+        run: jankurai proofbind verify . --changed-from origin/main --mode required
       - name: Proofmark rust
-        run: jankurai proofmark rust . --obligations target/jankurai/proofbind/obligations.json
+        run: jankurai proofmark rust . --mode required --obligations target/jankurai/proofbind/obligations.json
       - name: Rust witness build
         run: jankurai rust witness build .
+      - name: Security lane
+        run: jankurai security run . --strict --profile ci --out target/jankurai/security/evidence.json
       - name: UX QA smoke
         run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
-      - name: jankurai badge check
-        run: jankurai badge . --check --update-readme
-        continue-on-error: true
-      - uses: actions/upload-artifact@v7
+      - name: jankurai audit
+        run: jankurai audit . --mode {audit_mode}{baseline_arg} --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@53e96ec3b35fce51c141c0d6f0e31028a448722d
+        with:
+          sarif_file: target/jankurai/jankurai.sarif
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: jankurai-adoption-evidence
@@ -166,8 +182,12 @@ mod tests {
         let rendered = workflow("ratchet", 85, Some("agent/repo-score.json"));
         assert!(rendered.contains("cargo install jankurai --locked"));
         assert!(rendered.contains("--mode ratchet"));
-        assert!(rendered.contains("jankurai witness"));
-        assert!(rendered.contains("-ge 85"));
+        assert!(rendered.contains("target/jankurai/accepted-baseline.json"));
+        assert!(rendered.contains("jankurai security run . --strict --profile ci"));
+        assert!(rendered.contains(
+            "github/codeql-action/upload-sarif@53e96ec3b35fce51c141c0d6f0e31028a448722d"
+        ));
+        assert!(!rendered.contains("target/jankurai/baseline-score.json"));
     }
 
     #[test]
@@ -176,12 +196,15 @@ mod tests {
         assert!(rendered.contains("--mode advisory"));
         assert!(!rendered.contains("Enforce score floor"));
         assert!(!rendered.contains("-ge 85"));
+        assert!(rendered.contains("timeout-minutes"));
+        assert!(rendered.contains("concurrency:"));
     }
 
     #[test]
     fn ratchet_workflow_can_use_baseline() {
         let rendered = workflow("ratchet", 85, Some("target/jankurai/baseline.json"));
-        assert!(rendered.contains("--baseline target/jankurai/baseline.json"));
+        assert!(rendered.contains("git show origin/main:target/jankurai/baseline.json"));
+        assert!(rendered.contains("--baseline target/jankurai/accepted-baseline.json"));
         assert!(rendered.contains("target/jankurai/repo-score.json"));
     }
 }

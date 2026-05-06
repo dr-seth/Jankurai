@@ -379,6 +379,8 @@ standard_version = "0.0.0"
         Command::new(env!("CARGO_BIN_EXE_jankurai"))
             .arg("audit")
             .arg(dir.path())
+            .arg("--mode")
+            .arg("advisory")
             .arg("--json")
             .arg(&json)
             .arg("--md")
@@ -440,7 +442,8 @@ standard_version = "0.0.0"
     );
     let workflow =
         fs::read_to_string(ci_dir.path().join(".github/workflows/jankurai.yml")).unwrap();
-    assert!(workflow.contains("Enforce score floor"));
+    assert!(workflow.contains("target/jankurai/accepted-baseline.json"));
+    assert!(workflow.contains("jankurai security run . --strict --profile ci"));
     assert!(workflow.contains("cargo install jankurai --locked"));
     assert!(workflow.contains("jankurai audit . --mode ratchet"));
     assert!(!workflow.contains("cargo run -p jankurai"));

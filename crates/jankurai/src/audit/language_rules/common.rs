@@ -160,6 +160,8 @@ pub fn contains_secret_name(value: &str) -> bool {
     .any(|needle| lower.contains(needle))
 }
 
+// Shared language-rule constructor keeps detector call sites explicit and fixture-readable.
+#[allow(clippy::too_many_arguments)]
 pub fn finding(
     rule_id: &'static str,
     detector_id: &'static str,

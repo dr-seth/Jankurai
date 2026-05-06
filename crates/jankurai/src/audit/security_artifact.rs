@@ -34,17 +34,52 @@ fn summarize(value: &Value) -> Option<SecurityEvidenceArtifactSummary> {
         .get("wrapper")
         .and_then(|w| w.get("strict"))
         .and_then(Value::as_bool)?;
+    let profile = value
+        .get("policy")
+        .and_then(|p| p.get("profile"))
+        .and_then(Value::as_str)
+        .unwrap_or("local")
+        .to_string();
 
     let mut commands_ran = 0usize;
     let mut commands_skipped = 0usize;
     let mut commands_failed = 0usize;
+    let mut required_commands_skipped = 0usize;
+    let mut required_commands_failed = 0usize;
+    let mut blocking_commands = Vec::new();
     if let Some(arr) = value.get("commands").and_then(Value::as_array) {
         for cmd in arr {
-            match cmd.get("status").and_then(Value::as_str) {
+            let status = cmd.get("status").and_then(Value::as_str);
+            let required = cmd
+                .get("required_by_policy")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            match status {
                 Some("ran") => commands_ran += 1,
-                Some("skipped") => commands_skipped += 1,
-                Some("failed") => commands_failed += 1,
+                Some("skipped") => {
+                    commands_skipped += 1;
+                    if required {
+                        required_commands_skipped += 1;
+                    }
+                }
+                Some("failed") => {
+                    commands_failed += 1;
+                    if required {
+                        required_commands_failed += 1;
+                    }
+                }
                 _ => {}
+            }
+            if cmd
+                .get("blocking")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                let label = cmd
+                    .get("label")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown");
+                blocking_commands.push(label.to_string());
             }
         }
     }
@@ -63,9 +98,13 @@ fn summarize(value: &Value) -> Option<SecurityEvidenceArtifactSummary> {
         envelope_exit_code,
         elapsed_ms,
         wrapper_strict,
+        profile,
         commands_ran,
         commands_skipped,
         commands_failed,
+        required_commands_skipped,
+        required_commands_failed,
+        blocking_commands,
         generated_at,
         git_head,
     })

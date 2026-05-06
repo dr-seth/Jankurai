@@ -95,7 +95,7 @@ pub fn encode_key(key: Key, application_cursor: bool) -> Vec<u8> {
         Key::F(n) => encode_function_key(n),
         Key::Ctrl(c) => {
             let lower = c.to_ascii_lowercase() as u8;
-            if (b'a'..=b'z').contains(&lower) {
+            if lower.is_ascii_lowercase() {
                 vec![lower - b'a' + 1]
             } else {
                 match c {

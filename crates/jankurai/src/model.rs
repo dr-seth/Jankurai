@@ -78,6 +78,13 @@ pub struct ReportRatchet {
     pub baseline_score: i32,
     pub allowed_drop: i32,
     pub passed: bool,
+    pub score_delta: i32,
+    pub baseline_report_fingerprint: String,
+    pub baseline_input_fingerprint: String,
+    pub baseline_policy_fingerprint: String,
+    pub new_caps: Vec<String>,
+    pub new_hard_findings: Vec<String>,
+    pub policy_changed: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -263,9 +270,13 @@ pub struct SecurityEvidenceArtifactSummary {
     pub envelope_exit_code: i32,
     pub elapsed_ms: u64,
     pub wrapper_strict: bool,
+    pub profile: String,
     pub commands_ran: usize,
     pub commands_skipped: usize,
     pub commands_failed: usize,
+    pub required_commands_skipped: usize,
+    pub required_commands_failed: usize,
+    pub blocking_commands: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub generated_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

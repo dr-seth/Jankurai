@@ -551,12 +551,9 @@ fn prove_changed_builds_plan_runs_and_indexes_evidence() {
         "{:?}",
         verification["issues"]
     );
-    assert_eq!(
-        fs::read_to_string(&verification_md)
-            .unwrap()
-            .contains("# jankurai Proof Verification"),
-        true
-    );
+    assert!(fs::read_to_string(&verification_md)
+        .unwrap()
+        .contains("# jankurai Proof Verification"));
 }
 
 #[test]
@@ -802,8 +799,8 @@ fn prove_receipts_include_rules_for_named_lanes() {
         .map(|entry| entry["rule_id"].as_str().unwrap())
         .collect();
 
-    assert!(ids.iter().any(|id| *id == "HLT-010-SECRET-SPRAWL"));
-    assert!(ids.iter().any(|id| *id == "HLT-020-CI-HARDENING-GAP"));
+    assert!(ids.contains(&"HLT-010-SECRET-SPRAWL"));
+    assert!(ids.contains(&"HLT-020-CI-HARDENING-GAP"));
     for id in ids {
         assert!(
             jankurai::audit::rules::lookup(id).is_some(),

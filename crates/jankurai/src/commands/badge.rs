@@ -290,6 +290,8 @@ fn load_score_input(repo: &Path, score_path: &str) -> Result<ScoreInput> {
     let text = fs::read_to_string(&abs).with_context(|| format!("read {}", abs.display()))?;
     let value: Value =
         serde_json::from_str(&text).with_context(|| format!("parse {}", abs.display()))?;
+    crate::validation::validate_value(repo, crate::validation::ArtifactSchema::RepoScore, &value)
+        .with_context(|| format!("validate source report {}", abs.display()))?;
 
     let score = get_i32(&value, "score")
         .ok_or_else(|| anyhow::anyhow!("{} is missing integer field `score`", abs.display()))?;
@@ -343,6 +345,23 @@ fn load_score_input(repo: &Path, score_path: &str) -> Result<ScoreInput> {
         let min_ok = minimum_score.map(|m| score >= m).unwrap_or(true);
         min_ok && hard_findings == 0 && status != "fail"
     });
+    if value
+        .get("dirty_worktree")
+        .and_then(Value::as_bool)
+        .unwrap_or(true)
+    {
+        bail!(
+            "{} cannot source a public badge from a dirty report",
+            abs.display()
+        );
+    }
+    if status == "advisory" || !passed {
+        bail!(
+            "{} cannot source a public badge from a {} report",
+            abs.display(),
+            status
+        );
+    }
 
     let decision = if status == "advisory" {
         "advisory"

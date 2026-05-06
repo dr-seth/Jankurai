@@ -64,6 +64,8 @@ pub struct LanguageFinding {
 }
 
 impl LanguageFinding {
+    // Language findings are value objects; constructor arguments map one-to-one to fields.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         rule_id: &'static str,
         matched_term: &'static str,

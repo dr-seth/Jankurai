@@ -95,10 +95,10 @@ impl Locator {
                     row: screen.cursor_row,
                     col: screen.cursor_col,
                     width: 1,
-                    text: screen
-                        .cell(screen.cursor_row, screen.cursor_col)
-                        .map(|c| c.text.clone())
-                        .unwrap_or_default(),
+                    text: match screen.cell(screen.cursor_row, screen.cursor_col) {
+                        Some(cell) => cell.text.clone(),
+                        None => String::new(),
+                    },
                 }]
             }
         }

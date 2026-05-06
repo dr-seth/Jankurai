@@ -215,6 +215,108 @@ fn findings_for_file(file: &FileInfo) -> Vec<LanguageFinding> {
         );
     }
 
+    if !text_lower.contains("permissions:") {
+        push_once(
+            &mut out,
+            &mut seen,
+            finding(
+                RULE_ID,
+                "ci.permissions.missing",
+                file,
+                1,
+                "workflow is missing explicit top-level permissions",
+                "workflow permissions default is not pinned in source",
+                "add top-level `permissions: contents: read` and job-specific write scopes only where needed",
+                super::catalog::ProofWindow::None,
+            ),
+        );
+    }
+    if !text_lower.contains("timeout-minutes:") {
+        push_once(
+            &mut out,
+            &mut seen,
+            finding(
+                RULE_ID,
+                "ci.timeout.missing",
+                file,
+                1,
+                "workflow job is missing timeout-minutes",
+                "workflow can run without a checked time bound",
+                "set an explicit timeout-minutes on each job",
+                super::catalog::ProofWindow::None,
+            ),
+        );
+    }
+    if !text_lower.contains("concurrency:") {
+        push_once(
+            &mut out,
+            &mut seen,
+            finding(
+                RULE_ID,
+                "ci.concurrency.missing",
+                file,
+                1,
+                "workflow is missing concurrency control",
+                "workflow can run duplicate stale audits for the same ref",
+                "add workflow-level concurrency with cancel-in-progress",
+                super::catalog::ProofWindow::None,
+            ),
+        );
+    }
+    if text_lower.contains("sarif") && !text_lower.contains("github/codeql-action/upload-sarif@") {
+        push_once(
+            &mut out,
+            &mut seen,
+            finding(
+                RULE_ID,
+                "ci.sarif.not-uploaded",
+                file,
+                find_line(file, &["sarif"]).unwrap_or(1),
+                "workflow creates SARIF without uploading it",
+                "SARIF evidence is not published to code scanning",
+                "upload the SARIF artifact with github/codeql-action/upload-sarif pinned to a full SHA",
+                super::catalog::ProofWindow::None,
+            ),
+        );
+    }
+    if text_lower.contains("baseline-score.json")
+        || (text_lower.contains("cp agent/repo-score.json")
+            && text_lower.contains("target/jankurai"))
+    {
+        push_once(
+            &mut out,
+            &mut seen,
+            finding(
+                RULE_ID,
+                "ci.ratchet.self-generated-baseline",
+                file,
+                find_line(file, &["baseline-score.json", "cp agent/repo-score.json"]).unwrap_or(1),
+                "ratchet workflow creates a baseline from the candidate run",
+                "candidate evidence can hide score regressions",
+                "copy a reviewed accepted baseline from agent/baselines or origin/main before the final audit",
+                super::catalog::ProofWindow::None,
+            ),
+        );
+    }
+    if (text_lower.contains("--mode ratchet") || text_lower.contains("--mode release"))
+        && !text_lower.contains("jankurai security run . --strict --profile ci")
+    {
+        push_once(
+            &mut out,
+            &mut seen,
+            finding(
+                RULE_ID,
+                "ci.security.strict-missing",
+                file,
+                find_line(file, &["jankurai audit", "--mode ratchet", "--mode release"]).unwrap_or(1),
+                "protected workflow lacks strict CI security evidence before final audit",
+                "final ratchet or release audit is not bound to strict security evidence",
+                "run `jankurai security run . --strict --profile ci --out target/jankurai/security/evidence.json` before the final audit",
+                super::catalog::ProofWindow::None,
+            ),
+        );
+    }
+
     for (line_no, raw_line) in file.text.lines().enumerate() {
         let line = strip_comments_for_line_language(raw_line, file_kind);
         if line.is_empty() {
@@ -256,30 +358,29 @@ fn findings_for_file(file: &FileInfo) -> Vec<LanguageFinding> {
             );
         }
 
-        if line.contains("continue-on-error")
+        if (line.contains("continue-on-error")
             || line.contains("allow_failure")
-            || line.contains("|| true")
-        {
-            if nearby_proof(
+            || line.contains("|| true"))
+            && nearby_proof(
                 &file.text,
                 line_no + 1,
                 &["security", "proof", "sbom", "secret", "dependency"],
-            ) {
-                push_once(
-                    &mut out,
-                    &mut seen,
-                    finding(
-                        RULE_ID,
-                        "ci.security-scan.nonblocking",
-                        file,
-                        line_no + 1,
-                        "security-related job is configured to continue on error",
-                        "security or proof job is explicitly non-blocking",
-                        "remove the non-blocking override so scan failures stop the pipeline",
-                        super::catalog::ProofWindow::None,
-                    ),
-                );
-            }
+            )
+        {
+            push_once(
+                &mut out,
+                &mut seen,
+                finding(
+                    RULE_ID,
+                    "ci.security-scan.nonblocking",
+                    file,
+                    line_no + 1,
+                    "security-related job is configured to continue on error",
+                    "security or proof job is explicitly non-blocking",
+                    "remove the non-blocking override so scan failures stop the pipeline",
+                    super::catalog::ProofWindow::None,
+                ),
+            );
         }
 
         if line.contains("uses:") && mutable_ref_hit(&lower) {
@@ -294,6 +395,22 @@ fn findings_for_file(file: &FileInfo) -> Vec<LanguageFinding> {
                     "workflow uses a mutable action or image reference",
                     "action ref can change without review",
                     "pin the action to a commit SHA or stable release tag",
+                    super::catalog::ProofWindow::None,
+                ),
+            );
+        }
+        if line.contains("uses:") && unpinned_action_ref(&lower) {
+            push_once(
+                &mut out,
+                &mut seen,
+                finding(
+                    RULE_ID,
+                    "ci.action.not-full-sha",
+                    file,
+                    line_no + 1,
+                    "workflow uses an external action not pinned to a full commit SHA",
+                    "tag or branch refs can change without review",
+                    "pin every external action to a 40-character commit SHA",
                     super::catalog::ProofWindow::None,
                 ),
             );
@@ -385,6 +502,17 @@ fn line_has_secret_dump(lower: &str) -> bool {
 
 fn mutable_ref_hit(lower: &str) -> bool {
     lower.contains("@main") || lower.contains("@master") || lower.contains("@latest")
+}
+
+fn unpinned_action_ref(lower: &str) -> bool {
+    let Some((_, rest)) = lower.split_once('@') else {
+        return false;
+    };
+    let reference = rest
+        .split(|ch: char| ch.is_whitespace() || ch == '"' || ch == '\'')
+        .next()
+        .unwrap_or("");
+    reference.len() != 40 || !reference.chars().all(|ch| ch.is_ascii_hexdigit())
 }
 
 fn privileged_runner_hit(text: &str) -> bool {

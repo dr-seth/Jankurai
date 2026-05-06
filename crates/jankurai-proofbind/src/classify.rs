@@ -5,7 +5,7 @@ use crate::surface_rules::{
     is_agent_tool_surface, rust_public_symbols, surface_id,
 };
 use crate::{ChangedSurface, ProofObligation};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 
@@ -15,10 +15,8 @@ pub(crate) fn classify_changed_path(
     path: &str,
 ) -> Result<Vec<ChangedSurface>> {
     let full_path = repo.join(path);
-    let text = match fs::read_to_string(&full_path) {
-        Ok(text) => text,
-        Err(_) => String::new(),
-    };
+    let text =
+        fs::read_to_string(&full_path).with_context(|| format!("read {}", full_path.display()))?;
     let lower_path = path.to_ascii_lowercase();
     let lower_text = text.to_ascii_lowercase();
     let mut surfaces = Vec::new();
@@ -173,6 +171,7 @@ pub(crate) fn classify_changed_path(
     Ok(surfaces)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn surface(
     catalog: &Catalog,
     path: &str,

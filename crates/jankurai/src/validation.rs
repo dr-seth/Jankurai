@@ -773,6 +773,7 @@ fn validate_nested_schema_value(schema_rel: &str, value: &Value, path: &str) -> 
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::validate_supported_schema_keywords;
     use serde_json::json;

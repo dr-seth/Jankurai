@@ -123,7 +123,7 @@ pub fn advisory_signals(ctx: &AuditContext) -> Vec<LanguageFinding> {
 fn hard_findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
     let mut out = Vec::new();
     for file in typescript_files(ctx) {
-        if is_ts_config(&file) {
+        if is_ts_config(file) {
             out.extend(tsconfig_hard_hits(file));
             continue;
         }
@@ -135,7 +135,7 @@ fn hard_findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
 fn advisory_hits(ctx: &AuditContext) -> Vec<LanguageFinding> {
     let mut out = Vec::new();
     for file in typescript_files(ctx) {
-        if is_ts_config(&file) {
+        if is_ts_config(file) {
             out.extend(tsconfig_advisory_hits(file));
             continue;
         }

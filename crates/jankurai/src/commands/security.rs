@@ -2,6 +2,7 @@ use crate::model::STANDARD_VERSION;
 use crate::validation::{self, ArtifactSchema};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -13,6 +14,7 @@ pub struct SecurityRunArgs {
     pub script: String,
     pub out: String,
     pub strict: bool,
+    pub profile: String,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -27,6 +29,20 @@ struct SecurityPolicyFile {
     advisory_tools: Vec<String>,
     #[serde(default)]
     severity_thresholds: SecuritySeverityThresholds,
+    #[serde(default)]
+    profiles: BTreeMap<String, SecurityProfilePolicy>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+struct SecurityProfilePolicy {
+    #[serde(default)]
+    enabled_tools: Vec<String>,
+    #[serde(default)]
+    required_tools: Vec<String>,
+    #[serde(default)]
+    advisory_tools: Vec<String>,
+    #[serde(default)]
+    require_one_of: Vec<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -101,9 +117,11 @@ struct SecurityEvidence {
 #[derive(Debug, Serialize)]
 struct SecurityPolicySnapshot {
     schema_version: String,
+    profile: String,
     enabled_tools: Vec<String>,
     required_tools: Vec<String>,
     advisory_tools: Vec<String>,
+    require_one_of: Vec<Vec<String>>,
     fail_lane_on: String,
 }
 
@@ -122,6 +140,7 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
     let security_dir = repo.join("target/jankurai/security");
     fs::create_dir_all(&security_dir)?;
     let policy = load_policy(&repo)?;
+    let selected_policy = select_profile_policy(&policy, &args.profile)?;
 
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -183,10 +202,10 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
         .to_string();
 
     let parsed_commands = parse_script_steps(&log_text);
-    let commands = if !parsed_commands.is_empty() {
+    let mut commands = if !parsed_commands.is_empty() {
         parsed_commands
             .into_iter()
-            .map(|step| enrich_step(step, &policy))
+            .map(|step| enrich_step(step, &selected_policy))
             .collect()
     } else {
         vec![SecurityLaneStep {
@@ -205,6 +224,18 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
         }]
     };
 
+    append_missing_required_steps(&mut commands, &selected_policy);
+    let blocking_commands = commands
+        .iter()
+        .filter(|command| command.blocking)
+        .map(|command| command.label.clone())
+        .collect::<Vec<_>>();
+    let effective_exit_code = if exit_code == 0 && !blocking_commands.is_empty() {
+        1
+    } else {
+        exit_code
+    };
+
     let evidence = SecurityEvidence {
         schema_version: "1.0.0".to_string(),
         standard_version: STANDARD_VERSION.to_string(),
@@ -217,14 +248,16 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
             path: script_rel.clone(),
             strict: args.strict,
         },
-        exit_code,
+        exit_code: effective_exit_code,
         elapsed_ms: started.elapsed().as_millis() as u64,
         log_path: log_rel,
         policy: SecurityPolicySnapshot {
             schema_version: policy.schema_version,
-            enabled_tools: policy.enabled_tools,
-            required_tools: policy.required_tools,
-            advisory_tools: policy.advisory_tools,
+            profile: args.profile.clone(),
+            enabled_tools: selected_policy.enabled_tools,
+            required_tools: selected_policy.required_tools,
+            advisory_tools: selected_policy.advisory_tools,
+            require_one_of: selected_policy.require_one_of,
             fail_lane_on: policy.severity_thresholds.fail_lane_on,
         },
         commands,
@@ -237,11 +270,46 @@ pub fn run(args: SecurityRunArgs) -> Result<()> {
         &evidence,
     )?;
 
-    if exit_code != 0 {
-        anyhow::bail!("security lane exited with status {exit_code}");
+    if effective_exit_code != 0 {
+        if blocking_commands.is_empty() {
+            anyhow::bail!("security lane exited with status {exit_code}");
+        }
+        anyhow::bail!(
+            "security lane blocked by required tool evidence: {}",
+            blocking_commands.join(", ")
+        );
     }
 
     Ok(())
+}
+
+fn select_profile_policy(
+    policy: &SecurityPolicyFile,
+    profile: &str,
+) -> Result<SecurityProfilePolicy> {
+    let mut selected =
+        policy
+            .profiles
+            .get(profile)
+            .cloned()
+            .unwrap_or_else(|| SecurityProfilePolicy {
+                enabled_tools: policy.enabled_tools.clone(),
+                required_tools: policy.required_tools.clone(),
+                advisory_tools: policy.advisory_tools.clone(),
+                require_one_of: vec![],
+            });
+    selected.enabled_tools = canonicalize_tools(selected.enabled_tools);
+    selected.required_tools = canonicalize_tools(selected.required_tools);
+    selected.advisory_tools = canonicalize_tools(selected.advisory_tools);
+    selected.require_one_of = selected
+        .require_one_of
+        .into_iter()
+        .map(canonicalize_tools)
+        .collect();
+    if !matches!(profile, "local" | "ci" | "release") {
+        anyhow::bail!("unknown security profile `{profile}`; expected local, ci, or release");
+    }
+    Ok(selected)
 }
 
 fn load_policy(repo: &Path) -> Result<SecurityPolicyFile> {
@@ -252,6 +320,7 @@ fn load_policy(repo: &Path) -> Result<SecurityPolicyFile> {
             enabled_tools: vec![],
             required_tools: vec![],
             advisory_tools: vec![],
+            profiles: BTreeMap::new(),
             severity_thresholds: SecuritySeverityThresholds {
                 fail_lane_on: default_fail_lane_on(),
             },
@@ -269,19 +338,21 @@ fn load_policy(repo: &Path) -> Result<SecurityPolicyFile> {
     Ok(policy)
 }
 
-fn enrich_step(step: ParsedSecurityStep, policy: &SecurityPolicyFile) -> SecurityLaneStep {
+fn enrich_step(step: ParsedSecurityStep, policy: &SecurityProfilePolicy) -> SecurityLaneStep {
+    let tool = step.tool.as_deref().map(canonical_tool_id);
     let required_by_policy = step
         .tool
         .as_deref()
         .map(|tool| {
+            let tool = canonical_tool_id(tool);
             policy
                 .required_tools
                 .iter()
-                .any(|candidate| candidate == tool)
+                .any(|candidate| candidate == &tool)
                 || (!policy
                     .advisory_tools
                     .iter()
-                    .any(|candidate| candidate == tool)
+                    .any(|candidate| candidate == &tool)
                     && !step.advisory)
         })
         .unwrap_or(!step.advisory);
@@ -289,7 +360,7 @@ fn enrich_step(step: ParsedSecurityStep, policy: &SecurityPolicyFile) -> Securit
     SecurityLaneStep {
         label: step.label,
         shell_command: step.shell_command,
-        tool: step.tool,
+        tool,
         status: step.status,
         required_by_policy,
         blocking,
@@ -299,6 +370,74 @@ fn enrich_step(step: ParsedSecurityStep, policy: &SecurityPolicyFile) -> Securit
         finding_count: None,
         highest_severity: None,
         normalized_decision: None,
+    }
+}
+
+fn append_missing_required_steps(
+    commands: &mut Vec<SecurityLaneStep>,
+    policy: &SecurityProfilePolicy,
+) {
+    let seen = commands
+        .iter()
+        .filter_map(|command| command.tool.as_deref().map(canonical_tool_id))
+        .collect::<BTreeSet<_>>();
+    for tool in &policy.required_tools {
+        if seen.contains(tool) {
+            continue;
+        }
+        commands.push(SecurityLaneStep {
+            label: tool.clone(),
+            shell_command: tool.clone(),
+            tool: Some(tool.clone()),
+            status: "skipped".into(),
+            required_by_policy: true,
+            blocking: true,
+            exit_code: None,
+            advisory: false,
+            stderr_excerpt: Some("required security tool did not produce evidence".into()),
+            finding_count: None,
+            highest_severity: None,
+            normalized_decision: Some("block".into()),
+        });
+    }
+    for group in &policy.require_one_of {
+        if group.iter().any(|tool| seen.contains(tool)) {
+            continue;
+        }
+        let label = group.join("|");
+        commands.push(SecurityLaneStep {
+            label: label.clone(),
+            shell_command: label.clone(),
+            tool: Some(label),
+            status: "skipped".into(),
+            required_by_policy: true,
+            blocking: true,
+            exit_code: None,
+            advisory: false,
+            stderr_excerpt: Some("required security tool group did not produce evidence".into()),
+            finding_count: None,
+            highest_severity: None,
+            normalized_decision: Some("block".into()),
+        });
+    }
+}
+
+fn canonicalize_tools(tools: Vec<String>) -> Vec<String> {
+    tools
+        .into_iter()
+        .map(|tool| canonical_tool_id(&tool))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn canonical_tool_id(tool: &str) -> String {
+    match tool.trim().to_ascii_lowercase().as_str() {
+        "cargo audit" | "cargo-audit" => "cargo-audit".into(),
+        "npm audit" | "npm" => "npm".into(),
+        "gitleaks" | "gitleaks detect" => "gitleaks".into(),
+        "cargo deny" | "cargo-deny" => "cargo-deny".into(),
+        other => other.to_string(),
     }
 }
 
@@ -325,6 +464,7 @@ fn parse_script_steps(log: &str) -> Vec<ParsedSecurityStep> {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod parse_tests {
     use super::*;
 

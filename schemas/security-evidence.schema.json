@@ -40,16 +40,26 @@
       "type": "object",
       "required": [
         "schema_version",
+        "profile",
         "enabled_tools",
         "required_tools",
         "advisory_tools",
+        "require_one_of",
         "fail_lane_on"
       ],
       "properties": {
         "schema_version": { "type": "string" },
+        "profile": { "enum": ["local", "ci", "release"] },
         "enabled_tools": { "type": "array", "items": { "type": "string" } },
         "required_tools": { "type": "array", "items": { "type": "string" } },
         "advisory_tools": { "type": "array", "items": { "type": "string" } },
+        "require_one_of": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
         "fail_lane_on": {
           "enum": ["low", "medium", "high", "critical"]
         }

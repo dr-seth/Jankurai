@@ -1,5 +1,6 @@
 use super::helpers::*;
 use super::language_rules;
+use super::prose;
 use crate::model::FileInfo;
 use aho_corasick::AhoCorasick;
 use once_cell::sync::Lazy;
@@ -468,12 +469,7 @@ pub fn prompt_injection_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     pattern_hits(
         &ctx.all_files
             .iter()
-            .filter(|f| {
-                !f.is_generated
-                    && (f.rel_path == "AGENTS.md"
-                        || f.rel_path.starts_with("agent/")
-                        || f.rel_path.starts_with(".github/"))
-            })
+            .filter(|f| !f.is_generated && prose::is_trusted_policy_path(&f.rel_path))
             .cloned()
             .collect::<Vec<_>>(),
         PROMPT_PATTERNS,
@@ -484,12 +480,7 @@ pub fn agency_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     pattern_hits(
         &ctx.all_files
             .iter()
-            .filter(|f| {
-                !f.is_generated
-                    && (f.rel_path == "AGENTS.md"
-                        || f.rel_path.starts_with("agent/")
-                        || f.rel_path.starts_with(".github/"))
-            })
+            .filter(|f| !f.is_generated && prose::is_trusted_policy_path(&f.rel_path))
             .cloned()
             .collect::<Vec<_>>(),
         AGENCY_PATTERNS,
@@ -502,6 +493,7 @@ pub fn false_green_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             .iter()
             .filter(|f| {
                 !f.is_generated
+                    && prose::allows_word_scan(f)
                     && (f.rel_path.contains("/test")
                         || f.rel_path.contains("/spec")
                         || f.name.ends_with(".test.ts")
@@ -575,9 +567,7 @@ pub fn input_boundary_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             {
                 Some("shell execution")
             } else if lower.contains("command::new") {
-                if file.suffix == ".rs" {
-                    None
-                } else if is_fixed_safe_command_invocation(line) {
+                if file.suffix == ".rs" || is_fixed_safe_command_invocation(line) {
                     None
                 } else if lower.contains(".arg(\"-c\")")
                     || lower.contains(".args([\"-c\"")
@@ -647,14 +637,7 @@ pub fn agent_tool_supply_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let files = ctx
         .all_files
         .iter()
-        .filter(|file| {
-            !file.is_generated
-                && (file.rel_path.starts_with("agent/")
-                    || file.rel_path.starts_with(".agents/")
-                    || file.rel_path.starts_with(".github/")
-                    || file.rel_path.starts_with(".cursor/")
-                    || file.rel_path == "AGENTS.md")
-        })
+        .filter(|file| !file.is_generated && prose::is_trusted_policy_path(&file.rel_path))
         .cloned()
         .collect::<Vec<_>>();
     let risky = [
@@ -744,20 +727,22 @@ fn has_release_surface(ctx: &AuditContext) -> bool {
             return false;
         }
         let lower_path = file.rel_path.to_ascii_lowercase();
-        let lower = file.text.to_ascii_lowercase();
         matches!(
             lower_path.as_str(),
             "cargo.toml" | "package.json" | "pyproject.toml" | "go.mod"
         ) || lower_path.starts_with(".github/workflows/")
             || lower_path.contains("release")
             || lower_path.contains("publish")
-            || lower.contains("gh release")
-            || lower.contains("npm publish")
-            || lower.contains("cargo publish")
-            || lower.contains("docker push")
-            || RELEASE_READINESS_PATTERNS
-                .iter()
-                .any(|pattern| lower.contains(pattern))
+            || (prose::allows_word_scan(file) && {
+                let lower = file.text.to_ascii_lowercase();
+                lower.contains("gh release")
+                    || lower.contains("npm publish")
+                    || lower.contains("cargo publish")
+                    || lower.contains("docker push")
+                    || RELEASE_READINESS_PATTERNS
+                        .iter()
+                        .any(|pattern| lower.contains(pattern))
+            })
     })
 }
 
@@ -825,52 +810,59 @@ fn has_release_automation_or_policy(ctx: &AuditContext) -> bool {
         let path = file.rel_path.to_ascii_lowercase();
         let lower = file.text.to_ascii_lowercase();
         path.starts_with(".github/workflows/")
-            && (lower.contains("release")
-                || lower.contains("publish")
-                || lower.contains("jankurai publish")
-                || lower.contains("cargo publish")
-                || lower.contains("npm publish"))
+            && (prose::allows_word_scan(file) && {
+                lower.contains("release")
+                    || lower.contains("publish")
+                    || lower.contains("jankurai publish")
+                    || lower.contains("cargo publish")
+                    || lower.contains("npm publish")
+            })
             || path.starts_with("scripts/")
                 && (path.contains("release") || path.contains("publish"))
             || path == "justfile" && (lower.contains("\nrelease:") || lower.contains("\npublish:"))
-            || lower.contains("release gate")
-            || lower.contains("launch gate")
+            || (prose::allows_word_scan(file) && {
+                lower.contains("release gate") || lower.contains("launch gate")
+            })
     })
 }
 
 fn has_release_integrity_policy(ctx: &AuditContext) -> bool {
     ctx.all_files.iter().any(|file| {
-        let lower = file.text.to_ascii_lowercase();
-        lower.contains("sha256")
-            || lower.contains("checksum")
-            || lower.contains("sbom")
-            || lower.contains("provenance")
-            || lower.contains("attestation")
-            || lower.contains("slsa")
-            || lower.contains("cosign")
+        prose::allows_word_scan(file) && {
+            let lower = file.text.to_ascii_lowercase();
+            lower.contains("sha256")
+                || lower.contains("checksum")
+                || lower.contains("sbom")
+                || lower.contains("provenance")
+                || lower.contains("attestation")
+                || lower.contains("slsa")
+                || lower.contains("cosign")
+        }
     })
 }
 
 fn has_release_rollback_policy(ctx: &AuditContext) -> bool {
-    ctx.all_files
-        .iter()
-        .any(|file| file.text.to_ascii_lowercase().contains("rollback"))
+    ctx.all_files.iter().any(|file| {
+        prose::allows_word_scan(file) && file.text.to_ascii_lowercase().contains("rollback")
+    })
 }
 
 fn has_release_lane(ctx: &AuditContext) -> bool {
     ctx.all_files.iter().any(|file| {
-        let lower = file.text.to_ascii_lowercase();
-        (lower.contains("launch gate") || lower.contains("release gate"))
-            && lower.contains("backup")
-            && lower.contains("rollback")
-            && lower.contains("monitoring")
-            && (lower.contains("rate limit") || lower.contains("abuse"))
+        prose::allows_word_scan(file) && {
+            let lower = file.text.to_ascii_lowercase();
+            (lower.contains("launch gate") || lower.contains("release gate"))
+                && lower.contains("backup")
+                && lower.contains("rollback")
+                && lower.contains("monitoring")
+                && (lower.contains("rate limit") || lower.contains("abuse"))
+        }
     })
 }
 
 pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let has_cost_surface = ctx.all_files.iter().any(|file| {
-        !file.is_generated && {
+        !file.is_generated && prose::allows_word_scan(file) && {
             let lower = file.text.to_ascii_lowercase();
             lower.contains("openai")
                 || lower.contains("anthropic")
@@ -884,11 +876,13 @@ pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         }
     });
     let has_budget_policy = ctx.all_files.iter().any(|file| {
-        let lower = file.text.to_ascii_lowercase();
-        lower.contains("budget")
-            && lower.contains("quota")
-            && (lower.contains("spend cap") || lower.contains("kill switch"))
-            && lower.contains("stop condition")
+        prose::allows_word_scan(file) && {
+            let lower = file.text.to_ascii_lowercase();
+            lower.contains("budget")
+                && lower.contains("quota")
+                && (lower.contains("spend cap") || lower.contains("kill switch"))
+                && lower.contains("stop condition")
+        }
     });
     if has_cost_surface && !has_budget_policy {
         vec![FindingHit {
@@ -917,6 +911,7 @@ pub fn human_review_evidence_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     ];
     for file in ctx.all_files.iter().filter(|file| {
         !file.is_generated
+            && prose::allows_word_scan(file)
             && !file.rel_path.starts_with("reference/")
             && !file.rel_path.starts_with("tips/")
             && !file.rel_path.starts_with("paper/")
@@ -961,8 +956,8 @@ fn delete_has_where_on_following_lines(text: &str, delete_line_idx: usize) -> bo
     let lines: Vec<&str> = text.lines().collect();
     let start = delete_line_idx.saturating_add(1);
     let end = (start + MAX_LOOKAHEAD).min(lines.len());
-    for j in start..end {
-        let exec = sql_executable_line(lines[j]);
+    for line in lines.iter().take(end).skip(start) {
+        let exec = sql_executable_line(line);
         if exec.is_empty() {
             continue;
         }
@@ -1338,7 +1333,7 @@ pub fn generated_zone_issues(ctx: &AuditContext) -> Vec<FindingHit> {
                 "generated file lacks a clear generated/do-not-edit marker",
             ));
         }
-        if !pattern_hits(&vec![file.clone()], TODO_PATTERNS).is_empty() {
+        if !pattern_hits(std::slice::from_ref(&file), TODO_PATTERNS).is_empty() {
             issues.push(FindingHit::new(
                 &file.rel_path,
                 1,
@@ -1398,9 +1393,7 @@ pub fn duplicate_blocks(ctx: &AuditContext) -> Vec<FindingHit> {
                     return None;
                 }
                 let norm = l
-                    .replace('"', "\"S\"")
-                    .replace('\'', "\"S\"")
-                    .replace('`', "\"S\"")
+                    .replace(['"', '\'', '`'], "\"S\"")
                     .chars()
                     .map(|c| if c.is_ascii_digit() { 'N' } else { c })
                     .collect::<String>();
@@ -1499,8 +1492,10 @@ pub fn manifest_parse_findings(ctx: &AuditContext) -> Vec<FindingHit> {
         purpose: Option<String>,
     }
 
+    type JsonManifestParser = fn(&str) -> std::result::Result<(), String>;
+
     let mut out = Vec::new();
-    let json_manifests: &[(&str, fn(&str) -> std::result::Result<(), String>)] = &[
+    let json_manifests: &[(&str, JsonManifestParser)] = &[
         ("agent/owner-map.json", |text| {
             serde_json::from_str::<OwnerMapFile>(text)
                 .map(|_| ())

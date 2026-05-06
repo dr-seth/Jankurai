@@ -74,7 +74,7 @@ Expected artifacts:
 | Full | `jankurai init . --level full --dry-run` | Full scaffold after review and `--yes`. | You want owner maps, proof lanes, generated-zone policy, docs, contracts/db placeholders, CI, and hooks. |
 | Ratchet | `jankurai ci install . --github --mode ratchet --baseline <file>` | CI gate. | The team has accepted a baseline and wants to block regression. |
 
-Ratchet mode is impossible without an accepted baseline. Start in observe or advisory mode, commit `agent/repo-score.json` as the baseline when the team accepts it, then install ratchet CI with `--baseline`.
+Ratchet mode is impossible without an accepted baseline. Start in observe or advisory mode, generate reports under `target/jankurai/`, then copy a reviewed clean report to `agent/baselines/main.repo-score.json` in a dedicated baseline update. Ignored `agent/repo-score.*` files are local generated outputs, not trusted ratchet inputs.
 
 ## Daily Loop
 
@@ -83,7 +83,7 @@ jankurai context-pack . --changed <path> --max-tokens 6000 --out target/jankurai
 jankurai prove . --changed <path> --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
 jankurai audit . --changed-fast --changed-from origin/main --json target/jankurai/audit-fast.json --md target/jankurai/audit-fast.md --timings-json target/jankurai/audit-timings.json
 jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
-jankurai witness . --changed-from origin/main --baseline agent/repo-score.json --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
+jankurai witness . --changed-from origin/main --baseline agent/baselines/main.repo-score.json --out target/jankurai/merge-witness.json --md target/jankurai/merge-witness.md
 ```
 
 `--changed-fast` is an advisory inner-loop scan. It inventories changed files plus required control files, skips score-history writes, and must be followed by the full audit before merge or release.
@@ -170,12 +170,12 @@ jobs:
       - uses: jeppsontaylor/Jankurai@v0.8.9
         with:
           mode: advisory
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: jankurai-audit
           path: |
-            agent/repo-score.json
-            agent/repo-score.md
+            target/jankurai/repo-score.json
+            target/jankurai/repo-score.md
             target/jankurai/jankurai.sarif
             target/jankurai/summary.md
             target/jankurai/repair-queue.jsonl
@@ -186,7 +186,7 @@ Inputs:
 | Input | Default | Values | Purpose |
 | --- | --- | --- | --- |
 | `mode` | `advisory` | `observe`, `advisory`, `ratchet` | Selects audit strictness. |
-| `baseline` | `agent/repo-score.json` | Any repository-relative JSON path | Baseline score file used by `ratchet` mode. |
+| `baseline` | `agent/baselines/main.repo-score.json` | Any repository-relative JSON path | Accepted baseline score file used by `ratchet` mode. |
 
 Audit path exclusions live in `agent/audit-policy.toml`. New scaffolds exclude `tips/` by default; add repository-relative folder prefixes to keep local planning notes, scratch directories, or generated side inputs out of the audit inventory:
 
@@ -195,7 +195,7 @@ Audit path exclusions live in `agent/audit-policy.toml`. New scaffolds exclude `
 excluded_paths = ["tips/", "scratch/"]
 ```
 
-The action emits `agent/repo-score.json`, `agent/repo-score.md`,
+The action emits `target/jankurai/repo-score.json`, `target/jankurai/repo-score.md`,
 `target/jankurai/jankurai.sarif`, `target/jankurai/summary.md`, and
 `target/jankurai/repair-queue.jsonl`. No secrets are required. The CLI installs
 from the action checkout and runs locally on the GitHub-hosted runner.

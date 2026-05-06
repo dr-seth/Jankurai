@@ -178,11 +178,35 @@
         "soft_findings": { "type": "integer", "minimum": 0 },
         "ratchet": {
           "type": "object",
-          "required": ["baseline_score", "allowed_drop", "passed"],
+          "required": [
+            "baseline_score",
+            "allowed_drop",
+            "passed",
+            "score_delta",
+            "baseline_report_fingerprint",
+            "baseline_input_fingerprint",
+            "baseline_policy_fingerprint",
+            "new_caps",
+            "new_hard_findings",
+            "policy_changed"
+          ],
           "properties": {
             "baseline_score": { "type": "integer" },
             "allowed_drop": { "type": "integer" },
-            "passed": { "type": "boolean" }
+            "passed": { "type": "boolean" },
+            "score_delta": { "type": "integer" },
+            "baseline_report_fingerprint": { "$ref": "#/$defs/sha256" },
+            "baseline_input_fingerprint": { "$ref": "#/$defs/sha256" },
+            "baseline_policy_fingerprint": { "$ref": "#/$defs/sha256" },
+            "new_caps": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "new_hard_findings": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "policy_changed": { "type": "boolean" }
           },
           "additionalProperties": false
         }
@@ -400,18 +424,29 @@
         "envelope_exit_code",
         "elapsed_ms",
         "wrapper_strict",
+        "profile",
         "commands_ran",
         "commands_skipped",
-        "commands_failed"
+        "commands_failed",
+        "required_commands_skipped",
+        "required_commands_failed",
+        "blocking_commands"
       ],
       "properties": {
         "path": { "type": "string" },
         "envelope_exit_code": { "type": "integer" },
         "elapsed_ms": { "type": "integer", "minimum": 0 },
         "wrapper_strict": { "type": "boolean" },
+        "profile": { "type": "string" },
         "commands_ran": { "type": "integer", "minimum": 0 },
         "commands_skipped": { "type": "integer", "minimum": 0 },
         "commands_failed": { "type": "integer", "minimum": 0 },
+        "required_commands_skipped": { "type": "integer", "minimum": 0 },
+        "required_commands_failed": { "type": "integer", "minimum": 0 },
+        "blocking_commands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "generated_at": { "type": "string" },
         "git_head": { "type": "string" }
       },

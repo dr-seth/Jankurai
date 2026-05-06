@@ -452,7 +452,7 @@ pub fn render_markdown(report: &Report) -> String {
                 item.path,
                 item.task
             );
-            let _ = writeln!(out, "   Route:{}{}", route, "");
+            let _ = writeln!(out, "   Route:{}", route);
         }
     }
     out

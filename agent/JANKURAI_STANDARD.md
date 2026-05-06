@@ -92,8 +92,11 @@ Operational surfaces:
   title-page image offset in `\JankuraiPlacedHeader`; the subtitle should not
   repeat the Jankurai name because the image already carries it.
 - Badge and paper publication: README badge state is generated from
-  `agent/badge.toml`, `agent/repo-score.json`, and the installed `jankurai`
-  binary. The README citation block must link to `paper/jankurai.pdf`. Public
+  `agent/badge.toml`, the tracked accepted baseline under
+  `agent/baselines/`, and the installed `jankurai` binary. Ignored
+  `agent/repo-score.*` files are local generated outputs and must not be used
+  as public badge or ratchet sources. The README citation block must link to
+  `paper/jankurai.pdf`. Public
   repository scan tables are generated from the tracked source JSON and must
   not reference external run roots or tip filenames in paper artifacts.
 - Release governance: coding projects need a release control surface before

@@ -112,13 +112,18 @@ fn boundary_obligation_requires_negative_proof_marker() {
         "SF:src/auth.rs\nDA:1,1\nend_of_record\n",
     )
     .unwrap();
+    fs::write(
+        repo.path().join("mutation.json"),
+        r#"{"survived":0,"timeout":0}"#,
+    )
+    .unwrap();
     let review = build_proofmark(ProofMarkRequest {
         repo_root: repo.path().to_path_buf(),
         changed_paths: vec![PathBuf::from("src/auth.rs")],
         changed_from: None,
         obligations_path: Some(PathBuf::from("target/jankurai/proofbind/obligations.json")),
         coverage_path: Some(PathBuf::from("coverage.lcov")),
-        mutation_path: None,
+        mutation_path: Some(PathBuf::from("mutation.json")),
         negative_proofs: vec![],
         mode: ProofMarkMode::Advisory,
     })
@@ -130,7 +135,7 @@ fn boundary_obligation_requires_negative_proof_marker() {
         changed_from: None,
         obligations_path: Some(PathBuf::from("target/jankurai/proofbind/obligations.json")),
         coverage_path: Some(PathBuf::from("coverage.lcov")),
-        mutation_path: None,
+        mutation_path: Some(PathBuf::from("mutation.json")),
         negative_proofs: vec![obligation_id.into()],
         mode: ProofMarkMode::Advisory,
     })

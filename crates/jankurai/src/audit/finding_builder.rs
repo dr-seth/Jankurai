@@ -21,6 +21,8 @@ impl<'a> FindingBuilder<'a> {
         }
     }
 
+    // Finding construction mirrors the report schema fields to keep call sites auditable.
+    #[allow(clippy::too_many_arguments)]
     pub fn add(
         &mut self,
         severity: &str,
@@ -78,6 +80,8 @@ impl<'a> FindingBuilder<'a> {
         })
     }
 
+    // Rule-backed findings carry explicit evidence, location, and semantic match data.
+    #[allow(clippy::too_many_arguments)]
     pub fn add_with_rule(
         &mut self,
         rule_id: &str,
@@ -102,6 +106,8 @@ impl<'a> FindingBuilder<'a> {
         );
     }
 
+    // Same as `add_with_rule`, with an override for generated repair receipts.
+    #[allow(clippy::too_many_arguments)]
     pub fn add_with_rule_and_rerun(
         &mut self,
         rule_id: &str,
@@ -331,6 +337,7 @@ fn owner_for_path(ctx: &AuditContext, rel_path: &str) -> Option<String> {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
     use crate::model::FileInfo;

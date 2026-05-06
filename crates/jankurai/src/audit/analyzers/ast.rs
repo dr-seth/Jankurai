@@ -96,23 +96,23 @@ pub fn run_ast_pilot(ctx: &AuditContext) -> Vec<FindingHit> {
         }
 
         // TypeScript UI layer checking for backend imports
-        if edge.source_file.starts_with("apps/web/") || edge.source_file.starts_with("frontend/") {
-            if edge.target_module.contains("backend") || edge.target_module.contains("adapters/db")
-            {
-                hits.push(FindingHit {
-                    path: edge.source_file.clone(),
-                    line: Some(edge.line_number),
-                    text: format!("import ... from '{}'", edge.target_module),
-                    matched_term: Some(edge.target_module.clone()),
-                    agent_fix:
-                        "use HTTP/API clients instead of directly importing backend code in the UI"
-                            .to_string(),
-                    problem: format!(
-                        "UI layer directly imports backend module `{}`",
-                        edge.target_module
-                    ),
-                });
-            }
+        if (edge.source_file.starts_with("apps/web/") || edge.source_file.starts_with("frontend/"))
+            && (edge.target_module.contains("backend")
+                || edge.target_module.contains("adapters/db"))
+        {
+            hits.push(FindingHit {
+                path: edge.source_file.clone(),
+                line: Some(edge.line_number),
+                text: format!("import ... from '{}'", edge.target_module),
+                matched_term: Some(edge.target_module.clone()),
+                agent_fix:
+                    "use HTTP/API clients instead of directly importing backend code in the UI"
+                        .to_string(),
+                problem: format!(
+                    "UI layer directly imports backend module `{}`",
+                    edge.target_module
+                ),
+            });
         }
     }
 

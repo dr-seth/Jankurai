@@ -1,4 +1,5 @@
 pub mod analyzers;
+pub mod baseline;
 pub mod boundaries_artifact;
 pub mod boundary_reclassification;
 pub mod caps;
@@ -12,6 +13,7 @@ pub mod helpers;
 pub mod language_rules;
 pub mod policy;
 pub mod proofbind_artifact;
+pub mod prose;
 pub mod rule_analyzer;
 pub mod rules;
 pub mod scan;
@@ -141,8 +143,9 @@ pub fn run_audit_timed_with_options(
         .iter()
         .filter_map(|c| CAPS.iter().find(|(id, _)| id == c).map(|(_, m)| *m))
         .fold(raw_score, |acc, cap| acc.min(cap));
-    let policy = load_policy(root);
+    let policy = load_policy(root)?;
     let ux_qa = attach_ux_report_artifact(root, analyzers::ux_qa_status(&ctx));
+    let security_evidence_artifact = security_artifact::load_report_summary(root);
     let tool_adoption = analyzers::tool_adoption::status(&ctx);
     let findings_started = Instant::now();
     let findings = build_findings(
@@ -152,11 +155,12 @@ pub fn run_audit_timed_with_options(
         final_score,
         policy.minimum_score,
         ux_qa.artifact.as_ref(),
+        security_evidence_artifact.as_ref(),
         &destructive_sql_hits,
     );
     let agent_fix_queue = fix_queue::build_agent_fix_queue(&findings);
     timings.record_duration("findings", findings_started.elapsed());
-    let decision = report_decision(final_score, &findings, policy.minimum_score);
+    let decision = report_decision(final_score, &findings, &policy);
     let (observed_conformance_level, conformance_decision, conformance_blockers) =
         conformance_summary(&decision, &findings);
     let git = git_summary(root, changed);
@@ -167,7 +171,7 @@ pub fn run_audit_timed_with_options(
         report_fingerprint: "sha256:pending".into(),
         input_fingerprint: input_fingerprint(&ctx),
         policy_fingerprint: file_fingerprint(&root.join("agent/audit-policy.toml"))
-            .unwrap_or_else(|| missing_sha256()),
+            .unwrap_or_else(missing_sha256),
         manifest_fingerprints: manifest_fingerprints(root),
         dirty_worktree,
         generated_at: started_at(),
@@ -215,7 +219,7 @@ pub fn run_audit_timed_with_options(
         ux_qa,
         tool_adoption,
         security_evidence: SecurityEvidenceReadiness {
-            artifact: security_artifact::load_report_summary(root),
+            artifact: security_evidence_artifact,
         },
         boundaries: BoundariesReadiness {
             artifact: boundaries_artifact::load_manifest_summary(root),
@@ -303,7 +307,7 @@ fn attach_ux_report_artifact(root: &Path, mut readiness: UxQaReadiness) -> UxQaR
     readiness
 }
 
-fn load_policy(root: &Path) -> PolicySummary {
+fn load_policy(root: &Path) -> Result<PolicySummary> {
     use serde::Deserialize;
     #[derive(Debug, Deserialize)]
     struct AuditPolicyFile {
@@ -320,15 +324,18 @@ fn load_policy(root: &Path) -> PolicySummary {
     }
 
     let path = root.join("agent/audit-policy.toml");
-    let parsed = std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|text| toml::from_str::<AuditPolicyFile>(&text).ok())
-        .unwrap_or(AuditPolicyFile {
+    let parsed = match std::fs::read_to_string(&path) {
+        Ok(text) => toml::from_str::<AuditPolicyFile>(&text)
+            .map_err(|err| anyhow::anyhow!("invalid audit policy {}: {err}", path.display()))?,
+        Err(_) => AuditPolicyFile {
             minimum_score: default_minimum_score(),
             fail_on: vec!["critical".into(), "high".into()],
             advisory_on: vec!["medium".into(), "low".into()],
-        });
-    PolicySummary {
+        },
+    };
+    validate_policy_severities("fail_on", &parsed.fail_on)?;
+    validate_policy_severities("advisory_on", &parsed.advisory_on)?;
+    Ok(PolicySummary {
         path: path.display().to_string(),
         minimum_score: parsed.minimum_score,
         fail_on: parsed.fail_on,
@@ -339,19 +346,38 @@ fn load_policy(root: &Path) -> PolicySummary {
         schema_version: Some(SCHEMA_VERSION.into()),
         paper_edition: Some(PAPER_EDITION.into()),
         target_stack: Some(TARGET_STACK_ID.into()),
-    }
+    })
 }
 
-fn report_decision(score: i32, findings: &[Finding], minimum_score: i32) -> ReportDecision {
+fn validate_policy_severities(field: &str, severities: &[String]) -> Result<()> {
+    for severity in severities {
+        if !matches!(
+            severity.as_str(),
+            "critical" | "high" | "medium" | "low" | "info"
+        ) {
+            anyhow::bail!(
+                "invalid audit policy severity `{severity}` in {field}; expected critical, high, medium, low, or info"
+            );
+        }
+    }
+    Ok(())
+}
+
+pub fn report_decision(score: i32, findings: &[Finding], policy: &PolicySummary) -> ReportDecision {
     let hard_findings = findings
         .iter()
-        .filter(|f| f.severity == "high" || f.severity == "critical")
+        .filter(|f| {
+            policy
+                .fail_on
+                .iter()
+                .any(|severity| severity == &f.severity)
+        })
         .count();
     let soft_findings = findings.len().saturating_sub(hard_findings);
-    let passed = score >= minimum_score && hard_findings == 0;
+    let passed = score >= policy.minimum_score && hard_findings == 0;
     ReportDecision {
         status: if passed { "pass".into() } else { "fail".into() },
-        minimum_score,
+        minimum_score: policy.minimum_score,
         passed,
         hard_findings,
         soft_findings,
@@ -359,6 +385,13 @@ fn report_decision(score: i32, findings: &[Finding], minimum_score: i32) -> Repo
             baseline_score: score,
             allowed_drop: 0,
             passed,
+            score_delta: 0,
+            baseline_report_fingerprint: missing_sha256(),
+            baseline_input_fingerprint: missing_sha256(),
+            baseline_policy_fingerprint: missing_sha256(),
+            new_caps: vec![],
+            new_hard_findings: vec![],
+            policy_changed: false,
         }),
     }
 }
@@ -470,7 +503,9 @@ fn input_fingerprint(ctx: &AuditContext) -> String {
     for file in &ctx.all_files {
         hasher.update(file.rel_path.as_bytes());
         hasher.update([0]);
-        hasher.update(file.text.as_bytes());
+        if let Some(text) = prose::fingerprint_text(file) {
+            hasher.update(text.as_bytes());
+        }
         hasher.update([0xff]);
     }
     format!("sha256:{:x}", hasher.finalize())
@@ -488,6 +523,8 @@ pub fn report_fingerprint(report: &Report) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }
 
+// The final finding pass combines all scored evidence families into one report stream.
+#[allow(clippy::too_many_arguments)]
 fn build_findings(
     ctx: &AuditContext,
     dimensions: &[DimensionResult],
@@ -495,6 +532,7 @@ fn build_findings(
     final_score: i32,
     minimum_score: i32,
     ux_artifact: Option<&UxQaReportArtifactSummary>,
+    security_artifact: Option<&SecurityEvidenceArtifactSummary>,
     destructive_sql_hits: &[scan::FindingHit],
 ) -> Vec<Finding> {
     let dim_by_name: HashMap<_, _> = dimensions.iter().map(|d| (d.name.as_str(), d)).collect();
@@ -594,6 +632,50 @@ fn build_findings(
             None,
             None,
         );
+    }
+    if let Some(artifact) = security_artifact {
+        if artifact.profile == "ci" && !artifact.wrapper_strict {
+            b.add_with_rule(
+                "HLT-016-SUPPLY-CHAIN-DRIFT",
+                &artifact.path,
+                "CI security evidence was generated without strict mode",
+                "run `jankurai security run . --strict --profile ci --out target/jankurai/security/evidence.json` before the final audit",
+                vec![format!("profile={} strict={}", artifact.profile, artifact.wrapper_strict)],
+                None,
+                None,
+                Some("security-lane-nonstrict-in-ci".into()),
+            );
+        }
+        if !artifact.blocking_commands.is_empty() {
+            b.add_with_rule(
+                "HLT-016-SUPPLY-CHAIN-DRIFT",
+                &artifact.path,
+                "required security tool evidence is skipped, failed, or missing",
+                "install and run the required security tools, then regenerate target/jankurai/security/evidence.json",
+                vec![
+                    format!("blocking commands: {}", artifact.blocking_commands.join(", ")),
+                    format!(
+                        "required skipped={} failed={}",
+                        artifact.required_commands_skipped, artifact.required_commands_failed
+                    ),
+                ],
+                None,
+                None,
+                Some("required-security-tool-skipped-or-failed".into()),
+            );
+        }
+        if artifact.envelope_exit_code != 0 {
+            b.add_with_rule(
+                "HLT-027-HUMAN-REVIEW-EVIDENCE-GAP",
+                &artifact.path,
+                "security evidence artifact records a blocking wrapper exit",
+                "fix the failed security command and regenerate security evidence before treating the score as current",
+                vec![format!("security wrapper exit_code={}", artifact.envelope_exit_code)],
+                None,
+                None,
+                Some("security-artifact-stale-or-git-mismatch".into()),
+            );
+        }
     }
     if caps_applied.contains(&"no-jankurai-audit-lane-in-ci".into()) {
         b.add("high", "audit", ".github/workflows", "CI does not run the jankurai audit lane", "add a CI job that runs `jankurai . --json agent/repo-score.json --md agent/repo-score.md` and uploads both artifacts", vec!["audit output must stay JSON plus Markdown for agent repair routing".into()], None, None);
@@ -869,7 +951,7 @@ fn build_findings(
             hit.evidence,
             hit.line,
             Some(hit.matched_term.into()),
-            Some(hit.reason.into()),
+            Some(hit.reason),
         );
     }
     if !scan::agent_tool_supply_hits(ctx).is_empty() {
@@ -1513,6 +1595,8 @@ fn compare_manifest_fingerprint(
     }
 }
 
+// Release proof findings preserve every receipt field for audit and SARIF output.
+#[allow(clippy::too_many_arguments)]
 fn release_proof_finding(
     problem: &str,
     evidence: Vec<String>,

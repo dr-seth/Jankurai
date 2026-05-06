@@ -26,6 +26,8 @@ fn assert_audit_and_doctor(repo: &Path) {
         Command::new(binary_path())
             .arg("audit")
             .arg(repo)
+            .arg("--mode")
+            .arg("advisory")
             .arg("--json")
             .arg(&json)
             .arg("--md")
@@ -1018,8 +1020,8 @@ fn init_merges_existing_json() {
 
     let has_custom = owners
         .get("custom/")
-        .map_or(false, |v| v == "my-custom-agent");
-    let has_standard = owners.get("crates/").map_or(false, |v| v == "tools");
+        .is_some_and(|v| v == "my-custom-agent");
+    let has_standard = owners.get("crates/").is_some_and(|v| v == "tools");
 
     assert!(has_custom, "must retain existing custom owner");
     assert!(

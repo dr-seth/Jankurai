@@ -157,6 +157,8 @@ Allowlisted contexts are path-based and must be obvious: documentation, referenc
 
 Every finding for this rule must include `path`, `line`, `matched_term`, `reason`, and `agent_fix` so agents can patch exact evidence without broad searching.
 
+Non-policy prose files such as `*.md`, `*.tex`, and `*.txt` are word-neutral for lexical cleanup and prose-only audit signals. Trusted policy and control-plane surfaces such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `agent/`, `.agents/`, `.github/`, `.cursor/`, and `.claude/` remain scanned.
+
 ## Agent-Friendly Exceptions
 
 Every controlled error that can reach logs, API responses, background jobs, or tests should expose:

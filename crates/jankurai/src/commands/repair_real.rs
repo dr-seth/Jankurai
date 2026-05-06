@@ -251,6 +251,8 @@ pub fn run_real_apply(
     write_repair_run(&args, &run)
 }
 
+// Repair run receipts intentionally preserve every execution input and output collection.
+#[allow(clippy::too_many_arguments)]
 fn build_run(
     args: &RepairArgs,
     plan: &RepairPlan,
@@ -285,7 +287,7 @@ fn build_run(
         auto_pr_draft: None,
         git_mutation,
         github_pr,
-        proof_lanes: proof_lanes(&plan),
+        proof_lanes: proof_lanes(plan),
         notes: vec![
             "real apply mutates the working tree only after the plan is certified".to_string(),
             "git commit and GitHub draft PR creation remain gated behind explicit flags"

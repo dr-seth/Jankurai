@@ -104,12 +104,12 @@ pub fn build_report(repo: &Path, warning_days: i64) -> Result<ExceptionExpiryRep
     let files = collect_exception_files(&root)?;
 
     for path in &files {
-        let entry = match parse_exception_file(&path) {
-            Ok(front_matter) => classify_exception(repo, &path, front_matter, today, warning_days),
+        let entry = match parse_exception_file(path) {
+            Ok(front_matter) => classify_exception(repo, path, front_matter, today, warning_days),
             Err(error) => {
                 invalid_count += 1;
                 ExceptionEntry {
-                    path: repo_relative_path(repo, &path),
+                    path: repo_relative_path(repo, path),
                     code: "invalid-exception".to_string(),
                     owner: String::new(),
                     reason: String::new(),

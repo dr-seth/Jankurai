@@ -250,7 +250,7 @@ pub fn build_auto_pr_draft(
     })
 }
 
-fn planned_edit_map<'a>(plan: &'a RepairPlan) -> HashMap<String, &'a PlannedEdit> {
+fn planned_edit_map(plan: &RepairPlan) -> HashMap<String, &PlannedEdit> {
     let mut map = HashMap::new();
     for edit in &plan.planned_edits {
         map.insert(edit.finding_fingerprint.clone(), edit);
@@ -339,10 +339,7 @@ fn normalize_title(value: &str) -> String {
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
         .join(" ");
-    let mut title = collapsed
-        .replace('\t', " ")
-        .replace('\r', " ")
-        .replace('\n', " ");
+    let mut title = collapsed.replace(['\t', '\r', '\n'], " ");
     while title.contains("  ") {
         title = title.replace("  ", " ");
     }

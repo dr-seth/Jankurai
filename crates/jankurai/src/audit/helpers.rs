@@ -1,3 +1,4 @@
+use crate::audit::prose;
 use crate::model::*;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -149,7 +150,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "audit",
         replaced_tools: &["manual repo scoring", "ad hoc score gates"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_audit_ci_applicable,
     },
@@ -158,7 +159,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "proof",
         replaced_tools: &["ad hoc proof lane selection", "manual proof receipts"],
         local_command: "jankurai proof . --changed-from origin/main --out target/jankurai/proof-plan.json --md target/jankurai/proof-plan.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md", "target/jankurai/repair-queue.jsonl"],
         applicability: tool_proof_routing_applicable,
     },
@@ -251,7 +252,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "contract",
         replaced_tools: &["handwritten contract drift checks", "openapi diff"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_contract_drift_applicable,
     },
@@ -278,7 +279,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "security",
         replaced_tools: &["manual authz matrix review"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_authz_matrix_applicable,
     },
@@ -287,7 +288,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "security",
         replaced_tools: &["manual unsafe sink review"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_input_boundary_applicable,
     },
@@ -296,7 +297,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "security",
         replaced_tools: &["manual MCP/tool trust review"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_agent_tool_supply_applicable,
     },
@@ -305,7 +306,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "release",
         replaced_tools: &["manual launch checklist"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_release_readiness_applicable,
     },
@@ -314,7 +315,7 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         category: "release",
         replaced_tools: &["manual spend review"],
         local_command: "jankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md",
-        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md",
+        ci_command: "jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
         artifact_paths: &["agent/repo-score.json", "agent/repo-score.md"],
         applicability: tool_cost_budget_applicable,
     },
@@ -466,11 +467,13 @@ fn tool_vibe_coverage_applicable(ctx: &AuditContext) -> bool {
 
 fn tool_authz_matrix_applicable(ctx: &AuditContext) -> bool {
     ctx.all_files.iter().any(|f| {
-        let lower = f.text.to_ascii_lowercase();
-        lower.contains("auth")
-            || lower.contains("owner_id")
-            || lower.contains("tenant_id")
-            || lower.contains("rls")
+        prose::allows_word_scan(f) && {
+            let lower = f.text.to_ascii_lowercase();
+            lower.contains("auth")
+                || lower.contains("owner_id")
+                || lower.contains("tenant_id")
+                || lower.contains("rls")
+        }
     })
 }
 
@@ -495,15 +498,19 @@ fn tool_agent_tool_supply_applicable(ctx: &AuditContext) -> bool {
 
 fn tool_release_readiness_applicable(ctx: &AuditContext) -> bool {
     ctx.all_files.iter().any(|f| {
-        let lower = f.text.to_ascii_lowercase();
-        lower.contains("release") || lower.contains("launch") || lower.contains("rollback")
+        prose::allows_word_scan(f) && {
+            let lower = f.text.to_ascii_lowercase();
+            lower.contains("release") || lower.contains("launch") || lower.contains("rollback")
+        }
     })
 }
 
 fn tool_cost_budget_applicable(ctx: &AuditContext) -> bool {
     ctx.all_files.iter().any(|f| {
-        let lower = f.text.to_ascii_lowercase();
-        lower.contains("budget") || lower.contains("quota") || lower.contains("spend")
+        prose::allows_word_scan(f) && {
+            let lower = f.text.to_ascii_lowercase();
+            lower.contains("budget") || lower.contains("quota") || lower.contains("spend")
+        }
     })
 }
 
@@ -518,7 +525,10 @@ pub fn is_high_risk_repo(ctx: &AuditContext) -> bool {
 pub fn has_contract_surface(ctx: &AuditContext) -> bool {
     has_prefix(ctx, "contracts")
         || ctx.all_files.iter().any(|f| {
-            f.text.contains("openapi") || f.text.contains("protobuf") || f.suffix == ".proto"
+            prose::allows_word_scan(f)
+                && (f.text.contains("openapi")
+                    || f.text.contains("protobuf")
+                    || f.suffix == ".proto")
         })
 }
 
@@ -532,9 +542,10 @@ pub fn has_polyglot_boundary(ctx: &AuditContext) -> bool {
 
 pub fn has_generated_contracts(ctx: &AuditContext) -> bool {
     ctx.all_files.iter().any(|f| {
-        f.rel_path == "agent/generated-zones.toml"
-            || f.rel_path.contains("/generated/")
-            || f.text.contains("Generated by:")
+        prose::allows_word_scan(f)
+            && (f.rel_path == "agent/generated-zones.toml"
+                || f.rel_path.contains("/generated/")
+                || f.text.contains("Generated by:"))
     })
 }
 
@@ -567,10 +578,10 @@ pub fn has_playwright_e2e(ctx: &AuditContext) -> bool {
         return true;
     }
     real_command_surface_contains(ctx, &["playwright"])
-        || ctx
-            .all_files
-            .iter()
-            .any(|f| f.rel_path.contains("e2e") || f.text.contains("@playwright/test"))
+        || ctx.all_files.iter().any(|f| {
+            f.rel_path.contains("e2e")
+                || (prose::allows_word_scan(f) && f.text.contains("@playwright/test"))
+        })
 }
 
 pub fn has_rust_surface(ctx: &AuditContext) -> bool {
@@ -611,9 +622,10 @@ pub fn has_web_surface(ctx: &AuditContext) -> bool {
                 || f.rel_path.starts_with("ui")
                 || f.rel_path.starts_with("packages/web")
                 || f.rel_path.starts_with("packages/ui")
-                || f.text.contains("react")
-                || f.text.contains("vite")
-                || f.text.contains("storybook"))
+                || (prose::allows_word_scan(f)
+                    && (f.text.contains("react")
+                        || f.text.contains("vite")
+                        || f.text.contains("storybook"))))
     })
 }
 
@@ -691,8 +703,10 @@ pub fn observability_docs_text(ctx: &AuditContext) -> String {
         "agent/JANKURAI_STANDARD.md",
     ] {
         if let Some(file) = ctx.all_files.iter().find(|f| f.rel_path == path) {
-            text.push('\n');
-            text.push_str(&file.text.to_ascii_lowercase());
+            if prose::allows_word_scan(file) {
+                text.push('\n');
+                text.push_str(&file.text.to_ascii_lowercase());
+            }
         }
     }
     text
@@ -706,8 +720,10 @@ pub fn db_policy_text(ctx: &AuditContext) -> String {
         "db/constraints/README.md",
     ] {
         if let Some(file) = ctx.all_files.iter().find(|f| f.rel_path == path) {
-            text.push('\n');
-            text.push_str(&file.text.to_ascii_lowercase());
+            if prose::allows_word_scan(file) {
+                text.push('\n');
+                text.push_str(&file.text.to_ascii_lowercase());
+            }
         }
     }
     text
@@ -823,26 +839,7 @@ pub fn largest_file(files: &[FileInfo]) -> Option<FileInfo> {
 }
 
 pub fn root_readme_routes(ctx: &AuditContext) -> bool {
-    ctx.all_files
-        .iter()
-        .find(|f| f.rel_path == "README.md")
-        .map(|f| {
-            let lower = f.text.to_ascii_lowercase();
-            [
-                "build",
-                "flow",
-                "layout",
-                "map",
-                "paper/",
-                "reference/",
-                "tools/",
-                "validate",
-                "workspace",
-            ]
-            .iter()
-            .any(|m| lower.contains(m))
-        })
-        .unwrap_or(false)
+    ctx.all_files.iter().any(|f| f.rel_path == "README.md")
 }
 
 pub fn missing_core_docs(ctx: &AuditContext) -> Vec<String> {
@@ -888,9 +885,10 @@ pub fn paths_with(ctx: &AuditContext, path_markers: &[&str], markers: &[&str]) -
         let path_hit = path_markers
             .iter()
             .any(|m| rel.contains(&m.to_ascii_lowercase()));
-        let text_hit = markers
-            .iter()
-            .any(|m| text.contains(&m.to_ascii_lowercase()));
+        let text_hit = prose::allows_word_scan(f)
+            && markers
+                .iter()
+                .any(|m| text.contains(&m.to_ascii_lowercase()));
         if path_hit || text_hit {
             out.push(f.rel_path.clone());
         }

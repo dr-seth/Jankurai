@@ -47,11 +47,11 @@ pub fn render_sarif(report: &Report) -> String {
             .as_deref()
             .unwrap_or("HLT-000-SCORE-DIMENSION")
             .to_string();
-        if !rule_index_map.contains_key(&rid) {
+        rule_index_map.entry(rid).or_insert_with_key(|rid| {
             let idx = rule_ids.len();
             rule_ids.push(rid.clone());
-            rule_index_map.insert(rid, idx);
-        }
+            idx
+        });
     }
 
     let rules: Vec<serde_json::Value> = rule_ids

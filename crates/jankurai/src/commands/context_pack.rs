@@ -536,9 +536,9 @@ fn infer_owner(
 fn infer_permission_profile(task_lc: &str, allowed_paths: &[String], owner: &str) -> String {
     if task_lc.contains("security") || owner == "ops" {
         "security-investigation".to_string()
-    } else if task_lc.contains("paper") || allowed_paths.iter().any(|p| p.starts_with("paper/")) {
-        "docs-only".to_string()
-    } else if task_lc.contains("docs")
+    } else if task_lc.contains("paper")
+        || task_lc.contains("docs")
+        || allowed_paths.iter().any(|p| p.starts_with("paper/"))
         || allowed_paths
             .iter()
             .all(|path| path.starts_with("docs/") || path == "AGENTS.md")
