@@ -62,3 +62,15 @@
 - `agent/jankurai-badge.svg` sha256: `e750b114e3928338da9a8c480a94aac356e062a1882b95bb1c74b083f7b36b2d`.
 - `rtk cargo run -p jankurai -- badge ... --check`: pass, badge current against `agent/baselines/main.repo-score.json`.
 - Commit `d87b208` (`Exclude accepted baselines from secret scanning`) fixed baseline self-scan recursion before this final accepted baseline was regenerated.
+
+## Final Release Receipts
+
+- Final commits:
+  - `be636f3` `Harden scoring integrity for release`
+  - `878f317` `Bootstrap accepted scoring baseline`
+  - `d87b208` `Exclude accepted baselines from secret scanning`
+  - `117b181` `Refresh accepted baseline after scanner fix`
+- Final ratchet audit: `rtk jankurai audit . --mode ratchet --baseline agent/baselines/main.repo-score.json ... --no-score-history`, pass with `score=97 raw=97 caps=0 findings=0`, `dirty_worktree=false`, `score_delta=0`.
+- UX evidence generated with a temporary localhost fixture server and matching visual baselines under `target/jankurai/ux-qa-baselines`; final `target/jankurai/ux-qa.json` reports 10 matched visual baselines.
+- Final artifact presence check: pass for repo score JSON/Markdown, SARIF, summary, repair queue, audit timings, strict security evidence, proofbind/proofmark receipts, UX evidence, conformance results, and `paper/jankurai.pdf`.
+- Final cleanup: `rtk git diff --check` pass; no `._*`, `.DS_Store`, swap, temp, or backup sidecars outside `target/`; `rtk git status --short` clean before this receipt update.
