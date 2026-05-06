@@ -9,10 +9,20 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install UX QA dependencies
+        run: npm ci
+      - name: Build UX QA package
+        run: npm --workspace @jankurai/ux-qa run build
+      - name: Install UX QA browser
+        run: npx playwright install --with-deps chromium
       - name: Install local jankurai
         run: cargo install --path crates/jankurai --locked --force
       - name: Prepare jankurai artifact directories
@@ -35,7 +45,44 @@ jobs:
       - name: Rust witness build
         run: jankurai rust witness build .
       - name: UX QA smoke
-        run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
+        run: |
+          set -euo pipefail
+          node <<'NODE' > target/jankurai/ux-smoke-server.log 2>&1 &
+          const http = require("node:http");
+          const server = http.createServer((req, res) => {
+            const url = new URL(req.url, "http://localhost:3000");
+            const state = url.searchParams.get("ux_state") || "success";
+            const html = `<!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <title>Jankurai UX ${state}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 32px; color: #111827; background: #fff; }
+              .wrap { max-width: 720px; margin: 0 auto; }
+              .button { display: inline-flex; min-width: 96px; min-height: 44px; align-items: center; justify-content: center; border: 1px solid #1f2937; border-radius: 4px; background: #f3f4f6; color: #111827; }
+            </style>
+          </head>
+          <body>
+            <main class="wrap">
+              <h1>Jankurai UX ${state}</h1>
+              <p role="status">State ${state} is rendered for CI smoke evidence.</p>
+              <button class="button" type="button">Continue</button>
+            </main>
+          </body>
+          </html>`;
+            res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+            res.end(html);
+          });
+          server.listen(3000, "127.0.0.1");
+          NODE
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for _ in {1..50}; do
+            node -e 'require("node:http").get("http://127.0.0.1:3000", r => process.exit(r.statusCode === 200 ? 0 : 1)).on("error", () => process.exit(1))' && break
+            sleep 0.2
+          done
+          jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
       - name: Security lane
         run: jankurai security run . --out target/jankurai/security/evidence.json
       - name: Vibe coverage
@@ -64,7 +111,7 @@ jobs:
           mkdir -p target/jankurai
           jankurai optimize . --mode all --out target/jankurai/p13-optimization-report.json --md target/jankurai/p13-optimization-report.md
           jankurai exceptions expire . --warning-days 7 --strict --out target/jankurai/p13-exception-expiry.json --md target/jankurai/p13-exception-expiry.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: jankurai-score
           path: |
@@ -100,8 +147,8 @@ jobs:
   ux-qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -113,7 +160,7 @@ jobs:
   paper:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install TeX dependencies
         run: |
           sudo apt-get update

@@ -18,5 +18,5 @@ viewports = ["390x844", "1440x900"]
 [[routes]]
 id = "local"
 url = "http://localhost:3000"
-states = ["loading", "success"]
+states = ["loading", "empty", "error", "success", "permission-denied"]
 viewports = ["390x844", "1440x900"]

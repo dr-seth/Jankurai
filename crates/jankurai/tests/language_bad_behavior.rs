@@ -555,7 +555,7 @@ fn ci_fixture_corpus_covers_risky_and_safe_cases() {
         ),
         (
             "ci/safe/safe.yml",
-            &["pull_request", "contents: read", "actions/checkout@v4"],
+            &["pull_request", "contents: read", "actions/checkout@v6"],
         ),
     ];
 

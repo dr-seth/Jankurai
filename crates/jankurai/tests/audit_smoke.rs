@@ -630,7 +630,7 @@ fn audit_tool_adoption_ux_qa_counts_only_with_ci_command_and_artifact_upload() {
     fs::create_dir_all(dir.path().join(".github/workflows")).unwrap();
     fs::write(
         dir.path().join(".github/workflows/jankurai.yml"),
-        "name: ci\non: [push]\njobs:\n  ux:\n    runs-on: ubuntu-latest\n    steps:\n      - run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json\n      - uses: actions/upload-artifact@v4\n        with:\n          path: target/jankurai/ux-qa.json\n",
+        "name: ci\non: [push]\njobs:\n  ux:\n    runs-on: ubuntu-latest\n    steps:\n      - run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json\n      - uses: actions/upload-artifact@v7\n        with:\n          path: target/jankurai/ux-qa.json\n",
     )
     .unwrap();
 
