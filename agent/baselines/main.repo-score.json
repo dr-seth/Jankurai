@@ -1,17 +1,17 @@
 {
-  "report_fingerprint": "sha256:6a0936f12951d00e4058837ce577cb0f6fe2df592b8ba018e38da7d3c80ea354",
-  "input_fingerprint": "sha256:ad6ddbcedcaee081ce23752506a0e20419678a24c7ff7dc8231d4d29e3795e26",
+  "report_fingerprint": "sha256:34e19fd99e94166a1fffbf52bcca2cf7e1d2454fb8e739f0638e0f929771b1b9",
+  "input_fingerprint": "sha256:1e6d95b4c1d43a8aba27d2defd1dfb799d5279d746417951beb8759a0f6646a7",
   "policy_fingerprint": "sha256:4cada2563bc061cb649c364949b0bb3e2460a6702c088681bc2eb6a31f9b482a",
   "manifest_fingerprints": {
     "owner_map": "sha256:02e6d9f93dbe5535ba31f76518da9523235d241194879c29b2a31a11affcc4a0",
     "test_map": "sha256:99a4ff608849e0c1c456617533c67fab78892709359e46da0469d8dc2e52d60d",
-    "generated_zones": "sha256:de799943774816abdc822084ca7ec9b5007c6e172b2f91ffbd28186b434b95ba",
+    "generated_zones": "sha256:362e46400aaf3ed924edc3985f56f201859cbf214de4a5516da1112b16e2abe5",
     "boundaries": "sha256:51292d205b2ab7672cda0da1f49ce3bf812dc66dde10b9cf707e32f913f4fb50",
     "proof_lanes": "sha256:a51fde4292de99662c641d617b6c83f3b710aedc6261678089dcaa30c9d2bfab",
     "standard_version": "sha256:9b3fc9c5e1045dcaaa62af7c481bd326ff86885ba8c9c506a92be712e6ab1f65"
   },
   "dirty_worktree": false,
-  "generated_at": "1778044307",
+  "generated_at": "1778044511",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778044307",
-  "started_at": "1778044307",
-  "elapsed_ms": 2102,
+  "run_id": "1778044511",
+  "started_at": "1778044511",
+  "elapsed_ms": 123,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "be636f3",
+    "head": "d87b208",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -444,11 +444,11 @@
     "missing_categories": [],
     "evidence": {
       "accessibility": [
+        "agent/baselines/main.repo-score.json",
         "crates/jankurai/src/audit/analyzers/mod.rs",
         "crates/jankurai/src/audit/helpers.rs",
         "package-lock.json",
-        "packages/ux-qa/package.json",
-        "packages/ux-qa/src/accessibility.ts"
+        "packages/ux-qa/package.json"
       ],
       "api_mocks": [
         "crates/jankurai/src/audit/analyzers/mod.rs"
@@ -483,11 +483,11 @@
         "packages/ux-qa/src/cli.ts"
       ],
       "storybook": [
+        "agent/baselines/main.repo-score.json",
         "agent/ux-qa.toml",
         "crates/jankurai/src/audit/analyzers/mod.rs",
         "crates/jankurai/src/audit/helpers.rs",
-        "crates/jankurai/src/audit/mod.rs",
-        "crates/jankurai/src/commands/context_pack.rs"
+        "crates/jankurai/src/audit/mod.rs"
       ],
       "visual_review": [
         "crates/jankurai/src/audit/analyzers/mod.rs",

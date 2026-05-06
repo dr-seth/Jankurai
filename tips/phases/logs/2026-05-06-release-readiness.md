@@ -54,10 +54,11 @@
 
 - Clean-tree guard before baseline: `rtk git diff --quiet` pass; `rtk git diff --cached --quiet` pass.
 - Standard audit to `target/jankurai/repo-score.json`: pass, `score=97 raw=97 caps=0 findings=0`, `dirty_worktree=false`.
-- Accepted baseline report fingerprint: `sha256:6a0936f12951d00e4058837ce577cb0f6fe2df592b8ba018e38da7d3c80ea354`.
-- Accepted baseline input fingerprint: `sha256:ad6ddbcedcaee081ce23752506a0e20419678a24c7ff7dc8231d4d29e3795e26`.
+- Accepted baseline report fingerprint: `sha256:34e19fd99e94166a1fffbf52bcca2cf7e1d2454fb8e739f0638e0f929771b1b9`.
+- Accepted baseline input fingerprint: `sha256:1e6d95b4c1d43a8aba27d2defd1dfb799d5279d746417951beb8759a0f6646a7`.
 - Accepted baseline policy fingerprint: `sha256:4cada2563bc061cb649c364949b0bb3e2460a6702c088681bc2eb6a31f9b482a`.
-- `agent/baselines/main.repo-score.json` sha256: `1a887bed0e700479b1324a9debf580af87b32395d64df8c45dc86003eac6c07a`.
+- `agent/baselines/main.repo-score.json` sha256: `89bf2b6f962fbc85bd321539d83736aa89cf02b33977e35cf6d38163610d2d6d`.
 - `agent/jankurai-badge.json` sha256: `af71981056f26b40fa2ae0513783e67ddf38fe4e52c89df974069c2855d49955`.
 - `agent/jankurai-badge.svg` sha256: `e750b114e3928338da9a8c480a94aac356e062a1882b95bb1c74b083f7b36b2d`.
 - `rtk cargo run -p jankurai -- badge ... --check`: pass, badge current against `agent/baselines/main.repo-score.json`.
+- Commit `d87b208` (`Exclude accepted baselines from secret scanning`) fixed baseline self-scan recursion before this final accepted baseline was regenerated.
