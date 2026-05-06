@@ -464,7 +464,14 @@ fn level_allowed_paths(level: InitLevel) -> BTreeSet<&'static str> {
 
     if matches!(level, InitLevel::Score | InitLevel::Ci) {
         paths.extend([
+            "apps/api/AGENTS.md",
+            "apps/web/AGENTS.md",
             "Justfile",
+            "contracts/AGENTS.md",
+            "crates/adapters/AGENTS.md",
+            "crates/application/AGENTS.md",
+            "crates/domain/AGENTS.md",
+            "crates/workers/AGENTS.md",
             "agent/audit-policy.toml",
             "agent/generated-zones.toml",
             "agent/jankurai-install.toml",
@@ -473,6 +480,9 @@ fn level_allowed_paths(level: InitLevel) -> BTreeSet<&'static str> {
             "agent/tool-adoption.toml",
             "agent/standard-version.toml",
             "agent/test-map.json",
+            "db/AGENTS.md",
+            "ops/AGENTS.md",
+            "python/ai-service/AGENTS.md",
         ]);
     }
 

@@ -442,7 +442,16 @@ pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
                 "-----BEGIN ",
             ]
             .iter()
-            .any(|needle| line.contains(needle));
+            .any(|needle| {
+                // For ambiguous short prefixes like "sk-", require non-word char before it
+                // to avoid false positives such as "risk-repo".
+                if matches!(*needle, "sk-" | "xoxb-" | "xoxa-" | "xoxp-") {
+                    line.match_indices(needle)
+                        .any(|(i, _)| i == 0 || !line.as_bytes()[i - 1].is_ascii_alphanumeric())
+                } else {
+                    line.contains(needle)
+                }
+            });
             if strong_token
                 || SECRET_ASSIGNMENT.is_match(line)
                 || (line.to_ascii_lowercase().contains("eyj")
@@ -468,6 +477,7 @@ pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 
 fn is_tracked_auditor_score_artifact(path: &str) -> bool {
     path == "agent/repo-score.json"
+        || path == "agent/repo-score.md"
         || (path.starts_with("agent/baselines/") && path.ends_with(".repo-score.json"))
 }
 
@@ -643,7 +653,11 @@ pub fn agent_tool_supply_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let files = ctx
         .all_files
         .iter()
-        .filter(|file| !file.is_generated && prose::is_trusted_policy_path(&file.rel_path))
+        .filter(|file| {
+            !file.is_generated
+                && prose::is_trusted_policy_path(&file.rel_path)
+                && !is_tracked_auditor_score_artifact(&file.rel_path)
+        })
         .cloned()
         .collect::<Vec<_>>();
     let risky = [

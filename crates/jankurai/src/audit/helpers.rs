@@ -766,6 +766,7 @@ pub fn is_runtime_stack_surface(file: &FileInfo, self_audit: bool) -> bool {
         && !file.rel_path.starts_with("paper/")
         && !file.rel_path.starts_with("reference/")
         && !file.rel_path.starts_with("examples/")
+        && !file.rel_path.starts_with("labs/")
         && (self_audit || !file.rel_path.starts_with("packages/ux-qa/"))
         && !file.rel_path.starts_with("scripts/")
         && !file.rel_path.starts_with("tests/")

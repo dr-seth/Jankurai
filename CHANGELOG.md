@@ -6,9 +6,19 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ## Unreleased
 
+## 0.8.11 - 2026-05-06
+
+### Added
+
+- Added reference-profile structure audit output and migration steering for detected canonical cells.
+- Added `HLT-039-WEB-SECURITY-BAD-BEHAVIOR` with high-confidence detectors for exposed Vite dev servers, client-exposed Vite secrets, browser token storage, and credentialed wildcard CORS.
+- Added `HLT-040-REPO-ROT-BAD-BEHAVIOR` with active-source old/backup/copy/archive path checks plus soft review signals for commented-out code blocks and hard-disabled branches.
+- Added focused coverage for risky and safe web-security and repo-rot cases, including false-positive guards for docs, tips, reference, tests, generated output, API versions, and DB migrations.
+
 ### Changed
 
 - Hardened `jankurai upgrade` for source-checkout upgrades: `--source auto` now prefers a newer local `crates/jankurai` package over registry lookup and reinstalls into the current Cargo root instead of a nested `bin` path.
+- Bumped the auditor/action package release to `0.8.11`; standard compatibility remains `0.8.0` and report schema is `1.6.0`.
 
 ## 0.8.10 - 2026-05-06
 

@@ -77,6 +77,8 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | typescript-bad-behavior | detector-backed | TypeScript detector pack with hard and advisory signals |
 | docker-bad-behavior | detector-backed | Docker detector pack with hard and advisory signals |
 | release-bad-behavior | detector-backed | Release detector pack for mutable tags/assets, skipped proof, mutable latest-only artifacts, secret-bearing packages, and missing integrity evidence |
+| web-security-bad-behavior | 68 | high-confidence web security findings for exposed Vite dev servers, client-exposed secrets, browser token storage, and credentialed wildcard CORS |
+| repo-rot-bad-behavior | 88 | soft cap for active source that looks old, backed up, copied, parked, fake-versioned, or otherwise ambiguous without owner/proof/expiry |
 | python-bad-behavior | detector-backed | Python detector pack with hard and advisory signals |
 | ci-bad-behavior | detector-backed | CI detector pack with hard and advisory signals |
 | git-bad-behavior | detector-backed | Git detector pack with hard and advisory signals |
@@ -212,9 +214,12 @@ The output must include:
 | `score` and `raw_score` | final capped score plus weighted score |
 | `caps_applied` | hard rule failures |
 | `dimensions` | weighted breakdown |
+| `profile_structure` | detected reference-profile cells, canonical paths, and migration steering |
 | `findings` | actionable evidence with path, line, matched term, reason, problem, and repair |
 | `agent_fix_queue` | ordered repair work for coding agents |
 | `ux_qa` | rendered UX QA evidence, missing categories, and geometry-runtime readiness |
+
+The Markdown report includes a `## Reference Profile Structure` section that summarizes detected cells, canonical folders, local guidance status, and migration steering.
 
 ## Versioning
 

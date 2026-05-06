@@ -197,8 +197,11 @@ Stop or fix first when any condition is true:
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
 | `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
 | `HLT-037-RELEASE-BAD-BEHAVIOR` | Release automation mutates tags/artifacts, skips proof, ships mutable latest-only outputs, or publishes without integrity evidence |
+| `HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP` | Reference-profile cells drift from canonical folder names or miss local AGENTS guidance |
+| `HLT-039-WEB-SECURITY-BAD-BEHAVIOR` | Web apps expose high-confidence security hazards such as public Vite dev servers, client secrets, browser token storage, or credentialed wildcard CORS |
+| `HLT-040-REPO-ROT-BAD-BEHAVIOR` | Active source contains ambiguous old, backup, copied, parked, or hard-disabled code without owner, proof lane, expiry, and cleanup plan |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-037` are detector-backed catalog IDs in the language bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-040` are detector-backed catalog IDs in the bad-behavior family.
 
 ## Ownership Boundaries
 
@@ -265,9 +268,12 @@ Every audit should produce JSON and Markdown with:
 - raw and final score
 - hard caps
 - dimension breakdown
+- `profile_structure`
 - tool adoption readiness and replacement evidence
 - findings with evidence
 - ordered `agent_fix_queue`
+
+The Markdown report includes a `## Reference Profile Structure` section that summarizes detected cells, canonical folders, local guidance status, and migration steering.
 
 ## Repair Receipts
 

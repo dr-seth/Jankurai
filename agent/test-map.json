@@ -89,6 +89,10 @@
       "command": "cargo run -p jankurai -- doctor --fail-on high",
       "purpose": "verify CI and GitHub instruction surfaces"
     },
+    "ops/": {
+      "command": "just security",
+      "purpose": "verify ops routing remains visible to the audit"
+    },
     ".cursor/": {
       "command": "cargo run -p jankurai -- adapters verify",
       "purpose": "verify thin IDE adapter pointers"
@@ -152,6 +156,10 @@
     "crates/jankurai/tests/language_bad_behavior.rs": {
       "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify the language bad-behavior fixtures, catalog docs, and fixed-executable false-positive suppression"
+    },
+    "crates/jankurai/tests/web_security_and_repo_rot.rs": {
+      "command": "cargo test -p jankurai --test web_security_and_repo_rot",
+      "purpose": "verify web security and repo-rot detector findings, caps, advisories, and false-positive guards"
     },
     "crates/jankurai/tests/badge_schema_smoke.rs": {
       "command": "cargo test -p jankurai badge_schema_smoke",

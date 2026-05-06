@@ -21,6 +21,88 @@ pub fn body_for_path(path: &str, level: &str, cargo_repo: bool) -> Option<&'stat
 
 const ADAPTER_POINTER: &str = "<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nIf jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n";
 const PROOF_ADAPTER_POINTER: &str = "---\nname: jankurai\ndescription: Jankurai workspace guidance for Codex. Read repo instructions and standard first; phase files are only for explicit phase work.\n---\n\n# jankurai\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\nIf jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n";
+macro_rules! cell_agents_template {
+    ($title:literal, $owner:literal, $forbidden:literal, $proof_lane:literal) => {
+        concat!(
+            "# ",
+            $title,
+            "\n\n",
+            "<!-- jankurai generated adapter -->\n",
+            "<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\n",
+            "Read `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\n",
+            "Owns `",
+            $owner,
+            "`.\n",
+            "Forbidden: ",
+            $forbidden,
+            ".\n",
+            "Proof lane: `",
+            $proof_lane,
+            "`.\n",
+            "If jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n"
+        )
+    };
+}
+const WEB_AGENTS: &str = cell_agents_template!(
+    "apps/web/AGENTS.md",
+    "apps/web/",
+    "product truth, backend authority, and direct DB writes",
+    "rendered UX / Playwright"
+);
+const API_AGENTS: &str = cell_agents_template!(
+    "apps/api/AGENTS.md",
+    "apps/api/",
+    "UI-only concerns, direct DB writes, and contract generation",
+    "edge handler / contract tests"
+);
+const DOMAIN_AGENTS: &str = cell_agents_template!(
+    "crates/domain/AGENTS.md",
+    "crates/domain/",
+    "I/O glue, transport routing, and persistence code",
+    "unit / property tests"
+);
+const APPLICATION_AGENTS: &str = cell_agents_template!(
+    "crates/application/AGENTS.md",
+    "crates/application/",
+    "transport handlers, persistence code, and UI concerns",
+    "use-case / authz tests"
+);
+const ADAPTERS_AGENTS: &str = cell_agents_template!(
+    "crates/adapters/AGENTS.md",
+    "crates/adapters/",
+    "domain policy, web UI, and direct persistence truth",
+    "adapter integration tests"
+);
+const WORKERS_AGENTS: &str = cell_agents_template!(
+    "crates/workers/AGENTS.md",
+    "crates/workers/",
+    "request handling, UI behavior, and direct user flow ownership",
+    "workflow / replay tests"
+);
+const CONTRACTS_AGENTS: &str = cell_agents_template!(
+    "contracts/AGENTS.md",
+    "contracts/",
+    "generated clients, handwritten transport glue, and product truth",
+    "generation / drift checks"
+);
+const DB_AGENTS: &str = cell_agents_template!(
+    "db/AGENTS.md",
+    "db/",
+    "application logic, transport routing, and UI concerns",
+    "migration / constraint tests"
+);
+const OPS_AGENTS: &str = cell_agents_template!(
+    "ops/AGENTS.md",
+    "ops/",
+    "product feature code, domain policy, and direct DB writes",
+    "security lane / workflow lint"
+);
+const PYTHON_AI_AGENTS: &str = cell_agents_template!(
+    "python/ai-service/AGENTS.md",
+    "python/ai-service/",
+    "product truth, authorization, repo tooling, and direct DB writes",
+    "eval / contract tests"
+);
 const MINIMAL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\ncheck: fast score\n";
 const RUST_FULL_JUSTFILE: &str = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory --json agent/repo-score.json --md agent/repo-score.md --score-history agent/score-history.jsonl --score-history-csv agent/score-history.csv\n\ndoctor:\n\tjankurai doctor --fail-on high\n\nsecurity:\n\tjankurai security run . --out target/jankurai/security/evidence.json\n\nrust-map:\n\tjankurai rust map .\n\nrust-witness:\n\tjankurai rust witness build .\n\nrust-diagnose:\n\tjankurai rust diagnose .\n\ncheck: fast score security rust-map rust-witness rust-diagnose\n";
 pub const PRE_COMMIT_HOOK: &str = r#"#!/usr/bin/env bash
@@ -180,6 +262,14 @@ pub const TEMPLATES: &[Template] = &[
         body: "# Agent Instructions\n\nRead `agent/JANKURAI_STANDARD.md` first. For explicit phase or MASTER_PLAN work only, read `agent/MASTER_PLAN.md` before `tips/phases/00-phase-index.md`. Keep generated artifacts under their declared source commands.\n",
     },
     Template {
+        path: "apps/web/AGENTS.md",
+        body: WEB_AGENTS,
+    },
+    Template {
+        path: "apps/api/AGENTS.md",
+        body: API_AGENTS,
+    },
+    Template {
         path: ".cursor/rules/jankurai.mdc",
         body: "---\nalwaysApply: true\n---\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nIf jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n",
     },
@@ -220,6 +310,10 @@ pub const TEMPLATES: &[Template] = &[
         body: "---\napplyTo: \"python/ai-service/**/*.py\"\n---\n\n<!-- jankurai generated adapter -->\n<!-- jankurai agent request v1 sha256:REPLACE_WITH_HASH -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nDo not create or expand Python unless a dated advanced-ML/data exception explicitly approves this path. Python must not own product truth, authorization, repo tools, proof lanes, backend glue, or direct production DB writes.\nIf jankurai is installed, run `jankurai update --client-start --quiet` before work; do not apply updates unless the user asks.\n",
     },
     Template {
+        path: "contracts/AGENTS.md",
+        body: CONTRACTS_AGENTS,
+    },
+    Template {
         path: ".agents/agents.md",
         body: ADAPTER_POINTER,
     },
@@ -238,6 +332,22 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "agent/JANKURAI_STANDARD.md",
         body: "# jankurai Standard Agent Bootstrap\n\nStandard version: `0.8.0`\n\nRead `docs/agent-native-standard.md` when policy detail matters. Use `agent/owner-map.json`, `agent/test-map.json`, `agent/generated-zones.toml`, `agent/proof-lanes.toml`, `agent/tool-adoption.toml`, and `agent/boundaries.toml` before editing.\n",
+    },
+    Template {
+        path: "crates/domain/AGENTS.md",
+        body: DOMAIN_AGENTS,
+    },
+    Template {
+        path: "crates/application/AGENTS.md",
+        body: APPLICATION_AGENTS,
+    },
+    Template {
+        path: "crates/adapters/AGENTS.md",
+        body: ADAPTERS_AGENTS,
+    },
+    Template {
+        path: "crates/workers/AGENTS.md",
+        body: WORKERS_AGENTS,
     },
     Template {
         path: "agent/MASTER_PLAN.md",
@@ -302,6 +412,10 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "contracts/README.md",
         body: "# Contracts\n\nPut OpenAPI, JSON Schema, or protobuf **sources** here. Generated clients and bindings must live only under paths declared in `agent/generated-zones.toml`.\n",
+    },
+    Template {
+        path: "db/AGENTS.md",
+        body: DB_AGENTS,
     },
     Template {
         path: "db/README.md",
@@ -376,6 +490,10 @@ pub const TEMPLATES: &[Template] = &[
         body: "# Security\n\nDocument threat model, secret policy, dependency scanning, provenance, SBOM, and security evidence here.\n",
     },
     Template {
+        path: "ops/AGENTS.md",
+        body: OPS_AGENTS,
+    },
+    Template {
         path: "evals/README.md",
         body: "# Evals\n\nStore eval harness docs and receipt conventions here. Generated eval outputs belong under `target/jankurai/` unless explicitly declared.\n",
     },
@@ -390,6 +508,10 @@ pub const TEMPLATES: &[Template] = &[
     Template {
         path: "python/ai-service/README.md",
         body: "# Exception-Only AI/Data Service\n\nScaffold only. Do not add Python here unless a dated advanced-ML/data exception exists. Keep retrieval, ranking, and generation behind explicit contracts; do not treat model output as source of truth.\n",
+    },
+    Template {
+        path: "python/ai-service/AGENTS.md",
+        body: PYTHON_AI_AGENTS,
     },
     Template {
         path: "tools/security-lane.sh",

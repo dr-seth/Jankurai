@@ -2,8 +2,8 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 
 pub const STANDARD_VERSION: &str = "0.8.0";
-pub const AUDITOR_VERSION: &str = "0.8.10";
-pub const SCHEMA_VERSION: &str = "1.5.0";
+pub const AUDITOR_VERSION: &str = "0.8.11";
+pub const SCHEMA_VERSION: &str = "1.6.0";
 pub const PAPER_EDITION: &str = "2026.05-ed8";
 pub const TARGET_STACK_ID: &str = "rust-ts-vite-react-postgres-bounded-python";
 pub const TARGET_STACK: &str = "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service";
@@ -344,6 +344,30 @@ pub struct BoundariesReadiness {
     pub reclassifications: Vec<BoundaryReclassification>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ProfileStructureCell {
+    pub id: String,
+    pub applicable: bool,
+    pub status: String,
+    pub canonical_path: String,
+    pub detected_paths: Vec<String>,
+    pub aliases: Vec<String>,
+    pub guidance_status: String,
+    pub owner: String,
+    pub proof_lane: String,
+    pub agent_fix: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ProfileStructureReadiness {
+    pub applicable_count: usize,
+    pub canonical_count: usize,
+    pub noncanonical_count: usize,
+    pub guidance_missing_count: usize,
+    pub cells: Vec<ProfileStructureCell>,
+    pub evidence: serde_json::Value,
+}
+
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct VibeCoverageGap {
     pub id: String,
@@ -411,6 +435,7 @@ pub struct Report {
     pub tool_adoption: ToolAdoptionReadiness,
     pub security_evidence: SecurityEvidenceReadiness,
     pub boundaries: BoundariesReadiness,
+    pub profile_structure: ProfileStructureReadiness,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vibe_coverage: Option<VibeCoverageSummary>,
     pub findings: Vec<Finding>,

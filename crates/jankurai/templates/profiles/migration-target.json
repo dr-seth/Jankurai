@@ -26,6 +26,7 @@
     "agent/proof-lanes.toml",
     "agent/standard-version.toml",
     "agent/test-map.json",
+    "contracts/AGENTS.md",
     "contracts/README.md",
     "docs/agent-native-standard.md",
     "docs/architecture/README.md",
@@ -36,6 +37,7 @@
     "docs/migration/README.md",
     "docs/migration/boundary-map.md",
     "docs/migration/slices/README.md",
+    "ops/AGENTS.md",
     "tools/security-lane.sh",
     "tools/jankurai-hooks/pre-commit",
     "tools/jankurai-hooks/prepare-commit-msg"
@@ -51,7 +53,9 @@
     "agent/owner-map.json": "merge-json",
     "agent/proof-lanes.toml": "merge-toml",
     "agent/standard-version.toml": "merge-toml",
-    "agent/test-map.json": "merge-json"
+    "agent/test-map.json": "merge-json",
+    "contracts/AGENTS.md": "merge-marker",
+    "ops/AGENTS.md": "merge-marker"
   },
   "requiredLanes": ["fast", "audit", "security"],
   "optionalLanes": ["migration"],

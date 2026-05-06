@@ -2,8 +2,8 @@ minimum_score = 85
 fail_on = ["critical", "high"]
 advisory_on = ["medium", "low"]
 standard_version = "0.8.0"
-auditor_version = "0.8.10"
-schema_version = "1.5.0"
+auditor_version = "0.8.11"
+schema_version = "1.6.0"
 paper_edition = "2026.05-ed8"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 

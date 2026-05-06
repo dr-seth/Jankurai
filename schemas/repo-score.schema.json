@@ -39,6 +39,7 @@
     "tool_adoption",
     "security_evidence",
     "boundaries",
+    "profile_structure",
     "findings",
     "agent_fix_queue"
   ],
@@ -110,6 +111,7 @@
     "tool_adoption": { "$ref": "#/$defs/toolAdoptionReadiness" },
     "security_evidence": { "$ref": "#/$defs/securityEvidenceReadiness" },
     "boundaries": { "$ref": "#/$defs/boundariesReadiness" },
+    "profile_structure": { "$ref": "#/$defs/profileStructureReadiness" },
     "vibe_coverage": { "$ref": "#/$defs/vibeCoverageSummary" }
   },
   "$defs": {
@@ -493,6 +495,69 @@
           "type": "array",
           "items": { "$ref": "#/$defs/boundaryReclassification" }
         }
+      },
+      "additionalProperties": false
+    },
+    "profileStructureCell": {
+      "type": "object",
+      "required": [
+        "id",
+        "applicable",
+        "status",
+        "canonical_path",
+        "detected_paths",
+        "aliases",
+        "guidance_status",
+        "owner",
+        "proof_lane",
+        "agent_fix"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "applicable": { "type": "boolean" },
+        "status": {
+          "type": "string",
+          "enum": ["not_applicable", "canonical", "noncanonical"]
+        },
+        "canonical_path": { "type": "string" },
+        "detected_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "guidance_status": {
+          "type": "string",
+          "enum": ["not_required", "present", "missing"]
+        },
+        "owner": { "type": "string" },
+        "proof_lane": { "type": "string" },
+        "agent_fix": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "profileStructureReadiness": {
+      "type": "object",
+      "required": [
+        "applicable_count",
+        "canonical_count",
+        "noncanonical_count",
+        "guidance_missing_count",
+        "cells",
+        "evidence"
+      ],
+      "properties": {
+        "applicable_count": { "type": "integer", "minimum": 0 },
+        "canonical_count": { "type": "integer", "minimum": 0 },
+        "noncanonical_count": { "type": "integer", "minimum": 0 },
+        "guidance_missing_count": { "type": "integer", "minimum": 0 },
+        "cells": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/profileStructureCell" }
+        },
+        "evidence": true
       },
       "additionalProperties": false
     },

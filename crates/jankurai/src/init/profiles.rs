@@ -181,7 +181,10 @@ fn inferred_merge_policy(path: &str) -> MergePolicyAction {
         MergePolicyAction::MergeToml
     } else if path.ends_with(".gitignore") || path.ends_with("Justfile") {
         MergePolicyAction::MergeLines
-    } else if matches!(path, "AGENTS.md" | "agent/JANKURAI_STANDARD.md") {
+    } else if path == "AGENTS.md"
+        || path.ends_with("/AGENTS.md")
+        || path == "agent/JANKURAI_STANDARD.md"
+    {
         MergePolicyAction::MergeMarker
     } else {
         MergePolicyAction::KeepExisting

@@ -111,6 +111,52 @@ pub fn render_markdown(report: &Report) -> String {
         );
     }
     let _ = writeln!(out);
+    let profile = &report.profile_structure;
+    let _ = writeln!(out, "## Reference Profile Structure");
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "- Applicable cells: `{}` canonical=`{}` noncanonical=`{}` guidance missing=`{}`",
+        profile.applicable_count,
+        profile.canonical_count,
+        profile.noncanonical_count,
+        profile.guidance_missing_count
+    );
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "| Cell | Status | Canonical | Detected | Aliases | Guidance | Owner | Proof lane | Agent fix |"
+    );
+    let _ = writeln!(
+        out,
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+    );
+    for cell in &profile.cells {
+        let detected = if cell.detected_paths.is_empty() {
+            "-".into()
+        } else {
+            cell.detected_paths.join(", ")
+        };
+        let aliases = if cell.aliases.is_empty() {
+            "-".into()
+        } else {
+            cell.aliases.join(", ")
+        };
+        let _ = writeln!(
+            out,
+            "| `{}` | `{}` | `{}` | `{}` | `{}` | `{}` | `{}` | `{}` | `{}` |",
+            cell.id,
+            cell.status,
+            cell.canonical_path,
+            detected,
+            aliases,
+            cell.guidance_status,
+            cell.owner,
+            cell.proof_lane,
+            cell.agent_fix
+        );
+    }
+    let _ = writeln!(out);
     let _ = writeln!(out, "## Rendered UX QA");
     let _ = writeln!(out);
     let _ = writeln!(out, "- Web surface: `{}`", report.ux_qa.web_surface);
