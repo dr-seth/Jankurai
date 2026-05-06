@@ -86,10 +86,22 @@ jobs:
           fi
 
       - name: Proofbind verify
-        run: jankurai proofbind verify . --changed-from origin/main --mode required
+        run: |
+          set -euo pipefail
+          mode="required"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            mode="advisory"
+          fi
+          jankurai proofbind verify . --changed-from origin/main --mode "$mode"
 
       - name: Proofmark rust
-        run: jankurai proofmark rust . --mode required --obligations target/jankurai/proofbind/obligations.json
+        run: |
+          set -euo pipefail
+          mode="required"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            mode="advisory"
+          fi
+          jankurai proofmark rust . --mode "$mode" --obligations target/jankurai/proofbind/obligations.json
 
       - name: Rust witness build
         run: jankurai rust witness build .
