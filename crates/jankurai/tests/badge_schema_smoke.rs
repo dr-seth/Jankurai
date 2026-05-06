@@ -50,4 +50,8 @@ fn badge_command_emits_readme_schema_valid_json() {
     validation::validate_value(repo.path(), ArtifactSchema::ReadmeBadge, &badge).unwrap();
     assert_eq!(badge["standard"], "jankurai");
     assert_eq!(badge["score"], 95);
+
+    let badge_svg = fs::read_to_string(repo.path().join("agent/jankurai-badge.svg")).unwrap();
+    assert!(badge_svg.contains(">95/100<"));
+    assert!(!badge_svg.contains("95/100 pass"));
 }

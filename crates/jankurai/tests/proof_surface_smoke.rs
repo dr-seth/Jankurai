@@ -361,7 +361,7 @@ fn prove_continues_with_failures_when_requested() {
     });
     fs::write(&plan_path, serde_json::to_string_pretty(&plan).unwrap()).unwrap();
 
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .arg("prove")
         .arg(repo.path())
         .arg("--plan")
@@ -371,9 +371,9 @@ fn prove_continues_with_failures_when_requested() {
         .arg("--evidence-index")
         .arg(&evidence_index)
         .arg("--continue-on-error")
-        .status()
+        .output()
         .unwrap();
-    assert!(!status.success());
+    assert!(!output.status.success());
 
     let receipts: Vec<_> = fs::read_dir(&receipt_dir).unwrap().collect();
     assert_eq!(receipts.len(), 2);

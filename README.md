@@ -1,3 +1,7 @@
+<!-- jankurai-badge:start -->
+[![Jankurai score: 92/100](agent/jankurai-badge.svg)](agent/jankurai-badge.json)
+<!-- jankurai-badge:end -->
+
 <p align="center">
   <img src="assets/jankurai_github_header_transparent.png" alt="Jankurai: agent-native repository control plane" width="100%">
 </p>
@@ -10,6 +14,7 @@
 Jankurai is an anti-vibe coding standard and local audit CLI for auditable AI-assisted merge. Its public loop is simple: find vibe artifacts, prove the merge, repair the repo.
 
 - Turns ownership maps, proof lanes, generated zones, security boundaries, rolling scores, merge witnesses, and repair queues into files agents and humans can both read.
+- Checks 37 stable HLT rule families and maps 260 vibe-coding failure rows into auditable controls, including release readiness, bad CI/Git/tooling behavior, secret sprawl, generated drift, false-green tests, UX proof gaps, and missing evidence.
 - Starts with read-only reports, then lets teams adopt guidance, CI, hooks, and ratchets only when they choose.
 - Leaves receipts: JSON/Markdown reports, score history, proof artifacts, and command evidence under predictable paths.
 
@@ -142,6 +147,23 @@ Jankurai treats agent behavior as repository policy, not chat convention.
 
 The project does not send repository contents to a hosted Jankurai service. The CLI inspects local files and writes local artifacts. Any external tools you run through your coding agent remain governed by that agent and your environment.
 
+## GitHub Action
+
+You can easily run Jankurai in your CI using the provided GitHub Action:
+
+```yaml
+name: Jankurai Audit
+on: [pull_request, push]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jeppsontaylor/Jankurai@main
+        with:
+          mode: advisory
+```
+
 ## Control-Plane Surfaces
 
 Jankurai works as a local control plane over a few repeatable surfaces:
@@ -211,6 +233,7 @@ The `docs/` directory includes anti-pattern catalogs covering common vibe-coding
 | [BAD_GIT.md](docs/BAD_GIT.md) | Git anti-patterns: force push, broad commits, missing context |
 | [BAD_DOCKER.md](docs/BAD_DOCKER.md) | Docker anti-patterns: root execution, unbounded layers, missing health checks |
 | [BAD_TYPE.md](docs/BAD_TYPE.md) | Type system anti-patterns: handwritten DTOs, missing generated clients |
+| [BAD_release.md](docs/BAD_release.md) | Release anti-patterns: mutable tags/assets, skipped proof, missing provenance, no rollback |
 
 ### Registered Tools
 
@@ -229,10 +252,11 @@ Jankurai's tool adoption catalog ([`agent/tool-adoption.toml`](agent/tool-adopti
 | `rust-witness` | auto | Rust build witness graph |
 | `vibe-coverage` | auto | Vibe-coding coverage analysis |
 | `tui-testing` | advisory | TUI black-box testing via Tuiwright |
+| `release-bad-behavior` | advisory | Release tag, artifact, provenance, and rollback bad-behavior checks |
 
 ## Project Status
 
-Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, TUI testing, publication evidence, and the paper source for *Jankurai: The Anti-Vibe Coding Standard*.
+Jankurai is early but usable as a local Rust CLI and standard workspace. The current source tree includes audit, init, update, proof, repair planning, migration analysis, security evidence, UX QA, TUI testing, publication evidence, and the paper source for *Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests*.
 
 Paper framing:
 
@@ -269,6 +293,7 @@ Known open-source gaps:
 - [Security tool matrix](docs/security-tool-matrix.md)
 - [Audit rubric](docs/audit-rubric.md)
 - [Language bad-behavior catalogs](docs/language-bad-behavior.md)
+- [Release bad-behavior catalog](docs/BAD_release.md)
 - [Migration engine](docs/migration-engine.md)
 - [Mission](docs/mission.md)
 
@@ -304,10 +329,13 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 ## Citation And Paper
 
-This repository is the working source for the paper *Jankurai: The Anti-Vibe Coding Standard*.
+This repository is the working source for the paper *Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests*.
+
+Current release: standard `0.8.0`, schema `1.5.0`, paper edition `2026.05-ed8`.
 
 Public thesis line: *Find the vibe. Prove the merge. Repair the repo.*
 
+- Paper PDF: [paper/jankurai.pdf](paper/jankurai.pdf)
 - Paper source: [paper/jankurai.tex](paper/jankurai.tex)
 - Agent-readable companion: [paper/jankurai.md](paper/jankurai.md)
 - Mission: [docs/mission.md](docs/mission.md)

@@ -1,8 +1,8 @@
 # Jankurai
 
-Title: **Jankurai: The Anti-Vibe Coding Standard**
+Title: **Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests**
 
-Subtitle: **Continuous Repository Alignment for Proof-Carrying AI Pull Requests**
+Subtitle: **Anti-Vibe Coding Standard**
 
 Thesis line: **Find the vibe. Prove the merge. Repair the repo.**
 
@@ -92,12 +92,12 @@ Compact conformance claim:
 
 ## Conformance Evidence
 
-The current seed suite under `conformance/` has 10 fixture directories and 12 expected JSON files. `rtk just conformance` currently validates fixture inventory and expected JSON presence; observed per-fixture witness comparison is future work.
+The current seed suite under `conformance/` has 10 fixture directories, 12 historical expected JSON files, and fixture manifests that drive the observed conformance runner. `just conformance` validates inventory, runs `jankurai conformance run`, emits schema-valid JSON/Markdown/TeX artifacts, and runs focused Rust tests over the observed decision report.
 
 - `hl3-pass-minimal` expects `pass`.
 - Nine fail fixtures expect `block`.
 - Primary rule examples: `HLT-002`, `HLT-003`, `HLT-004`, `HLT-010`, `HLT-012`, `HLT-013`, `HLT-021`, `HLT-022`, `HLT-023`.
-- Validation command: `rtk just conformance`.
+- Validation command: `just conformance`.
 
 ## Public Repository Field Scan
 
@@ -146,6 +146,8 @@ The current seed suite under `conformance/` has 10 fixture directories and 12 ex
 - `HLT-033-PYTHON-BAD-BEHAVIOR`: Python dynamic execution, unsafe deserialization, shell, DB, TLS, or product-truth paths need exception and containment proof.
 - `HLT-034-CI-BAD-BEHAVIOR`: CI privileged trust-boundary violations, mutable actions, secret leaks, and nonblocking security need blocking proof.
 - `HLT-035-GIT-BAD-BEHAVIOR`: Git automation that hides state, stages broadly, bypasses checks, or mutates refs destructively needs explicit receipts.
+- `HLT-036-GITTOOLS-BAD-BEHAVIOR`: Git hook managers and policy tooling cannot normalize bypass, destructive mutation, or broad staging.
+- `HLT-037-RELEASE-BAD-BEHAVIOR`: release automation cannot mutate tags/assets, skip proof, publish mutable latest-only outputs, package secrets, or omit integrity evidence.
 
 ## Metrics
 

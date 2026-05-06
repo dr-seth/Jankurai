@@ -5,6 +5,10 @@
       "command": "just score",
       "purpose": "verify agent instruction routing is visible to the audit"
     },
+    "action.yml": {
+      "command": "cargo test -p jankurai --test action_metadata_smoke",
+      "purpose": "verify the root GitHub composite action metadata and audit command wiring"
+    },
     "agent/MASTER_PLAN.md": {
       "command": "cargo run -p jankurai -- lane . --changed agent/MASTER_PLAN.md --out target/jankurai/master-plan-proof.json --md target/jankurai/master-plan-proof.md",
       "purpose": "verify master plan routing selects the smallest proof lane for agent guidance"
@@ -146,7 +150,7 @@
       "purpose": "verify the audit package compiles and still emits JSON/Markdown"
     },
     "crates/jankurai/tests/language_bad_behavior.rs": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify the language bad-behavior fixtures, catalog docs, and fixed-executable false-positive suppression"
     },
     "crates/jankurai/tests/badge_schema_smoke.rs": {
@@ -158,36 +162,40 @@
       "purpose": "verify the security lane wrapper records required tool failures and exit codes"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify the language bad-behavior fixture corpus and catalog docs"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/sql/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify SQL bad-behavior fixtures"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/typescript/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify TypeScript bad-behavior fixtures"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/docker/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify Docker bad-behavior fixtures"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/python/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify Python bad-behavior fixtures"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/ci/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify CI bad-behavior fixtures"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/git/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify Git bad-behavior fixtures"
     },
     "crates/jankurai/tests/fixtures/language_bad_behavior/gittools/": {
-      "command": "cargo test -p jankurai language_bad_behavior",
+      "command": "cargo test -p jankurai --test language_bad_behavior",
       "purpose": "verify Git tooling bad-behavior fixtures"
+    },
+    "crates/jankurai/tests/fixtures/language_bad_behavior/release/": {
+      "command": "cargo test -p jankurai --test language_bad_behavior",
+      "purpose": "verify release bad-behavior fixtures"
     },
     "crates/jankurai-proofbind/": {
       "command": "cargo test -p jankurai-proofbind",

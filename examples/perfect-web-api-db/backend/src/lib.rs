@@ -12,6 +12,8 @@ pub mod auth_session;
 pub mod background_job;
 pub mod domain;
 pub mod organization_team;
+pub mod webhook_receiver;
+pub mod notification_shell;
 
 pub fn service_name() -> &'static str {
     "perfect-web-api-db"

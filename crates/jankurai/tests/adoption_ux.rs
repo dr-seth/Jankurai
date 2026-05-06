@@ -87,7 +87,7 @@ fn ci_install_observe_dry_run_is_non_blocking_and_preserves_files() {
     assert!(text.contains("jankurai audit . --mode advisory"));
     assert!(text.contains("cargo install jankurai --locked"));
     assert!(!text.contains("Enforce score floor"));
-    assert!(!text.contains("cargo run -p jankurai"));
+    assert!(!text.contains("-ge 85"));
 
     let workflow = dir.path().join(".github/workflows/jankurai.yml");
     fs::create_dir_all(workflow.parent().unwrap()).unwrap();

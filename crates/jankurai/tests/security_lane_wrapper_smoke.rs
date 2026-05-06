@@ -58,7 +58,7 @@ fn required_tool_failure_exits_nonzero_and_records_real_exit_code() {
     .unwrap();
 
     let evidence_path = repo.path().join("target/jankurai/security/evidence.json");
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .current_dir(repo.path())
         .env(
             "PATH",
@@ -77,9 +77,12 @@ fn required_tool_failure_exits_nonzero_and_records_real_exit_code() {
             "--out",
             evidence_path.to_str().unwrap(),
         ])
-        .status()
+        .output()
         .unwrap();
-    assert!(!status.success(), "security run unexpectedly succeeded");
+    assert!(
+        !output.status.success(),
+        "security run unexpectedly succeeded"
+    );
 
     let text = fs::read_to_string(&evidence_path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&text).unwrap();

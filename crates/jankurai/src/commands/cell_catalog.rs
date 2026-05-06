@@ -51,6 +51,8 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
         auth_session_manifest(repo, catalog),
         organization_team_manifest(repo, catalog),
         background_job_manifest(repo, catalog),
+        webhook_receiver_manifest(repo, catalog),
+        notification_shell_manifest(repo, catalog),
     ]
 }
 
@@ -546,6 +548,158 @@ fn background_job_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
     )
 }
 
+fn webhook_receiver_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/webhook_receiver.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/webhook-receiver.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/005_webhook_receipts.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/005_webhook_receipts.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/webhook-receiver-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "webhook-receiver".to_string(),
+            version: "0.1.0".to_string(),
+            category: "integration".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "background-job"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "webhook signatures are verified at the application edge before parsing the payload",
+                "webhook receipts are durably stored to ensure idempotency",
+                "long-running processing is deferred to background-job",
+            ]),
+            observability_events: strings(&[
+                "webhook.received",
+                "webhook.signature_failed",
+                "webhook.processed",
+                "webhook.duplicate",
+                "webhook.failed",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/webhook-receiver-cell.md",
+                "examples/perfect-web-api-db/ops/webhook-receiver-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&[
+                "extend the webhook-receiver.openapi.json before exposing new webhook providers",
+                "add provider-specific signature verification logic inside the edge layer",
+            ]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "reverse webhook receipt table changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
+fn notification_shell_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/notification_shell.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/notification-shell.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/006_notifications.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/006_notifications.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/notification-shell-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "notification-shell".to_string(),
+            version: "0.1.0".to_string(),
+            category: "integration".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "background-job"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "PII is scrubbed from logs before external dispatch",
+                "notification delivery relies on background-job for retries",
+            ]),
+            observability_events: strings(&[
+                "notification.queued",
+                "notification.delivered",
+                "notification.failed",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/notification-shell-cell.md",
+                "examples/perfect-web-api-db/ops/notification-shell-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&["add new delivery methods via adapter implementations"]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "reverse notification table changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
 fn certified_manifest(
     repo: &Path,
     catalog: &RepoCatalog,
@@ -632,6 +786,40 @@ fn certified_manifest(
             },
         });
     }
+    if manifest.cell_id == "webhook-receiver" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/webhook_receiver.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("WebhookSignaturePolicy");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-webhook-signature-policy".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
+    if manifest.cell_id == "notification-shell" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/notification_shell.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("NotificationDeliveryPolicy");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-notification-delivery-policy".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
     manifest.proof_commands = proof_commands(catalog, &manifest.proof_lanes);
     let is_certified = evidence
         .iter()
@@ -657,6 +845,8 @@ fn lazy_built_in_ids() -> Vec<&'static str> {
         "auth-session",
         "organization-team",
         "background-job",
+        "webhook-receiver",
+        "notification-shell",
     ]
 }
 

@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "standard": "jankurai",
+  "standard_version": "0.8.0",
+  "auditor_version": "0.8.0",
+  "source_report": "agent/repo-score.json",
+  "source_badge_fingerprint": "sha256:44892181bde38f45fce8b45e3c606818ac201696a4c1dd1866ea84e7c5facf65",
+  "score": 92,
+  "raw_score": 92,
+  "minimum_score": 85,
+  "decision": "pass",
+  "passed": true,
+  "findings": 0,
+  "hard_findings": 0,
+  "soft_findings": 0,
+  "caps": 0,
+  "conformance_level": "HL3",
+  "badge_svg": "agent/jankurai-badge.svg",
+  "readme": "README.md",
+  "markdown": "<!-- jankurai-badge:start -->\n[![Jankurai score: 92/100](agent/jankurai-badge.svg)](agent/jankurai-badge.json)\n<!-- jankurai-badge:end -->\n"
+}

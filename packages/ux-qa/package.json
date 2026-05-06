@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "playwright test"
+    "test": "env -u NO_COLOR playwright test"
   },
   "peerDependencies": {
     "playwright": ">=1.59.0"

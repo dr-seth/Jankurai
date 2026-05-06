@@ -1,7 +1,7 @@
 use jankurai::audit::{
     self,
     helpers::AuditContext,
-    language_rules::{ci, docker, git, gittools, python, sql, typescript},
+    language_rules::{ci, docker, git, gittools, python, release, sql, typescript},
 };
 use jankurai::model::{FileInfo, Finding};
 use serde_json::Value as JsonValue;
@@ -9,61 +9,6 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
-
-mod audit_packet {
-    pub mod helpers {
-        pub use jankurai::audit::helpers::*;
-    }
-
-    pub mod language_rules {
-        pub mod catalog {
-            pub use jankurai::audit::language_rules::catalog::{
-                ConfidencePolicy, Language, LanguageFinding, LanguageRule, Matcher, ProofWindow,
-            };
-        }
-
-        pub use catalog::LanguageFinding;
-
-        pub mod common {
-            include!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/src/audit/language_rules/common.rs"
-            ));
-        }
-
-        pub mod ci {
-            include!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/src/audit/language_rules/ci.rs"
-            ));
-        }
-
-        pub mod git {
-            include!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/src/audit/language_rules/git.rs"
-            ));
-        }
-
-        pub mod gittools {
-            include!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/src/audit/language_rules/gittools.rs"
-            ));
-        }
-
-        pub mod python {
-            include!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/src/audit/language_rules/python.rs"
-            ));
-        }
-    }
-}
-
-mod model {
-    pub use jankurai::model::*;
-}
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -165,54 +110,6 @@ fn ctx_with_files(files: Vec<FileInfo>) -> AuditContext {
         scope_paths: vec![],
         self_audit: false,
         boundary_reclassifications: vec![],
-    }
-}
-
-fn load_fixture_context(rel: &str) -> AuditContext {
-    let root = fixture_root().join(rel);
-    let mut files = collect_fixture_files(&root, &root);
-    files.sort_by(|a, b| a.rel_path.cmp(&b.rel_path));
-    ctx_with_files(files)
-}
-
-fn collect_fixture_files(root: &Path, base: &Path) -> Vec<FileInfo> {
-    let mut files = Vec::new();
-    collect_fixture_files_inner(root, base, &mut files);
-    files
-}
-
-fn collect_fixture_files_inner(root: &Path, base: &Path, out: &mut Vec<FileInfo>) {
-    let mut entries = Vec::new();
-    for entry in fs::read_dir(root).unwrap() {
-        entries.push(entry.unwrap().path());
-    }
-    entries.sort();
-    for path in entries {
-        if path.is_dir() {
-            collect_fixture_files_inner(&path, base, out);
-            continue;
-        }
-        let text = fs::read_to_string(&path).unwrap();
-        let rel_path = path
-            .strip_prefix(base)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
-        let name = path.file_name().unwrap().to_string_lossy().into_owned();
-        let suffix = path
-            .extension()
-            .map(|ext| format!(".{}", ext.to_string_lossy()))
-            .unwrap_or_default();
-        out.push(FileInfo {
-            rel_path,
-            name,
-            suffix,
-            size: text.len() as u64,
-            line_count: text.lines().count(),
-            text,
-            is_generated: false,
-            is_code: true,
-        });
     }
 }
 
@@ -442,6 +339,7 @@ fn docs_tips_reference_and_generated_paths_stay_out_of_sql_python_scans() {
     assert!(findings_for(repo.path(), "HLT-034-CI-BAD-BEHAVIOR").is_empty());
     assert!(findings_for(repo.path(), "HLT-035-GIT-BAD-BEHAVIOR").is_empty());
     assert!(findings_for(repo.path(), "HLT-036-GITTOOLS-BAD-BEHAVIOR").is_empty());
+    assert!(findings_for(repo.path(), "HLT-037-RELEASE-BAD-BEHAVIOR").is_empty());
 }
 
 #[test]
@@ -463,12 +361,13 @@ fn language_bad_behavior_lane_and_test_map_are_routed() {
         "crates/jankurai/tests/fixtures/language_bad_behavior/ci/",
         "crates/jankurai/tests/fixtures/language_bad_behavior/git/",
         "crates/jankurai/tests/fixtures/language_bad_behavior/gittools/",
+        "crates/jankurai/tests/fixtures/language_bad_behavior/release/",
     ] {
         let entry = entries
             .get(path)
             .unwrap_or_else(|| panic!("missing test-map entry for {path}"));
         assert_eq!(
-            entry["command"], "cargo test -p jankurai language_bad_behavior",
+            entry["command"], "cargo test -p jankurai --test language_bad_behavior",
             "unexpected command for {path}"
         );
     }
@@ -497,6 +396,7 @@ fn language_bad_behavior_lane_and_test_map_are_routed() {
         "HLT-034-CI-BAD-BEHAVIOR",
         "HLT-035-GIT-BAD-BEHAVIOR",
         "HLT-036-GITTOOLS-BAD-BEHAVIOR",
+        "HLT-037-RELEASE-BAD-BEHAVIOR",
     ] {
         assert!(
             rules.iter().any(|value| value.as_str() == Some(rule_id)),
@@ -536,6 +436,7 @@ fn catalog_entries_reference_stable_hlt_rules() {
     let ci_rules = ci::catalog();
     let git_rules = git::catalog();
     let gittools_rules = gittools::catalog();
+    let release_rules = release::catalog();
     let mut ids = HashSet::new();
     for rule in sql_rules
         .iter()
@@ -545,6 +446,7 @@ fn catalog_entries_reference_stable_hlt_rules() {
         .chain(ci_rules.iter())
         .chain(git_rules.iter())
         .chain(gittools_rules.iter())
+        .chain(release_rules.iter())
     {
         ids.insert(rule.hlt_rule_id);
     }
@@ -555,6 +457,7 @@ fn catalog_entries_reference_stable_hlt_rules() {
     assert!(ids.contains("HLT-034-CI-BAD-BEHAVIOR"));
     assert!(ids.contains("HLT-035-GIT-BAD-BEHAVIOR"));
     assert!(ids.contains("HLT-036-GITTOOLS-BAD-BEHAVIOR"));
+    assert!(ids.contains("HLT-037-RELEASE-BAD-BEHAVIOR"));
     assert!(sql_rules
         .iter()
         .all(|rule| rule.hlt_rule_id == "HLT-030-SQL-BAD-BEHAVIOR"));
@@ -576,6 +479,9 @@ fn catalog_entries_reference_stable_hlt_rules() {
     assert!(gittools_rules
         .iter()
         .all(|rule| rule.hlt_rule_id == "HLT-036-GITTOOLS-BAD-BEHAVIOR"));
+    assert!(release_rules
+        .iter()
+        .all(|rule| rule.hlt_rule_id == "HLT-037-RELEASE-BAD-BEHAVIOR"));
 }
 
 #[test]
@@ -729,6 +635,46 @@ fn gittools_fixture_corpus_covers_risky_and_safe_cases() {
         (
             "gittools/safe/.github/workflows/quality.yml",
             &["pre-commit run --all-files"],
+        ),
+    ];
+
+    for (rel, needles) in cases {
+        let text = read_fixture(rel);
+        for needle in *needles {
+            assert!(
+                text.contains(needle),
+                "fixture {rel} missing `{needle}`\n{text}"
+            );
+        }
+    }
+}
+
+#[test]
+fn release_fixture_corpus_covers_risky_and_safe_cases() {
+    let cases: &[(&str, &[&str])] = &[
+        (
+            "release/risky/scripts/release.sh",
+            &[
+                "SKIP_TESTS=1",
+                "git tag -f",
+                "gh release upload",
+                "--clobber",
+                ".env",
+                ":latest",
+                "cargo publish --no-verify",
+            ],
+        ),
+        (
+            "release/safe/scripts/release.sh",
+            &[
+                "git tag -s",
+                "git tag -v",
+                "sha256sum",
+                "sbom.spdx.json",
+                "cosign attest",
+                "gh release create",
+                "--verify-tag",
+            ],
         ),
     ];
 
@@ -1173,6 +1119,100 @@ fn gittools_safe_fixtures_emit_no_hlt036_findings() {
     );
 
     assert!(findings_for(repo.path(), "HLT-036-GITTOOLS-BAD-BEHAVIOR").is_empty());
+}
+
+#[test]
+fn release_risky_fixtures_emit_hlt037_findings() {
+    let repo = tempdir().unwrap();
+    copy_fixture(
+        repo.path(),
+        "release/risky/scripts/release.sh",
+        "scripts/release.sh",
+    );
+
+    let report = audit::run_audit(repo.path(), &[]).unwrap();
+    assert!(
+        report
+            .caps_applied
+            .iter()
+            .any(|cap| cap == "release-bad-behavior"),
+        "{:?}",
+        report.caps_applied
+    );
+    let findings: Vec<_> = report
+        .findings
+        .into_iter()
+        .filter(|finding| finding.rule_id.as_deref() == Some("HLT-037-RELEASE-BAD-BEHAVIOR"))
+        .collect();
+    assert!(
+        findings.len() >= 8,
+        "expected broad release findings: {findings:?}"
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.verification.skipped",
+        "detector=release.verification.skipped",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.git.mutable-tag",
+        "detector=release.git.mutable-tag",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.asset.mutable-upload",
+        "detector=release.asset.mutable-upload",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.artifact.mutable-latest",
+        "detector=release.artifact.mutable-latest",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.secret.packaged",
+        "detector=release.secret.packaged",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.gh.unverified-tag",
+        "detector=release.gh.unverified-tag",
+    );
+    assert_has_finding(
+        &findings,
+        "scripts/release.sh",
+        "release.integrity.missing",
+        "detector=release.integrity.missing",
+    );
+}
+
+#[test]
+fn release_safe_fixtures_emit_no_hlt037_findings() {
+    let repo = tempdir().unwrap();
+    copy_fixture(
+        repo.path(),
+        "release/safe/scripts/release.sh",
+        "scripts/release.sh",
+    );
+
+    assert!(findings_for(repo.path(), "HLT-037-RELEASE-BAD-BEHAVIOR").is_empty());
+}
+
+#[test]
+fn release_summary_reports_hard_and_advisory_counts() {
+    let ctx = ctx_with_files(vec![file_info(
+        "scripts/release.sh",
+        "gh release create v1.2.3 dist/app\n",
+    )]);
+    let summary = release::summary(&ctx);
+    assert!(summary.hard_findings >= 1, "{summary:?}");
+    assert_eq!(summary.advisory_signals, 1, "{summary:?}");
 }
 
 #[test]

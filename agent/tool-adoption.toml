@@ -79,3 +79,7 @@ mode = "advisory"
 [[tools]]
 id = "gittools-bad-behavior"
 mode = "advisory"
+
+[[tools]]
+id = "release-bad-behavior"
+mode = "advisory"

@@ -252,13 +252,17 @@ pub fn api() -> u32 {
 "#,
     );
 
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .arg("rust")
         .arg("diagnose")
         .arg(dir.path())
-        .status()
+        .output()
         .unwrap();
-    assert!(status.success());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     let packets_path = dir.path().join("target/jankurai/rust/compile-packets.json");
     assert!(packets_path.exists());

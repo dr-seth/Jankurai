@@ -4,7 +4,7 @@ Vibe coding is not a mood. It is a fault class: shipping code whose correctness 
 
 Public evidence supports treating vibe coding as a high-risk production pattern rather than a harmless workflow style. Veracode reports that AI-generated samples introduced risky security flaws in 45\% of tests \cite{veracodeGenaiCodeSecurity2025}. GitGuardian reports accelerating hardcoded-secret exposure in public GitHub activity and AI-service leak growth \cite{gitguardianSecretsSprawl2026,gitguardianSecretsSprawl2026Blog}. Stack Overflow's 2025 survey reports that developers' largest AI frustration is output that is almost right but not quite, with time-consuming AI-code debugging close behind \cite{stackOverflowAISurvey2025}. OWASP's LLM Top 10 names prompt injection, sensitive information disclosure, supply-chain risk, improper output handling, and excessive agency as first-order AI application risks \cite{owaspLlmTopTen2025}. SetupBench and ContextBench add the operational failure modes: agents still struggle with environment bootstrap and useful context retrieval \cite{setupBench2025,contextBench2026}.
 
-The v0.7.0 coverage method is mechanical: parse source rows, normalize issue families, map each row to one HLT rule, assign TLR/RPN, mark detector maturity, and emit registry/report artifacts. Every parsed row in the vibe-coding corpus maps to exactly one canonical issue in \texttt{agent/vibe-coverage.toml}. Detector maturity uses four labels: deterministic detectors can be reproduced from repository state; evidence-routed controls require project proof artifacts; governance-backed controls require accepted policy or review receipts; research rows are not yet detector-backed. Appendix~A renders the generated summary: green means detector-backed Jankurai control plus proof/report evidence, yellow means a reviewed control family exists but still needs issue-specific fixture, CI, or governance evidence. The v0.7.0 registry has 0 unmapped rows.
+The v0.8.0 coverage method is mechanical: parse source rows, normalize issue families, map each row to one HLT rule, assign TLR/RPN, mark detector maturity, and emit registry/report artifacts. Every parsed row in the vibe-coding corpus maps to exactly one canonical issue in \texttt{agent/vibe-coverage.toml}. Detector maturity uses four labels: deterministic detectors can be reproduced from repository state; evidence-routed controls require project proof artifacts; governance-backed controls require accepted policy or review receipts; research rows are not yet detector-backed. Appendix~A renders the generated summary: green means detector-backed Jankurai control plus proof/report evidence, yellow means a reviewed control family exists but still needs issue-specific fixture, CI, or governance evidence. The v0.8.0 registry has 0 unmapped rows.
 
 \begin{table*}[t]
 \caption{Ranked vibe-artifact taxonomy. RPN is a Jankurai policy priority, not an empirical frequency claim.}
@@ -35,6 +35,7 @@ Context/setup & 48 & Environment/setup hallucination & HLT-015 / fast & One-comm
 Verification & 48 & Pixel/UI regression & HLT-013 / web & Storybook states, Playwright screenshots, geometry rules, baseline governance, trace artifacts. & evidence-routed \\
 Verification & 48 & Accessibility regression & HLT-014 / web & axe/ARIA checks, keyboard journeys, focus/target geometry, expert review for semantic gaps. & evidence-routed \\
 Verification & 48 & Model, prompt, or eval drift & HLT-008 / ai-eval & Versioned prompts/models, eval baselines, golden datasets, provider-change receipts. & research \\
+Verification & 48 & Release identity or artifact drift & HLT-025 / HLT-037 / release & Version source, changelog, immutable tag, CI-built artifact, checksum/SBOM/provenance, rollback evidence. & deterministic \\
 Repair & 45 & Observability and repair opacity & HLT-017 / observability & Problem details, stable error codes, OpenTelemetry attributes, correlation IDs, repair hints. & evidence-routed \\
 Entropy & 45 & Dead-language normalization & HLT-001 / fast & Banned marker scan, scoped allowlist, owner, expiry, waiver record. & deterministic \\
 Entropy & 40 & Orphan or dead reachable code & HLT-001 / fast & Reachability checks, owner review, deletion receipts, tests proving replacement path. & research \\
@@ -77,17 +78,17 @@ Context/setup & 30 & Documentation or instruction drift & HLT-015 / audit & Cano
 \JKTableHeader
 \textbf{\#} & \textbf{Share} & \textbf{TLR bucket} & \textbf{Included faults} \\
 \midrule
-1 & 32\% & Security & Generated-code flaws, secrets, PII, prompt injection, agency, tool output, supply chain. \\
-2 & 20\% & Business truth & False-green business logic, authorization/data isolation, idempotency. \\
+1 & 31\% & Security & Generated-code flaws, secrets, PII, prompt injection, agency, tool output, supply chain. \\
+2 & 19\% & Business truth & False-green business logic, authorization/data isolation, idempotency. \\
 3 & 13\% & Contracts/data & Contract drift, wrong-layer persistence, destructive migrations, generated mutation. \\
-4 & 13\% & Verification & False-green tests, pixel/UI, accessibility, prompt/model/eval drift. \\
+4 & 16\% & Verification & False-green tests, pixel/UI, accessibility, release identity, prompt/model/eval drift. \\
 5 & 10\% & Entropy & Dead language, orphan code, mega files/functions, performance/concurrency. \\
 6 & 9\% & Context/setup & Context retrieval, setup hallucination, instruction drift. \\
 7 & 3\% & Repair & Observability and repair opacity. \\
 \bottomrule
 \end{tabularx}
 \end{minipage}
-\caption{TLR means Top-Level Risk. Shares are computed directly from Table~\ref{tab:fault-taxonomy}: each row contributes its RPN to one TLR bucket, then bucket totals are rounded to whole percentages. The chart is a Jankurai 0.7.0 policy-priority model, not an incident-frequency measurement.}
+\caption{TLR means Top-Level Risk. Shares are computed from Table~\ref{tab:fault-taxonomy}: each row contributes its RPN to one TLR bucket, then bucket totals are rounded to whole percentages. The chart is a Jankurai 0.8.0 policy-priority model, not an incident-frequency measurement.}
 \label{fig:tlr-pie}
 \end{figure*}
 
@@ -109,6 +110,7 @@ Docker & Running privileged or host-namespace containers, baking secrets into la
 CI & Running untrusted code with privileged tokens, broad workflow permissions, mutable actions, secret-printing debug output, or nonblocking security scans. & \texttt{HLT-034}; \texttt{HLT-020}; security/ci & Pinned actions, minimum permissions, trusted/untrusted job separation, blocking security jobs, artifact provenance, and workflow diff review. \\
 Git & Automating hard resets, broad staging, stash-based hidden state, force pushes, destructive ref edits, or verification bypass. & \texttt{HLT-035}; audit & Explicit path list, clean status receipt, no hidden state, reviewable ref operation, and exact staged-path evidence. \\
 Git tools/hooks/agents & Letting hooks, MCP tools, skills, or coding agents mutate broad repository state without provenance, scope, or receipt. & \texttt{HLT-024}; \texttt{HLT-035}; audit/security & Tool identity, least-privilege permission profile, supply-chain review, changed-path receipt, and rollback/stop conditions. \\
+Release & Mutating release tags or assets, skipping verification, publishing mutable \texttt{latest}-only artifacts, packaging secrets, or publishing without integrity evidence. & \texttt{HLT-025}; \texttt{HLT-037}; release & Version source, changelog, protected tag or commit identity, CI release receipt, checksum/SBOM/provenance/signature evidence, rollback plan. \\
 \bottomrule
 \end{tabularx}
 \end{table*}

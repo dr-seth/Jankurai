@@ -1,8 +1,8 @@
 # Mission: Jankurai
 
-Paper title: "Jankurai: The Anti-Vibe Coding Standard"
+Paper title: "Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests"
 
-Subtitle: "Continuous Repository Alignment for Proof-Carrying AI Pull Requests"
+Subtitle: "Anti-Vibe Coding Standard"
 
 Public thesis line: "Find the vibe. Prove the merge. Repair the repo."
 
@@ -40,11 +40,11 @@ The non-normative profile sections should support the standard, not dominate it.
 
 ## Honest Project Status
 
-The current conformance lane validates seed-suite inventory and expected JSON presence. It has 10 fixture directories and 12 expected JSON files. A per-fixture runner that emits observed witness decisions remains a project gap.
+The current conformance lane validates seed-suite inventory, expected JSON presence, and observed fixture decisions. It has 10 fixture directories, 12 historical expected JSON files, and a runner that emits schema-valid JSON, Markdown, and the generated paper table.
 
 World-class open-source gaps to keep visible:
 
-- deeper conformance runner with observed pass/block comparison
+- broader conformance corpus with independent implementations
 - accessible HTML or tagged PDF edition
 - durable JEP/RFC governance documents
 - independent implementation compatibility path

@@ -3,6 +3,16 @@ use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
 
+fn assert_command_success(command: &mut Command) {
+    let output = command.output().unwrap();
+    assert!(
+        output.status.success(),
+        "command failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
 #[test]
 fn init_dry_run_writes_nothing() {
     let dir = tempdir().unwrap();
@@ -365,33 +375,31 @@ standard_version = "0.0.0"
 
     let json = dir.path().join("score.json");
     let md = dir.path().join("score.md");
-    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
+    assert_command_success(
+        Command::new(env!("CARGO_BIN_EXE_jankurai"))
+            .arg("audit")
+            .arg(dir.path())
+            .arg("--json")
+            .arg(&json)
+            .arg("--md")
+            .arg(&md),
+    );
     assert!(json.exists());
     assert!(md.exists());
 
     let doctor_json = dir.path().join("doctor.json");
     let doctor_md = dir.path().join("doctor.md");
-    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .arg("--json")
-        .arg(&doctor_json)
-        .arg("--md")
-        .arg(&doctor_md)
-        .status()
-        .unwrap()
-        .success());
+    assert_command_success(
+        Command::new(env!("CARGO_BIN_EXE_jankurai"))
+            .arg("doctor")
+            .arg(dir.path())
+            .arg("--fail-on")
+            .arg("high")
+            .arg("--json")
+            .arg(&doctor_json)
+            .arg("--md")
+            .arg(&doctor_md),
+    );
     let doctor_value: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&doctor_json).unwrap()).unwrap();
     let first_diag = doctor_value.as_array().unwrap().first().unwrap();
@@ -404,34 +412,32 @@ standard_version = "0.0.0"
         .contains("# jankurai doctor"));
 
     let issues = dir.path().join("issues.jsonl");
-    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
-        .arg("issues")
-        .arg("export")
-        .arg(dir.path())
-        .arg("--format")
-        .arg("jsonl")
-        .arg("--out")
-        .arg(&issues)
-        .status()
-        .unwrap()
-        .success());
+    assert_command_success(
+        Command::new(env!("CARGO_BIN_EXE_jankurai"))
+            .arg("issues")
+            .arg("export")
+            .arg(dir.path())
+            .arg("--format")
+            .arg("jsonl")
+            .arg("--out")
+            .arg(&issues),
+    );
     assert!(issues.exists());
 
     let ci_dir = tempdir().unwrap();
-    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
-        .arg("ci")
-        .arg("install")
-        .arg(ci_dir.path())
-        .arg("--github")
-        .arg("--mode")
-        .arg("ratchet")
-        .arg("--baseline")
-        .arg("agent/repo-score.json")
-        .arg("--min-score")
-        .arg("85")
-        .status()
-        .unwrap()
-        .success());
+    assert_command_success(
+        Command::new(env!("CARGO_BIN_EXE_jankurai"))
+            .arg("ci")
+            .arg("install")
+            .arg(ci_dir.path())
+            .arg("--github")
+            .arg("--mode")
+            .arg("ratchet")
+            .arg("--baseline")
+            .arg("agent/repo-score.json")
+            .arg("--min-score")
+            .arg("85"),
+    );
     let workflow =
         fs::read_to_string(ci_dir.path().join(".github/workflows/jankurai.yml")).unwrap();
     assert!(workflow.contains("Enforce score floor"));
@@ -439,10 +445,9 @@ standard_version = "0.0.0"
     assert!(workflow.contains("jankurai audit . --mode ratchet"));
     assert!(!workflow.contains("cargo run -p jankurai"));
 
-    assert!(Command::new(env!("CARGO_BIN_EXE_jankurai"))
-        .arg("explain")
-        .arg("HLT-003-OWNERLESS-PATH")
-        .status()
-        .unwrap()
-        .success());
+    assert_command_success(
+        Command::new(env!("CARGO_BIN_EXE_jankurai"))
+            .arg("explain")
+            .arg("HLT-003-OWNERLESS-PATH"),
+    );
 }

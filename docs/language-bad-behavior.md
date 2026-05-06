@@ -2,8 +2,8 @@
 
 This document defines the language-specific bad-behavior audit family.
 The active detector pack covers Rust, SQL, TypeScript, Docker, Python, CI, Git,
-and GitTools so the scanner can grow without changing the report shape or rule
-registry again.
+GitTools, and Release so the scanner can grow without changing the report shape
+or rule registry again.
 
 ## Stable Rule IDs
 
@@ -17,6 +17,7 @@ registry again.
 | `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
 | `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
+| `HLT-037-RELEASE-BAD-BEHAVIOR` | Release automation mutates tags/artifacts, skips proof, ships mutable latest-only outputs, or publishes without integrity evidence |
 
 ## Detector Tiers
 
@@ -45,7 +46,7 @@ These are review signals, not hard findings yet:
 | API honesty | public `repr(C)` without the rest of the contract, `Pin` where the proof is still human-only |
 | Concurrency hints | atomics without an explicit ordering story, generic `unwrap` in non-test code |
 
-### SQL, TypeScript, Docker, Python, CI, Git, GitTools
+### SQL, TypeScript, Docker, Python, CI, Git, GitTools, Release
 
 These modules use deterministic, repository-local detectors and stable rule
 IDs. They are designed to stay narrow, high-confidence, and proof-gated rather
@@ -60,6 +61,7 @@ than broad heuristics over arbitrary text.
 | CI | detector-backed |
 | Git | detector-backed |
 | GitTools | detector-backed |
+| Release | detector-backed |
 
 ## False-Positive Policy
 
@@ -88,7 +90,7 @@ Rust language bad-behavior proof is routed through:
 For detector-focused checks, run:
 
 ```bash
-cargo test -p jankurai language_bad_behavior
+cargo test -p jankurai --test language_bad_behavior
 ```
 
 The detector pack must never rely on runtime reads of `tips/`; the corpus is
@@ -101,7 +103,7 @@ Language findings should carry:
 
 | Field | Meaning |
 | --- | --- |
-| `rule_id` | stable `HLT-029` through `HLT-036` bad-behavior rule IDs |
+| `rule_id` | stable `HLT-029` through `HLT-037` bad-behavior rule IDs |
 | `matched_term` | the specific subrule or detector id |
 | `reason` | why the proof is insufficient |
 | `evidence` | path, line, snippet, detector id, and proof-window result |

@@ -124,6 +124,23 @@ fn hlt025_release_readiness_requires_launch_gate_artifacts() {
         &risky.path().join("docs/release.md"),
         "Public production launch is approved after the demo.\n",
     );
+    write(&risky.path().join("VERSION"), "1.0.0\n");
+    write(
+        &risky.path().join("CHANGELOG.md"),
+        "# Changelog\n\n## 1.0.0\n",
+    );
+    write(
+        &risky.path().join(".github/workflows/release.yml"),
+        "name: release\non: workflow_dispatch\njobs:\n  release:\n    steps:\n      - run: echo release gate\n",
+    );
+    write(
+        &risky.path().join("docs/provenance.md"),
+        "Release artifacts carry sha256 checksum, SBOM, and provenance evidence.\n",
+    );
+    write(
+        &risky.path().join("docs/rollback.md"),
+        "Rollback guidance: restore the previous known-good version if release validation fails.\n",
+    );
     assert_finding(
         risky.path(),
         "HLT-025-RELEASE-READINESS-GAP",
@@ -133,10 +150,56 @@ fn hlt025_release_readiness_requires_launch_gate_artifacts() {
     );
 
     let safe = tempdir().unwrap();
+    write(&safe.path().join("VERSION"), "1.0.0\n");
+    write(
+        &safe.path().join("CHANGELOG.md"),
+        "# Changelog\n\n## 1.0.0\n",
+    );
     write(
         &safe.path().join("docs/release.md"),
-        "Launch gate: backup restore proof, rollback plan, monitoring dashboard, and abuse rate limit receipts are required before production launch.\n",
+        "Release gate: backup restore proof, rollback plan, monitoring dashboard, and abuse rate limit receipts are required before production launch. Artifacts carry sha256 checksum, SBOM, and provenance evidence.\n",
     );
+    write(
+        &safe.path().join(".github/workflows/release.yml"),
+        "name: release\non: workflow_dispatch\njobs:\n  release:\n    steps:\n      - run: echo release gate\n",
+    );
+    assert!(findings_for(safe.path(), "HLT-025-RELEASE-READINESS-GAP").is_empty());
+}
+
+#[test]
+fn hlt025_release_readiness_requires_release_structure() {
+    let risky = tempdir().unwrap();
+    write(
+        &risky.path().join("package.json"),
+        r#"{"name":"ship-me","version":"1.0.0","scripts":{"release":"npm publish"}}"#,
+    );
+
+    assert_finding(
+        risky.path(),
+        "HLT-025-RELEASE-READINESS-GAP",
+        "docs/release.md",
+        "release structure",
+        "release",
+    );
+
+    let safe = tempdir().unwrap();
+    write(
+        &safe.path().join("package.json"),
+        r#"{"name":"ship-me","version":"1.0.0","scripts":{"release":"npm publish"}}"#,
+    );
+    write(
+        &safe.path().join("CHANGELOG.md"),
+        "# Changelog\n\n## 1.0.0\n",
+    );
+    write(
+        &safe.path().join("docs/release.md"),
+        "Release gate: backup restore proof, rollback plan, monitoring dashboard, and abuse rate limit receipts are required before production launch. Artifacts carry sha256 checksum, SBOM, provenance, and attestation evidence.\n",
+    );
+    write(
+        &safe.path().join(".github/workflows/release.yml"),
+        "name: release\non: workflow_dispatch\njobs:\n  release:\n    steps:\n      - run: npm publish\n",
+    );
+
     assert!(findings_for(safe.path(), "HLT-025-RELEASE-READINESS-GAP").is_empty());
 }
 

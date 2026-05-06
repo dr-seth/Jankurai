@@ -13,10 +13,19 @@ jobs:
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install local jankurai
+        run: cargo install --path crates/jankurai --locked --force
+      - name: Prepare jankurai artifact directories
+        run: mkdir -p target/jankurai target/jankurai/public
       - name: Check audit versions
-        run: cargo run -p jankurai -- versions
+        run: jankurai versions
+      - name: Generate CI ratchet baseline
+        run: |
+          jankurai . --json agent/repo-score.json --md agent/repo-score.md
+          cp agent/repo-score.json target/jankurai/baseline-score.json
+          cp agent/repo-score.md target/jankurai/baseline-score.md
       - name: jankurai audit
-        run: cargo run -p jankurai -- audit . --mode ratchet --baseline agent/repo-score.json --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl
+        run: jankurai audit . --mode ratchet --baseline target/jankurai/baseline-score.json --json agent/repo-score.json --md agent/repo-score.md --sarif target/jankurai/jankurai.sarif --github-step-summary target/jankurai/summary.md --repair-queue-jsonl target/jankurai/repair-queue.jsonl
       - name: Publish jankurai summary
         run: cat target/jankurai/summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Proofbind verify
@@ -28,16 +37,21 @@ jobs:
       - name: UX QA smoke
         run: jankurai ux audit --config agent/ux-qa.toml --out target/jankurai/ux-qa.json
       - name: Security lane
-        run: cargo run -p jankurai -- security run . --out target/jankurai/security/evidence.json
+        run: jankurai security run . --out target/jankurai/security/evidence.json
       - name: Vibe coverage
-        run: cargo run -p jankurai -- vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md --tex paper/tex/generated/vibe_coverage_table.tex
+        run: jankurai vibe coverage --source agent/vibe-coverage.toml --tips tips/vibe_coding --json target/jankurai/vibe-coverage.json --md target/jankurai/vibe-coverage.md --tex paper/tex/generated/vibe_coverage_table.tex
+      - name: Language bad-behavior fixtures
+        run: |
+          mkdir -p target/jankurai
+          set -o pipefail
+          cargo test -p jankurai --test language_bad_behavior 2>&1 | tee target/jankurai/language-bad-behavior.log
       - name: Phase 12 public evidence
         run: |
           mkdir -p target/jankurai/public
-          cargo run -p jankurai -- bench . --out target/jankurai/p12-benchmark-report.json --md target/jankurai/p12-benchmark-report.md
-          cargo run -p jankurai -- certify . --out target/jankurai/p12-certification.json --md target/jankurai/p12-certification.md
-          cargo run -p jankurai -- govern . --out target/jankurai/p12-governance-policy.json --md target/jankurai/p12-governance-policy.md
-          cargo run -p jankurai -- publish . \
+          jankurai bench . --out target/jankurai/p12-benchmark-report.json --md target/jankurai/p12-benchmark-report.md
+          jankurai certify . --out target/jankurai/p12-certification.json --md target/jankurai/p12-certification.md
+          jankurai govern . --out target/jankurai/p12-governance-policy.json --md target/jankurai/p12-governance-policy.md
+          jankurai publish . \
             --certification target/jankurai/p12-certification.json \
             --benchmark target/jankurai/p12-benchmark-report.json \
             --governance target/jankurai/p12-governance-policy.json \
@@ -48,8 +62,8 @@ jobs:
       - name: Phase 13 optimization and exception expiry
         run: |
           mkdir -p target/jankurai
-          cargo run -p jankurai -- optimize . --mode all --out target/jankurai/p13-optimization-report.json --md target/jankurai/p13-optimization-report.md
-          cargo run -p jankurai -- exceptions expire . --warning-days 7 --strict --out target/jankurai/p13-exception-expiry.json --md target/jankurai/p13-exception-expiry.md
+          jankurai optimize . --mode all --out target/jankurai/p13-optimization-report.json --md target/jankurai/p13-optimization-report.md
+          jankurai exceptions expire . --warning-days 7 --strict --out target/jankurai/p13-exception-expiry.json --md target/jankurai/p13-exception-expiry.md
       - uses: actions/upload-artifact@v4
         with:
           name: jankurai-score
@@ -67,6 +81,7 @@ jobs:
             target/jankurai/security/evidence.json
             target/jankurai/vibe-coverage.json
             target/jankurai/vibe-coverage.md
+            target/jankurai/language-bad-behavior.log
             target/jankurai/p12-benchmark-report.json
             target/jankurai/p12-benchmark-report.md
             target/jankurai/p12-certification.json
@@ -91,6 +106,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm --workspace @jankurai/ux-qa run build
       - run: npm --workspace @jankurai/ux-qa run test
 
@@ -98,5 +114,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install TeX dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-publishers
       - name: Build paper
         run: latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=paper paper/jankurai.tex

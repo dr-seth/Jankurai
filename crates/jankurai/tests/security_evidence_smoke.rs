@@ -87,7 +87,7 @@ fn security_run_records_non_zero_exit_in_evidence() {
     .unwrap();
 
     let evidence_path = repo.path().join("out/evidence.json");
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .arg("security")
         .arg("run")
         .arg(repo.path())
@@ -95,9 +95,9 @@ fn security_run_records_non_zero_exit_in_evidence() {
         .arg("tools/security-lane.sh")
         .arg("--out")
         .arg(&evidence_path)
-        .status()
+        .output()
         .unwrap();
-    assert!(!status.success(), "expected non-zero process exit");
+    assert!(!output.status.success(), "expected non-zero process exit");
 
     let text = fs::read_to_string(&evidence_path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&text).unwrap();

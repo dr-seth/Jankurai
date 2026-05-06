@@ -101,8 +101,9 @@ Stable rule IDs:
 | `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
 | `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
+| `HLT-037-RELEASE-BAD-BEHAVIOR` | Release automation mutates tags/artifacts, skips proof, ships mutable latest-only outputs, or publishes without integrity evidence |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-036` are detector-backed catalog IDs in the language bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-037` are detector-backed catalog IDs in the language bad-behavior family.
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
 
@@ -125,6 +126,8 @@ These are blocking violations unless an approved, dated exception exists in `doc
 | Direct DB misuse | UI, domain, or exception-only Python writes product truth directly | Move write into Rust application/adapters |
 | Python sprawl | Python appears outside a dated advanced-ML/data exception or owns product behavior | Remove it or migrate the behavior to Rust/TypeScript/PostgreSQL |
 | Security lane | High-risk change skips secret/dependency/static scanning | Add lane and block merge |
+| Release structure | Release-capable project lacks version, changelog, process, automation, integrity, or rollback surface | Add the release control surface before trusting release scores |
+| Release mutation | Release automation mutates tags/assets, skips proof, packages secrets, or omits integrity evidence | Publish a new immutable version from a green commit with artifact evidence |
 | Disabled tests | New skipped/flaky/no-assertion test lands | Fix test or record reviewed quarantine with expiration |
 
 ## 4. Hard LOC Limits

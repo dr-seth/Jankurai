@@ -155,7 +155,7 @@ fn proofbind_required_mode_fails_when_any_obligation_is_missing() {
     )
     .unwrap();
 
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .current_dir(repo.path())
         .arg("proofbind")
         .arg("verify")
@@ -164,10 +164,10 @@ fn proofbind_required_mode_fails_when_any_obligation_is_missing() {
         .arg("src/lib.rs")
         .arg("--mode")
         .arg("required")
-        .status()
+        .output()
         .unwrap();
     assert!(
-        !status.success(),
+        !output.status.success(),
         "required mode should fail when any obligation is unresolved"
     );
 }

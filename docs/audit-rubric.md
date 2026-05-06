@@ -76,6 +76,7 @@ The audit is strict on purpose. It is not a general-purpose repo quality score. 
 | sql-bad-behavior | detector-backed | SQL detector pack with hard and advisory signals |
 | typescript-bad-behavior | detector-backed | TypeScript detector pack with hard and advisory signals |
 | docker-bad-behavior | detector-backed | Docker detector pack with hard and advisory signals |
+| release-bad-behavior | detector-backed | Release detector pack for mutable tags/assets, skipped proof, mutable latest-only artifacts, secret-bearing packages, and missing integrity evidence |
 | python-bad-behavior | detector-backed | Python detector pack with hard and advisory signals |
 | ci-bad-behavior | detector-backed | CI detector pack with hard and advisory signals |
 | git-bad-behavior | detector-backed | Git detector pack with hard and advisory signals |

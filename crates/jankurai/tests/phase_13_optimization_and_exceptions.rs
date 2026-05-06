@@ -277,7 +277,7 @@ fn exception_expire_strict_fails_when_blocked() {
         .path()
         .join("target/jankurai/exception-expiry-strict.json");
     let md_path = out_path.with_extension("md");
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .arg("exceptions")
         .arg("expire")
         .arg(repo.path())
@@ -288,10 +288,10 @@ fn exception_expire_strict_fails_when_blocked() {
         .arg(&out_path)
         .arg("--md")
         .arg(&md_path)
-        .status()
+        .output()
         .unwrap();
     assert!(
-        !status.success(),
+        !output.status.success(),
         "strict mode should exit non-zero when status is blocked"
     );
     let report: serde_json::Value =

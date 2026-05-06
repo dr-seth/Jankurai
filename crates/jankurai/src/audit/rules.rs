@@ -785,6 +785,25 @@ pub const RULES: &[RuleSpec] = &[
         cap_key: Some("gittools-bad-behavior"),
         confidence_policy: ConfidencePolicy::High,
     },
+    RuleSpec {
+        id: "HLT-037-RELEASE-BAD-BEHAVIOR",
+        name: "Release bad behavior",
+        category: "release",
+        tlr: "Verification",
+        lane: "release",
+        docs_url: "docs/BAD_release.md",
+        owner_hint: "ops",
+        evidence_kind: "release-policy",
+        severity: "high",
+        repairable: true,
+        repair_eligibility: RepairEligibility::HumanRequired,
+        repair_risk: RepairRisk::High,
+        repair_reason: "Release bad-behavior findings require reviewed version, tag, artifact, provenance, and rollback evidence before repair",
+        status: RuleStatus::Stable,
+        standard_section: "Language Bad Behavior",
+        cap_key: Some("release-bad-behavior"),
+        confidence_policy: ConfidencePolicy::High,
+    },
 ];
 
 pub fn all() -> &'static [RuleSpec] {

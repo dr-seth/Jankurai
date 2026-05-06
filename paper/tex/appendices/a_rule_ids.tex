@@ -48,6 +48,7 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-034} & CI bad behavior & HL3 & detector-backed & security/ci & deterministic \\
 \texttt{HLT-035} & Git bad behavior & HL3 & detector-backed & audit/security & deterministic \\
 \texttt{HLT-036} & GitTools bad behavior & HL3 & detector-backed & audit/security & deterministic \\
+\texttt{HLT-037} & Release bad behavior & HL5 & detector-backed & release & deterministic \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -80,6 +81,7 @@ Stable rule identifiers make audit output durable enough for repair agents, CI a
 \texttt{HLT-034-CI-BAD-BEHAVIOR} & CI runs untrusted privileged code, leaks secrets, weakens permissions, or makes security nonblocking. & Split trust contexts, pin actions, minimize scopes, and make security proof blocking. \\
 \texttt{HLT-035-GIT-BAD-BEHAVIOR} & Git automation hides state, stages broadly, bypasses checks, or mutates refs destructively. & Use explicit paths, status receipts, reviewed ref operations, and verification-on workflows. \\
 \texttt{HLT-036-GITTOOLS-BAD-BEHAVIOR} & Hook managers or Git tooling normalize bypass, destructive mutation, or broad staging. & Remove routine bypasses and destructive hook behavior; mirror policy in CI or server enforcement. \\
+\texttt{HLT-037-RELEASE-BAD-BEHAVIOR} & Release automation mutates tags or artifacts, skips proof, publishes mutable latest-only outputs, packages secrets, or lacks integrity evidence. & Publish a new immutable version, run proof, attach checksum/SBOM/provenance/signature evidence, and document rollback. \\
 \bottomrule
 \end{tabularx}
 \end{table}

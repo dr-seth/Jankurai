@@ -139,7 +139,7 @@ pub fn run_from_config_after_audit(
 
 pub fn run(args: BadgeArgs) -> Result<()> {
     let input = load_score_input(&args.repo, &args.score)?;
-    let message = format!("{}/100 {}", input.score, input.decision);
+    let message = format!("{}/100", input.score);
     let svg = render_badge_svg(&args.label, &message, &input);
 
     let readme_block = args.readme.as_ref().map(|readme| {
@@ -440,7 +440,7 @@ fn count_hard_findings(value: &Value) -> usize {
 }
 
 fn render_readme_block(image_path: &str, link_path: &str, input: &ScoreInput) -> String {
-    let alt = format!("Jankurai score: {}/100 ({})", input.score, input.decision);
+    let alt = format!("Jankurai score: {}/100", input.score);
     format!("{START_MARKER}\n[![{alt}]({image_path})]({link_path})\n{END_MARKER}\n")
 }
 
@@ -500,15 +500,6 @@ fn text_width(text: &str, minimum: usize) -> usize {
 }
 
 fn badge_color(input: &ScoreInput) -> &'static str {
-    if input.decision == "fail" {
-        return "#e05d44";
-    }
-    if input.decision == "advisory" {
-        if input.score >= input.minimum_score.unwrap_or(85) {
-            return "#dfb317";
-        }
-        return "#fe7d37";
-    }
     match input.score {
         90..=100 => "#4c1",
         85..=89 => "#97ca00",
@@ -732,6 +723,25 @@ fn write_if_changed(path: &Path, content: &[u8]) -> Result<bool> {
 mod tests {
     use super::*;
 
+    fn score_input(score: i32) -> ScoreInput {
+        ScoreInput {
+            source_report: String::new(),
+            source_badge_fingerprint: String::new(),
+            standard_version: None,
+            auditor_version: None,
+            score,
+            raw_score: None,
+            minimum_score: None,
+            decision: "pass".to_string(),
+            passed: true,
+            findings: 0,
+            hard_findings: 0,
+            soft_findings: 0,
+            caps: 0,
+            conformance_level: None,
+        }
+    }
+
     #[test]
     fn relative_paths_work_from_nested_readme() {
         assert_eq!(
@@ -759,43 +769,34 @@ mod tests {
 
     #[test]
     fn badge_color_fail_is_red() {
-        let input = ScoreInput {
-            source_report: String::new(),
-            source_badge_fingerprint: String::new(),
-            standard_version: None,
-            auditor_version: None,
-            score: 95,
-            raw_score: None,
-            minimum_score: None,
-            decision: "fail".to_string(),
-            passed: false,
-            findings: 0,
-            hard_findings: 1,
-            soft_findings: 0,
-            caps: 0,
-            conformance_level: None,
-        };
+        let mut input = score_input(49);
+        input.decision = "fail".to_string();
+        input.passed = false;
+        input.hard_findings = 1;
         assert_eq!(badge_color(&input), "#e05d44");
     }
 
     #[test]
+    fn badge_color_covers_every_integer_score() {
+        for score in 90..=100 {
+            assert_eq!(badge_color(&score_input(score)), "#4c1", "score {score}");
+        }
+        for score in 85..=89 {
+            assert_eq!(badge_color(&score_input(score)), "#97ca00", "score {score}");
+        }
+        for score in 70..=84 {
+            assert_eq!(badge_color(&score_input(score)), "#dfb317", "score {score}");
+        }
+        for score in 50..=69 {
+            assert_eq!(badge_color(&score_input(score)), "#fe7d37", "score {score}");
+        }
+        for score in 0..=49 {
+            assert_eq!(badge_color(&score_input(score)), "#e05d44", "score {score}");
+        }
+    }
+
+    #[test]
     fn badge_color_high_pass_is_brightgreen() {
-        let input = ScoreInput {
-            source_report: String::new(),
-            source_badge_fingerprint: String::new(),
-            standard_version: None,
-            auditor_version: None,
-            score: 95,
-            raw_score: None,
-            minimum_score: None,
-            decision: "pass".to_string(),
-            passed: true,
-            findings: 0,
-            hard_findings: 0,
-            soft_findings: 0,
-            caps: 0,
-            conformance_level: None,
-        };
-        assert_eq!(badge_color(&input), "#4c1");
+        assert_eq!(badge_color(&score_input(95)), "#4c1");
     }
 }

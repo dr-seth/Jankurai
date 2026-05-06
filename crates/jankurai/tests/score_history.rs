@@ -448,7 +448,7 @@ fn malformed_local_jsonl_returns_line_numbered_error() {
 }
 
 #[test]
-fn mirror_sink_receives_rows_and_missing_mirror_is_warning_only() {
+fn mirror_sink_receives_rows_and_missing_mirror_is_advisory_only() {
     let repo = init_repo();
     let report = run_audit(repo.path(), &[]).unwrap();
     let history = repo.path().join("target/jankurai/history.jsonl");

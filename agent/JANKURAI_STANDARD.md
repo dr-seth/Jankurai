@@ -73,6 +73,11 @@ Operational surfaces:
 - CLI surface: `cargo run -p jankurai -- --help` and
   `crates/jankurai/src/main.rs`; implementation modules live under
   `crates/jankurai/src/commands/`.
+- Installed release binary: before trusting release scores, badge state, or CI
+  parity, refresh the repo-local binary with
+  `cargo install --path crates/jankurai --locked --force`, then verify
+  `which jankurai`, `jankurai --version`, `jankurai versions`, and
+  `jankurai badge --link agent/jankurai-badge.json --update-readme --check`.
 - Canonical recipes: `Justfile`; prefer `just fast`, `just score`,
   `just conformance`, `just paper`, and `just check` over ad hoc command
   guesses.
@@ -83,7 +88,20 @@ Operational surfaces:
   by `just conformance`, not hand-edited.
 - Paper layout: canonical release source is `paper/jankurai.tex` plus
   `paper/tex/`; generated paper tables live under `paper/tex/generated/`.
-  Companion Markdown is context, not the TeX generator source.
+  Companion Markdown is context, not the TeX generator source. Preserve the
+  title-page image offset in `\JankuraiPlacedHeader`; the subtitle should not
+  repeat the Jankurai name because the image already carries it.
+- Badge and paper publication: README badge state is generated from
+  `agent/badge.toml`, `agent/repo-score.json`, and the installed `jankurai`
+  binary. The README citation block must link to `paper/jankurai.pdf`. Public
+  repository scan tables generated from the May 5, 2026 data remain historical
+  `0.7.0` evidence unless the scan is actually rerun with `0.8.0`.
+- Release governance: coding projects need a release control surface before
+  release or publish claims are credible. At minimum, keep a version source,
+  changelog, release process doc, release automation or command policy,
+  checksum/provenance/SBOM evidence policy, and rollback guidance. Dangerous
+  release automation routes through `HLT-037-RELEASE-BAD-BEHAVIOR` and the
+  `language-bad-behavior` lane.
 - Receipts: write volatile proof artifacts under `target/jankurai/`; append
   durable phase receipts under `tips/phases/logs/` only when the active plan
   requires it.
@@ -129,6 +147,8 @@ Stop or fix first when any condition is true:
 - secret-like values, prompt transcripts, MCP config, fixtures, or logs expose credentials or customer data
 - trusted agent/tool policy contains prompt-injection, bypass, or overbroad permission language
 - destructive migration lacks rollback, backfill, lock, and DB proof evidence (`HLT-021-DESTRUCTIVE-MIGRATION` when destructive SQL is present without documented safety markers documented in `docs/testing.md`)
+- release-capable project lacks version source, changelog, release process doc, release automation or command policy, checksum/provenance/SBOM policy, and rollback guidance
+- release automation mutates tags or assets, skips proof, publishes mutable alias-only outputs, packages secret-bearing files, or omits artifact integrity evidence
 - tests are skipped/focused/tautological/snapshot-only for changed behavior
 - agent tool permissions are broader than the requested lane
 - user-facing UI changes lack artifact-backed rendered UX proof on critical surfaces
@@ -173,8 +193,9 @@ Stop or fix first when any condition is true:
 | `HLT-034-CI-BAD-BEHAVIOR` | CI workflows hide unsafe, unpinned, or nonblocking security and proof behavior |
 | `HLT-035-GIT-BAD-BEHAVIOR` | Git automation or hooks use destructive, hidden-state, or unreviewed mutation behavior |
 | `HLT-036-GITTOOLS-BAD-BEHAVIOR` | Git hook managers or policy tooling normalize bypass, destructive mutation, or broad staging |
+| `HLT-037-RELEASE-BAD-BEHAVIOR` | Release automation mutates tags/artifacts, skips proof, ships mutable latest-only outputs, or publishes without integrity evidence |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-036` are detector-backed catalog IDs in the language bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-037` are detector-backed catalog IDs in the language bad-behavior family.
 
 ## Ownership Boundaries
 

@@ -1,11 +1,44 @@
 use jankurai::commands::init;
 use jankurai::init::profiles::BUNDLED_PROFILE_IDS;
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 use tempfile::tempdir;
 
 fn binary_path() -> &'static str {
     env!("CARGO_BIN_EXE_jankurai")
+}
+
+fn assert_command_success(command: &mut Command) {
+    let output = command.output().unwrap();
+    assert!(
+        output.status.success(),
+        "command failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn assert_audit_and_doctor(repo: &Path) {
+    let json = repo.join("agent/repo-score.json");
+    let md = repo.join("agent/repo-score.md");
+    assert_command_success(
+        Command::new(binary_path())
+            .arg("audit")
+            .arg(repo)
+            .arg("--json")
+            .arg(&json)
+            .arg("--md")
+            .arg(&md),
+    );
+
+    assert_command_success(
+        Command::new(binary_path())
+            .arg("doctor")
+            .arg(repo)
+            .arg("--fail-on")
+            .arg("high"),
+    );
 }
 
 fn dry_run_plan_args(
@@ -53,12 +86,18 @@ fn greenfield_apply_args(repo: std::path::PathBuf, profile: &str) -> init::InitA
 }
 
 fn git(repo: &std::path::Path, args: &[&str]) {
-    let status = Command::new("git")
+    let output = Command::new("git")
         .args(args)
         .current_dir(repo)
-        .status()
+        .output()
         .unwrap();
-    assert!(status.success(), "git {:?} failed", args);
+    assert!(
+        output.status.success(),
+        "git {:?} failed\nstdout:\n{}\nstderr:\n{}",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 fn git_stdout(repo: &std::path::Path, args: &[&str]) -> String {
@@ -375,14 +414,13 @@ fn hooks_install_dry_run_writes_nothing() {
     let dir = tempdir().unwrap();
     init_git_repo(dir.path());
 
-    let status = Command::new(binary_path())
-        .arg("hooks")
-        .arg("install")
-        .arg(dir.path())
-        .arg("--dry-run")
-        .status()
-        .unwrap();
-    assert!(status.success());
+    assert_command_success(
+        Command::new(binary_path())
+            .arg("hooks")
+            .arg("install")
+            .arg(dir.path())
+            .arg("--dry-run"),
+    );
     assert!(!dir.path().join(".git/jankurai/env").exists());
     assert!(!dir.path().join(".git/hooks/pre-commit").exists());
     assert!(!dir.path().join(".git/hooks/prepare-commit-msg").exists());
@@ -393,14 +431,13 @@ fn hooks_install_yes_installs_local_hooks() {
     let dir = tempdir().unwrap();
     init_git_repo(dir.path());
 
-    let status = Command::new(binary_path())
-        .arg("hooks")
-        .arg("install")
-        .arg(dir.path())
-        .arg("--yes")
-        .status()
-        .unwrap();
-    assert!(status.success());
+    assert_command_success(
+        Command::new(binary_path())
+            .arg("hooks")
+            .arg("install")
+            .arg(dir.path())
+            .arg("--yes"),
+    );
 
     let pre_commit = dir.path().join(".git/hooks/pre-commit");
     let prepare = dir.path().join(".git/hooks/prepare-commit-msg");
@@ -432,14 +469,13 @@ fn hooks_install_backs_up_and_chains_existing_hooks() {
     let hook_path = dir.path().join(".git/hooks/pre-commit");
     fs::write(&hook_path, "#!/usr/bin/env bash\necho user hook\n").unwrap();
 
-    let status = Command::new(binary_path())
-        .arg("hooks")
-        .arg("install")
-        .arg(dir.path())
-        .arg("--yes")
-        .status()
-        .unwrap();
-    assert!(status.success());
+    assert_command_success(
+        Command::new(binary_path())
+            .arg("hooks")
+            .arg("install")
+            .arg(dir.path())
+            .arg("--yes"),
+    );
 
     let env = fs::read_to_string(dir.path().join(".git/jankurai/env")).unwrap();
     assert!(env.contains("JANKURAI_PRE_COMMIT_CHAIN="), "{env}");
@@ -467,7 +503,7 @@ edition = "2021"
     )
     .unwrap();
 
-    let status = Command::new(binary_path())
+    let output = Command::new(binary_path())
         .arg("init")
         .arg(dir.path())
         .arg("--profile")
@@ -476,9 +512,14 @@ edition = "2021"
         .arg("--yes")
         .arg("--bootstrap-message")
         .arg("Adopt test Jankurai")
-        .status()
+        .output()
         .unwrap();
-    assert!(status.success());
+    assert!(
+        output.status.success(),
+        "init bootstrap failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 
     assert!(dir.path().join(".git/hooks/pre-commit").is_file());
     assert!(dir.path().join(".git/hooks/prepare-commit-msg").is_file());
@@ -619,27 +660,7 @@ fn init_greenfield_apply_then_audit_and_doctor() {
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("db/README.md").exists());
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]
@@ -692,27 +713,7 @@ fn init_greenfield_apply_rust_api_then_audit_and_doctor() {
         "rust-api does not include UX QA"
     );
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]
@@ -729,27 +730,7 @@ fn init_greenfield_apply_react_web_then_audit_and_doctor() {
         "react-web does not include DB path"
     );
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]
@@ -770,27 +751,7 @@ fn init_greenfield_apply_b2b_saas_then_audit_and_doctor() {
         "b2b-saas includes orgs docs"
     );
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]
@@ -811,27 +772,7 @@ fn init_greenfield_apply_ai_product_then_audit_and_doctor() {
         "ai-product omits web UX controls by default"
     );
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]
@@ -848,27 +789,7 @@ fn init_greenfield_apply_regulated_saas_then_audit_and_doctor() {
     assert!(dir.path().join("agent/tool-adoption.toml").exists());
     assert!(dir.path().join("agent/ux-qa.toml").exists());
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]
@@ -887,27 +808,7 @@ fn init_greenfield_apply_migration_target_then_audit_and_doctor() {
         "migration-target does not claim database ownership"
     );
 
-    let json = dir.path().join("agent/repo-score.json");
-    let md = dir.path().join("agent/repo-score.md");
-    assert!(Command::new(binary_path())
-        .arg("audit")
-        .arg(dir.path())
-        .arg("--json")
-        .arg(&json)
-        .arg("--md")
-        .arg(&md)
-        .status()
-        .unwrap()
-        .success());
-
-    assert!(Command::new(binary_path())
-        .arg("doctor")
-        .arg(dir.path())
-        .arg("--fail-on")
-        .arg("high")
-        .status()
-        .unwrap()
-        .success());
+    assert_audit_and_doctor(dir.path());
 }
 
 #[test]

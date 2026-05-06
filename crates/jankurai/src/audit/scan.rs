@@ -702,33 +702,170 @@ pub fn agent_tool_supply_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 }
 
 pub fn release_readiness_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    let has_release_claim = ctx.all_files.iter().any(|file| {
-        !file.is_generated
-            && !file.rel_path.starts_with("reference/")
-            && RELEASE_READINESS_PATTERNS
-                .iter()
-                .any(|pattern| file.text.to_ascii_lowercase().contains(pattern))
-    });
-    let has_release_lane = ctx.all_files.iter().any(|file| {
-        let lower = file.text.to_ascii_lowercase();
-        lower.contains("launch gate")
-            && lower.contains("backup")
-            && lower.contains("rollback")
-            && lower.contains("monitoring")
-            && (lower.contains("rate limit") || lower.contains("abuse"))
-    });
-    if has_release_claim && !has_release_lane {
-        vec![FindingHit {
+    if !has_release_surface(ctx) {
+        return vec![];
+    }
+
+    let missing_structure = missing_release_structure(ctx);
+    if !missing_structure.is_empty() {
+        return vec![FindingHit {
+            path: "docs/release.md".into(),
+            line: None,
+            text: format!(
+                "release structure missing: {}",
+                missing_structure.join(", ")
+            ),
+            matched_term: Some("release structure".into()),
+            agent_fix: "add a release control surface with version source, changelog, release process docs, CI or script evidence, integrity/provenance evidence, and rollback guidance".into(),
+            problem: "release management structure is incomplete".into(),
+        }];
+    }
+
+    if !has_release_lane(ctx) {
+        return vec![FindingHit {
             path: "docs/testing.md".into(),
             line: None,
             text: "release language found without full launch-gate evidence".into(),
             matched_term: Some("release readiness".into()),
             agent_fix: "add launch-gate evidence for security, backups, monitoring, rollback, and abuse controls".into(),
             problem: "release readiness is claimed without complete proof artifacts".into(),
-        }]
-    } else {
-        vec![]
+        }];
     }
+
+    vec![]
+}
+
+fn has_release_surface(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        if file.is_generated
+            || file.rel_path.starts_with("reference/")
+            || file.rel_path.starts_with("tips/")
+        {
+            return false;
+        }
+        let lower_path = file.rel_path.to_ascii_lowercase();
+        let lower = file.text.to_ascii_lowercase();
+        matches!(
+            lower_path.as_str(),
+            "cargo.toml" | "package.json" | "pyproject.toml" | "go.mod"
+        ) || lower_path.starts_with(".github/workflows/")
+            || lower_path.contains("release")
+            || lower_path.contains("publish")
+            || lower.contains("gh release")
+            || lower.contains("npm publish")
+            || lower.contains("cargo publish")
+            || lower.contains("docker push")
+            || RELEASE_READINESS_PATTERNS
+                .iter()
+                .any(|pattern| lower.contains(pattern))
+    })
+}
+
+fn missing_release_structure(ctx: &AuditContext) -> Vec<String> {
+    let mut missing = Vec::new();
+    if !has_release_version_source(ctx) {
+        missing.push("version source".into());
+    }
+    if !has_release_changelog(ctx) {
+        missing.push("changelog".into());
+    }
+    if !has_release_process_doc(ctx) {
+        missing.push("release process doc".into());
+    }
+    if !has_release_automation_or_policy(ctx) {
+        missing.push("release automation or command policy".into());
+    }
+    if !has_release_integrity_policy(ctx) {
+        missing.push("checksum/provenance/SBOM evidence policy".into());
+    }
+    if !has_release_rollback_policy(ctx) {
+        missing.push("rollback guidance".into());
+    }
+    missing
+}
+
+fn has_release_version_source(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        let path = file.rel_path.to_ascii_lowercase();
+        let lower = file.text.to_ascii_lowercase();
+        path == "version"
+            || path == "agent/standard-version.toml"
+            || path == "cargo.toml" && lower.contains("version")
+            || path == "package.json" && lower.contains("\"version\"")
+            || path == "pyproject.toml" && lower.contains("version")
+    })
+}
+
+fn has_release_changelog(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        let path = file.rel_path.to_ascii_lowercase();
+        path == "changelog.md"
+            || path == "changes.md"
+            || path == "news.md"
+            || path == "history.md"
+            || path.ends_with("/changelog.md")
+            || path.ends_with("/release-notes.md")
+    })
+}
+
+fn has_release_process_doc(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        let path = file.rel_path.to_ascii_lowercase();
+        path == "release.md"
+            || path == "docs/release.md"
+            || path == "docs/release-plan.md"
+            || path == "docs/bad_release.md"
+            || path.ends_with("/release.md")
+            || path.ends_with("/release-plan.md")
+    })
+}
+
+fn has_release_automation_or_policy(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        let path = file.rel_path.to_ascii_lowercase();
+        let lower = file.text.to_ascii_lowercase();
+        path.starts_with(".github/workflows/")
+            && (lower.contains("release")
+                || lower.contains("publish")
+                || lower.contains("jankurai publish")
+                || lower.contains("cargo publish")
+                || lower.contains("npm publish"))
+            || path.starts_with("scripts/")
+                && (path.contains("release") || path.contains("publish"))
+            || path == "justfile" && (lower.contains("\nrelease:") || lower.contains("\npublish:"))
+            || lower.contains("release gate")
+            || lower.contains("launch gate")
+    })
+}
+
+fn has_release_integrity_policy(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        let lower = file.text.to_ascii_lowercase();
+        lower.contains("sha256")
+            || lower.contains("checksum")
+            || lower.contains("sbom")
+            || lower.contains("provenance")
+            || lower.contains("attestation")
+            || lower.contains("slsa")
+            || lower.contains("cosign")
+    })
+}
+
+fn has_release_rollback_policy(ctx: &AuditContext) -> bool {
+    ctx.all_files
+        .iter()
+        .any(|file| file.text.to_ascii_lowercase().contains("rollback"))
+}
+
+fn has_release_lane(ctx: &AuditContext) -> bool {
+    ctx.all_files.iter().any(|file| {
+        let lower = file.text.to_ascii_lowercase();
+        (lower.contains("launch gate") || lower.contains("release gate"))
+            && lower.contains("backup")
+            && lower.contains("rollback")
+            && lower.contains("monitoring")
+            && (lower.contains("rate limit") || lower.contains("abuse"))
+    })
 }
 
 pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
