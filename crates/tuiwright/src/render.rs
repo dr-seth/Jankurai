@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use font8x8::UnicodeFonts;
+use rusttype::{Font, Scale, point};
 use image::{Rgba, RgbaImage};
 
 use crate::screen::{Rgb, ScreenSnapshot};
@@ -169,10 +169,10 @@ impl TerminalRenderer {
                     rgb_to_rgba(bg_color),
                 );
 
-                // Draw cell text using font8x8
+                // Draw cell text using rusttype and embedded TTF
                 if !cell.text.is_empty() && cell.text != " " {
                     let ch = cell.text.chars().next().unwrap_or(' ');
-                    draw_char_8x8(
+                    draw_char_ttf(
                         &mut img,
                         x,
                         y,
@@ -256,8 +256,10 @@ fn fill_rect(img: &mut RgbaImage, x: u32, y: u32, w: u32, h: u32, color: Rgba<u8
     }
 }
 
-/// Draw a character using the font8x8 bitmap font, scaled to cell size.
-fn draw_char_8x8(
+const FONT_DATA: &[u8] = include_bytes!("../assets/JetBrainsMono-Regular.ttf");
+
+/// Draw a character using rusttype, anti-aliased and scaled.
+fn draw_char_ttf(
     img: &mut RgbaImage,
     x: u32,
     y: u32,
@@ -266,45 +268,51 @@ fn draw_char_8x8(
     ch: char,
     color: Rgba<u8>,
 ) {
-    // Try to get the glyph from font8x8 sets
-    let glyph = font8x8::BASIC_FONTS.get(ch)
-        .or_else(|| font8x8::LATIN_FONTS.get(ch))
-        .or_else(|| font8x8::BLOCK_FONTS.get(ch))
-        .or_else(|| font8x8::BOX_FONTS.get(ch))
-        .or_else(|| font8x8::GREEK_FONTS.get(ch))
-        .or_else(|| font8x8::HIRAGANA_FONTS.get(ch))
-        .map(|g| g.to_vec());
+    let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
+    
+    // Calculate scaling to perfectly fit the monospace cell
+    // Get advance width of 'M' to determine required width stretch
+    let uniform_scale = Scale::uniform(cell_h as f32);
+    let m_metrics = font.glyph('M').scaled(uniform_scale).h_metrics();
+    // Stretch x so that advance_width == cell_w
+    let width_stretch = cell_w as f32 / m_metrics.advance_width;
+    let final_scale = Scale { x: cell_h as f32 * width_stretch, y: cell_h as f32 };
 
-    let glyph = match glyph {
-        Some(g) => g,
-        None => {
-            // Unknown glyph: draw a filled rectangle
-            if let Some(g) = font8x8::BASIC_FONTS.get('?') {
-                g.to_vec()
-            } else {
-                return;
-            }
-        }
-    };
+    let glyph = font.glyph(ch);
+    if glyph.id().0 == 0 {
+        // Unknown glyph, could draw a box but we'll let it be for now
+    }
 
-    // Scale 8x8 glyph to cell size
-    for gy in 0..8u32 {
-        let row_bits = glyph[gy as usize];
-        for gx in 0..8u32 {
-            if row_bits & (1 << gx) != 0 {
-                // Scale this pixel to the cell dimensions
-                let start_x = x + gx * cell_w / 8;
-                let end_x = x + (gx + 1) * cell_w / 8;
-                let start_y = y + gy * cell_h / 8;
-                let end_y = y + (gy + 1) * cell_h / 8;
-                for py in start_y..end_y {
-                    for px in start_x..end_x {
-                        if px < img.width() && py < img.height() {
-                            img.put_pixel(px, py, color);
-                        }
-                    }
+    let scaled = glyph.scaled(final_scale);
+    let v_metrics = font.v_metrics(final_scale);
+    let h_metrics = scaled.h_metrics();
+
+    // Center it within the cell width
+    let offset_x = (cell_w as f32 - h_metrics.advance_width) / 2.0;
+    
+    // Position the glyph. Ascent is the distance from the baseline to the top.
+    let p = point(x as f32 + offset_x, y as f32 + v_metrics.ascent);
+    let positioned = scaled.positioned(p);
+
+    if let Some(bb) = positioned.pixel_bounding_box() {
+        positioned.draw(|gx, gy, v| {
+            let px = bb.min.x + gx as i32;
+            let py = bb.min.y + gy as i32;
+            // Clamp rendering within the cell boundaries to prevent bleed
+            if px >= x as i32 && px < (x + cell_w) as i32 && py >= y as i32 && py < (y + cell_h) as i32 {
+                if px >= 0 && px < img.width() as i32 && py >= 0 && py < img.height() as i32 {
+                    let px = px as u32;
+                    let py = py as u32;
+                    let mut pixel = *img.get_pixel(px, py);
+                    
+                    // Alpha blend
+                    pixel[0] = ((1.0 - v) * pixel[0] as f32 + v * color[0] as f32) as u8;
+                    pixel[1] = ((1.0 - v) * pixel[1] as f32 + v * color[1] as f32) as u8;
+                    pixel[2] = ((1.0 - v) * pixel[2] as f32 + v * color[2] as f32) as u8;
+                    
+                    img.put_pixel(px, py, pixel);
                 }
             }
-        }
+        });
     }
 }
