@@ -82,8 +82,39 @@ pub fn merge_lines(existing: &str, template: &str) -> Result<String> {
     }
     let existing_lines: std::collections::HashSet<&str> =
         existing.lines().map(|s| s.trim()).collect();
+    let mut skip_existing_recipe_block = false;
+    let mut append_new_recipe_block = false;
     for line in template.lines() {
         let trimmed = line.trim();
+        let is_recipe_header = is_recipe_header(line);
+        let is_indented = line.starts_with(' ') || line.starts_with('\t');
+
+        if is_recipe_header {
+            append_new_recipe_block = false;
+            if existing_lines.contains(trimmed) {
+                skip_existing_recipe_block = true;
+                continue;
+            }
+            skip_existing_recipe_block = false;
+            append_new_recipe_block = true;
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+
+        if skip_existing_recipe_block && is_indented {
+            continue;
+        }
+
+        if append_new_recipe_block && is_indented {
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+
+        skip_existing_recipe_block = false;
+        append_new_recipe_block = false;
+
         if trimmed.is_empty() || existing_lines.contains(trimmed) {
             continue;
         }
@@ -91,4 +122,42 @@ pub fn merge_lines(existing: &str, template: &str) -> Result<String> {
         out.push('\n');
     }
     Ok(out)
+}
+
+fn is_recipe_header(line: &str) -> bool {
+    if line.starts_with(' ') || line.starts_with('\t') {
+        return false;
+    }
+    let trimmed = line.trim();
+    !trimmed.is_empty() && !trimmed.starts_with('#') && trimmed.contains(':')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::merge_lines;
+
+    #[test]
+    fn merge_lines_skips_existing_just_recipe_body() {
+        let existing = "fast:\n    cargo check --workspace\n";
+        let template = "# jankurai scaffold Justfile\n\nfast:\n\tjankurai doctor --fail-on critical\n\nscore:\n\tjankurai audit . --mode advisory\n";
+
+        let merged = merge_lines(existing, template).unwrap();
+
+        assert!(merged.contains("fast:\n    cargo check --workspace\n"));
+        assert!(!merged.contains(
+            "fast:\n    cargo check --workspace\n# jankurai scaffold Justfile\njankurai doctor"
+        ));
+        assert!(!merged.contains("jankurai doctor --fail-on critical"));
+        assert!(merged.contains("score:\n\tjankurai audit . --mode advisory\n"));
+    }
+
+    #[test]
+    fn merge_lines_appends_complete_missing_just_recipe_even_if_body_line_exists() {
+        let existing = "fast:\n\tjankurai audit . --mode advisory\n";
+        let template = "score:\n\tjankurai audit . --mode advisory\n";
+
+        let merged = merge_lines(existing, template).unwrap();
+
+        assert!(merged.contains("score:\n\tjankurai audit . --mode advisory\n"));
+    }
 }

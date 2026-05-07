@@ -58,9 +58,7 @@ fn periodic_cron_is_ninth_certified_dependency_bound_cell() {
     assert_eq!(periodic_cron["certification_status"], "certified");
     assert_eq!(periodic_cron["category"], "workflow");
 
-    let evidence = periodic_cron["certification_evidence"]
-        .as_array()
-        .unwrap();
+    let evidence = periodic_cron["certification_evidence"].as_array().unwrap();
     assert!(evidence.iter().any(|item| {
         item["kind"] == "content-marker"
             && item["path"]
