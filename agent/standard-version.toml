@@ -1,11 +1,11 @@
 standard = "jankurai"
 standard_version = "0.8.0"
 paper_edition = "2026.05-ed8"
-auditor_version = "0.8.11"
-schema_version = "1.6.0"
+auditor_version = "0.8.12"
+schema_version = "1.6.1"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 published = "2026-05-06"
-release_tag = "v0.8.11"
+release_tag = "v0.8.12"
 
 [[artifact]]
 id = "paper-source"
@@ -62,7 +62,7 @@ id = "ux-qa-runtime"
 path = "packages/ux-qa"
 kind = "typescript-package"
 version_field = "auditor_version"
-version = "0.8.11"
+version = "0.8.12"
 source = "tips/UX_QA/"
 command = "npm --workspace @jankurai/ux-qa run build && npm --workspace @jankurai/ux-qa run test"
 generated = false

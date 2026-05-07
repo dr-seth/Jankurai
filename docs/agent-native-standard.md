@@ -593,10 +593,14 @@ Required:
 
 - `agent/standard-version.toml` is the canonical manifest.
 - `agent/JANKURAI_STANDARD.md` includes `Standard version`.
+- `jankurai version` is the direct local check for installed CLI diagnostics
+  after install or version bumps.
+- `jankurai versions` is the direct local check for manifest bindings after install or version bumps.
 - CI audit reads the version.
 - Repo pins the standard source URL or vendored commit when available.
 - `docs/decisions/` records adoption decision.
 - Standard upgrades are reviewed like dependency upgrades.
+- `jankurai upgrade` is write-capable; use `jankurai upgrade --score` to run the post-upgrade scoring lane.
 
 Required artifact bindings for this workspace:
 

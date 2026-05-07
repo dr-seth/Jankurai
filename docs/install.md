@@ -8,12 +8,21 @@ source:
 git clone https://github.com/jeppsontaylor/Jankurai.git
 cd Jankurai
 cargo install --path crates/jankurai --locked
-jankurai --version
+jankurai version
+jankurai versions
 ```
 
 Human terminal output uses color and progress bars when attached to a terminal.
 For demos or logs, force rich output with `JANKURAI_COLOR=always` and
 `JANKURAI_PROGRESS=always`.
+
+`jankurai version` prints the installed CLI/version/source diagnostics and the
+recommended upgrade command.
+
+`jankurai versions` checks the source checkout against `VERSION`,
+`crates/jankurai/Cargo.toml`, `packages/ux-qa/package.json`,
+`agent/standard-version.toml`, `docs/agent-native-standard.md`,
+`agent/JANKURAI_STANDARD.md`, and `paper/jankurai.md`.
 
 For any external repo, start with artifacts under `target/jankurai/`:
 
@@ -25,6 +34,12 @@ jankurai adopt /path/to/repo --mode observe \
   --out /path/to/repo/target/jankurai/adoption-plan.json \
   --md /path/to/repo/target/jankurai/adoption-plan.md
 ```
+
+Use `jankurai update --check` for a read-only upgrade plan. `jankurai upgrade`
+is the write-capable refresh path, and `jankurai upgrade --score` runs the
+follow-on scoring lane after the install refresh. `jankurai score` is the main
+scoring command; with no subcommand it runs the audit lane, and `diff` and
+`trend` remain available.
 
 ## Profiles
 

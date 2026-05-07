@@ -28,7 +28,8 @@ Prerequisites: `git` and a Rust toolchain with `cargo` on `PATH`.
 git clone https://github.com/jeppsontaylor/Jankurai.git
 cd Jankurai
 cargo install --path crates/jankurai --locked
-jankurai --version
+jankurai version
+jankurai versions
 ```
 
 For demos or CI logs, force rich terminal output:
@@ -121,10 +122,15 @@ When audit reports an available upgrade, run:
 jankurai upgrade
 ```
 
+`jankurai upgrade` is the write-capable refresh path. Use `jankurai upgrade
+--score` to run the post-upgrade scoring lane after the install refresh. `jankurai
+score` is the main scoring command; with no subcommand it runs the audit lane,
+and `diff` and `trend` remain available.
+
 When run from a Jankurai source checkout, `jankurai upgrade` automatically
 prefers the local `crates/jankurai` package if it is newer than the installed
-binary. This covers the common case where `jankurai --version` is still the old
-installed client after pulling or updating the repository.
+binary. This covers the common case where `jankurai version` still reports the
+older installed client after pulling or updating the repository.
 
 For advanced review-only checks, preview what would change:
 
@@ -172,7 +178,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jeppsontaylor/Jankurai@v0.8.11
+      - uses: jeppsontaylor/Jankurai@v0.8.12
         with:
           mode: advisory
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -412,7 +418,7 @@ Jankurai is licensed under the [MIT License](LICENSE).
 
 This repository is the working source for the paper *Jankurai: Merge Witnesses for Evidence-Carrying AI-Assisted Pull Requests*.
 
-Current release: standard `0.8.0`, auditor/action `0.8.11`, schema `1.6.0`, paper edition `2026.05-ed8`.
+Current release: standard `0.8.0`, auditor/action `0.8.12`, schema `1.6.1`, paper edition `2026.05-ed8`.
 
 Public thesis line: *Find the vibe. Prove the merge. Repair the repo.*
 

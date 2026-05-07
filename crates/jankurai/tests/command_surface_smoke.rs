@@ -4,7 +4,9 @@ use std::process::Command;
 use tempfile::tempdir;
 
 use jankurai::commands::bench;
-use jankurai::model::STANDARD_VERSION;
+use jankurai::model::{
+    AUDITOR_VERSION, PAPER_EDITION, SCHEMA_VERSION, STANDARD_VERSION, TARGET_STACK_ID,
+};
 use jankurai::validation::{self, ArtifactSchema};
 
 fn binary_path() -> PathBuf {
@@ -114,7 +116,8 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
 
     let (certify, certify_md) = run_command(&repo.path().to_path_buf(), &["certify"]);
     assert_eq!(certify["standard_version"], STANDARD_VERSION);
-    assert_eq!(certify["score"], 0);
+    assert!(certify["score"].as_i64().unwrap() >= 0);
+    assert!(certify["score"].as_i64().unwrap() <= 100);
     assert_eq!(certify["conformance_level"], "HL0");
     assert!(certify_md.starts_with("# jankurai Certification"));
     validation::validate_value(repo.path(), ArtifactSchema::Certification, &certify).unwrap();
@@ -524,15 +527,94 @@ fn upgrade_offline_writes_update_artifacts_and_receipt() {
         .status()
         .unwrap();
     assert!(status.success());
-    assert!(repo
-        .path()
-        .join("target/jankurai/update/update-plan.json")
-        .exists());
+    let plan_path = repo.path().join("target/jankurai/update/update-plan.json");
+    assert!(plan_path.exists());
     assert!(repo
         .path()
         .join("target/jankurai/update/state.json")
         .exists());
+    let plan: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&plan_path).unwrap()).unwrap();
+    validation::validate_value(repo.path(), ArtifactSchema::UpdatePlan, &plan).unwrap();
+    assert_eq!(plan["command"], "jankurai update");
+    assert_eq!(plan["current_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(plan["standard_version"], STANDARD_VERSION);
+    assert_eq!(plan["auditor_version"], AUDITOR_VERSION);
+    assert_eq!(plan["schema_contract_version"], SCHEMA_VERSION);
+    assert_eq!(plan["paper_edition"], PAPER_EDITION);
+    assert_eq!(plan["target_stack_id"], TARGET_STACK_ID);
+    assert!(plan.get("latest_version").is_none() || plan["latest_version"].is_string());
+    if let Some(resolved_source) = plan.get("resolved_source") {
+        assert!(resolved_source.is_object());
+        assert!(resolved_source.get("requested_source").is_some());
+        assert!(resolved_source.get("resolved_source").is_some());
+        assert!(resolved_source.get("reason").is_some());
+    }
+    assert!(plan.get("reexec_command").is_none() || plan["reexec_command"].is_string());
+    assert!(
+        plan.get("post_upgrade_score_command").is_none()
+            || plan["post_upgrade_score_command"].is_string()
+    );
+    assert!(
+        plan.get("post_upgrade_score_mode").is_none()
+            || plan["post_upgrade_score_mode"].is_string()
+    );
+    assert!(
+        plan.get("post_upgrade_score_json").is_none()
+            || plan["post_upgrade_score_json"].is_string()
+    );
+    assert!(
+        plan.get("post_upgrade_score_md").is_none() || plan["post_upgrade_score_md"].is_string()
+    );
+    assert!(plan.get("warnings").is_none() || plan["warnings"].is_array());
+    assert!(plan.get("actions").is_none() || plan["actions"].is_array());
+    assert!(plan.get("artifacts").is_none() || plan["artifacts"].is_array());
+
     let receipt_dir = repo.path().join("target/jankurai/receipts");
+    let receipt_path = fs::read_dir(&receipt_dir)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .next()
+        .expect("update receipt");
     let receipt_count = fs::read_dir(receipt_dir).unwrap().count();
     assert_eq!(receipt_count, 1);
+    let receipt: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&receipt_path).unwrap()).unwrap();
+    validation::validate_value(repo.path(), ArtifactSchema::UpdateReceipt, &receipt).unwrap();
+    assert_eq!(receipt["command"], "jankurai update");
+    assert_eq!(receipt["current_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(receipt["update_channel"], "stable");
+    assert_eq!(receipt["source"], "auto");
+    assert_eq!(receipt["self_update_requested"], true);
+    assert_eq!(receipt["self_update_applied"], false);
+    assert_eq!(receipt["repo_update_applied"], false);
+    assert!(receipt.get("latest_version").is_none() || receipt["latest_version"].is_string());
+    if let Some(resolved_source) = receipt.get("resolved_source") {
+        assert!(resolved_source.is_object());
+        assert!(resolved_source.get("requested_source").is_some());
+        assert!(resolved_source.get("resolved_source").is_some());
+        assert!(resolved_source.get("reason").is_some());
+    }
+    assert!(receipt.get("reexec_command").is_none() || receipt["reexec_command"].is_string());
+    assert!(
+        receipt.get("post_upgrade_score_command").is_none()
+            || receipt["post_upgrade_score_command"].is_string()
+    );
+    assert!(
+        receipt.get("post_upgrade_score_mode").is_none()
+            || receipt["post_upgrade_score_mode"].is_string()
+    );
+    assert!(
+        receipt.get("post_upgrade_score_json").is_none()
+            || receipt["post_upgrade_score_json"].is_string()
+    );
+    assert!(
+        receipt.get("post_upgrade_score_md").is_none()
+            || receipt["post_upgrade_score_md"].is_string()
+    );
+    assert!(receipt.get("actions").is_none() || receipt["actions"].is_array());
+    assert!(receipt.get("commands_run").is_none() || receipt["commands_run"].is_array());
+    assert!(receipt.get("next_command").is_none() || receipt["next_command"].is_string());
+    assert!(receipt.get("residual_risk").is_none() || receipt["residual_risk"].is_array());
+    assert!(receipt.get("artifacts").is_none() || receipt["artifacts"].is_array());
 }

@@ -76,7 +76,7 @@ Operational surfaces:
 - Installed release binary: before trusting release scores, badge state, or CI
   parity, refresh the repo-local binary with
   `cargo install --path crates/jankurai --locked --force`, then verify
-  `which jankurai`, `jankurai --version`, `jankurai versions`, and
+  `which jankurai`, `jankurai version`, `jankurai versions`, and
   `jankurai badge --link agent/jankurai-badge.json --update-readme --check`.
 - Canonical recipes: `Justfile`; prefer `just fast`, `just score`,
   `just conformance`, `just paper`, and `just check` over ad hoc command
@@ -302,12 +302,16 @@ to choose the smallest credible proof lane. For audit requests, run
 ## Local Commands
 
 ```bash
+jankurai versions
 just versions
 just fast
 just score
 just paper
 just check
 ```
+
+`jankurai upgrade` is write-capable; use `jankurai upgrade --score` to run the
+post-upgrade scoring lane.
 
 ## v0.5 Daily Merge Loop
 

@@ -45,10 +45,7 @@ enum Commands {
         #[command(subcommand)]
         command: ConformanceCommand,
     },
-    Score {
-        #[command(subcommand)]
-        command: ScoreCommand,
-    },
+    Score(ScoreArgs),
     History {
         #[command(subcommand)]
         command: HistoryCommand,
@@ -85,6 +82,7 @@ enum Commands {
     },
     Repair(RepairArgs),
     Optimize(OptimizeArgs),
+    Version(VersionArgs),
     Rust {
         #[command(subcommand)]
         command: RustCommand,
@@ -205,6 +203,14 @@ enum PaperCommand {
 enum ScoreCommand {
     Diff(ScoreDiffArgs),
     Trend(ScoreTrendArgs),
+}
+
+#[derive(Args, Debug)]
+struct ScoreArgs {
+    #[command(flatten)]
+    audit: AuditArgs,
+    #[command(subcommand)]
+    command: Option<ScoreCommand>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -378,7 +384,7 @@ struct UpdateArgs {
     quiet: bool,
     #[arg(long, default_value = "stable", value_parser = ["stable", "beta", "draft", "lts"])]
     channel: String,
-    #[arg(long, default_value = "auto", value_parser = ["auto", "crates-io", "git", "local"])]
+    #[arg(long, default_value = "auto", value_parser = ["auto", "crates-io", "git", "github", "local"])]
     source: String,
     #[arg(long)]
     offline: bool,
@@ -392,6 +398,22 @@ struct UpdateArgs {
     level: String,
     #[arg(long, default_value = "all")]
     ide: String,
+    #[arg(long)]
+    score: bool,
+    #[arg(long, default_value = "standard", value_parser = ["standard", "advisory"])]
+    score_mode: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/repo-score.json"
+    )]
+    score_json: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/repo-score.md"
+    )]
+    score_md: String,
     #[arg(
         long,
         value_name = "PATH",
@@ -422,7 +444,7 @@ struct UpgradeArgs {
     quiet: bool,
     #[arg(long, default_value = "stable", value_parser = ["stable", "beta", "draft", "lts"])]
     channel: String,
-    #[arg(long, default_value = "auto", value_parser = ["auto", "crates-io", "git", "local"])]
+    #[arg(long, default_value = "auto", value_parser = ["auto", "crates-io", "git", "github", "local"])]
     source: String,
     #[arg(long, default_value = "rust-ts-postgres")]
     profile: String,
@@ -430,6 +452,22 @@ struct UpgradeArgs {
     level: String,
     #[arg(long, default_value = "all")]
     ide: String,
+    #[arg(long)]
+    score: bool,
+    #[arg(long, default_value = "standard", value_parser = ["standard", "advisory"])]
+    score_mode: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/repo-score.json"
+    )]
+    score_json: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/repo-score.md"
+    )]
+    score_md: String,
 }
 
 #[derive(Args, Debug)]
@@ -923,6 +961,12 @@ struct VersionsArgs {
 }
 
 #[derive(Args, Debug)]
+struct VersionArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+}
+
+#[derive(Args, Debug)]
 struct IssuesExportArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -1235,6 +1279,9 @@ fn main() -> anyhow::Result<()> {
         Some(Commands::Versions(args)) => {
             check_versions(&args.repo)?;
         }
+        Some(Commands::Version(args)) => {
+            jankurai::versions::print_version(&args.repo)?;
+        }
         Some(Commands::Audit(args)) => {
             run_audit_and_write(args)?;
         }
@@ -1310,6 +1357,10 @@ fn main() -> anyhow::Result<()> {
                 profile: args.profile,
                 level: args.level,
                 ide: args.ide,
+                score: args.score,
+                score_mode: args.score_mode,
+                score_json: args.score_json,
+                score_md: args.score_md,
                 out: args.out,
                 md: args.md,
                 state: args.state,
@@ -1333,6 +1384,10 @@ fn main() -> anyhow::Result<()> {
                 profile: args.profile,
                 level: args.level,
                 ide: args.ide,
+                score: args.score,
+                score_mode: args.score_mode,
+                score_json: args.score_json,
+                score_md: args.score_md,
                 out: "target/jankurai/update/update-plan.json".into(),
                 md: "target/jankurai/update/update-plan.md".into(),
                 state: "target/jankurai/update/state.json".into(),
@@ -1380,8 +1435,8 @@ fn main() -> anyhow::Result<()> {
                 })?;
             }
         },
-        Some(Commands::Score { command }) => match command {
-            ScoreCommand::Diff(args) => {
+        Some(Commands::Score(args)) => match args.command {
+            Some(ScoreCommand::Diff(args)) => {
                 score::run_diff(score::DiffArgs {
                     base: args.base,
                     head: args.head,
@@ -1389,13 +1444,16 @@ fn main() -> anyhow::Result<()> {
                     md: args.md,
                 })?;
             }
-            ScoreCommand::Trend(args) => {
+            Some(ScoreCommand::Trend(args)) => {
                 score::run_trend(score::TrendArgs {
                     history: args.history,
                     window: args.window,
                     out: args.out,
                     md: args.md,
                 })?;
+            }
+            None => {
+                run_audit_and_write(args.audit)?;
             }
         },
         Some(Commands::History { command }) => match command {

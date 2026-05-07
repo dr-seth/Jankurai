@@ -6,6 +6,14 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ## Unreleased
 
+## 0.8.12 - 2026-05-06
+
+### Changed
+
+- Bumped the auditor/action package release to `0.8.12`; standard compatibility remains `0.8.0` and report schema is `1.6.1`.
+- Updated the release docs and version manifests to reflect `jankurai version`, `jankurai versions`, and `jankurai upgrade --score` behavior.
+- Retagged the GitHub Action reference to `v0.8.12`.
+
 ## 0.8.11 - 2026-05-06
 
 ### Added

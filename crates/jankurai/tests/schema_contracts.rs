@@ -1,6 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
 
+use jankurai::model::{
+    AUDITOR_VERSION, PAPER_EDITION, SCHEMA_VERSION, STANDARD_VERSION, TARGET_STACK_ID,
+};
 use jankurai::validation::{self, ArtifactSchema};
 
 fn repo_root() -> PathBuf {
@@ -1018,7 +1021,7 @@ fn vibe_coverage_schemas_parse_and_source_validates() {
     );
     assert_eq!(
         source_schema["properties"]["schema_version"]["const"],
-        "1.6.0"
+        "1.6.1"
     );
     let issue_required = source_schema["$defs"]["issue"]["required"]
         .as_array()
@@ -1179,6 +1182,192 @@ fn repair_run_examples_validate_across_execution_modes() {
         "command": ["gh", "pr", "create", "--draft"]
     });
     validation::validate_value(&repo, ArtifactSchema::RepairRun, &real_apply_github).unwrap();
+}
+
+#[test]
+fn update_plan_and_receipt_schemas_expose_optional_version_fields() {
+    let repo = repo_root();
+    let update_plan: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/update-plan.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let update_receipt: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/update-receipt.schema.json")).unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        update_plan["$id"],
+        "https://jankurai.dev/schemas/update-plan.schema.json"
+    );
+    assert_eq!(
+        update_receipt["$id"],
+        "https://jankurai.dev/schemas/update-receipt.schema.json"
+    );
+
+    let plan_required = update_plan["required"].as_array().unwrap();
+    assert!(
+        !plan_required.iter().any(|key| key == "latest_version"),
+        "update plan must keep latest_version optional"
+    );
+    for key in ["latest_version", "warnings", "actions", "artifacts"] {
+        assert!(
+            update_plan["properties"].get(key).is_some(),
+            "update plan schema must expose optional `{key}`"
+        );
+    }
+    for key in [
+        "resolved_source",
+        "reexec_command",
+        "post_upgrade_score_command",
+        "post_upgrade_score_mode",
+        "post_upgrade_score_json",
+        "post_upgrade_score_md",
+    ] {
+        assert!(
+            update_plan["properties"].get(key).is_some(),
+            "update plan schema must expose optional `{key}`"
+        );
+    }
+
+    let receipt_required = update_receipt["required"].as_array().unwrap();
+    assert!(
+        !receipt_required.iter().any(|key| key == "latest_version"),
+        "update receipt must keep latest_version optional"
+    );
+    for key in [
+        "latest_version",
+        "actions",
+        "commands_run",
+        "next_command",
+        "residual_risk",
+        "artifacts",
+        "resolved_source",
+        "reexec_command",
+        "post_upgrade_score_command",
+        "post_upgrade_score_mode",
+        "post_upgrade_score_json",
+        "post_upgrade_score_md",
+    ] {
+        assert!(
+            update_receipt["properties"].get(key).is_some(),
+            "update receipt schema must expose optional `{key}`"
+        );
+    }
+
+    let plan = serde_json::json!({
+        "schema_version": "1.0.0",
+        "command": "jankurai update",
+        "status": "outdated",
+        "generated_at": "2026-05-06T00:00:00Z",
+        "repo_root": repo.display().to_string(),
+        "current_version": env!("CARGO_PKG_VERSION"),
+        "latest_version": "0.8.12",
+        "standard_version": STANDARD_VERSION,
+        "auditor_version": AUDITOR_VERSION,
+        "schema_contract_version": SCHEMA_VERSION,
+        "paper_edition": PAPER_EDITION,
+        "target_stack_id": TARGET_STACK_ID,
+        "update_channel": "stable",
+        "source": "auto",
+        "offline": true,
+        "client_start": false,
+        "self_update_requested": true,
+        "self_update_available": true,
+        "install_state": "installed",
+        "install_manifest_path": "agent/jankurai-install.toml",
+        "state_path": "target/jankurai/update/state.json",
+        "plan_path": "target/jankurai/update/update-plan.json",
+        "md_path": "target/jankurai/update/update-plan.md",
+        "resolved_source": {
+            "requested_source": "auto",
+            "resolved_source": "local",
+            "source_url": "https://example.test/jankurai.git",
+            "latest_version": "0.8.12",
+            "install_command": [
+                "cargo",
+                "install",
+                "--path",
+                "crates/jankurai",
+                "--locked",
+                "--force"
+            ],
+            "install_root": ".",
+            "reason": "local checkout is newer"
+        },
+        "reexec_command": "cargo run -p jankurai -- update . --offline",
+        "post_upgrade_score_command": "cargo run -p jankurai -- score . --json agent/repo-score.json --md agent/repo-score.md",
+        "post_upgrade_score_mode": "standard",
+        "post_upgrade_score_json": "agent/repo-score.json",
+        "post_upgrade_score_md": "agent/repo-score.md",
+        "warnings": ["manual review queued"],
+        "actions": [{
+            "path": "agent/jankurai-install.toml",
+            "action": "update",
+            "reason": "refresh version pins",
+            "current_hash": "sha256:current",
+            "desired_hash": "sha256:desired",
+            "merge_policy": "keep-existing"
+        }],
+        "artifacts": [
+            "target/jankurai/update/update-plan.json",
+            "target/jankurai/update/update-plan.md",
+            "target/jankurai/update/state.json"
+        ]
+    });
+    validation::validate_value(&repo, ArtifactSchema::UpdatePlan, &plan).unwrap();
+
+    let receipt = serde_json::json!({
+        "schema_version": "1.1.0",
+        "command": "jankurai update",
+        "created_at": "2026-05-06T00:00:00Z",
+        "repo_root": repo.display().to_string(),
+        "current_version": env!("CARGO_PKG_VERSION"),
+        "latest_version": "0.8.12",
+        "update_channel": "stable",
+        "source": "auto",
+        "self_update_requested": true,
+        "self_update_applied": false,
+        "repo_update_applied": true,
+        "resolved_source": {
+            "requested_source": "auto",
+            "resolved_source": "local",
+            "source_url": "https://example.test/jankurai.git",
+            "latest_version": "0.8.12",
+            "install_command": [
+                "cargo",
+                "install",
+                "--path",
+                "crates/jankurai",
+                "--locked",
+                "--force"
+            ],
+            "install_root": ".",
+            "reason": "local checkout is newer"
+        },
+        "reexec_command": "cargo run -p jankurai -- update . --offline",
+        "post_upgrade_score_command": "cargo run -p jankurai -- score . --json agent/repo-score.json --md agent/repo-score.md",
+        "post_upgrade_score_mode": "standard",
+        "post_upgrade_score_json": "agent/repo-score.json",
+        "post_upgrade_score_md": "agent/repo-score.md",
+        "actions": [{
+            "path": "agent/jankurai-install.toml",
+            "action": "update",
+            "reason": "refresh version pins",
+            "current_hash": "sha256:current",
+            "desired_hash": "sha256:desired",
+            "merge_policy": "keep-existing"
+        }],
+        "commands_run": ["cargo install --path crates/jankurai --locked --force"],
+        "next_command": "cargo install --path crates/jankurai --locked --force",
+        "residual_risk": ["local checkout still needs a follow-up refresh"],
+        "artifacts": [
+            "target/jankurai/update/update-plan.json",
+            "target/jankurai/update/update-plan.md",
+            "target/jankurai/update/state.json"
+        ]
+    });
+    validation::validate_value(&repo, ArtifactSchema::UpdateReceipt, &receipt).unwrap();
 }
 
 #[test]

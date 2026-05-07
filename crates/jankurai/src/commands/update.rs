@@ -14,15 +14,17 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-const UPDATE_SCHEMA_VERSION: &str = "1.0.0";
+const UPDATE_SCHEMA_VERSION: &str = "1.1.0";
 const STATE_SCHEMA_VERSION: &str = "1.0.0";
 const INSTALL_MANIFEST_SCHEMA_VERSION: &str = "1.0.0";
 const CLIENT_START_TTL_SECS: u64 = 60 * 30;
 const AUDIT_NETWORK_TIMEOUT_MS: u64 = 400;
-const DEFAULT_INSTALL_SOURCE: &str = "crates-io";
+const DEFAULT_INSTALL_SOURCE: &str = "github";
+const DEFAULT_SOURCE_URL: &str = "https://github.com/jeppsontaylor/Jankurai.git";
 const DEFAULT_UPDATE_CHANNEL: &str = "stable";
 const MANUAL_UPGRADE_COMMAND: &str = "jankurai upgrade";
 const NO_UPDATE_CHECK_ENV: &str = "JANKURAI_NO_UPDATE_CHECK";
+const UPGRADE_REEXEC_ENV: &str = "JANKURAI_UPGRADE_REEXECED";
 const TEST_LATEST_VERSION_ENV: &str = "JANKURAI_TEST_LATEST_VERSION";
 
 static AUDIT_UPGRADE_NOTICE_EMITTED: AtomicBool = AtomicBool::new(false);
@@ -45,6 +47,10 @@ pub struct UpdateArgs {
     pub profile: String,
     pub level: String,
     pub ide: String,
+    pub score: bool,
+    pub score_mode: String,
+    pub score_json: String,
+    pub score_md: String,
     pub out: String,
     pub md: String,
     pub state: String,
@@ -58,6 +64,21 @@ pub struct UpgradeNotice {
     pub state_status: String,
     pub checked_live: bool,
     pub cache_hit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResolvedSource {
+    pub requested_source: String,
+    pub resolved_source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_command: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_root: Option<String>,
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +104,8 @@ pub struct InstallManifest {
     pub mode: String,
     pub update_channel: String,
     pub install_source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_source: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
     pub agent_request_version: String,
@@ -123,6 +146,8 @@ pub struct UpdatePlan {
     pub target_stack_id: String,
     pub update_channel: String,
     pub source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_source: Option<ResolvedSource>,
     pub offline: bool,
     pub client_start: bool,
     pub self_update_requested: bool,
@@ -132,6 +157,16 @@ pub struct UpdatePlan {
     pub state_path: String,
     pub plan_path: String,
     pub md_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reexec_command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_json: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_md: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub warnings: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -151,9 +186,21 @@ pub struct UpdateReceipt {
     pub latest_version: Option<String>,
     pub update_channel: String,
     pub source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_source: Option<ResolvedSource>,
     pub self_update_requested: bool,
     pub self_update_applied: bool,
     pub repo_update_applied: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reexec_command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_json: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_upgrade_score_md: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actions: Vec<UpdateAction>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -254,72 +301,103 @@ pub fn run(args: UpdateArgs) -> Result<()> {
         return Ok(());
     }
 
-    let mut receipt = UpdateReceipt {
-        schema_version: UPDATE_SCHEMA_VERSION.into(),
-        command: "jankurai update".into(),
-        created_at: now_string(),
-        repo_root: repo.display().to_string(),
-        current_version: plan.current_version.clone(),
-        latest_version: plan.latest_version.clone(),
-        update_channel: plan.update_channel.clone(),
-        source: plan.source.clone(),
-        self_update_requested: args.self_update,
-        self_update_applied: false,
-        repo_update_applied: false,
-        actions: plan.actions.clone(),
-        commands_run: Vec::new(),
-        next_command: None,
-        residual_risk: Vec::new(),
-        artifacts: vec![
-            rel_path(&repo, &plan_path),
-            rel_path(&repo, &md_path),
-            rel_path(&repo, &repo.join(&args.state)),
-        ],
-    };
+    let reexeced = std::env::var(UPGRADE_REEXEC_ENV).as_deref() == Ok("1");
+    let should_self_update = args.self_update
+        && !args.skip_self
+        && !reexeced
+        && plan.self_update_available
+        && plan
+            .resolved_source
+            .as_ref()
+            .and_then(|source| source.install_command.as_ref())
+            .is_some();
 
-    if args.self_update && !args.skip_self {
-        if let Some(latest) = &plan.latest_version {
-            if Version::parse(latest)
-                .ok()
-                .filter(|latest| {
-                    latest
-                        > &Version::parse(&plan.current_version)
-                            .unwrap_or_else(|_| Version::new(0, 0, 0))
-                })
-                .is_some()
-            {
-                let command = build_self_update_command(&repo, &args, &plan)?;
-                receipt.commands_run.push(command.join(" "));
-                let status = Command::new(&command[0])
-                    .args(&command[1..])
-                    .current_dir(&repo)
-                    .status()
-                    .context("run self-update command")?;
-                if !status.success() {
-                    receipt.next_command = Some(
-                        command
-                            .iter()
-                            .map(|s| shell_quote(s))
-                            .collect::<Vec<_>>()
-                            .join(" "),
-                    );
-                    write_receipt(&repo, &receipt)?;
-                    return Err(anyhow::anyhow!(
-                        "self-update command failed with {}",
-                        status
-                    ));
-                }
-                receipt.self_update_applied = true;
-            }
+    if should_self_update {
+        let receipt = build_receipt_stub(&repo, &plan, &args);
+        let install_command = plan
+            .resolved_source
+            .as_ref()
+            .and_then(|source| source.install_command.clone())
+            .unwrap();
+        let install_command_text = shell_join(&install_command);
+        let install_status = Command::new(&install_command[0])
+            .args(&install_command[1..])
+            .current_dir(&repo)
+            .status()
+            .context("run self-update command")?;
+        if !install_status.success() {
+            let mut receipt = receipt;
+            receipt.commands_run.push(install_command_text.clone());
+            receipt.next_command = Some(install_command_text);
+            write_receipt(&repo, &receipt)?;
+            return Err(anyhow::anyhow!(
+                "self-update command failed with {}",
+                install_status
+            ));
         }
+
+        let reexec_command = build_reexec_command(&repo, &args)?;
+        let reexec_command_text = shell_join(&reexec_command);
+        let status = Command::new(&reexec_command[0])
+            .args(&reexec_command[1..])
+            .env(UPGRADE_REEXEC_ENV, "1")
+            .current_dir(&repo)
+            .status()
+            .context("run upgrade reexec command")?;
+        if !status.success() {
+            let mut receipt = receipt;
+            receipt.commands_run.push(install_command_text);
+            receipt.commands_run.push(reexec_command_text.clone());
+            receipt.self_update_applied = true;
+            receipt.reexec_command = Some(reexec_command_text.clone());
+            receipt.next_command = Some(reexec_command_text);
+            write_receipt(&repo, &receipt)?;
+            return Err(anyhow::anyhow!("reexec command failed with {}", status));
+        }
+        return Ok(());
     }
 
+    let mut receipt = build_receipt_stub(&repo, &plan, &args);
+    if reexeced && args.self_update {
+        receipt.self_update_applied = true;
+        if let Some(command) = plan
+            .resolved_source
+            .as_ref()
+            .and_then(|source| source.install_command.as_ref())
+        {
+            receipt.commands_run.push(shell_join(command));
+        }
+        if let Some(command) = receipt.reexec_command.clone() {
+            receipt.commands_run.push(command);
+        }
+    }
     let written = apply_repo_updates(&repo, &args, &plan)?;
     if !written.is_empty() {
         receipt.repo_update_applied = true;
         receipt.actions = written;
     }
     write_install_manifest(&repo, &args, &plan)?;
+
+    if args.score {
+        let score_command = build_score_command(&repo, &args)?;
+        let score_command_text = shell_join(&score_command);
+        receipt.commands_run.push(score_command_text.clone());
+        let status = Command::new(&score_command[0])
+            .args(&score_command[1..])
+            .current_dir(&repo)
+            .status()
+            .context("run post-upgrade score command")?;
+        if !status.success() {
+            receipt.next_command = Some(score_command_text);
+            write_receipt(&repo, &receipt)?;
+            return Err(anyhow::anyhow!(
+                "post-upgrade score command failed with {status}"
+            ));
+        }
+    } else {
+        receipt.next_command = Some(shell_join(&build_score_command(&repo, &args)?));
+    }
+
     receipt.artifacts = vec![
         rel_path(&repo, &plan_path),
         rel_path(&repo, &md_path),
@@ -371,6 +449,7 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
             target_stack_id: TARGET_STACK_ID.into(),
             update_channel: args.channel.clone(),
             source: args.source.clone(),
+            resolved_source: None,
             offline: args.offline,
             client_start: args.client_start,
             self_update_requested: args.self_update,
@@ -380,6 +459,11 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
             state_path: rel_path(repo, &repo.join(&args.state)),
             plan_path: rel_path(repo, &repo.join(&args.out)),
             md_path: rel_path(repo, &repo.join(&args.md)),
+            reexec_command: None,
+            post_upgrade_score_command: Some(shell_join(&build_score_command(repo, args)?)),
+            post_upgrade_score_mode: Some(args.score_mode.clone()),
+            post_upgrade_score_json: Some(args.score_json.clone()),
+            post_upgrade_score_md: Some(args.score_md.clone()),
             warnings: vec!["no jankurai control files found".into()],
             actions: Vec::new(),
             artifacts: vec![
@@ -408,7 +492,8 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
         .unwrap_or(args.level.as_str());
     let cargo_repo = repo.join("Cargo.toml").exists();
     let desired_paths = desired_paths(&profile_manifest, level);
-    let latest_version = resolve_latest_version(repo, args, install_manifest.as_ref())?;
+    let resolved_source = resolve_source_context(repo, args, install_manifest.as_ref())?;
+    let latest_version = resolved_source.latest_version.clone();
     let current_version = current_version();
     let self_update_available = latest_version
         .as_ref()
@@ -442,7 +527,13 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
                 current_hash: current_hash(&install_manifest_path),
                 installed_hash: None,
                 desired_hash: Some(sha256_text(&render_install_manifest_text(
-                    &build_install_manifest(repo, &profile_manifest, args, &latest_version),
+                    &build_install_manifest(
+                        repo,
+                        &profile_manifest,
+                        args,
+                        &latest_version,
+                        Some(&resolved_source),
+                    ),
                 ))),
                 merge_policy: Some("keep-existing".into()),
             });
@@ -524,6 +615,7 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
         target_stack_id: TARGET_STACK_ID.into(),
         update_channel: args.channel.clone(),
         source: args.source.clone(),
+        resolved_source: Some(resolved_source.clone()),
         offline: args.offline,
         client_start: args.client_start,
         self_update_requested: args.self_update,
@@ -533,6 +625,17 @@ fn build_plan(repo: &Path, args: &UpdateArgs) -> Result<UpdatePlan> {
         state_path: rel_path(repo, &repo.join(&args.state)),
         plan_path: rel_path(repo, &repo.join(&args.out)),
         md_path: rel_path(repo, &repo.join(&args.md)),
+        reexec_command: if args.self_update && self_update_available {
+            build_reexec_command(repo, args)
+                .ok()
+                .map(|command| shell_join(&command))
+        } else {
+            None
+        },
+        post_upgrade_score_command: Some(shell_join(&build_score_command(repo, args)?)),
+        post_upgrade_score_mode: Some(args.score_mode.clone()),
+        post_upgrade_score_json: Some(args.score_json.clone()),
+        post_upgrade_score_md: Some(args.score_md.clone()),
         warnings,
         actions,
         artifacts: vec![
@@ -599,7 +702,13 @@ fn apply_repo_updates(
 fn write_install_manifest(repo: &Path, args: &UpdateArgs, plan: &UpdatePlan) -> Result<()> {
     let install_manifest_path = install_manifest_path(repo);
     let profile_manifest = init::profiles::resolve_profile(repo, &args.profile)?;
-    let manifest = build_install_manifest(repo, &profile_manifest, args, &plan.latest_version);
+    let manifest = build_install_manifest(
+        repo,
+        &profile_manifest,
+        args,
+        &plan.latest_version,
+        plan.resolved_source.as_ref(),
+    );
     if let Some(parent) = install_manifest_path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -615,6 +724,7 @@ fn build_install_manifest(
     profile_manifest: &ProfileManifest,
     args: &UpdateArgs,
     latest_version: &Option<String>,
+    resolved_source: Option<&ResolvedSource>,
 ) -> InstallManifest {
     let cargo_repo = repo.join("Cargo.toml").exists();
     let templates = profile_manifest
@@ -649,7 +759,23 @@ fn build_install_manifest(
         mode: "advisory".into(),
         update_channel: args.channel.clone(),
         install_source: args.source.clone(),
-        source_url: latest_version.as_ref().map(|_| String::new()),
+        resolved_source: resolved_source
+            .map(|source| source.resolved_source.clone())
+            .or_else(|| {
+                if args.source == "auto" {
+                    latest_version
+                        .as_ref()
+                        .map(|_| DEFAULT_INSTALL_SOURCE.to_string())
+                } else {
+                    Some(args.source.clone())
+                }
+            }),
+        source_url: resolved_source
+            .and_then(|source| source.source_url.clone())
+            .or_else(|| match args.source.as_str() {
+                "github" | "git" => Some(DEFAULT_SOURCE_URL.into()),
+                _ => None,
+            }),
         agent_request_version: adapters::AGENT_REQUEST_VERSION.into(),
         agent_request_hash: adapters::AGENT_REQUEST_MARKER.into(),
         templates,
@@ -669,45 +795,171 @@ fn load_install_manifest(path: &Path) -> Result<InstallManifest> {
     Ok(manifest)
 }
 
+fn resolve_source_context(
+    repo: &Path,
+    args: &UpdateArgs,
+    install_manifest: Option<&InstallManifest>,
+) -> Result<ResolvedSource> {
+    let selection = select_update_source(repo, args, install_manifest);
+    let latest_version = resolve_latest_version(repo, args, install_manifest, &selection)?;
+    let install_root = cargo_install_root();
+    let install_command = build_install_command(
+        repo,
+        &selection.resolved_source,
+        selection.source_url.as_deref(),
+        latest_version.as_deref(),
+        install_root.as_deref(),
+    )
+    .ok();
+    Ok(ResolvedSource {
+        requested_source: selection.requested_source,
+        resolved_source: selection.resolved_source,
+        source_url: selection.source_url,
+        latest_version,
+        install_command,
+        install_root,
+        reason: selection.reason,
+    })
+}
+
+#[derive(Debug, Clone)]
+struct SourceSelection {
+    requested_source: String,
+    resolved_source: String,
+    source_url: Option<String>,
+    reason: String,
+}
+
+fn select_update_source(
+    repo: &Path,
+    args: &UpdateArgs,
+    install_manifest: Option<&InstallManifest>,
+) -> SourceSelection {
+    if args.source != "auto" {
+        return explicit_source_selection(args.source.as_str(), install_manifest);
+    }
+    if local_checkout_is_newer(repo) {
+        return SourceSelection {
+            requested_source: args.source.clone(),
+            resolved_source: "local".into(),
+            source_url: None,
+            reason: "newer crates/jankurai checkout is available locally".into(),
+        };
+    }
+    if let Some(selection) = manifest_source_selection(install_manifest) {
+        return selection;
+    }
+    SourceSelection {
+        requested_source: args.source.clone(),
+        resolved_source: "github".into(),
+        source_url: Some(DEFAULT_SOURCE_URL.into()),
+        reason: "auto falls back to immutable GitHub release tags".into(),
+    }
+}
+
+fn explicit_source_selection(
+    source: &str,
+    install_manifest: Option<&InstallManifest>,
+) -> SourceSelection {
+    match source {
+        "local" => SourceSelection {
+            requested_source: source.into(),
+            resolved_source: "local".into(),
+            source_url: None,
+            reason: "explicit local source checkout requested".into(),
+        },
+        "github" => SourceSelection {
+            requested_source: source.into(),
+            resolved_source: "github".into(),
+            source_url: Some(DEFAULT_SOURCE_URL.into()),
+            reason: "explicit GitHub release tag source requested".into(),
+        },
+        "git" => SourceSelection {
+            requested_source: source.into(),
+            resolved_source: "git".into(),
+            source_url: source_url_for_source(install_manifest, "git"),
+            reason: "explicit git source requested".into(),
+        },
+        "crates-io" => SourceSelection {
+            requested_source: source.into(),
+            resolved_source: "crates-io".into(),
+            source_url: None,
+            reason: "explicit crates.io source requested".into(),
+        },
+        other => SourceSelection {
+            requested_source: other.into(),
+            resolved_source: other.into(),
+            source_url: source_url_for_source(install_manifest, other),
+            reason: "explicit source requested".into(),
+        },
+    }
+}
+
+fn manifest_source_selection(
+    install_manifest: Option<&InstallManifest>,
+) -> Option<SourceSelection> {
+    let manifest = install_manifest?;
+    let resolved = manifest
+        .resolved_source
+        .as_deref()
+        .unwrap_or(manifest.install_source.as_str());
+    if resolved.is_empty() || resolved == "crates-io" {
+        return None;
+    }
+    Some(SourceSelection {
+        requested_source: "auto".into(),
+        resolved_source: resolved.into(),
+        source_url: manifest
+            .source_url
+            .clone()
+            .filter(|url| !url.trim().is_empty())
+            .or_else(|| source_url_for_source(install_manifest, resolved)),
+        reason: "install manifest source remains authoritative for auto".into(),
+    })
+}
+
+fn source_url_for_source(
+    install_manifest: Option<&InstallManifest>,
+    source: &str,
+) -> Option<String> {
+    match source {
+        "github" | "git" => install_manifest
+            .and_then(|manifest| manifest.source_url.clone())
+            .filter(|url| !url.trim().is_empty())
+            .or_else(|| Some(DEFAULT_SOURCE_URL.into())),
+        _ => None,
+    }
+}
+
 fn resolve_latest_version(
     repo: &Path,
     args: &UpdateArgs,
     install_manifest: Option<&InstallManifest>,
+    selection: &SourceSelection,
 ) -> Result<Option<String>> {
+    if let Ok(version) = std::env::var(TEST_LATEST_VERSION_ENV) {
+        let version = version.trim();
+        if !version.is_empty() {
+            return Ok(Some(version.to_string()));
+        }
+    }
     if args.offline {
         return Ok(None);
     }
-    let source = resolved_update_source(repo, args, install_manifest);
-    match source.as_str() {
+    match selection.resolved_source.as_str() {
         "local" => Ok(read_local_version(repo).ok()),
         "crates-io" => fetch_crates_io_version(),
-        "git" => {
-            let url = install_manifest
-                .and_then(|manifest| manifest.source_url.as_deref())
-                .unwrap_or("");
-            if url.is_empty() {
-                return Ok(None);
-            }
+        "github" | "git" => {
+            let url = selection
+                .source_url
+                .as_deref()
+                .or_else(|| install_manifest.and_then(|manifest| manifest.source_url.as_deref()))
+                .filter(|url| !url.trim().is_empty())
+                .unwrap_or(DEFAULT_SOURCE_URL);
             latest_git_tag(url)
         }
         _ => Ok(None),
     }
-}
-
-fn resolved_update_source(
-    repo: &Path,
-    args: &UpdateArgs,
-    install_manifest: Option<&InstallManifest>,
-) -> String {
-    if args.source != "auto" {
-        return args.source.clone();
-    }
-    if local_checkout_is_newer(repo) {
-        return "local".into();
-    }
-    install_manifest
-        .map(|manifest| manifest.install_source.clone())
-        .unwrap_or_else(|| DEFAULT_INSTALL_SOURCE.into())
 }
 
 fn local_checkout_is_newer(repo: &Path) -> bool {
@@ -842,11 +1094,16 @@ fn desired_body_for_path(
                 profile: profile_manifest.id.clone(),
                 level: level.into(),
                 ide: "all".into(),
+                score: false,
+                score_mode: "standard".into(),
+                score_json: "target/jankurai/repo-score.json".into(),
+                score_md: "target/jankurai/repo-score.md".into(),
                 out: "target/jankurai/update/update-plan.json".into(),
                 md: "target/jankurai/update/update-plan.md".into(),
                 state: "target/jankurai/update/state.json".into(),
             },
             &None,
+            None,
         );
         return Ok(render_install_manifest_text(&manifest));
     }
@@ -1011,6 +1268,10 @@ fn default_audit_update_args(repo: &Path) -> UpdateArgs {
         profile: "rust-ts-postgres".into(),
         level: "full".into(),
         ide: "all".into(),
+        score: false,
+        score_mode: "standard".into(),
+        score_json: "target/jankurai/repo-score.json".into(),
+        score_md: "target/jankurai/repo-score.md".into(),
         out: "target/jankurai/update/update-plan.json".into(),
         md: "target/jankurai/update/update-plan.md".into(),
         state: "target/jankurai/update/state.json".into(),
@@ -1105,57 +1366,180 @@ fn write_update_state_file(path: &Path, state: &UpdateState) -> Result<()> {
     Ok(())
 }
 
-fn build_self_update_command(
+fn build_receipt_stub(repo: &Path, plan: &UpdatePlan, args: &UpdateArgs) -> UpdateReceipt {
+    UpdateReceipt {
+        schema_version: UPDATE_SCHEMA_VERSION.into(),
+        command: "jankurai update".into(),
+        created_at: now_string(),
+        repo_root: repo.display().to_string(),
+        current_version: plan.current_version.clone(),
+        latest_version: plan.latest_version.clone(),
+        update_channel: plan.update_channel.clone(),
+        source: plan.source.clone(),
+        resolved_source: plan.resolved_source.clone(),
+        self_update_requested: args.self_update,
+        self_update_applied: args.self_update
+            && std::env::var(UPGRADE_REEXEC_ENV).as_deref() == Ok("1"),
+        repo_update_applied: false,
+        reexec_command: plan.reexec_command.clone(),
+        post_upgrade_score_command: plan.post_upgrade_score_command.clone(),
+        post_upgrade_score_mode: plan.post_upgrade_score_mode.clone(),
+        post_upgrade_score_json: plan.post_upgrade_score_json.clone(),
+        post_upgrade_score_md: plan.post_upgrade_score_md.clone(),
+        actions: plan.actions.clone(),
+        commands_run: Vec::new(),
+        next_command: None,
+        residual_risk: Vec::new(),
+        artifacts: vec![
+            plan.plan_path.clone(),
+            plan.md_path.clone(),
+            plan.state_path.clone(),
+        ],
+    }
+}
+
+fn build_install_command(
     repo: &Path,
-    args: &UpdateArgs,
-    plan: &UpdatePlan,
+    resolved_source: &str,
+    source_url: Option<&str>,
+    latest_version: Option<&str>,
+    install_root: Option<&str>,
 ) -> Result<Vec<String>> {
-    let mut cmd = Vec::new();
-    let install_manifest = load_install_manifest(&install_manifest_path(repo)).ok();
-    let source = resolved_update_source(repo, args, install_manifest.as_ref());
-    match source.as_str() {
+    let mut cmd = vec!["cargo".into(), "install".into()];
+    match resolved_source {
         "local" => {
-            cmd.push("cargo".into());
-            cmd.push("install".into());
             cmd.push("--path".into());
             cmd.push(repo.join("crates/jankurai").display().to_string());
             cmd.push("--locked".into());
             cmd.push("--force".into());
         }
-        "git" => {
-            let url = load_install_manifest(&install_manifest_path(repo))
-                .ok()
-                .and_then(|manifest| manifest.source_url)
-                .unwrap_or_default();
-            if url.is_empty() {
-                bail!("git source requires install manifest source_url");
-            }
-            cmd.push("cargo".into());
-            cmd.push("install".into());
+        "github" | "git" => {
+            let url = source_url.unwrap_or(DEFAULT_SOURCE_URL);
+            let tag = latest_version
+                .map(|version| format!("v{version}"))
+                .ok_or_else(|| anyhow::anyhow!("git source requires a latest version tag"))?;
             cmd.push("--git".into());
-            cmd.push(url);
+            cmd.push(url.into());
+            cmd.push("--tag".into());
+            cmd.push(tag);
             cmd.push("--package".into());
             cmd.push("jankurai".into());
             cmd.push("--locked".into());
             cmd.push("--force".into());
         }
-        _ => {
-            cmd.push("cargo".into());
-            cmd.push("install".into());
+        "crates-io" => {
             cmd.push("jankurai".into());
             cmd.push("--locked".into());
             cmd.push("--force".into());
         }
+        other => {
+            return Err(anyhow::anyhow!("unsupported install source `{other}`"));
+        }
     }
-    if let Some(root) = cargo_install_root() {
+    if let Some(root) = install_root {
         cmd.push("--root".into());
-        cmd.push(root);
+        cmd.push(root.into());
     }
-    let _ = plan;
     Ok(cmd)
 }
 
-fn cargo_install_root() -> Option<String> {
+#[cfg(test)]
+fn build_self_update_command(
+    repo: &Path,
+    args: &UpdateArgs,
+    plan: &UpdatePlan,
+) -> Result<Vec<String>> {
+    if let Some(source) = plan.resolved_source.as_ref() {
+        if let Some(command) = source.install_command.clone() {
+            return Ok(command);
+        }
+        return build_install_command(
+            repo,
+            &source.resolved_source,
+            source.source_url.as_deref(),
+            source.latest_version.as_deref(),
+            source.install_root.as_deref(),
+        );
+    }
+    let install_manifest = load_install_manifest(&install_manifest_path(repo)).ok();
+    let source_context = resolve_source_context(repo, args, install_manifest.as_ref())?;
+    build_install_command(
+        repo,
+        &source_context.resolved_source,
+        source_context.source_url.as_deref(),
+        source_context.latest_version.as_deref(),
+        source_context.install_root.as_deref(),
+    )
+}
+
+fn build_reexec_command(repo: &Path, args: &UpdateArgs) -> Result<Vec<String>> {
+    let mut cmd = vec![command_executable()?];
+    cmd.push("update".into());
+    cmd.push(repo.display().to_string());
+    if args.apply {
+        cmd.push("--apply".into());
+    }
+    if args.yes {
+        cmd.push("--yes".into());
+    }
+    if args.self_update {
+        cmd.push("--self".into());
+    }
+    cmd.push("--skip-self".into());
+    if args.quiet {
+        cmd.push("--quiet".into());
+    }
+    cmd.push("--channel".into());
+    cmd.push(args.channel.clone());
+    cmd.push("--source".into());
+    cmd.push(args.source.clone());
+    if args.offline {
+        cmd.push("--offline".into());
+    }
+    if args.fail_if_outdated {
+        cmd.push("--fail-if-outdated".into());
+    }
+    if args.install_missing {
+        cmd.push("--install-missing".into());
+    }
+    cmd.push("--profile".into());
+    cmd.push(args.profile.clone());
+    cmd.push("--level".into());
+    cmd.push(args.level.clone());
+    cmd.push("--ide".into());
+    cmd.push(args.ide.clone());
+    if args.score {
+        cmd.push("--score".into());
+        cmd.push("--score-mode".into());
+        cmd.push(args.score_mode.clone());
+        cmd.push("--score-json".into());
+        cmd.push(args.score_json.clone());
+        cmd.push("--score-md".into());
+        cmd.push(args.score_md.clone());
+    }
+    cmd.push("--out".into());
+    cmd.push(args.out.clone());
+    cmd.push("--md".into());
+    cmd.push(args.md.clone());
+    cmd.push("--state".into());
+    cmd.push(args.state.clone());
+    Ok(cmd)
+}
+
+fn build_score_command(repo: &Path, args: &UpdateArgs) -> Result<Vec<String>> {
+    let mut cmd = vec![command_executable()?];
+    cmd.push("score".into());
+    cmd.push(repo.display().to_string());
+    cmd.push("--mode".into());
+    cmd.push(args.score_mode.clone());
+    cmd.push("--json".into());
+    cmd.push(args.score_json.clone());
+    cmd.push("--md".into());
+    cmd.push(args.score_md.clone());
+    Ok(cmd)
+}
+
+pub fn cargo_install_root() -> Option<String> {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(bin_dir) = exe.parent() {
             if bin_dir.file_name().and_then(|name| name.to_str()) == Some("bin") {
@@ -1171,6 +1555,19 @@ fn cargo_install_root() -> Option<String> {
     std::env::var("HOME")
         .ok()
         .map(|home| Path::new(&home).join(".cargo").display().to_string())
+}
+
+fn command_executable() -> Result<String> {
+    let exe = std::env::current_exe().context("resolve current executable")?;
+    Ok(exe.display().to_string())
+}
+
+fn shell_join(command: &[String]) -> String {
+    command
+        .iter()
+        .map(|part| shell_quote(part))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn has_jankurai_files(repo: &Path) -> bool {
@@ -1252,6 +1649,20 @@ fn render_plan(plan: &UpdatePlan) -> String {
     }
     let _ = writeln!(out, "- channel: `{}`", plan.update_channel);
     let _ = writeln!(out, "- source: `{}`", plan.source);
+    if let Some(source) = &plan.resolved_source {
+        let _ = writeln!(out, "- resolved source: `{}`", source.resolved_source);
+        let _ = writeln!(out, "- requested source: `{}`", source.requested_source);
+        if let Some(url) = &source.source_url {
+            let _ = writeln!(out, "- source url: `{url}`");
+        }
+        if let Some(command) = &source.install_command {
+            let _ = writeln!(out, "- install command: `{}`", shell_join(command));
+        }
+        if let Some(root) = &source.install_root {
+            let _ = writeln!(out, "- install root: `{root}`");
+        }
+        let _ = writeln!(out, "- source reason: `{}`", source.reason);
+    }
     let _ = writeln!(out, "- install state: `{}`", plan.install_state);
     let _ = writeln!(
         out,
@@ -1263,6 +1674,12 @@ fn render_plan(plan: &UpdatePlan) -> String {
         "- self update available: `{}`",
         plan.self_update_available
     );
+    if let Some(command) = &plan.reexec_command {
+        let _ = writeln!(out, "- reexec command: `{command}`");
+    }
+    if let Some(command) = &plan.post_upgrade_score_command {
+        let _ = writeln!(out, "- post-upgrade score command: `{command}`");
+    }
     let _ = writeln!(out);
     let _ = writeln!(out, "Actions:");
     for action in &plan.actions {
@@ -1290,6 +1707,9 @@ fn render_receipt(receipt: &UpdateReceipt) -> String {
     if let Some(latest) = &receipt.latest_version {
         let _ = writeln!(out, "- latest version: `{latest}`");
     }
+    if let Some(source) = &receipt.resolved_source {
+        let _ = writeln!(out, "- resolved source: `{}`", source.resolved_source);
+    }
     let _ = writeln!(
         out,
         "- self update applied: `{}`",
@@ -1300,6 +1720,15 @@ fn render_receipt(receipt: &UpdateReceipt) -> String {
         "- repo update applied: `{}`",
         receipt.repo_update_applied
     );
+    if let Some(command) = &receipt.reexec_command {
+        let _ = writeln!(out, "- reexec command: `{command}`");
+    }
+    if let Some(command) = &receipt.post_upgrade_score_command {
+        let _ = writeln!(out, "- post-upgrade score command: `{command}`");
+    }
+    if let Some(command) = &receipt.next_command {
+        let _ = writeln!(out, "- next command: `{command}`");
+    }
     if !receipt.commands_run.is_empty() {
         let _ = writeln!(out, "- commands:");
         for command in &receipt.commands_run {
@@ -1340,6 +1769,10 @@ mod tests {
             profile: "rust-ts-postgres".into(),
             level: "full".into(),
             ide: "all".into(),
+            score: false,
+            score_mode: "standard".into(),
+            score_json: "target/jankurai/repo-score.json".into(),
+            score_md: "target/jankurai/repo-score.md".into(),
             out: "target/jankurai/update/update-plan.json".into(),
             md: "target/jankurai/update/update-plan.md".into(),
             state: "target/jankurai/update/state.json".into(),
@@ -1359,6 +1792,22 @@ mod tests {
             target_stack_id: TARGET_STACK_ID.into(),
             update_channel: DEFAULT_UPDATE_CHANNEL.into(),
             source: "auto".into(),
+            resolved_source: Some(ResolvedSource {
+                requested_source: "auto".into(),
+                resolved_source: "local".into(),
+                source_url: None,
+                latest_version: Some("999.0.0".into()),
+                install_command: Some(vec![
+                    "cargo".into(),
+                    "install".into(),
+                    "--path".into(),
+                    repo.path().join("crates/jankurai").display().to_string(),
+                    "--locked".into(),
+                    "--force".into(),
+                ]),
+                install_root: cargo_install_root(),
+                reason: "newer crates/jankurai checkout is available locally".into(),
+            }),
             offline: false,
             client_start: false,
             self_update_requested: true,
@@ -1368,6 +1817,15 @@ mod tests {
             state_path: args.state.clone(),
             plan_path: args.out.clone(),
             md_path: args.md.clone(),
+            reexec_command: None,
+            post_upgrade_score_command: Some(format!(
+                "{} score {} --mode standard --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md",
+                std::env::current_exe().unwrap().display(),
+                repo.path().display()
+            )),
+            post_upgrade_score_mode: Some("standard".into()),
+            post_upgrade_score_json: Some("target/jankurai/repo-score.json".into()),
+            post_upgrade_score_md: Some("target/jankurai/repo-score.md".into()),
             warnings: Vec::new(),
             actions: Vec::new(),
             artifacts: Vec::new(),

@@ -14,6 +14,7 @@ pub mod domain;
 pub mod organization_team;
 pub mod webhook_receiver;
 pub mod notification_shell;
+pub mod periodic_cron;
 
 pub fn service_name() -> &'static str {
     "perfect-web-api-db"

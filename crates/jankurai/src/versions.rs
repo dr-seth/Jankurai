@@ -1,3 +1,4 @@
+use crate::commands::update;
 use crate::model::{
     AUDITOR_VERSION, PAPER_EDITION, SCHEMA_VERSION, STANDARD_VERSION, TARGET_STACK_ID,
 };
@@ -6,8 +7,34 @@ use serde_json::Value as JsonValue;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub fn print_version(repo: &Path) -> Result<()> {
+    let root = repo.canonicalize().unwrap_or_else(|_| repo.to_path_buf());
+    let exe = std::env::current_exe().ok();
+    println!("CLI version: `{}`", env!("CARGO_PKG_VERSION"));
+    println!("Standard version: `{STANDARD_VERSION}`");
+    println!("Schema version: `{SCHEMA_VERSION}`");
+    println!(
+        "Executable: `{}`",
+        exe.as_ref()
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|| "<unknown>".into())
+    );
+    println!(
+        "Install root: `{}`",
+        update::cargo_install_root().unwrap_or_else(|| "<unknown>".into())
+    );
+    println!("Recommended upgrade command: `jankurai upgrade`");
+    if is_source_checkout(&root) {
+        println!("Source checkout: `{}`", root.display());
+    }
+    Ok(())
+}
+
 pub fn check_versions(repo: &Path) -> Result<()> {
     let root = repo.canonicalize()?;
+    if !is_source_checkout(&root) {
+        return Err(anyhow!("use `jankurai version` for installed CLI version."));
+    }
     let manifest_path = root.join("agent/standard-version.toml");
     let manifest_text = fs::read_to_string(&manifest_path)?;
     let manifest: toml::Value = toml::from_str(&manifest_text)?;
@@ -76,6 +103,11 @@ pub fn check_versions(repo: &Path) -> Result<()> {
         STANDARD_VERSION, AUDITOR_VERSION, SCHEMA_VERSION, PAPER_EDITION
     );
     Ok(())
+}
+
+fn is_source_checkout(root: &Path) -> bool {
+    root.join("agent/standard-version.toml").exists()
+        && root.join("crates/jankurai/Cargo.toml").exists()
 }
 
 fn scalar(value: &toml::Value, key: &str) -> Result<String> {

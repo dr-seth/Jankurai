@@ -53,6 +53,7 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
         background_job_manifest(repo, catalog),
         webhook_receiver_manifest(repo, catalog),
         notification_shell_manifest(repo, catalog),
+        periodic_cron_manifest(repo, catalog),
     ]
 }
 
@@ -700,6 +701,83 @@ fn notification_shell_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManife
     )
 }
 
+fn periodic_cron_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/periodic_cron.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/periodic-cron.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/007_periodic_cron.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/007_periodic_cron.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/periodic-cron-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "periodic-cron".to_string(),
+            version: "0.1.0".to_string(),
+            category: "workflow".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "background-job"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "cron execution evaluation operates independently from worker execution (uses background-job)",
+                "schedules are durably tracked with last_run_at and next_run_at semantics",
+                "leader election or distinct worker scheduling prevents duplicate schedule evaluation",
+            ]),
+            observability_events: strings(&[
+                "cron.schedule_created",
+                "cron.schedule_paused",
+                "cron.schedule_resumed",
+                "cron.triggered",
+                "cron.missed",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/periodic-cron-cell.md",
+                "examples/perfect-web-api-db/ops/periodic-cron-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&["modify OpenAPI specs before adding new cron schedules to the API edge"]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "pause schedules before dropping the periodic_cron_schedules table during a rollback",
+                "reverse periodic cron table changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
 fn certified_manifest(
     repo: &Path,
     catalog: &RepoCatalog,
@@ -820,6 +898,23 @@ fn certified_manifest(
             },
         });
     }
+    if manifest.cell_id == "periodic-cron" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/periodic_cron.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("PeriodicCronSchedulePolicy");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-periodic-cron-schedule-policy".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
     manifest.proof_commands = proof_commands(catalog, &manifest.proof_lanes);
     let is_certified = evidence
         .iter()
@@ -847,6 +942,7 @@ fn lazy_built_in_ids() -> Vec<&'static str> {
         "background-job",
         "webhook-receiver",
         "notification-shell",
+        "periodic-cron",
     ]
 }
 
