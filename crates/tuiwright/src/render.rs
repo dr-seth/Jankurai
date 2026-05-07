@@ -266,13 +266,14 @@ fn draw_char_8x8(
     ch: char,
     color: Rgba<u8>,
 ) {
-    // Try to get the glyph from font8x8 basic set
-    let glyph = if (ch as u32) < 128 {
-        font8x8::BASIC_FONTS.get(ch).map(|g| g.to_vec())
-    } else {
-        // For non-ASCII, try Unicode sets or use '?' as a substitute
-        None
-    };
+    // Try to get the glyph from font8x8 sets
+    let glyph = font8x8::BASIC_FONTS.get(ch)
+        .or_else(|| font8x8::LATIN_FONTS.get(ch))
+        .or_else(|| font8x8::BLOCK_FONTS.get(ch))
+        .or_else(|| font8x8::BOX_FONTS.get(ch))
+        .or_else(|| font8x8::GREEK_FONTS.get(ch))
+        .or_else(|| font8x8::HIRAGANA_FONTS.get(ch))
+        .map(|g| g.to_vec());
 
     let glyph = match glyph {
         Some(g) => g,
