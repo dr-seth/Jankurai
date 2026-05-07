@@ -9,6 +9,7 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 ### Fixed
 
 - Made line-based scaffold merges recipe-aware so `Justfile` updates do not append commands from already-existing recipes as orphan lines.
+- Updated scaffold merge behavior so `agent/standard-version.toml` refreshes canonical version keys instead of keeping stale auditor/schema metadata.
 
 ## 0.8.12 - 2026-05-06
 

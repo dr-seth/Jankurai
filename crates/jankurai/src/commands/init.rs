@@ -127,8 +127,12 @@ fn apply_templates(
                     });
                 }
                 MergePolicyAction::MergeToml => {
-                    let merged = crate::init::merge::merge_toml(&existing_text, body)
-                        .with_context(|| format!("failed to merge TOML {}", rel))?;
+                    let merged = if rel == "agent/standard-version.toml" {
+                        crate::init::merge::merge_standard_version_toml(&existing_text, body)
+                    } else {
+                        crate::init::merge::merge_toml(&existing_text, body)
+                    }
+                    .with_context(|| format!("failed to merge TOML {}", rel))?;
                     if merged != existing_text {
                         fs::write(&path, merged)?;
                     }
@@ -210,7 +214,11 @@ fn print_diff(repo: &Path, manifest: &crate::init::profiles::ProfileManifest, le
                     crate::init::merge::merge_json(&existing, body).ok()
                 }
                 MergePolicyAction::MergeToml => {
-                    crate::init::merge::merge_toml(&existing, body).ok()
+                    if rel == "agent/standard-version.toml" {
+                        crate::init::merge::merge_standard_version_toml(&existing, body).ok()
+                    } else {
+                        crate::init::merge::merge_toml(&existing, body).ok()
+                    }
                 }
                 MergePolicyAction::MergeLines => {
                     crate::init::merge::merge_lines(&existing, body).ok()

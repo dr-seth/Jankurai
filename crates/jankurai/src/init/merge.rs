@@ -52,6 +52,32 @@ pub fn merge_toml(existing: &str, template: &str) -> Result<String> {
     Ok(toml::to_string_pretty(&base)?)
 }
 
+pub fn merge_standard_version_toml(existing: &str, template: &str) -> Result<String> {
+    let mut base: toml::Value = if existing.trim().is_empty() {
+        toml::Value::Table(toml::map::Map::new())
+    } else {
+        toml::from_str(existing).unwrap_or_else(|_| toml::Value::Table(toml::map::Map::new()))
+    };
+    let new: toml::Value = toml::from_str(template)?;
+
+    merge_toml_values(&mut base, &new);
+    if let (toml::Value::Table(base_map), toml::Value::Table(new_map)) = (&mut base, new) {
+        for key in [
+            "standard",
+            "standard_version",
+            "paper_edition",
+            "auditor_version",
+            "schema_version",
+            "target_stack",
+        ] {
+            if let Some(value) = new_map.get(key) {
+                base_map.insert(key.to_string(), value.clone());
+            }
+        }
+    }
+    Ok(toml::to_string_pretty(&base)?)
+}
+
 fn merge_toml_values(base: &mut toml::Value, new: &toml::Value) {
     match (base, new) {
         (toml::Value::Table(base_map), toml::Value::Table(new_map)) => {
@@ -134,7 +160,28 @@ fn is_recipe_header(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::merge_lines;
+    use super::{merge_lines, merge_standard_version_toml};
+
+    #[test]
+    fn merge_standard_version_toml_replaces_version_keys_and_preserves_extras() {
+        let existing = r#"auditor_version = "0.8.11"
+schema_version = "1.6.0"
+custom_note = "keep"
+"#;
+        let template = r#"standard = "jankurai"
+standard_version = "0.8.0"
+paper_edition = "2026.05-ed8"
+auditor_version = "0.8.12"
+schema_version = "1.6.1"
+target_stack = "rust-ts-vite-react-postgres-bounded-python"
+"#;
+
+        let merged = merge_standard_version_toml(existing, template).unwrap();
+
+        assert!(merged.contains("auditor_version = \"0.8.12\""));
+        assert!(merged.contains("schema_version = \"1.6.1\""));
+        assert!(merged.contains("custom_note = \"keep\""));
+    }
 
     #[test]
     fn merge_lines_skips_existing_just_recipe_body() {

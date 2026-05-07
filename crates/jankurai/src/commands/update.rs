@@ -683,6 +683,11 @@ fn apply_repo_updates(
                 let current = fs::read_to_string(&path).unwrap_or_default();
                 let merged = match profile_manifest.merge_policy_for_path(&action.path) {
                     MergePolicyAction::MergeJson => merge::merge_json(&current, &desired)?,
+                    MergePolicyAction::MergeToml
+                        if action.path == "agent/standard-version.toml" =>
+                    {
+                        merge::merge_standard_version_toml(&current, &desired)?
+                    }
                     MergePolicyAction::MergeToml => merge::merge_toml(&current, &desired)?,
                     MergePolicyAction::MergeLines => merge::merge_lines(&current, &desired)?,
                     MergePolicyAction::MergeMarker | MergePolicyAction::KeepExisting => desired,
