@@ -6,18 +6,27 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 ## Unreleased
 
-### Fixed
+No user-facing changes yet.
 
-- Made line-based scaffold merges recipe-aware so `Justfile` updates do not append commands from already-existing recipes as orphan lines.
-- Updated scaffold merge behavior so `agent/standard-version.toml` refreshes canonical version keys instead of keeping stale auditor/schema metadata.
+## 0.8.12 - 2026-05-07
 
-## 0.8.12 - 2026-05-06
+### Added
+
+- Added certified reuse-registry cells for periodic cron jobs and billing subscriptions, including example Rust boundaries, OpenAPI contracts, migration/constraint evidence, docs, ops notes, UX route notes, schema coverage, and smoke tests.
+- Added `jankurai version`, `jankurai versions`, `jankurai upgrade --score`, and update receipt schema coverage for version-aware local upgrades.
 
 ### Changed
 
 - Bumped the auditor/action package release to `0.8.12`; standard compatibility remains `0.8.0` and report schema is `1.6.1`.
 - Updated the release docs and version manifests to reflect `jankurai version`, `jankurai versions`, and `jankurai upgrade --score` behavior.
 - Retagged the GitHub Action reference to `v0.8.12`.
+- Replaced Tuiwright bitmap rendering with rusttype plus bundled JetBrains Mono for anti-aliased screenshots.
+
+### Fixed
+
+- Fixed Tuiwright missing Unicode box drawing glyphs in rendered output.
+- Made line-based scaffold merges recipe-aware so `Justfile` updates do not append commands from already-existing recipes as orphan lines.
+- Updated scaffold merge behavior so `agent/standard-version.toml` refreshes canonical version keys instead of keeping stale auditor/schema metadata.
 
 ## 0.8.11 - 2026-05-06
 
