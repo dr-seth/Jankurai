@@ -54,6 +54,7 @@ pub fn built_in_manifests(repo: &Path, catalog: &RepoCatalog) -> Vec<CellManifes
         webhook_receiver_manifest(repo, catalog),
         notification_shell_manifest(repo, catalog),
         periodic_cron_manifest(repo, catalog),
+        billing_subscription_manifest(repo, catalog),
     ]
 }
 
@@ -778,6 +779,83 @@ fn periodic_cron_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
     )
 }
 
+fn billing_subscription_manifest(repo: &Path, catalog: &RepoCatalog) -> CellManifest {
+    let source_paths = strings(&[
+        "examples/perfect-web-api-db/backend/src/billing_subscription.rs",
+        "examples/perfect-web-api-db/backend/src/domain.rs",
+        "examples/perfect-web-api-db/backend/src/application.rs",
+        "examples/perfect-web-api-db/backend/src/adapters.rs",
+        "examples/perfect-web-api-db/docs/architecture.md",
+        "examples/perfect-web-api-db/README.md",
+    ]);
+    let contract_paths = strings(&[
+        "examples/perfect-web-api-db/contracts/openapi.json",
+        "examples/perfect-web-api-db/contracts/billing-subscription.openapi.json",
+    ]);
+    let migration_paths = strings(&[
+        "examples/perfect-web-api-db/db/migrations/001_init.sql",
+        "examples/perfect-web-api-db/db/migrations/008_billing_subscriptions.sql",
+        "examples/perfect-web-api-db/db/constraints/001_accounts.sql",
+        "examples/perfect-web-api-db/db/constraints/008_billing_subscriptions.sql",
+    ]);
+    let ui_routes = strings(&["examples/perfect-web-api-db/ux/billing-subscription-routes.md"]);
+    let proof_lanes = strings(&[
+        "test-cli",
+        "audit",
+        "db-migration-analyze",
+        "ux-qa",
+        "security",
+    ]);
+    certified_manifest(
+        repo,
+        catalog,
+        CellManifest {
+            cell_id: "billing-subscription".to_string(),
+            version: "0.1.0".to_string(),
+            category: "commerce".to_string(),
+            lifecycle: "certified".to_string(),
+            supported_profiles: strings(&["perfect-web-api-db"]),
+            dependencies: strings(&["audit-log", "organization-team", "webhook-receiver"]),
+            source_paths,
+            generated_paths: Vec::new(),
+            contract_paths,
+            migration_paths,
+            ui_routes,
+            proof_lanes,
+            proof_commands: Vec::new(),
+            security_assumptions: strings(&[
+                "billing and subscription states are durable in the local database and updated deterministically via webhooks",
+                "feature gating queries local state rather than reaching out to the provider synchronously",
+                "provider tokens and secrets are restricted to the edge layer (adapters)",
+            ]),
+            observability_events: strings(&[
+                "billing.subscription_created",
+                "billing.subscription_updated",
+                "billing.subscription_canceled",
+                "billing.invoice_paid",
+                "billing.payment_failed",
+            ]),
+            docs: strings(&[
+                "examples/perfect-web-api-db/docs/billing-subscription-cell.md",
+                "examples/perfect-web-api-db/ops/billing-subscription-security.md",
+                "examples/perfect-web-api-db/ops/security.md",
+                "examples/perfect-web-api-db/docs/architecture.md",
+                "examples/perfect-web-api-db/docs/exceptions.md",
+            ]),
+            upgrade_notes: strings(&["add provider-specific SDK implementation only after the shell domain logic is thoroughly tested"]),
+            rollback_notes: strings(&[
+                "dry-run install writes no files",
+                "downgrade subscriptions gracefully if rolling back a plan tier",
+                "reverse billing table changes only through reviewed migrations",
+            ]),
+            certification_status: "candidate".to_string(),
+            certification_evidence: Vec::new(),
+            install_strategy: "dry-run-plan".to_string(),
+            conflict_policy: "never-overwrite".to_string(),
+        },
+    )
+}
+
 fn certified_manifest(
     repo: &Path,
     catalog: &RepoCatalog,
@@ -915,6 +993,23 @@ fn certified_manifest(
             },
         });
     }
+    if manifest.cell_id == "billing-subscription" {
+        let marker_path = "examples/perfect-web-api-db/backend/src/billing_subscription.rs";
+        let has_marker = repo.join(marker_path).exists()
+            && std::fs::read_to_string(repo.join(marker_path))
+                .unwrap_or_default()
+                .contains("BillingSubscriptionStatePolicy");
+        evidence.push(CellEvidence {
+            kind: "content-marker".to_string(),
+            path: "domain-billing-subscription-state-policy".to_string(),
+            required: true,
+            status: if has_marker {
+                "present".to_string()
+            } else {
+                "missing".to_string()
+            },
+        });
+    }
     manifest.proof_commands = proof_commands(catalog, &manifest.proof_lanes);
     let is_certified = evidence
         .iter()
@@ -943,6 +1038,7 @@ fn lazy_built_in_ids() -> Vec<&'static str> {
         "webhook-receiver",
         "notification-shell",
         "periodic-cron",
+        "billing-subscription",
     ]
 }
 
