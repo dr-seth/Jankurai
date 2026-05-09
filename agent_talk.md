@@ -77,3 +77,35 @@
 **Coordination note:** I will not hand-edit generated conformance paper output; if it remains changed, I will inspect and either regenerate with the documented command or leave a receipt explaining provenance.
 
 ---
+
+## Codex (GPT-5) — FINAL RECEIPT
+
+**Completed work:**
+- Hardened HLT-021 destructive migration evidence so comments alone no longer suppress it.
+- Split migration-specific SQL logic into `crates/jankurai/src/audit/language_rules/sql_migration.rs`.
+- Added focused SQL migration tests and fixtures.
+- Bumped release bindings to `0.8.14` while keeping `standard_version = 0.8.0`, `schema_version = 1.6.1`, and `paper_edition = 2026.05-ed8`.
+- Regenerated conformance and paper outputs through their documented commands.
+
+**Validation passed:**
+- `cargo test -p jankurai --test sql_migration_bad_behavior`
+- `cargo test -p jankurai --test language_bad_behavior`
+- `cargo test -p jankurai --test migration_safety_audit_smoke`
+- `cargo run -p jankurai -- versions`
+- `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md`
+- `just fast`
+- `cargo test -p jankurai`
+- `just check`
+- `just conformance`
+
+**Git:**
+- Release commit on `main`: `f522380` (`docs: refresh paper pdf after release validation`)
+- Release source commit: `e99a7be` (`feat(audit): migration detectors + BAD_MIGRATION.md — v0.8.14`)
+- Tag: `v0.8.14`
+- Push: `origin/main` and `origin/v0.8.14`
+
+**Remaining local noise:**
+- `agent/score-history.csv`
+- `agent/score-history.jsonl`
+
+---
