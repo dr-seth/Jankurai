@@ -160,18 +160,24 @@ fn sql_risky_fixtures_emit_hlt030_findings() {
     );
 
     let findings = findings_for(repo.path(), "HLT-030-SQL-BAD-BEHAVIOR");
-    assert_eq!(findings.len(), 3, "{findings:?}");
+    assert_eq!(findings.len(), 4, "{findings:?}");
     assert_finding(
         &findings,
         "src/dynamic_sql.sql",
         "execute",
         "detector=sql.dynamic-sql",
     );
-    assert_finding(
+    assert_has_finding(
         &findings,
         "db/migrations/001_destructive.sql",
         "drop table",
         "detector=sql.migration.destructive-no-proof",
+    );
+    assert_has_finding(
+        &findings,
+        "db/migrations/001_destructive.sql",
+        "cascade",
+        "detector=sql.migration.cascade-convenience",
     );
     assert_finding(
         &findings,
@@ -193,6 +199,23 @@ fn sql_safe_fixtures_emit_no_hlt030_findings() {
         repo.path(),
         "sql/safe/proofed_migration.sql",
         "db/migrations/002_proofed.sql",
+    );
+    write(
+        &repo.path().join("db/migrations/002_proofed.meta.toml"),
+        r#"
+owner = "db-platform"
+approval = "fixture-approved"
+rollback = "roll-forward via restore"
+backup = "fixture restore drill"
+lock_timeout = "5s"
+statement_timeout = "30s"
+verify = "002_proofed.verify.sql"
+dependency_inventory = ["old_sessions dependencies reviewed"]
+"#,
+    );
+    write(
+        &repo.path().join("db/migrations/002_proofed.verify.sql"),
+        "SELECT count(*) >= 0 FROM pg_class;\n",
     );
 
     assert!(findings_for(repo.path(), "HLT-030-SQL-BAD-BEHAVIOR").is_empty());

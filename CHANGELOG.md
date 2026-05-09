@@ -8,6 +8,30 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 No user-facing changes yet.
 
+## 0.8.14 - 2026-05-09
+
+### Added
+
+- `docs/BAD_MIGRATION.md`: canonical migration anti-pattern reference covering immediate rejections, expand/contract failures, lock recklessness, PostgreSQL/SQLite hazards, backfill failures, and ORM/AI dangers.
+- `sql.migration.concurrent-in-txn` (HLT-030): fires on `CREATE INDEX CONCURRENTLY` inside `BEGIN`/`COMMIT` in migration files — PostgreSQL silently degrades CONCURRENTLY to a blocking build inside a transaction.
+- `sql.migration.missing-lock-timeout` (HLT-030): fires on risky `ALTER TABLE` DDL without `lock_timeout`/`statement_timeout` in migration files.
+- `sql.migration.cascade-convenience` (HLT-030): fires on `DROP`/`TRUNCATE CASCADE` without a structured dependency inventory in adjacent migration metadata.
+- `sql.migration.blocking-index-create` (HLT-030): fires on `CREATE INDEX` without `CONCURRENTLY` in migration files — holds ACCESS EXCLUSIVE lock for the full index build duration.
+- `sql.migration.not-valid-unvalidated` (HLT-030): fires when `NOT VALID` constraint has no `VALIDATE CONSTRAINT` in the same migration file — constraint enforces nothing until validated.
+- All migration detectors gate on `is_migration_file_path()` and `.sql`/`.pgsql`/`.psql` extension — zero impact on repos without SQL or migration paths.
+
+### Fixed
+
+- `sql.migration.destructive-no-proof` false positive: bare `cascade` keyword (e.g., `ON DELETE CASCADE` in `CREATE TABLE`) no longer triggers the destructive-migration detector; scoped to `DROP`/`TRUNCATE` + `CASCADE` only.
+- Added `DROP CONSTRAINT`, `DROP SCHEMA`, `DROP DATABASE` to destructive migration patterns.
+- HLT-021 `docs_url` updated to `docs/BAD_MIGRATION.md`.
+- HLT-030 `docs_url` updated to `docs/BAD_SQL.md`.
+
+### Changed
+
+- Bumped the auditor/action package release to `0.8.14`; standard compatibility remains `0.8.0`, report schema remains `1.6.1`, and paper edition remains `2026.05-ed8`.
+- HLT-021 destructive migration suppression now requires structured adjacent metadata plus verify/check evidence. `jankurai:migration-safe`, "rollback", or other comment-only markers no longer suppress destructive migration findings.
+
 ## 0.8.13 - 2026-05-09
 
 ### Fixed

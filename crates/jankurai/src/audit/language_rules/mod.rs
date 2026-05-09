@@ -8,6 +8,7 @@ pub mod python;
 pub mod release;
 pub mod rust;
 pub mod sql;
+pub mod sql_migration;
 pub mod typescript;
 
 pub use catalog::{

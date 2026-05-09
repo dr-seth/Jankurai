@@ -1,16 +1,17 @@
 use super::catalog::{
     ConfidencePolicy, Language, LanguageFinding, LanguageRule, Matcher, ProofWindow,
 };
+use super::sql_migration;
 use crate::audit::helpers::AuditContext;
 use crate::model::FileInfo;
+use once_cell::sync::Lazy;
 
 const HLT_RULE_ID: &str = "HLT-030-SQL-BAD-BEHAVIOR";
 const DETECTOR_DYNAMIC_SQL: &str = "sql.dynamic-sql";
-const DETECTOR_DESTRUCTIVE_MIGRATION: &str = "sql.migration.destructive-no-proof";
 const DETECTOR_FULL_TABLE_WRITE: &str = "sql.query.full-table-write";
 const DETECTOR_SELECT_STAR: &str = "sql.review.select-star";
 
-const RULES: &[LanguageRule] = &[
+const BASE_RULES: &[LanguageRule] = &[
     LanguageRule {
         id: DETECTOR_DYNAMIC_SQL,
         language: Language::Sql,
@@ -23,19 +24,6 @@ const RULES: &[LanguageRule] = &[
         proof_window: ProofWindow::None,
         problem: "string-built SQL reaches an execution sink without parameter binding",
         fix: "parameterize the statement or use a fixed allowlisted identifier path",
-    },
-    LanguageRule {
-        id: DETECTOR_DESTRUCTIVE_MIGRATION,
-        language: Language::Sql,
-        hlt_rule_id: HLT_RULE_ID,
-        severity: "high",
-        category: "security",
-        lane: "db",
-        confidence: ConfidencePolicy::High,
-        matcher: Matcher::ContainsAny(&["drop table", "truncate", "drop column", "disable trigger"]),
-        proof_window: ProofWindow::None,
-        problem: "destructive migration appears without nearby rollback or backup proof",
-        fix: "split the change into a reviewed migration with rollback, backup, and row-count evidence",
     },
     LanguageRule {
         id: DETECTOR_FULL_TABLE_WRITE,
@@ -72,7 +60,13 @@ pub struct SqlSummary {
 }
 
 pub fn catalog() -> &'static [LanguageRule] {
-    RULES
+    static RULES: Lazy<Vec<LanguageRule>> = Lazy::new(|| {
+        let mut rules = Vec::new();
+        rules.extend_from_slice(BASE_RULES);
+        rules.extend_from_slice(sql_migration::RULES);
+        rules
+    });
+    RULES.as_slice()
 }
 
 pub fn summary(ctx: &AuditContext) -> SqlSummary {
@@ -91,6 +85,7 @@ pub fn findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
 pub fn advisory_signals(ctx: &AuditContext) -> Vec<LanguageFinding> {
     let mut out = Vec::new();
     for file in sql_files(ctx) {
+        out.extend(sql_migration::advisory_findings(ctx, &file));
         for (idx, line) in file.text.lines().enumerate() {
             if let Some(hit) = advisory_hit_for_line(&file, idx + 1, line) {
                 out.push(hit);
@@ -104,8 +99,12 @@ pub fn advisory_signals(ctx: &AuditContext) -> Vec<LanguageFinding> {
 fn hard_findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
     let mut out = Vec::new();
     for file in sql_files(ctx) {
+        let is_migration = sql_migration::is_migration_file_path(&file.rel_path);
+        if is_migration {
+            out.extend(sql_migration::findings(ctx, &file));
+        }
         for (idx, line) in file.text.lines().enumerate() {
-            if let Some(hit) = hard_hit_for_line(&file, idx + 1, line, &file.text) {
+            if let Some(hit) = hard_hit_for_line(&file, idx + 1, line, !is_migration) {
                 out.push(hit);
             }
         }
@@ -154,7 +153,7 @@ fn hard_hit_for_line(
     file: &FileInfo,
     line_no: usize,
     line: &str,
-    full_text: &str,
+    detect_full_table_write: bool,
 ) -> Option<LanguageFinding> {
     let normalized = normalize_sql_line(line)?;
     let lower = normalized.to_ascii_lowercase();
@@ -162,21 +161,7 @@ fn hard_hit_for_line(
         return None;
     }
 
-    if is_destructive_migration_line(&lower) && !has_nearby_migration_proof(full_text, line_no) {
-        return Some(finding(
-            DETECTOR_DESTRUCTIVE_MIGRATION,
-            "drop table",
-            file,
-            line_no,
-            &normalized,
-            "destructive migration appears without nearby rollback or backup proof",
-            "the migration can remove or rewrite data without local evidence of recovery",
-            "split the change into a reviewed migration with rollback, backup, and row-count evidence",
-            "nearby-proof",
-        ));
-    }
-
-    if is_full_table_write_line(&lower) {
+    if detect_full_table_write && is_full_table_write_line(&lower) {
         return Some(finding(
             DETECTOR_FULL_TABLE_WRITE,
             "update/delete",
@@ -247,16 +232,6 @@ fn normalize_sql_line(line: &str) -> Option<String> {
     )
 }
 
-fn is_destructive_migration_line(lower: &str) -> bool {
-    lower.contains("drop table")
-        || lower.contains("drop index")
-        || lower.contains("truncate ")
-        || lower.contains("truncate table")
-        || lower.contains("drop column")
-        || lower.contains("disable trigger")
-        || lower.contains("cascade")
-}
-
 fn is_full_table_write_line(lower: &str) -> bool {
     (lower.contains("delete from") && !lower.contains(" where "))
         || (lower.contains("update ") && lower.contains(" set ") && !lower.contains(" where "))
@@ -293,24 +268,6 @@ fn is_dynamic_sql_line(lower: &str) -> bool {
     has_sink && has_sql && has_dynamic && !has_safe_binding
 }
 
-fn has_nearby_migration_proof(text: &str, line_no: usize) -> bool {
-    let lines: Vec<&str> = text.lines().collect();
-    if lines.is_empty() {
-        return false;
-    }
-    let idx = line_no.saturating_sub(1);
-    let start = idx.saturating_sub(3);
-    let end = (idx + 4).min(lines.len());
-    lines[start..end].iter().any(|candidate| {
-        let lower = candidate.trim().to_ascii_lowercase();
-        lower.contains("rollback")
-            || lower.contains("backup")
-            || lower.contains("restore")
-            || lower.contains("proof")
-            || lower.contains("jankurai:migration-safe")
-    })
-}
-
 fn sort_key(a: &LanguageFinding, b: &LanguageFinding) -> std::cmp::Ordering {
     a.path
         .cmp(&b.path)
@@ -319,7 +276,6 @@ fn sort_key(a: &LanguageFinding, b: &LanguageFinding) -> std::cmp::Ordering {
         .then(a.problem.cmp(&b.problem))
 }
 
-// SQL rule findings keep detector, source, proof-window, and repair text explicit.
 #[allow(clippy::too_many_arguments)]
 fn finding(
     detector_id: &'static str,

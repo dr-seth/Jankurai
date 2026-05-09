@@ -86,7 +86,7 @@ fn truncate_table_triggers_hlt021() {
 }
 
 #[test]
-fn jankurai_migration_safe_marker_suppresses_destructive_finding() {
+fn jankurai_migration_safe_marker_alone_does_not_suppress_destructive_finding() {
     let dir = tempdir().unwrap();
     write_minimal_standard_repo(dir.path());
     fs::create_dir_all(dir.path().join("db/migrations")).unwrap();
@@ -96,7 +96,7 @@ fn jankurai_migration_safe_marker_suppresses_destructive_finding() {
     )
     .unwrap();
     let report = run_audit(dir.path(), &[]).unwrap();
-    assert!(!report
+    assert!(report
         .findings
         .iter()
         .any(|f| { f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION") }));
@@ -170,7 +170,25 @@ fn destructive_migration_suppressed_when_safety_evidence_present() {
     fs::create_dir_all(dir.path().join("db/migrations")).unwrap();
     fs::write(
         dir.path().join("db/migrations/V1__drop.sql"),
-        "-- rollback: companion down migration restores users\nDROP TABLE users;\n",
+        "DROP TABLE users;\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("db/migrations/V1__drop.meta.toml"),
+        r#"
+owner = "db-platform"
+approval = "CAB-2026-05-09"
+rollback = "roll-forward via restore of archived users"
+backup = "PITR restore drill 2026-05-09"
+lock_timeout = "5s"
+statement_timeout = "30s"
+verify = "V1__drop.verify.sql"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("db/migrations/V1__drop.verify.sql"),
+        "SELECT count(*) >= 0 FROM pg_class;\n",
     )
     .unwrap();
     let report = run_audit(dir.path(), &[]).unwrap();
@@ -263,8 +281,8 @@ fn hlt021_sarif_rule_help_uri_is_https_and_result_has_region() {
         "expected absolute helpUri, got {help}"
     );
     assert!(
-        help.contains("testing.md"),
-        "HLT-021 docs live under testing.md: {help}"
+        help.contains("BAD_MIGRATION.md"),
+        "HLT-021 docs live under BAD_MIGRATION.md: {help}"
     );
 
     let results = v["runs"][0]["results"].as_array().expect("results");
@@ -279,5 +297,67 @@ fn hlt021_sarif_rule_help_uri_is_https_and_result_has_region() {
             .as_str()
             .is_some_and(|t| !t.is_empty()),
         "expected snippet text"
+    );
+}
+
+#[test]
+fn concurrent_index_in_txn_triggers_hlt030_via_full_audit() {
+    let dir = tempdir().unwrap();
+    write_minimal_standard_repo(dir.path());
+    fs::create_dir_all(dir.path().join("db/migrations")).unwrap();
+    fs::write(
+        dir.path().join("db/migrations/V1__concurrent.sql"),
+        "BEGIN;\nCREATE INDEX CONCURRENTLY idx_orders_user ON orders(user_id);\nCOMMIT;\n",
+    )
+    .unwrap();
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|f| f.rule_id.as_deref() == Some("HLT-030-SQL-BAD-BEHAVIOR")
+                && f.evidence.iter().any(|e| e.contains("concurrent-in-txn"))),
+        "expected HLT-030 concurrent-in-txn finding, got: {:?}",
+        report.findings
+    );
+}
+
+#[test]
+fn no_migration_surface_produces_zero_migration_findings() {
+    let dir = tempdir().unwrap();
+    write_minimal_standard_repo(dir.path());
+    // Only Rust code, no SQL or database setup at all
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::write(
+        dir.path().join("src/main.rs"),
+        "fn main() { println!(\"hello\"); }\n",
+    )
+    .unwrap();
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(
+        !report
+            .findings
+            .iter()
+            .any(|f| f.rule_id.as_deref() == Some("HLT-021-DESTRUCTIVE-MIGRATION")),
+        "repos without SQL should have no HLT-021 findings"
+    );
+    // No migration-specific HLT-030 findings either
+    assert!(
+        !report.findings.iter().any(|f| f
+            .rule_id
+            .as_deref()
+            .is_some_and(|r| r == "HLT-030-SQL-BAD-BEHAVIOR")
+            && f.evidence.iter().any(|e| e.contains("sql.migration."))),
+        "repos without SQL should have no migration-specific HLT-030 findings"
+    );
+}
+
+#[test]
+fn hlt021_docs_url_points_to_bad_migration_md() {
+    let rule = jankurai::audit::rules::lookup("HLT-021-DESTRUCTIVE-MIGRATION")
+        .expect("HLT-021 should exist");
+    assert_eq!(
+        rule.docs_url, "docs/BAD_MIGRATION.md",
+        "HLT-021 should point to docs/BAD_MIGRATION.md"
     );
 }

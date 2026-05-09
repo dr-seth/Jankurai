@@ -1187,27 +1187,6 @@ fn delete_has_where_on_following_lines(text: &str, delete_line_idx: usize) -> bo
     false
 }
 
-fn migration_safety_evidence_present(sql: &str) -> bool {
-    let lower = sql.to_ascii_lowercase();
-    if lower.contains("jankurai:migration-safe") {
-        return true;
-    }
-    const MARKERS: &[&str] = &[
-        "rollback",
-        "down migration",
-        "down_migration",
-        "backfill",
-        "lock timeout",
-        "lock_timeout",
-        "advisory lock",
-        "staged deploy",
-        "staged-deploy",
-        "expand and contract",
-        "expand-contract",
-    ];
-    MARKERS.iter().any(|m| lower.contains(m))
-}
-
 fn destructive_migration_class(fragment: &str) -> Option<&'static str> {
     let lower = fragment.to_ascii_lowercase();
     if lower.contains("drop table")
@@ -1287,13 +1266,13 @@ fn matches_monorepo_migration_segment(rel_path: &str) -> bool {
 }
 
 pub fn destructive_sql_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    const FIX: &str = "document rollback, backfill, lock-timeout, or staged-deploy strategy in the migration (or add `jankurai:migration-safe` with explicit human approval), then run `cargo run -p jankurai -- migrate . --analyze --json target/jankurai/migration-report.json`";
+    const FIX: &str = "add same-stem or same-directory migration metadata with owner/approval, rollback or roll-forward, backup/restore or irreversible approval, lock/timeout posture, and verify/check evidence; comments such as `jankurai:migration-safe` are not sufficient";
     let mut out = vec![];
     for file in &ctx.all_files {
         if !is_migration_sql_file(file, ctx) {
             continue;
         }
-        if migration_safety_evidence_present(&file.text) {
+        if language_rules::sql_migration::destructive_safety_evidence_present(ctx, file) {
             continue;
         }
         for (idx, line) in file.text.lines().enumerate() {

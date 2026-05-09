@@ -264,6 +264,10 @@
     "tips/": {
       "command": "just score",
       "purpose": "verify upgrade and feedback source material remains routed into the standard"
+    },
+    "agent_talk.md": {
+      "command": "just score",
+      "purpose": "agent coordination file; scored as workspace documentation"
     }
   }
 }

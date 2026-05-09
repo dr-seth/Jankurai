@@ -52,6 +52,7 @@
     "tips/": "paper",
     "tools/": "tools",
     "tools/jankurai-hooks/": "tools",
-    "tools/jankurai-rust/": "tools"
+    "tools/jankurai-rust/": "tools",
+    "agent_talk.md": "agent"
   }
 }
