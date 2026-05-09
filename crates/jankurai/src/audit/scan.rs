@@ -129,13 +129,28 @@ pub fn is_test_or_example_path(path: &str) -> bool {
 
 pub fn is_generated_or_reference_path(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
-    lower.starts_with("docs/")
+    if lower.starts_with("docs/")
         || lower.starts_with("paper/")
         || lower.starts_with("reference/")
         || lower.starts_with("tips/")
         || lower.starts_with("generated/")
         || lower.contains("/generated/")
         || lower.starts_with("target/")
+    {
+        return true;
+    }
+    // Suffix-based skips for files that are auto-generated regardless of location.
+    // `*.gen.{ts,tsx,js,mjs}` come from codegen tools, and `sst-env.d.ts` is produced
+    // by SST and lives next to handwritten code.
+    if lower.ends_with(".gen.ts")
+        || lower.ends_with(".gen.tsx")
+        || lower.ends_with(".gen.js")
+        || lower.ends_with(".gen.mjs")
+    {
+        return true;
+    }
+    let basename = lower.rsplit('/').next().unwrap_or(lower.as_str());
+    basename == "sst-env.d.ts"
 }
 
 pub fn line_has_nearby_safety_comment(text: &str, line: usize) -> bool {
@@ -1759,4 +1774,53 @@ pub fn event_contract_path_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         }
     }
     hits
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generated_path_dir_prefixes_remain_recognized() {
+        assert!(is_generated_or_reference_path("docs/index.md"));
+        assert!(is_generated_or_reference_path("paper/intro.md"));
+        assert!(is_generated_or_reference_path("reference/foo.md"));
+        assert!(is_generated_or_reference_path("tips/bar.md"));
+        assert!(is_generated_or_reference_path("generated/types.ts"));
+        assert!(is_generated_or_reference_path(
+            "crates/foo/src/generated/api.rs"
+        ));
+        assert!(is_generated_or_reference_path("target/debug/build.txt"));
+    }
+
+    #[test]
+    fn generated_path_recognizes_gen_suffixes() {
+        assert!(is_generated_or_reference_path("apps/web/src/api.gen.ts"));
+        assert!(is_generated_or_reference_path("apps/web/src/api.gen.tsx"));
+        assert!(is_generated_or_reference_path(
+            "packages/sdk/dist/index.gen.js"
+        ));
+        assert!(is_generated_or_reference_path(
+            "packages/sdk/dist/worker.gen.mjs"
+        ));
+    }
+
+    #[test]
+    fn generated_path_recognizes_sst_env_anywhere() {
+        assert!(is_generated_or_reference_path("sst-env.d.ts"));
+        assert!(is_generated_or_reference_path("packages/core/sst-env.d.ts"));
+        assert!(is_generated_or_reference_path(
+            "apps/web/nested/dir/sst-env.d.ts"
+        ));
+    }
+
+    #[test]
+    fn generated_path_does_not_match_unrelated_files() {
+        assert!(!is_generated_or_reference_path("apps/web/src/main.ts"));
+        assert!(!is_generated_or_reference_path("packages/foo/src/lib.ts"));
+        assert!(!is_generated_or_reference_path("crates/foo/src/lib.rs"));
+        // similar names that should not match the suffix pattern
+        assert!(!is_generated_or_reference_path("apps/web/sst-env.ts"));
+        assert!(!is_generated_or_reference_path("apps/web/regen.ts"));
+    }
 }
