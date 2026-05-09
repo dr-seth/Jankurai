@@ -2,17 +2,23 @@ use super::helpers::*;
 use super::language_rules;
 use super::prose;
 use crate::model::FileInfo;
-use aho_corasick::AhoCorasick;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+/// HLT-001 placeholder/TODO patterns. Multi-word phrases stay as substrings (already
+/// word-bounded). Short bare words like `placeholder` were too broad and matched
+/// legitimate identifiers (`argumentSlots`, `placeholder` field name, etc.); we now
+/// only flag the actual hostile shapes (`// placeholder`, `placeholder!()`, …).
 pub const TODO_PATTERNS: &[&str] = &[
     "TODO",
     "FIXME",
     "HACK",
     "XXX",
     "stub",
-    "placeholder",
+    "// placeholder",
+    "# placeholder",
+    "placeholder!(",
+    "<placeholder>",
     "not implemented",
     "todo!(",
     "unimplemented!(",
@@ -20,11 +26,16 @@ pub const TODO_PATTERNS: &[&str] = &[
     "panic!(\"not implemented",
 ];
 
+/// HLT-001 fallback/retry patterns. Bare `retry` was a substring of legitimate
+/// fields like `retry_after_seconds`, so it has been replaced with hostile-only
+/// phrases (`silent retry`, `unbounded retry`, `retry forever`).
 pub const FALLBACK_PATTERNS: &[&str] = &[
     "fallback",
     "best effort",
     "try again",
-    "retry",
+    "silent retry",
+    "unbounded retry",
+    "retry forever",
     "except Exception",
     "except:",
     "unwrap_or_default(",
@@ -388,38 +399,115 @@ impl FindingHit {
     }
 }
 
-pub fn pattern_hits(files: &[FileInfo], patterns: &[&str]) -> Vec<FindingHit> {
+/// Returns true when a substring pattern is short and bare enough to need a
+/// word-boundary check (e.g. `retry` would otherwise match `retry_after_seconds`).
+/// Multi-word phrases (`silent retry`, `not implemented`) and shape patterns
+/// (`todo!(`, `// placeholder`) are treated as already bounded.
+fn pattern_needs_word_boundary(pattern: &str) -> bool {
+    if pattern.contains(' ')
+        || pattern.contains('(')
+        || pattern.contains('/')
+        || pattern.contains('#')
+        || pattern.contains('<')
+        || pattern.contains('"')
+    {
+        return false;
+    }
+    // Pure alphanumeric short words: TODO, FIXME, HACK, XXX, stub, fallback.
+    pattern
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+fn pattern_matches_with_boundary(line: &str, pattern: &str) -> Option<usize> {
+    if !pattern_needs_word_boundary(pattern) {
+        return line.find(pattern);
+    }
+    let bytes = line.as_bytes();
+    let pat_bytes = pattern.as_bytes();
+    let mut start = 0;
+    while let Some(rel) = line[start..].find(pattern) {
+        let abs = start + rel;
+        let before = if abs == 0 { None } else { Some(bytes[abs - 1]) };
+        let after_idx = abs + pat_bytes.len();
+        let after = if after_idx >= bytes.len() {
+            None
+        } else {
+            Some(bytes[after_idx])
+        };
+        let is_word_byte = |b: u8| b.is_ascii_alphanumeric() || b == b'_';
+        if before.map(is_word_byte).unwrap_or(false) || after.map(is_word_byte).unwrap_or(false) {
+            start = abs + 1;
+            continue;
+        }
+        return Some(abs);
+    }
+    None
+}
+
+/// Like [`pattern_hits`] but suppresses lines with a nearby `jankurai:allow` comment
+/// for `detector_id` (when supplied). Pass `None` to keep legacy unfiltered behavior.
+pub fn pattern_hits_filtered(
+    files: &[FileInfo],
+    patterns: &[&str],
+    detector_id: Option<&str>,
+) -> Vec<FindingHit> {
     if files.is_empty() || patterns.is_empty() {
         return vec![];
     }
-    let ac = AhoCorasick::new(patterns).unwrap();
     let mut out = vec![];
     for file in files {
         for (idx, line) in file.text.lines().enumerate() {
-            if let Some(mat) = ac.find(line) {
-                out.push(FindingHit {
-                    path: file.rel_path.clone(),
-                    line: Some(idx + 1),
-                    text: line.trim().chars().take(160).collect(),
-                    matched_term: Some(patterns[mat.pattern()].to_string()),
-                    agent_fix: String::new(),
-                    problem: line.trim().chars().take(160).collect(),
-                });
-                if out.len() >= 20 {
-                    return out;
+            let mut matched: Option<&str> = None;
+            for pattern in patterns {
+                if pattern_matches_with_boundary(line, pattern).is_some() {
+                    matched = Some(*pattern);
+                    break;
                 }
+            }
+            let Some(matched_pattern) = matched else {
+                continue;
+            };
+            let line_no = idx + 1;
+            if let Some(rule) = detector_id {
+                if super::language_rules::common::nearby_allow(&file.text, line_no, rule) {
+                    continue;
+                }
+            }
+            out.push(FindingHit {
+                path: file.rel_path.clone(),
+                line: Some(line_no),
+                text: line.trim().chars().take(160).collect(),
+                matched_term: Some(matched_pattern.to_string()),
+                agent_fix: String::new(),
+                problem: line.trim().chars().take(160).collect(),
+            });
+            if out.len() >= 20 {
+                return out;
             }
         }
     }
     out
 }
 
+pub fn pattern_hits(files: &[FileInfo], patterns: &[&str]) -> Vec<FindingHit> {
+    pattern_hits_filtered(files, patterns, None)
+}
+
 pub fn todo_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(&product_code_files(ctx), TODO_PATTERNS)
+    pattern_hits_filtered(
+        &product_code_files(ctx),
+        TODO_PATTERNS,
+        Some("HLT-001-DEAD-MARKER"),
+    )
 }
 
 pub fn fallback_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    let hits = pattern_hits(&product_code_files(ctx), FALLBACK_PATTERNS);
+    let hits = pattern_hits_filtered(
+        &product_code_files(ctx),
+        FALLBACK_PATTERNS,
+        Some("HLT-001-DEAD-MARKER"),
+    );
     if hits.len() <= 1 {
         vec![]
     } else {
@@ -472,6 +560,13 @@ pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
                 || (line.to_ascii_lowercase().contains("eyj")
                     && line.to_ascii_lowercase().contains("token"))
             {
+                if super::language_rules::common::nearby_allow(
+                    &file.text,
+                    idx + 1,
+                    "HLT-010-SECRET-SPRAWL",
+                ) {
+                    continue;
+                }
                 let problem = line.trim().chars().take(160).collect::<String>();
                 hits.push(FindingHit {
                     path: file.rel_path.clone(),
@@ -497,29 +592,31 @@ fn is_tracked_auditor_score_artifact(path: &str) -> bool {
 }
 
 pub fn prompt_injection_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(
+    pattern_hits_filtered(
         &ctx.all_files
             .iter()
             .filter(|f| !f.is_generated && prose::is_trusted_policy_path(&f.rel_path))
             .cloned()
             .collect::<Vec<_>>(),
         PROMPT_PATTERNS,
+        Some("HLT-011-PROMPT-INJECTION"),
     )
 }
 
 pub fn agency_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(
+    pattern_hits_filtered(
         &ctx.all_files
             .iter()
             .filter(|f| !f.is_generated && prose::is_trusted_policy_path(&f.rel_path))
             .cloned()
             .collect::<Vec<_>>(),
         AGENCY_PATTERNS,
+        Some("HLT-012-OVERBROAD-AGENCY"),
     )
 }
 
 pub fn false_green_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    pattern_hits(
+    pattern_hits_filtered(
         &ctx.all_files
             .iter()
             .filter(|f| {
@@ -535,6 +632,7 @@ pub fn false_green_hits(ctx: &AuditContext) -> Vec<FindingHit> {
             .cloned()
             .collect::<Vec<_>>(),
         FALSE_GREEN_PATTERNS,
+        Some("HLT-008-FALSE-GREEN-RISK"),
     )
 }
 
@@ -589,6 +687,13 @@ pub fn input_boundary_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     let mut hits = Vec::new();
     for file in product_code_files(ctx) {
         for (idx, line) in file.text.lines().enumerate() {
+            if super::language_rules::common::nearby_allow(
+                &file.text,
+                idx + 1,
+                "HLT-023-INPUT-BOUNDARY-GAP",
+            ) {
+                continue;
+            }
             let lower = line.to_ascii_lowercase();
             let matched = if lower.contains("eval(") {
                 Some("eval(")
@@ -956,6 +1061,13 @@ pub fn human_review_evidence_hits(ctx: &AuditContext) -> Vec<FindingHit> {
         for (idx, line) in file.text.lines().enumerate() {
             let lower = line.to_ascii_lowercase();
             if risky_claims.iter().any(|pattern| lower.contains(pattern)) {
+                if super::language_rules::common::nearby_allow(
+                    &file.text,
+                    idx + 1,
+                    "HLT-027-HUMAN-REVIEW-EVIDENCE-GAP",
+                ) {
+                    continue;
+                }
                 hits.push(FindingHit {
                     path: file.rel_path.clone(),
                     line: Some(idx + 1),
@@ -1822,5 +1934,146 @@ mod tests {
         // similar names that should not match the suffix pattern
         assert!(!is_generated_or_reference_path("apps/web/sst-env.ts"));
         assert!(!is_generated_or_reference_path("apps/web/regen.ts"));
+    }
+
+    fn product_file(rel_path: &str, text: &str) -> FileInfo {
+        FileInfo {
+            rel_path: rel_path.into(),
+            name: std::path::PathBuf::from(rel_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+            suffix: std::path::PathBuf::from(rel_path)
+                .extension()
+                .map(|ext| format!(".{}", ext.to_string_lossy()))
+                .unwrap_or_default(),
+            size: text.len() as u64,
+            line_count: text.lines().count(),
+            text: text.into(),
+            is_generated: false,
+            is_code: true,
+        }
+    }
+
+    #[test]
+    fn pattern_needs_word_boundary_only_for_bare_words() {
+        assert!(pattern_needs_word_boundary("retry"));
+        assert!(pattern_needs_word_boundary("TODO"));
+        assert!(pattern_needs_word_boundary("stub"));
+        assert!(!pattern_needs_word_boundary("not implemented"));
+        assert!(!pattern_needs_word_boundary("// placeholder"));
+        assert!(!pattern_needs_word_boundary("placeholder!("));
+        assert!(!pattern_needs_word_boundary("<placeholder>"));
+        assert!(!pattern_needs_word_boundary("silent retry"));
+        assert!(!pattern_needs_word_boundary("todo!("));
+    }
+
+    #[test]
+    fn pattern_match_with_boundary_skips_substrings_in_identifiers() {
+        // bare word inside a longer identifier must not match
+        assert_eq!(
+            pattern_matches_with_boundary("pub retry_after_seconds: Option<u64>,", "retry"),
+            None
+        );
+        assert_eq!(
+            pattern_matches_with_boundary("let argumentSlots = match(re);", "stub"),
+            None
+        );
+        // word boundary on its own does match
+        assert!(pattern_matches_with_boundary("we should retry here", "retry").is_some());
+    }
+
+    #[test]
+    fn pattern_match_with_boundary_keeps_shape_substrings() {
+        // shape patterns are flagged anywhere they appear because they are already specific
+        assert!(
+            pattern_matches_with_boundary("// placeholder until ready", "// placeholder").is_some()
+        );
+        assert!(pattern_matches_with_boundary("placeholder!(\"x\")", "placeholder!(").is_some());
+        assert!(pattern_matches_with_boundary("not implemented yet", "not implemented").is_some());
+    }
+
+    #[test]
+    fn fallback_patterns_no_longer_match_retry_struct_field() {
+        let line = "    pub retry_after_seconds: Option<u64>,";
+        for pattern in FALLBACK_PATTERNS {
+            assert!(
+                pattern_matches_with_boundary(line, pattern).is_none(),
+                "pattern `{}` must not match `{}`",
+                pattern,
+                line
+            );
+        }
+    }
+
+    #[test]
+    fn fallback_patterns_match_specific_retry_phrases() {
+        let line = "we have an unbounded retry loop here";
+        let matched = FALLBACK_PATTERNS
+            .iter()
+            .find(|pat| pattern_matches_with_boundary(line, pat).is_some());
+        assert!(matched.is_some(), "expected an FALLBACK_PATTERNS match");
+    }
+
+    #[test]
+    fn todo_patterns_no_longer_flag_argument_slots_identifier() {
+        let line = "const argumentSlots = commandPrompt.match(argumentSlotRegex);";
+        for pattern in TODO_PATTERNS {
+            assert!(
+                pattern_matches_with_boundary(line, pattern).is_none(),
+                "pattern `{}` must not match `{}`",
+                pattern,
+                line
+            );
+        }
+    }
+
+    #[test]
+    fn todo_patterns_flag_actual_placeholder_comment() {
+        let line = "// TODO: placeholder until v2 lands";
+        let matched: Vec<&&str> = TODO_PATTERNS
+            .iter()
+            .filter(|pat| pattern_matches_with_boundary(line, pat).is_some())
+            .collect();
+        assert!(
+            !matched.is_empty(),
+            "expected at least one TODO/placeholder pattern to match"
+        );
+    }
+
+    fn make_ctx(files: Vec<FileInfo>) -> AuditContext {
+        AuditContext {
+            root: std::path::PathBuf::from("."),
+            scope_files: files.clone(),
+            all_files: files,
+            scope_paths: vec![],
+            self_audit: false,
+            boundary_reclassifications: vec![],
+        }
+    }
+
+    #[test]
+    fn nearby_allow_suppresses_secret_hit() {
+        let text = "// jankurai:allow HLT-010-SECRET-SPRAWL reason=test fixture expires=2099-12-31\nlet api_key = \"sk-test-AAAAAAAAAAAAAAAA\";\n";
+        let ctx = make_ctx(vec![product_file("apps/api/src/keys.rs", text)]);
+        let hits = secret_hits(&ctx);
+        assert!(
+            hits.is_empty(),
+            "nearby allow comment should suppress secret_hits, got {} hits",
+            hits.len()
+        );
+    }
+
+    #[test]
+    fn nearby_allow_suppresses_input_boundary_hit() {
+        let text = "// jankurai:allow HLT-023-INPUT-BOUNDARY-GAP reason=isolated test expires=2099-12-31\nelement.innerHTML = userInput;\n";
+        let ctx = make_ctx(vec![product_file("apps/web/src/dom.ts", text)]);
+        let hits = input_boundary_hits(&ctx);
+        assert!(
+            hits.is_empty(),
+            "nearby allow comment should suppress input_boundary_hits, got {} hits",
+            hits.len()
+        );
     }
 }

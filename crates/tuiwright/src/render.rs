@@ -3,8 +3,8 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use rusttype::{Font, Scale, point};
 use image::{Rgba, RgbaImage};
+use rusttype::{point, Font, Scale};
 
 use crate::screen::{Rgb, ScreenSnapshot};
 
@@ -269,14 +269,17 @@ fn draw_char_ttf(
     color: Rgba<u8>,
 ) {
     let font = Font::try_from_bytes(FONT_DATA).expect("Failed to load font");
-    
+
     // Calculate scaling to perfectly fit the monospace cell
     // Get advance width of 'M' to determine required width stretch
     let uniform_scale = Scale::uniform(cell_h as f32);
     let m_metrics = font.glyph('M').scaled(uniform_scale).h_metrics();
     // Stretch x so that advance_width == cell_w
     let width_stretch = cell_w as f32 / m_metrics.advance_width;
-    let final_scale = Scale { x: cell_h as f32 * width_stretch, y: cell_h as f32 };
+    let final_scale = Scale {
+        x: cell_h as f32 * width_stretch,
+        y: cell_h as f32,
+    };
 
     let glyph = font.glyph(ch);
     if glyph.id().0 == 0 {
@@ -289,7 +292,7 @@ fn draw_char_ttf(
 
     // Center it within the cell width
     let offset_x = (cell_w as f32 - h_metrics.advance_width) / 2.0;
-    
+
     // Position the glyph. Ascent is the distance from the baseline to the top.
     let p = point(x as f32 + offset_x, y as f32 + v_metrics.ascent);
     let positioned = scaled.positioned(p);
@@ -299,17 +302,21 @@ fn draw_char_ttf(
             let px = bb.min.x + gx as i32;
             let py = bb.min.y + gy as i32;
             // Clamp rendering within the cell boundaries to prevent bleed
-            if px >= x as i32 && px < (x + cell_w) as i32 && py >= y as i32 && py < (y + cell_h) as i32 {
+            if px >= x as i32
+                && px < (x + cell_w) as i32
+                && py >= y as i32
+                && py < (y + cell_h) as i32
+            {
                 if px >= 0 && px < img.width() as i32 && py >= 0 && py < img.height() as i32 {
                     let px = px as u32;
                     let py = py as u32;
                     let mut pixel = *img.get_pixel(px, py);
-                    
+
                     // Alpha blend
                     pixel[0] = ((1.0 - v) * pixel[0] as f32 + v * color[0] as f32) as u8;
                     pixel[1] = ((1.0 - v) * pixel[1] as f32 + v * color[1] as f32) as u8;
                     pixel[2] = ((1.0 - v) * pixel[2] as f32 + v * color[2] as f32) as u8;
-                    
+
                     img.put_pixel(px, py, pixel);
                 }
             }
