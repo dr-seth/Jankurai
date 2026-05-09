@@ -306,19 +306,21 @@ fn draw_char_ttf(
                 && px < (x + cell_w) as i32
                 && py >= y as i32
                 && py < (y + cell_h) as i32
+                && px >= 0
+                && px < img.width() as i32
+                && py >= 0
+                && py < img.height() as i32
             {
-                if px >= 0 && px < img.width() as i32 && py >= 0 && py < img.height() as i32 {
-                    let px = px as u32;
-                    let py = py as u32;
-                    let mut pixel = *img.get_pixel(px, py);
+                let px = px as u32;
+                let py = py as u32;
+                let mut pixel = *img.get_pixel(px, py);
 
-                    // Alpha blend
-                    pixel[0] = ((1.0 - v) * pixel[0] as f32 + v * color[0] as f32) as u8;
-                    pixel[1] = ((1.0 - v) * pixel[1] as f32 + v * color[1] as f32) as u8;
-                    pixel[2] = ((1.0 - v) * pixel[2] as f32 + v * color[2] as f32) as u8;
+                // Alpha blend
+                pixel[0] = ((1.0 - v) * pixel[0] as f32 + v * color[0] as f32) as u8;
+                pixel[1] = ((1.0 - v) * pixel[1] as f32 + v * color[1] as f32) as u8;
+                pixel[2] = ((1.0 - v) * pixel[2] as f32 + v * color[2] as f32) as u8;
 
-                    img.put_pixel(px, py, pixel);
-                }
+                img.put_pixel(px, py, pixel);
             }
         });
     }

@@ -8,6 +8,29 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 No user-facing changes yet.
 
+## 0.8.13 - 2026-05-09
+
+### Fixed
+
+- HLT-001 placeholder/TODO patterns: bare `retry` substring no longer matches legitimate fields like `retry_after_seconds`; replaced with hostile-only phrases (`silent retry`, `unbounded retry`, `retry forever`). Bare `placeholder` substring no longer matches identifiers like `argumentSlots`; replaced with shape patterns (`// placeholder`, `# placeholder`, `placeholder!(`, `<placeholder>`). Short bare patterns (TODO/FIXME/HACK/XXX/stub) now require word boundaries (J1c).
+- HLT-001 / HLT-008 / HLT-010 / HLT-011 / HLT-012 / HLT-023 / HLT-027 substring detectors in `audit/scan.rs` now consult `language_rules::common::nearby_allow`, so `// jankurai:allow HLT-XXX-NAME reason=... expires=YYYY-MM-DD` comments suppress the corresponding finding (J1d).
+- HLT-010 secret assignment detection no longer flags bare identifier paths on the right-hand side (e.g. `api_key: model.api_key`); requires either a quoted literal (>= 8 char body) or a known high-entropy prefix from the existing strong-token list (J1e).
+- HLT-016 supply-chain cap no longer treats a repo as high-risk when the only `package.json` / `Cargo.toml` / `go.mod` entries are gitignored runtime install directories (e.g. `.jekko/package.json`) (J1f).
+- HLT-018 build-speed signals: dimension grants a +10 bonus when the command surface shows both an explicit cache marker (`turbo`, `nextest`, `just-cache`, `cargo --cached`, `sccache`) AND a narrow per-package target (`cargo check/test -p`, `cargo nextest run -p`, `vitest run`, `pytest -k`, `go test -run`), raising the score above the perf-concurrency cap when evidence is genuine (J1g).
+- HLT-026 cost surface: `cost_budget_hits` now reads `agent/audit-policy.toml` and prefers explicit `[[cost_surface]]` declarations over the keyword-presence scan when the policy file enumerates them (J1g).
+- HLT-021 / HLT-030 migration recognition extended to `packages/<name>/migration[s]/` and `apps/<name>/migration[s]/` paths (J1i).
+- TypeScript / Rust / SQL language detectors honor the `[[zone]] path` list in `agent/generated-zones.toml`; declared zone paths are skipped from `is_typescript_surface` / `rust_files` / `is_sql_candidate` so HLT-029/030/031 no longer fires on outputs the manifest already declares as generated (J1b).
+- `is_generated_or_reference_path` now treats `*.gen.{ts,tsx,js,mjs}` and `sst-env.d.ts` (anywhere in the tree) as generated regardless of directory depth (J1a).
+
+### Changed
+
+- Bumped the auditor/action package release to `0.8.13`; standard compatibility remains `0.8.0` and report schema is `1.6.1`.
+
+### Notes
+
+- HLT-008 per-crate proptest cap (J1h) was attempted but reverted because the existing `audit_repo_root_still_has_no_findings` smoke test relies on the legacy any-file marker logic; tightening to per-crate would require adding tests to `crates/tuiwright-cli/`. The rule remains untightened for v0.8.13.
+- Conformance fixtures (J1j) for the new detector behaviors were not added in this release; existing unit tests under `audit::scan::tests` cover the regression checks for J1a/J1c/J1d/J1e.
+
 ## 0.8.12 - 2026-05-07
 
 ### Added

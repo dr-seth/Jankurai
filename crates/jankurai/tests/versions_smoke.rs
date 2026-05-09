@@ -22,11 +22,12 @@ fn versions_bindings_validate() {
     fs::create_dir_all(dir.path().join("agent")).unwrap();
     fs::write(
         dir.path().join("agent/standard-version.toml"),
-        r#"
+        format!(
+            r#"
 standard = "jankurai"
 standard_version = "0.8.0"
 paper_edition = "2026.05-ed8"
-auditor_version = "0.8.12"
+auditor_version = "{ver}"
 schema_version = "1.6.1"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 
@@ -64,8 +65,10 @@ version = "0.8.0"
 id = "ux-qa-runtime"
 path = "packages/ux-qa"
 version_field = "auditor_version"
-version = "0.8.12"
+version = "{ver}"
 "#,
+            ver = jankurai::model::AUDITOR_VERSION,
+        ),
     )
     .unwrap();
     fs::create_dir_all(dir.path().join("paper")).unwrap();
@@ -94,7 +97,10 @@ version = "0.8.12"
     fs::create_dir_all(dir.path().join("packages/ux-qa")).unwrap();
     fs::write(
         dir.path().join("packages/ux-qa/package.json"),
-        "{\n  \"name\": \"@jankurai/ux-qa\",\n  \"version\": \"0.8.12\"\n}\n",
+        format!(
+            "{{\n  \"name\": \"@jankurai/ux-qa\",\n  \"version\": \"{}\"\n}}\n",
+            jankurai::model::AUDITOR_VERSION
+        ),
     )
     .unwrap();
 
