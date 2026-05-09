@@ -92,5 +92,32 @@ pub fn analyze(ctx: &AuditContext) -> DimensionResult {
         score += 15;
         evidence.push("fast lane uses targeted commands and target-only audit artifacts".into());
     }
+    // J1g: HLT-018 raises the score above the cap when the Justfile (or other
+    // command surface) shows both an explicit cache marker AND at least one
+    // narrow target. The previous `+20`/`+10` bonuses match too liberally; this
+    // bonus rewards repos that demonstrate evidence of both.
+    let has_cache_marker = [
+        "turbo",
+        "nextest",
+        "just-cache",
+        "cargo --cached",
+        "sccache",
+    ]
+    .iter()
+    .any(|m| surface_text.contains(m));
+    let has_narrow_target = [
+        "cargo check -p",
+        "cargo test -p",
+        "cargo nextest run -p",
+        "vitest run",
+        "pytest -k",
+        "go test -run",
+    ]
+    .iter()
+    .any(|m| surface_text.contains(m));
+    if has_cache_marker && has_narrow_target {
+        score += 10;
+        evidence.push("explicit cache marker plus narrow per-package target found".into());
+    }
     make_dim("Build speed signals", score, evidence, notes)
 }

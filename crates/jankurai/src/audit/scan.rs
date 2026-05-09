@@ -1047,21 +1047,41 @@ fn has_release_lane(ctx: &AuditContext) -> bool {
     })
 }
 
+/// Returns true when `agent/audit-policy.toml` declares one or more
+/// `[[cost_surface]]` blocks. Repos that explicitly enumerate their cost
+/// surfaces are the source of truth for HLT-026; we trust that list and only
+/// look for budget proof when it is non-empty.
+fn declared_cost_surfaces(ctx: &AuditContext) -> Option<usize> {
+    let path = ctx.root.join("agent/audit-policy.toml");
+    if !path.exists() {
+        return None;
+    }
+    let text = std::fs::read_to_string(&path).ok()?;
+    let value: toml::Value = toml::from_str(&text).ok()?;
+    let surfaces = value.get("cost_surface")?.as_array()?;
+    Some(surfaces.len())
+}
+
 pub fn cost_budget_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    let has_cost_surface = ctx.all_files.iter().any(|file| {
-        !file.is_generated && prose::allows_word_scan(file) && {
-            let lower = file.text.to_ascii_lowercase();
-            lower.contains("openai")
-                || lower.contains("anthropic")
-                || lower.contains("stripe")
-                || lower.contains("paid api")
-                || lower.contains("api bill")
-                || lower.contains("token")
-                || COST_BUDGET_PATTERNS
-                    .iter()
-                    .any(|pattern| lower.contains(pattern))
-        }
-    });
+    // Prefer explicit `[[cost_surface]]` declarations when the policy file
+    // enumerates them; fall back to keyword-presence scan otherwise.
+    let has_cost_surface = match declared_cost_surfaces(ctx) {
+        Some(declared) => declared > 0,
+        None => ctx.all_files.iter().any(|file| {
+            !file.is_generated && prose::allows_word_scan(file) && {
+                let lower = file.text.to_ascii_lowercase();
+                lower.contains("openai")
+                    || lower.contains("anthropic")
+                    || lower.contains("stripe")
+                    || lower.contains("paid api")
+                    || lower.contains("api bill")
+                    || lower.contains("token")
+                    || COST_BUDGET_PATTERNS
+                        .iter()
+                        .any(|pattern| lower.contains(pattern))
+            }
+        }),
+    };
     let has_budget_policy = ctx.all_files.iter().any(|file| {
         prose::allows_word_scan(file) && {
             let lower = file.text.to_ascii_lowercase();
