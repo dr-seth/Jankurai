@@ -430,6 +430,7 @@ fn hard_findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
 }
 
 fn rust_files(ctx: &AuditContext) -> Vec<crate::model::FileInfo> {
+    let zone_paths = crate::audit::helpers::generated_zone_paths(ctx);
     product_code_files(ctx)
         .into_iter()
         .filter(|file| {
@@ -440,6 +441,9 @@ fn rust_files(ctx: &AuditContext) -> Vec<crate::model::FileInfo> {
                 && !rel.starts_with("crates/jankurai/")
                 && !rel.starts_with("crates/jankurai-proofbind/")
                 && !rel.starts_with("crates/jankurai-proofmark/")
+                && !zone_paths
+                    .iter()
+                    .any(|zone| crate::audit::helpers::path_matches_prefix(&file.rel_path, zone))
         })
         .collect()
 }

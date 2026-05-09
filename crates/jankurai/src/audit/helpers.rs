@@ -866,6 +866,41 @@ pub fn boundary_manifest(
     crate::boundaries::manifest::load(&ctx.root.join("agent/boundaries.toml")).ok()
 }
 
+/// Loads the trimmed `path` field of every `[[zone]]` declared in
+/// `agent/generated-zones.toml`. Returns an empty vector when the manifest is
+/// absent or unparseable. Both `read_only=true` and `read_only=false` zones are
+/// returned because either marks the file as generated/derived rather than
+/// authored runtime code.
+pub fn generated_zone_paths(ctx: &AuditContext) -> Vec<String> {
+    let path = ctx.root.join("agent/generated-zones.toml");
+    if !path.exists() {
+        return vec![];
+    }
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return vec![];
+    };
+    let Ok(file) = toml::from_str::<crate::commands::context_data::GeneratedZonesFile>(&text)
+    else {
+        return vec![];
+    };
+    file.zone
+        .into_iter()
+        .map(|zone| zone.path.trim().to_string())
+        .filter(|zone_path| !zone_path.is_empty())
+        .collect()
+}
+
+/// Returns true when `rel_path` matches any declared `[[zone]] path` from the
+/// generated-zones manifest. Matches both exact paths and directory prefixes,
+/// honoring trailing-slash semantics in `path_matches_prefix`.
+pub fn path_in_generated_zone(ctx: &AuditContext, rel_path: &str) -> bool {
+    let zones = generated_zone_paths(ctx);
+    if zones.is_empty() {
+        return false;
+    }
+    zones.iter().any(|zone| path_matches_prefix(rel_path, zone))
+}
+
 pub fn path_matches_prefix(path: &str, prefix: &str) -> bool {
     let prefix = prefix.trim_end_matches('/');
     path == prefix || path.starts_with(&format!("{prefix}/"))

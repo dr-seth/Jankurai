@@ -145,18 +145,25 @@ fn advisory_hits(ctx: &AuditContext) -> Vec<LanguageFinding> {
 }
 
 fn typescript_files(ctx: &AuditContext) -> Vec<&FileInfo> {
+    let zone_paths = crate::audit::helpers::generated_zone_paths(ctx);
     ctx.all_files
         .iter()
-        .filter(|file| is_typescript_surface(file))
+        .filter(|file| is_typescript_surface(file, &zone_paths))
         .collect()
 }
 
-fn is_typescript_surface(file: &FileInfo) -> bool {
+fn is_typescript_surface(file: &FileInfo, generated_zone_paths: &[String]) -> bool {
     let lower = file.rel_path.to_ascii_lowercase();
     if scan::is_generated_or_reference_path(&file.rel_path)
         || scan::is_test_or_example_path(&file.rel_path)
         || lower.starts_with("fixtures/")
         || lower.contains("/fixtures/")
+    {
+        return false;
+    }
+    if generated_zone_paths
+        .iter()
+        .any(|zone| crate::audit::helpers::path_matches_prefix(&file.rel_path, zone))
     {
         return false;
     }

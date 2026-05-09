@@ -114,16 +114,23 @@ fn hard_findings(ctx: &AuditContext) -> Vec<LanguageFinding> {
 }
 
 fn sql_files(ctx: &AuditContext) -> Vec<FileInfo> {
+    let zone_paths = crate::audit::helpers::generated_zone_paths(ctx);
     ctx.all_files
         .iter()
-        .filter(|file| is_sql_candidate(file))
+        .filter(|file| is_sql_candidate(file, &zone_paths))
         .cloned()
         .collect()
 }
 
-fn is_sql_candidate(file: &FileInfo) -> bool {
+fn is_sql_candidate(file: &FileInfo, generated_zone_paths: &[String]) -> bool {
     let rel = file.rel_path.to_ascii_lowercase();
     if file.is_generated || is_excluded_path(&rel) {
+        return false;
+    }
+    if generated_zone_paths
+        .iter()
+        .any(|zone| crate::audit::helpers::path_matches_prefix(&file.rel_path, zone))
+    {
         return false;
     }
     matches!(file.suffix.as_str(), ".sql" | ".pgsql" | ".psql") || rel.ends_with("pg_hba.conf")
