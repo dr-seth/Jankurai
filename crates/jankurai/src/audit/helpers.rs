@@ -515,11 +515,44 @@ fn tool_cost_budget_applicable(ctx: &AuditContext) -> bool {
 }
 
 pub fn is_high_risk_repo(ctx: &AuditContext) -> bool {
-    product_code_files(ctx).iter().any(|f| f.is_code)
-        || ctx
-            .all_files
-            .iter()
-            .any(|f| ["package.json", "Cargo.toml", "go.mod"].contains(&f.name.as_str()))
+    if product_code_files(ctx).iter().any(|f| f.is_code) {
+        return true;
+    }
+    let manifests: Vec<&FileInfo> = ctx
+        .all_files
+        .iter()
+        .filter(|f| ["package.json", "Cargo.toml", "go.mod"].contains(&f.name.as_str()))
+        .collect();
+    if manifests.is_empty() {
+        return false;
+    }
+    // If every manifest in the inventory is gitignored (e.g. a runtime install
+    // directory like `.jekko/package.json`), don't treat the repo as high-risk
+    // for missing supply-chain tooling on its behalf.
+    let ignored = build_repo_gitignore(&ctx.root);
+    manifests
+        .iter()
+        .any(|file| !path_is_gitignored(&ignored, &file.rel_path))
+}
+
+fn build_repo_gitignore(root: &std::path::Path) -> Option<ignore::gitignore::Gitignore> {
+    let candidate = root.join(".gitignore");
+    if !candidate.exists() {
+        return None;
+    }
+    let mut builder = ignore::gitignore::GitignoreBuilder::new(root);
+    if builder.add(&candidate).is_some() {
+        return None;
+    }
+    builder.build().ok()
+}
+
+fn path_is_gitignored(ignored: &Option<ignore::gitignore::Gitignore>, rel_path: &str) -> bool {
+    let Some(matcher) = ignored.as_ref() else {
+        return false;
+    };
+    let stripped = rel_path.trim_start_matches('/');
+    matcher.matched(stripped, false).is_ignore() || matcher.matched(stripped, true).is_ignore()
 }
 
 pub fn has_contract_surface(ctx: &AuditContext) -> bool {
