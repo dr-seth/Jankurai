@@ -515,13 +515,51 @@ pub fn fallback_hits(ctx: &AuditContext) -> Vec<FindingHit> {
     }
 }
 
+/// Matches an `api_key:` style assignment. Capture group 1 holds the right-hand-side
+/// value so [`secret_assignment_value_is_secret_like`] can decide whether the value is
+/// a real literal credential or a bare identifier path (e.g. `model.api_key`,
+/// `config.token`) that should not flag.
+static SECRET_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r#"(?i)\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|private[_-]?key|password|secret)\b\s*[:=]\s*(.+)$"#,
+    )
+    .expect("secret regex is valid")
+});
+
+const HIGH_ENTROPY_PREFIXES: &[&str] = &["AKIA", "ghp_", "sk-", "xoxb-", "xoxa-", "xoxp-", "eyJ"];
+
+/// Returns true when an assignment RHS looks like a real literal credential.
+///
+/// Accepts:
+/// - a quoted string ('"', "'", "`")
+/// - any of `HIGH_ENTROPY_PREFIXES` after stripping leading quotes/whitespace
+///
+/// Rejects bare identifier paths like `model.api_key` or `config.token`.
+pub fn secret_assignment_value_is_secret_like(value: &str) -> bool {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    let first = trimmed.as_bytes()[0];
+    if first == b'"' || first == b'\'' || first == b'`' {
+        // Inspect the string contents to catch empty placeholders like "" or '' that should
+        // not flag, and short test fixtures like "x".
+        let close = first;
+        let body = &trimmed[1..];
+        let end = body
+            .as_bytes()
+            .iter()
+            .position(|&b| b == close)
+            .unwrap_or(body.len());
+        let content = &body[..end];
+        return content.len() >= 8;
+    }
+    HIGH_ENTROPY_PREFIXES
+        .iter()
+        .any(|prefix| trimmed.starts_with(prefix))
+}
+
 pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    static SECRET_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
-        Regex::new(
-            r#"(?i)\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|private[_-]?key|password|secret)\b\s*[:=]\s*['"]?[A-Za-z0-9_+/=.-]{8,}"#,
-        )
-        .expect("secret regex is valid")
-    });
     let mut hits = vec![];
     for file in &ctx.all_files {
         if file.is_generated
@@ -555,8 +593,17 @@ pub fn secret_hits(ctx: &AuditContext) -> Vec<FindingHit> {
                     line.contains(needle)
                 }
             });
+            let assignment_match = SECRET_ASSIGNMENT.captures(line).and_then(|caps| {
+                caps.get(1).and_then(|rhs| {
+                    if secret_assignment_value_is_secret_like(rhs.as_str()) {
+                        Some(())
+                    } else {
+                        None
+                    }
+                })
+            });
             if strong_token
-                || SECRET_ASSIGNMENT.is_match(line)
+                || assignment_match.is_some()
                 || (line.to_ascii_lowercase().contains("eyj")
                     && line.to_ascii_lowercase().contains("token"))
             {
@@ -2074,6 +2121,70 @@ mod tests {
             hits.is_empty(),
             "nearby allow comment should suppress input_boundary_hits, got {} hits",
             hits.len()
+        );
+    }
+
+    #[test]
+    fn secret_assignment_skips_bare_identifier_paths() {
+        assert!(!secret_assignment_value_is_secret_like("model.api_key"));
+        assert!(!secret_assignment_value_is_secret_like("config.token"));
+        assert!(!secret_assignment_value_is_secret_like("env.API_KEY"));
+        assert!(!secret_assignment_value_is_secret_like("${API_KEY}"));
+    }
+
+    #[test]
+    fn secret_assignment_accepts_literal_string_secrets() {
+        assert!(secret_assignment_value_is_secret_like(
+            "\"sk-proj-AAAAAAAA\""
+        ));
+        assert!(secret_assignment_value_is_secret_like(
+            "\"eyJhbGciOiJIUzI1NiJ9.AAAA.BBB\""
+        ));
+        assert!(secret_assignment_value_is_secret_like("'abcdefgh12345678'"));
+    }
+
+    #[test]
+    fn secret_assignment_accepts_high_entropy_unquoted_prefixes() {
+        assert!(secret_assignment_value_is_secret_like("AKIAEXAMPLEKEY"));
+        assert!(secret_assignment_value_is_secret_like("ghp_AAAAAAAA"));
+        assert!(secret_assignment_value_is_secret_like("sk-test-AAAAAAAA"));
+        assert!(secret_assignment_value_is_secret_like(
+            "eyJhbGciOiJIUzI1NiJ9"
+        ));
+    }
+
+    #[test]
+    fn secret_hits_skips_identifier_assignment() {
+        // `api_key: model.api_key` is a parameter forwarding pattern, not a literal credential.
+        let text = "fn build(model: &Model) -> Settings {\n    Settings { api_key: model.api_key.clone() }\n}\n";
+        let ctx = make_ctx(vec![product_file("apps/api/src/build.rs", text)]);
+        let hits = secret_hits(&ctx);
+        assert!(
+            hits.is_empty(),
+            "bare identifier RHS should not flag, got {} hits",
+            hits.len()
+        );
+    }
+
+    #[test]
+    fn secret_hits_flags_literal_string_credential() {
+        let text = "let cfg = Cfg { api_key: \"sk-proj-AAAAAAAAAAAA\" };\n";
+        let ctx = make_ctx(vec![product_file("apps/api/src/cfg.rs", text)]);
+        let hits = secret_hits(&ctx);
+        assert!(
+            !hits.is_empty(),
+            "literal string credential should flag HLT-010"
+        );
+    }
+
+    #[test]
+    fn secret_hits_flags_jwt_access_token() {
+        let text = "let cfg = Cfg { access_token: \"eyJhbGciOiJIUzI1NiJ9.AAAA.BBBB\" };\n";
+        let ctx = make_ctx(vec![product_file("apps/api/src/cfg.rs", text)]);
+        let hits = secret_hits(&ctx);
+        assert!(
+            !hits.is_empty(),
+            "literal JWT access_token should flag HLT-010"
         );
     }
 }
