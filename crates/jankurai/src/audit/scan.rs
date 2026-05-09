@@ -1245,6 +1245,7 @@ fn is_migration_sql_file(file: &FileInfo, ctx: &AuditContext) -> bool {
         || p.starts_with("migrations/")
         || p.starts_with("crates/adapters/")
         || p.starts_with("apps/api/migrations/")
+        || matches_monorepo_migration_segment(p)
     {
         return true;
     }
@@ -1264,6 +1265,25 @@ fn is_migration_sql_file(file: &FileInfo, ctx: &AuditContext) -> bool {
         }
     }
     false
+}
+
+/// Recognizes monorepo migration paths that are not covered by the simple
+/// prefix list. Matches `packages/<name>/migration[s]/`, `apps/<name>/migration[s]/`,
+/// and any `**/db/migrations/...` path.
+fn matches_monorepo_migration_segment(rel_path: &str) -> bool {
+    if let Some(stripped) = rel_path
+        .strip_prefix("packages/")
+        .or_else(|| rel_path.strip_prefix("apps/"))
+    {
+        let mut parts = stripped.splitn(3, '/');
+        let _name = parts.next();
+        if let Some(segment) = parts.next() {
+            if segment == "migration" || segment == "migrations" {
+                return true;
+            }
+        }
+    }
+    rel_path.contains("/db/migrations/")
 }
 
 pub fn destructive_sql_hits(ctx: &AuditContext) -> Vec<FindingHit> {
