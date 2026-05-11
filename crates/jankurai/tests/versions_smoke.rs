@@ -28,7 +28,7 @@ standard = "jankurai"
 standard_version = "0.8.0"
 paper_edition = "2026.05-ed8"
 auditor_version = "{ver}"
-schema_version = "1.6.1"
+schema_version = "1.7.0"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 
 [[artifact]]

@@ -44,6 +44,7 @@ For this workspace:
 - `just check` runs quality, strict CI-profile security evidence, conformance, final score, and paper build.
 - `jankurai doctor` and `jankurai init` write receipts under `target/jankurai/receipts/` for handoff evidence.
 - `jankurai kickoff` is the no-write intake step that precedes `context-pack`, `prove`, and `witness`; it does not replace proof lanes and should not claim merge readiness.
+- `jankurai migrate verify-prompt` and `jankurai migrate slice-risk` are no-write migration evidence commands. The prompt verifier must classify ambiguous module or call-site claims as `review` instead of inventing certainty; the slice-risk scanner should surface blockers and recommendations without executing cutover behavior.
 - `jankurai prove` executes a proof-plan JSON. Commands must match `agent/proof-lanes.toml` and `agent/test-map.json` after whitespace normalization, unless `--allow-unsigned-commands` is passed together with `JANKURAI_ALLOW_UNSIGNED_PROOF_COMMANDS=1` (emergency only; keep CI on the default allowlist).
 - `jankurai proof-verify` compares a proof plan and evidence index against the current repo state and writes a tamper-evident verification envelope.
 - `jankurai proofbind verify` writes `target/jankurai/proofbind/surface-witness.json`, `target/jankurai/proofbind/obligations.json`, and `target/jankurai/proofbind/proofbind.md`. First rollout is advisory: missing semantic proof is reported as repair work unless `--mode required` is used.

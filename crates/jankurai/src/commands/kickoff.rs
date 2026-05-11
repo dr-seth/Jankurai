@@ -160,8 +160,6 @@ pub fn build_kickoff(
         &generated_zone_touches,
     );
     let mut implementation_steps = build_implementation_steps(
-        repo,
-        intent,
         &changed_paths,
         &route_decisions,
         &generated_zone_touches,
@@ -362,9 +360,7 @@ fn build_ownership_boundaries(
         .map(|touch| touch.path.clone())
         .collect();
     for decision in route_decisions {
-        let entry = grouped
-            .entry(decision.owner.clone())
-            .or_insert_with(OwnershipBoundaryBuilder::default);
+        let entry = grouped.entry(decision.owner.clone()).or_default();
         push_unique(&mut entry.paths, decision.path.clone());
         push_unique(&mut entry.owner_routes, decision.owner_route.clone());
         if decision.test_command != "unmapped" {
@@ -531,8 +527,6 @@ fn build_clarifying_questions(
 }
 
 fn build_implementation_steps(
-    _repo: &Path,
-    _intent: &str,
     changed_paths: &[String],
     route_decisions: &[KickoffRouteDecision],
     generated_zone_touches: &[GeneratedZoneTouch],

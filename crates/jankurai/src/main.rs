@@ -852,6 +852,56 @@ struct MigrateArgs {
     /// Target stack for migration (default: rust-ts-postgres)
     #[arg(long, default_value = "rust-ts-postgres")]
     target: String,
+    #[command(subcommand)]
+    command: Option<MigrateCommand>,
+}
+
+#[derive(Subcommand, Debug)]
+enum MigrateCommand {
+    VerifyPrompt(MigrateVerifyPromptArgs),
+    SliceRisk(MigrateSliceRiskArgs),
+}
+
+#[derive(Args, Debug)]
+struct MigrateVerifyPromptArgs {
+    #[arg(value_name = "DOC")]
+    document: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/migration-prompt-verification.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/migration-prompt-verification.md"
+    )]
+    md: String,
+    #[arg(long)]
+    strict: bool,
+}
+
+#[derive(Args, Debug)]
+struct MigrateSliceRiskArgs {
+    #[arg(long, value_name = "PATH")]
+    plan: String,
+    #[arg(long, value_name = "SLICE_ID")]
+    slice_id: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/migration-slice-risk.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/migration-slice-risk.md"
+    )]
+    md: String,
+    #[arg(long)]
+    check_env: bool,
 }
 
 #[derive(Args, Debug)]
@@ -1661,20 +1711,41 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
-        Some(Commands::Migrate(args)) => {
-            let mode = if args.analyze {
-                migrate::MigrateMode::Analyze
-            } else {
-                migrate::MigrateMode::Plan
-            };
-            migrate::run(migrate::MigrateArgs {
-                repo: args.repo,
-                out: args.out,
-                md: args.md,
-                mode,
-                target: args.target,
-            })?;
-        }
+        Some(Commands::Migrate(args)) => match args.command {
+            Some(MigrateCommand::VerifyPrompt(command)) => {
+                migrate::run_prompt_verify(migrate::PromptVerifyArgs {
+                    repo: args.repo,
+                    document: command.document,
+                    out: Some(command.out),
+                    md: Some(command.md),
+                    strict: command.strict,
+                })?;
+            }
+            Some(MigrateCommand::SliceRisk(command)) => {
+                migrate::run_slice_risk(migrate::SliceRiskArgs {
+                    repo: args.repo,
+                    plan: command.plan,
+                    slice_id: command.slice_id,
+                    out: Some(command.out),
+                    md: Some(command.md),
+                    check_env: command.check_env,
+                })?;
+            }
+            None => {
+                let mode = if args.analyze {
+                    migrate::MigrateMode::Analyze
+                } else {
+                    migrate::MigrateMode::Plan
+                };
+                migrate::run(migrate::MigrateArgs {
+                    repo: args.repo,
+                    out: args.out,
+                    md: args.md,
+                    mode,
+                    target: args.target,
+                })?;
+            }
+        },
         Some(Commands::Bench(args)) => {
             bench::run(bench::BenchArgs {
                 repo: args.repo,

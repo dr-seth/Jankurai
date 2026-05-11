@@ -172,14 +172,14 @@ custom_note = "keep"
 standard_version = "0.8.0"
 paper_edition = "2026.05-ed8"
 auditor_version = "0.8.12"
-schema_version = "1.6.1"
+schema_version = "1.7.0"
 target_stack = "rust-ts-vite-react-postgres-bounded-python"
 "#;
 
         let merged = merge_standard_version_toml(existing, template).unwrap();
 
         assert!(merged.contains("auditor_version = \"0.8.12\""));
-        assert!(merged.contains("schema_version = \"1.6.1\""));
+        assert!(merged.contains("schema_version = \"1.7.0\""));
         assert!(merged.contains("custom_note = \"keep\""));
     }
 

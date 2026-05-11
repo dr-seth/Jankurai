@@ -30,6 +30,24 @@ Produces a `MigrationPlan` with concrete slices derived from the analysis:
 jankurai migrate . --out target/jankurai/migration-plan.json --md target/jankurai/migration-plan.md
 ```
 
+### Verify Prompt Claims
+
+Verifies migration prompt claims against repo-local evidence without writing to the repository:
+
+```bash
+jankurai migrate verify-prompt docs/migration-intake.md --out target/jankurai/migration-prompt-verification.json --md target/jankurai/migration-prompt-verification.md
+```
+
+Use `--strict` when you want invalid claims to produce a nonzero exit code.
+
+### Slice Risk
+
+Runs a static preflight over one planned slice and reports environment and cross-runtime blockers:
+
+```bash
+jankurai migrate slice-risk --plan target/jankurai/migration-plan.json --slice-id model-port --out target/jankurai/migration-slice-risk.json --md target/jankurai/migration-slice-risk.md
+```
+
 ## Stack Detection
 
 The engine detects the following from filesystem heuristics:

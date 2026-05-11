@@ -8,6 +8,29 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 No user-facing changes yet.
 
+## 0.8.16 - 2026-05-11
+
+Issue #3 accepted scope: ship no-write migration evidence commands that help agents verify migration prompt claims and preflight selected migration slices before implementation. Deferred items remain out of scope: `jankurai ai audit`, full call-site inventory, postmortem feedback-loop automation, traffic mirroring, and cutover automation.
+
+### Added
+
+- `jankurai migrate verify-prompt <doc>` for schema-backed, no-write prompt claim verification before agents edit code. The command verifies `path:line`, `module::symbol`, class/base, and LLM-call claims, writes JSON/Markdown evidence, and remains advisory by default.
+- `jankurai migrate slice-risk --plan <plan.json> --slice-id <id>` for static preflight of the selected migration slice. The command scans selected slice metadata and selected slice files, emits risk signals, and writes JSON/Markdown evidence without executing cutover behavior.
+- `schemas/migration-prompt-verification.schema.json` and `schemas/migration-slice-risk.schema.json` for the new migration evidence envelopes under schema version `1.7.0`.
+- CI now runs the migration prompt-verification and slice-risk fixture tests by name after the language bad-behavior fixture lane.
+
+### Fixed
+
+- Hardened prompt evidence path handling so missing, bad, traversal, unreadable, non-text, directory, and repo-escaping symlink paths become claim-level invalid results instead of command-wide crashes or unsafe reads.
+- Tightened prompt evidence heuristics so ambiguous module evidence, broad symbol-only matches, comment/string-only evidence, Rust-like class/base uncertainty, and multiple LLM call sites become `review` instead of false certainty.
+- Scoped `slice-risk` to selected slice files when `allowed_paths` are present. Missing selected paths now produce `slice-path-missing` review signals instead of falling back to whole-repo noise.
+- Split signing/HMAC handling so hardcoded source-level secret/signing behavior remains high/blocking while prose prerequisites and env-presence checks remain review-only. `--check-env` records presence only and never prints values.
+
+### Changed
+
+- Bumped the auditor/action package release to `0.8.16`; standard compatibility remains `0.8.0`, report schema remains `1.7.0`, and paper edition remains `2026.05-ed8`.
+- Updated release surfaces across `VERSION`, Cargo metadata, the installed template manifest, UX package metadata, README action examples, version tests, and changelog references.
+
 ## 0.8.14 - 2026-05-10
 
 ### Added

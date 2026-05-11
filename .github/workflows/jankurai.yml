@@ -133,6 +133,9 @@ jobs:
       - name: Language bad-behavior fixtures
         run: cargo test -p jankurai --test language_bad_behavior
 
+      - name: Migration evidence fixtures
+        run: cargo test -p jankurai --test migration_prompt_verify --test migration_slice_risk
+
       - name: Final jankurai audit
         run: |
           jankurai audit . \
@@ -179,3 +182,7 @@ jobs:
             target/jankurai/ux-qa.json
             target/jankurai/ux-qa-server.log
             target/jankurai/security/evidence.json
+            target/jankurai/migration-prompt-verification.json
+            target/jankurai/migration-prompt-verification.md
+            target/jankurai/migration-slice-risk.json
+            target/jankurai/migration-slice-risk.md

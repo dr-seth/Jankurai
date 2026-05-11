@@ -489,9 +489,7 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert!(kickoff_schema["properties"]
         .get("forbidden_paths")
         .is_some());
-    assert!(kickoff_schema["properties"]
-        .get("proof_lanes")
-        .is_some());
+    assert!(kickoff_schema["properties"].get("proof_lanes").is_some());
 
     let kickoff = serde_json::json!({
         "schema_version": "1.0.0",
@@ -1092,7 +1090,7 @@ fn vibe_coverage_schemas_parse_and_source_validates() {
     );
     assert_eq!(
         source_schema["properties"]["schema_version"]["const"],
-        "1.6.1"
+        "1.7.0"
     );
     let issue_required = source_schema["$defs"]["issue"]["required"]
         .as_array()
@@ -1502,4 +1500,66 @@ fn agent_control_plane_schemas_parse_and_repo_fixtures_validate() {
     jankurai::validation::validate_standard_version_toml_text(&repo, &standard).unwrap();
     let audit = fs::read_to_string(repo.join("agent/audit-policy.toml")).unwrap();
     jankurai::validation::validate_audit_policy_toml_text(&repo, &audit).unwrap();
+}
+
+#[test]
+fn migration_prompt_verification_schema_validates() {
+    let repo = repo_root();
+    let value = serde_json::json!({
+        "schema_version": "1.0.0",
+        "command": "jankurai migrate verify-prompt",
+        "status": "complete",
+        "decision": "pass",
+        "repo": ".",
+        "document": "prompt.md",
+        "claims_total": 1,
+        "claims_verified": 1,
+        "claims_invalid": 0,
+        "claims_review": 0,
+        "claims": [{
+            "claim_type": "path-line",
+            "claim": "src/lib.rs:1",
+            "decision": "verified",
+            "evidence": ["src/lib.rs:1"],
+            "note": "ok"
+        }]
+    });
+    validation::validate_value(&repo, ArtifactSchema::MigrationPromptVerification, &value).unwrap();
+}
+
+#[test]
+fn migration_slice_risk_schema_validates() {
+    let repo = repo_root();
+    let value = serde_json::json!({
+        "schema_version": "1.0.0",
+        "command": "jankurai migrate slice-risk",
+        "status": "complete",
+        "decision": "block",
+        "repo": ".",
+        "plan": "plan.json",
+        "slice_id": "demo",
+        "slice_status": "candidate",
+        "risk_level": "high",
+        "check_env": true,
+        "signals_total": 1,
+        "critical_signals": 1,
+        "high_signals": 0,
+        "medium_signals": 0,
+        "low_signals": 0,
+        "env_checks": [{
+            "name": "MODEL_HMAC_KEY",
+            "present": false
+        }],
+        "signals": [{
+            "kind": "torch-load-without-weights-only",
+            "severity": "critical",
+            "decision": "block",
+            "evidence": ["src/model.py:10"],
+            "recommendation": "add explicit weights_only=True",
+            "path": "src/model.py",
+            "line": 10
+        }],
+        "recommendations": ["add shadow/equivalence gate before cutover"]
+    });
+    validation::validate_value(&repo, ArtifactSchema::MigrationSliceRisk, &value).unwrap();
 }
