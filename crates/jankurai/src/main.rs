@@ -3,8 +3,8 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, badge, bench, cell, certify, conformance, context_pack, doctor, exceptions,
-    govern, history, hooks, init, migrate, optimize, paper, proof, proofbind, proofmark, publish,
-    registry, repair, repair_plan, rules, rust, score, security, update, vibe, witness,
+    govern, history, hooks, init, kickoff, migrate, optimize, paper, proof, proofbind, proofmark,
+    publish, registry, repair, repair_plan, rules, rust, score, security, update, vibe, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -40,6 +40,7 @@ enum Commands {
     Upgrade(UpgradeArgs),
     Doctor(DoctorArgs),
     ContextPack(ContextPackArgs),
+    Kickoff(KickoffArgs),
     Witness(WitnessArgs),
     Conformance {
         #[command(subcommand)]
@@ -521,6 +522,34 @@ struct ContextPackArgs {
     out: Option<String>,
     #[arg(long, value_name = "PATH")]
     md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct KickoffArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "TEXT")]
+    intent: String,
+    #[arg(long, value_name = "PATH")]
+    changed: Vec<PathBuf>,
+    #[arg(long, value_name = "REF")]
+    changed_from: Option<String>,
+    #[arg(long, default_value = "generic", value_parser = ["codex", "claude", "cursor", "generic"])]
+    agent: String,
+    #[arg(long, default_value_t = 6000)]
+    max_tokens: usize,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/kickoff.json"
+    )]
+    out: String,
+    #[arg(
+        long,
+        value_name = "PATH",
+        default_value = "target/jankurai/kickoff.md"
+    )]
+    md: String,
 }
 
 #[derive(Args, Debug)]
@@ -1408,6 +1437,18 @@ fn main() -> anyhow::Result<()> {
                 changed: args.changed,
                 max_tokens: args.max_tokens,
                 agent: args.agent,
+                out: args.out,
+                md: args.md,
+            })?;
+        }
+        Some(Commands::Kickoff(args)) => {
+            kickoff::run(kickoff::KickoffArgs {
+                repo: args.repo,
+                intent: args.intent,
+                changed: args.changed,
+                changed_from: args.changed_from,
+                agent: args.agent,
+                max_tokens: args.max_tokens,
                 out: args.out,
                 md: args.md,
             })?;

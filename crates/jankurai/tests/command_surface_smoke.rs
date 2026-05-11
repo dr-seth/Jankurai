@@ -40,6 +40,32 @@ fn run_command(repo: &PathBuf, args: &[&str]) -> (serde_json::Value, String) {
     (json, md_text)
 }
 
+fn run_kickoff(
+    repo: &PathBuf,
+    intent: &str,
+    changed: &[&str],
+    extra_args: &[&str],
+) -> (serde_json::Value, String) {
+    let out_dir = tempdir().unwrap();
+    let json_path = out_dir.path().join("kickoff.json");
+    let md_path = out_dir.path().join("kickoff.md");
+    let mut cmd = Command::new(binary_path());
+    cmd.arg("kickoff").arg(repo).arg("--intent").arg(intent);
+    for path in changed {
+        cmd.arg("--changed").arg(path);
+    }
+    for arg in extra_args {
+        cmd.arg(arg);
+    }
+    cmd.arg("--out").arg(&json_path).arg("--md").arg(&md_path);
+    let status = cmd.status().unwrap();
+    assert!(status.success(), "kickoff failed: {:?}", cmd);
+    let json_text = fs::read_to_string(&json_path).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json_text).unwrap();
+    let md_text = fs::read_to_string(&md_path).unwrap();
+    (json, md_text)
+}
+
 fn run_repair_with_draft(
     repo: &PathBuf,
     plan_path: &PathBuf,
@@ -195,6 +221,151 @@ fn new_planner_commands_emit_stable_json_and_markdown() {
     fs::remove_file(&plan_path).unwrap();
 
     assert_eq!(fs::read_dir(repo.path()).unwrap().count(), 0);
+}
+
+#[test]
+fn kickoff_help_is_available() {
+    let output = Command::new(binary_path())
+        .arg("kickoff")
+        .arg("--help")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("jankurai kickoff"), "{stdout}");
+    assert!(stdout.contains("--intent"), "{stdout}");
+    assert!(stdout.contains("target/jankurai/kickoff.json"), "{stdout}");
+}
+
+#[test]
+fn kickoff_minimal_run_emits_no_write_plan_and_questions() {
+    let repo = tempdir().unwrap();
+    let (kickoff, md) = run_kickoff(
+        &repo.path().to_path_buf(),
+        "Add a README clarification",
+        &[],
+        &[],
+    );
+    assert_eq!(kickoff["command"], "jankurai kickoff");
+    assert_eq!(kickoff["intent"], "Add a README clarification");
+    assert!(kickoff["changed_paths"].as_array().unwrap().is_empty());
+    assert!(kickoff["route_decisions"].as_array().unwrap().is_empty());
+    assert!(!kickoff["clarifying_questions"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert!(kickoff["next_commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|cmd| cmd.as_str().unwrap().contains("context-pack")));
+    assert!(kickoff["expected_receipts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|path| path == "target/jankurai/kickoff.json"));
+    assert!(md.starts_with("# jankurai Kickoff"));
+    assert!(md.contains("## Forbidden paths"));
+    assert!(md.contains("## Proof lanes"));
+    validation::validate_value(&repo_root(), ArtifactSchema::Kickoff, &kickoff).unwrap();
+}
+
+#[test]
+fn kickoff_generated_zone_touches_require_source_regeneration() {
+    let repo = tempdir().unwrap();
+    fs::create_dir_all(repo.path().join("agent")).unwrap();
+    fs::write(
+        repo.path().join("agent/generated-zones.toml"),
+        r#"[[zone]]
+path = "generated/openapi.json"
+source = "contracts/openapi.yaml"
+command = "cargo run -p api-gen -- contracts/openapi.yaml --out generated/openapi.json"
+read_only = true
+write_policy = "generator_only"
+"#,
+    )
+    .unwrap();
+
+    let (kickoff, _md) = run_kickoff(
+        &repo.path().to_path_buf(),
+        "Update generated OpenAPI output",
+        &["generated/openapi.json"],
+        &[],
+    );
+    let route_decisions = kickoff["route_decisions"].as_array().unwrap();
+    assert_eq!(route_decisions.len(), 1);
+    assert_eq!(route_decisions[0]["decision"], "read-only");
+    assert_eq!(route_decisions[0]["generated_zone"], true);
+    let stop_conditions = kickoff["stop_conditions"].as_array().unwrap();
+    assert!(stop_conditions.iter().any(|item| item
+        .as_str()
+        .unwrap()
+        .contains("updated before regenerating")));
+    let touches = kickoff["generated_zone_touches"].as_array().unwrap();
+    assert_eq!(touches.len(), 1);
+    assert_eq!(touches[0]["source"], "contracts/openapi.yaml");
+    assert!(touches[0]["reason"]
+        .as_str()
+        .unwrap()
+        .contains("regenerated"));
+    validation::validate_value(&repo_root(), ArtifactSchema::Kickoff, &kickoff).unwrap();
+}
+
+#[test]
+fn kickoff_high_risk_unmapped_path_asks_for_the_missing_lane() {
+    let repo = tempdir().unwrap();
+    fs::create_dir_all(repo.path().join("agent")).unwrap();
+    fs::write(
+        repo.path().join("agent/owner-map.json"),
+        r#"{"workspace":"fixture","owners":{"db/":"db","target/":"workspace"}}"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("agent/test-map.json"),
+        r#"{"workspace":"fixture","tests":{"db/":{"command":"cargo test -p jankurai db-proof","purpose":"db proof"}}}"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("agent/proof-lanes.toml"),
+        r#"[[lane]]
+name = "audit"
+command = "cargo test -p jankurai audit"
+purpose = "fixture proof"
+"#,
+    )
+    .unwrap();
+
+    let (kickoff, _md) = run_kickoff(
+        &repo.path().to_path_buf(),
+        "Update the database migration",
+        &["db/migrations/001.sql"],
+        &[],
+    );
+    let route_decisions = kickoff["route_decisions"].as_array().unwrap();
+    assert_eq!(route_decisions.len(), 1);
+    assert_eq!(route_decisions[0]["decision"], "human-review");
+    assert_eq!(route_decisions[0]["proof_lane"], "unmapped");
+
+    let questions = kickoff["clarifying_questions"].as_array().unwrap();
+    assert!(
+        questions.iter().any(|question| {
+            question["question"]
+                .as_str()
+                .unwrap()
+                .contains("Which proof lane should own `db/migrations/001.sql`?")
+        }),
+        "expected a missing-lane question: {questions:?}"
+    );
+    assert!(
+        questions.iter().all(|question| {
+            !question["question"]
+                .as_str()
+                .unwrap()
+                .contains("through the `unmapped` proof lane")
+        }),
+        "question should not ask the user to confirm an unmapped proof lane: {questions:?}"
+    );
+    validation::validate_value(&repo_root(), ArtifactSchema::Kickoff, &kickoff).unwrap();
 }
 
 #[test]

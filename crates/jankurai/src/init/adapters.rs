@@ -43,6 +43,11 @@ pub const ADAPTER_PATHS: &[&str] = &[
     ".agents/agents.md",
     ".agents/skills/jankurai/SKILL.md",
     ".agents/workflows/jankurai-audit.md",
+    ".agents/workflows/jankurai-context-pack.md",
+    ".agents/workflows/jankurai-kickoff.md",
+    ".agents/workflows/jankurai-prove.md",
+    ".agents/workflows/jankurai-repair-plan.md",
+    ".agents/workflows/jankurai-witness.md",
     ".claude/skills/jankurai/SKILL.md",
 ];
 
@@ -150,19 +155,32 @@ pub fn verify_adapters(repo: &Path) -> Result<Vec<AdapterFailure>> {
             continue;
         }
         let text = fs::read_to_string(&full).with_context(|| format!("read {}", full.display()))?;
+        let requires_master_plan_routing =
+            *path != ".github/instructions/jankurai-python-ai.instructions.md";
         if !text.contains("AGENTS.md")
             || !text.contains("agent/JANKURAI_STANDARD.md")
-            || !text.contains(master_plan_pointer())
-            || !text.contains(planner_protocol_pointer())
-            || !text.contains("tips/phases/00-phase-index.md")
-            || !text.contains("tips/phases/logs/")
-            || !text.contains("explicit MASTER_PLAN/phase")
+            || (requires_master_plan_routing && !text.contains(master_plan_pointer()))
+            || (requires_master_plan_routing && !text.contains(planner_protocol_pointer()))
+            || (requires_master_plan_routing && !text.contains("tips/phases/00-phase-index.md"))
+            || (requires_master_plan_routing && !text.contains("tips/phases/logs/"))
+            || (requires_master_plan_routing && !text.contains("explicit MASTER_PLAN/phase"))
         {
             failures.push(AdapterFailure {
                 path: (*path).into(),
-                problem:
-                    "adapter lacks canonical AGENTS.md, standard, conditional MASTER_PLAN routing, planner protocol, phase index, and phase log pointers"
-                        .into(),
+                problem: if requires_master_plan_routing {
+                    "adapter lacks canonical AGENTS.md, standard, conditional MASTER_PLAN routing, planner protocol, phase index, and phase log pointers".into()
+                } else {
+                    "python-ai adapter lacks canonical AGENTS.md or standard pointer".into()
+                },
+            });
+        }
+        if !requires_master_plan_routing
+            && (!text.contains("Do not create or expand Python")
+                || !text.contains("product truth, authorization, repo tools, proof lanes, backend glue, or direct production DB writes"))
+        {
+            failures.push(AdapterFailure {
+                path: (*path).into(),
+                problem: "python-ai adapter is missing the Python exception policy".into(),
             });
         }
         if text.contains(GENERATED_MARKER) && !has_current_startup_request(&text) {
@@ -226,6 +244,11 @@ fn selected_adapter_paths(ide: &str) -> Vec<&'static str> {
                 paths.push(".agents/agents.md");
                 paths.push(".agents/skills/jankurai/SKILL.md");
                 paths.push(".agents/workflows/jankurai-audit.md");
+                paths.push(".agents/workflows/jankurai-context-pack.md");
+                paths.push(".agents/workflows/jankurai-kickoff.md");
+                paths.push(".agents/workflows/jankurai-prove.md");
+                paths.push(".agents/workflows/jankurai-repair-plan.md");
+                paths.push(".agents/workflows/jankurai-witness.md");
             }
             _ => {}
         }

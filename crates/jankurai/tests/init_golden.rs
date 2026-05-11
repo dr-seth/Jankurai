@@ -1,5 +1,5 @@
 use jankurai::init::profiles::BUNDLED_PROFILE_IDS;
-use jankurai::{audit, commands::init};
+use jankurai::{audit, commands::init, init::adapters};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -1186,13 +1186,85 @@ fn init_generated_templates_are_external_repo_safe() {
 }
 
 #[test]
+fn init_adapter_sync_includes_command_workflows() {
+    let dir = tempdir().unwrap();
+
+    let all_plan = adapters::adapter_plan(dir.path(), "all");
+    let all_paths: Vec<_> = all_plan.iter().map(|action| action.path.as_str()).collect();
+    for expected in [
+        ".agents/workflows/jankurai-kickoff.md",
+        ".agents/workflows/jankurai-context-pack.md",
+        ".agents/workflows/jankurai-prove.md",
+        ".agents/workflows/jankurai-witness.md",
+        ".agents/workflows/jankurai-repair-plan.md",
+    ] {
+        assert!(
+            all_paths.contains(&expected),
+            "missing {expected} from adapter plan"
+        );
+    }
+
+    let agents_plan = adapters::adapter_plan(dir.path(), "antigravity");
+    let agents_paths: Vec<_> = agents_plan
+        .iter()
+        .map(|action| action.path.as_str())
+        .collect();
+    for expected in [
+        ".agents/workflows/jankurai-kickoff.md",
+        ".agents/workflows/jankurai-context-pack.md",
+        ".agents/workflows/jankurai-prove.md",
+        ".agents/workflows/jankurai-witness.md",
+        ".agents/workflows/jankurai-repair-plan.md",
+    ] {
+        assert!(
+            agents_paths.contains(&expected),
+            "missing {expected} from antigravity plan"
+        );
+    }
+
+    adapters::write_adapters(dir.path(), "antigravity", true).unwrap();
+    for (rel, marker) in [
+        (
+            ".agents/workflows/jankurai-kickoff.md",
+            "jankurai kickoff . --intent",
+        ),
+        (
+            ".agents/workflows/jankurai-context-pack.md",
+            "jankurai context-pack . --changed",
+        ),
+        (
+            ".agents/workflows/jankurai-prove.md",
+            "jankurai prove . --changed",
+        ),
+        (
+            ".agents/workflows/jankurai-witness.md",
+            "jankurai witness . --changed-from",
+        ),
+        (
+            ".agents/workflows/jankurai-repair-plan.md",
+            "jankurai repair-plan . --from",
+        ),
+    ] {
+        let text = fs::read_to_string(dir.path().join(rel)).unwrap();
+        assert!(text.contains("jankurai generated adapter"), "{rel}: {text}");
+        assert!(text.contains("agent/JANKURAI_STANDARD.md"), "{rel}: {text}");
+        assert!(
+            text.contains("When a user provides a paper, release, implementation, or handoff plan in the conversation, treat that plan as the controlling plan."),
+            "{rel}: {text}"
+        );
+        assert!(text.contains("If jankurai is installed"), "{rel}: {text}");
+        assert!(text.contains(marker), "{rel}: {text}");
+    }
+}
+
+#[test]
 fn init_repairs_generated_skill_adapters_missing_frontmatter() {
     let dir = tempdir().unwrap();
     let skill = dir.path().join(".agents/skills/jankurai/SKILL.md");
     fs::create_dir_all(skill.parent().unwrap()).unwrap();
     fs::write(
         &skill,
-        "# jankurai\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\n",
+        "# jankurai\n\n<!-- jankurai generated adapter -->\nRead `AGENTS.md` first. Use `agent/JANKURAI_STANDARD.md` as the canonical jankurai standard.\nWhen a user provides a paper, release, implementation, or handoff plan in the conversation, treat that plan as the controlling plan. Do not route such plans through the separate local phase workflow unless the user explicitly names MASTER_PLAN phase work.\nFor explicit MASTER_PLAN/phase work only, read `agent/MASTER_PLAN.md`, then `tips/phases/00-phase-index.md`, then the active `tips/phases/*.md` phase file. Log explicit phase work in `tips/phases/logs/`.\nFor explicit MASTER_PLAN/phase planning only, follow `agent/MASTER_PLAN.md#detailed-planner-protocol`.\nRun the proof lane in `agent/test-map.json` for changed paths.\n",
     )
     .unwrap();
 

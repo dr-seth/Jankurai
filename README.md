@@ -77,9 +77,23 @@ Expected artifacts:
 
 Ratchet mode is impossible without an accepted baseline. Start in observe or advisory mode, generate reports under `target/jankurai/`, then copy a reviewed clean report to `agent/baselines/main.repo-score.json` in a dedicated baseline update. Ignored `agent/repo-score.*` files are local generated outputs, not trusted ratchet inputs.
 
+## Fresh Agent Kickoff
+
+When a new task arrives, start with the no-write intake command:
+
+```bash
+jankurai kickoff . \
+  --intent "<change request>" \
+  --out target/jankurai/kickoff.json \
+  --md target/jankurai/kickoff.md
+```
+
+`kickoff` is the first-hour handoff. It turns intent into a bounded plan with read-first files, ownership boundaries, proof lanes, generated-zone and forbidden-path constraints, clarifying questions, and expected receipts before any mutable command runs. If the task is still too broad, keep the response planning-safe and refine the intent before moving to `context-pack`.
+
 ## Daily Loop
 
 ```bash
+jankurai kickoff . --intent "<change request>" --out target/jankurai/kickoff.json --md target/jankurai/kickoff.md
 jankurai context-pack . --changed <path> --max-tokens 6000 --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
 jankurai prove . --changed <path> --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
 jankurai audit . --changed-fast --changed-from origin/main --json target/jankurai/audit-fast.json --md target/jankurai/audit-fast.md --timings-json target/jankurai/audit-timings.json
@@ -256,6 +270,7 @@ Jankurai works as a local control plane over a few repeatable surfaces:
 | Surface | Commands |
 | --- | --- |
 | Adoption and drift | `adopt`, `init`, `update`, `doctor` |
+| Intent intake | `kickoff` (no-write handoff, read-first files, ownership boundaries, proof lanes, stop conditions, and next commands) |
 | Bounded agent context | `context-pack`, `adapters verify`, `adapters sync`, `agent verify`, `hooks install` |
 | Proof and evidence | `lane`, `proof`, `prove`, `proof-verify` |
 | Audit and routing | `audit`, `witness`, `score diff`, `score trend`, `rules verify`, `issues export`, score history, repair queues |

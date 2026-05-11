@@ -299,9 +299,19 @@ broad validation, run `jankurai lane` or `jankurai proof` against changed paths
 to choose the smallest credible proof lane. For audit requests, run
 `cargo run -p jankurai -- . --json agent/repo-score.json --md agent/repo-score.md`.
 
+## Kickoff Route
+
+Use `jankurai kickoff` as the no-write intake step for new user intent.
+It should write only `target/jankurai/kickoff.json` and
+`target/jankurai/kickoff.md`, surface read-first files, ownership boundaries,
+proof lanes, clarifying questions, stop conditions, expected receipts, and
+next commands, and hand the task to `context-pack` only after the repo facts
+are visible.
+
 ## Local Commands
 
 ```bash
+jankurai kickoff . --intent "<change request>" --out target/jankurai/kickoff.json --md target/jankurai/kickoff.md
 jankurai versions
 just versions
 just fast
@@ -316,6 +326,7 @@ post-upgrade scoring lane.
 ## v0.5 Daily Merge Loop
 
 ```bash
+jankurai kickoff . --intent "<change request>" --out target/jankurai/kickoff.json --md target/jankurai/kickoff.md
 jankurai context-pack . --changed <path> --max-tokens 6000 --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md
 jankurai prove . --changed <path> --plan-out target/jankurai/proof-plan.json --plan-md target/jankurai/proof-plan.md
 jankurai audit . --mode advisory --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md

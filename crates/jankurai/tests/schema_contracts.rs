@@ -457,6 +457,77 @@ fn cell_registry_and_manifest_schemas_parse() {
         .get("source_trust_summary")
         .is_some());
 
+    let kickoff_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/kickoff.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        kickoff_schema["$id"],
+        "https://jankurai.dev/schemas/kickoff.schema.json"
+    );
+    assert!(kickoff_schema["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|key| key == "clarifying_questions"));
+    assert!(kickoff_schema["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|key| key == "forbidden_paths"));
+    assert!(kickoff_schema["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|key| key == "proof_lanes"));
+    assert!(kickoff_schema["properties"]
+        .get("implementation_steps")
+        .is_some());
+    assert!(kickoff_schema["properties"]
+        .get("parallel_packets")
+        .is_some());
+    assert!(kickoff_schema["properties"]
+        .get("forbidden_paths")
+        .is_some());
+    assert!(kickoff_schema["properties"]
+        .get("proof_lanes")
+        .is_some());
+
+    let kickoff = serde_json::json!({
+        "schema_version": "1.0.0",
+        "command": "jankurai kickoff",
+        "generated_at": "2026-05-05T00:00:00Z",
+        "repo": ".",
+        "intent": "Add a README clarification",
+        "agent": "generic",
+        "changed_paths": [],
+        "read_first": ["AGENTS.md", "agent/JANKURAI_STANDARD.md"],
+        "route_decisions": [],
+        "generated_zone_touches": [],
+        "ownership_boundaries": [],
+        "forbidden_paths": ["reference/", "target/"],
+        "proof_lanes": ["fast", "audit"],
+        "clarifying_questions": [{
+            "id": "scope",
+            "question": "Which exact files or directories are in scope?",
+            "reason": "kickoff needs concrete changed paths before it can hand off bounded work for `Add a README clarification`",
+            "suggested_paths": [],
+            "blocking": true
+        }],
+        "implementation_steps": [{
+            "order": 1,
+            "title": "Read the kickoff sources",
+            "files": ["AGENTS.md", "agent/JANKURAI_STANDARD.md", "docs/agent-native-standard.md", "docs/mission.md", "docs/moonshot.md", "README.md", "docs/artifact-contracts.md", "docs/testing.md", "agent/owner-map.json", "agent/test-map.json", "agent/generated-zones.toml", "agent/proof-lanes.toml"],
+            "commands": [],
+            "notes": "Start from the repo guardrails and policy maps before editing."
+        }],
+        "parallel_packets": [],
+        "stop_conditions": ["stop before editing until the blocking clarifying questions are answered"],
+        "expected_receipts": ["target/jankurai/kickoff.json", "target/jankurai/kickoff.md"],
+        "next_commands": ["jankurai context-pack . --changed README.md --max-tokens 6000 --out target/jankurai/context-pack.json --md target/jankurai/context-pack.md"]
+    });
+    validation::validate_value(&repo, ArtifactSchema::Kickoff, &kickoff).unwrap();
+
     for (file, id) in [
         (
             "merge-witness.schema.json",

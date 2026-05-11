@@ -15,6 +15,7 @@ pub mod govern;
 pub mod history;
 pub mod hooks;
 pub mod init;
+pub mod kickoff;
 pub mod migrate;
 pub mod optimize;
 pub mod paper;

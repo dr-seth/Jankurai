@@ -5,7 +5,7 @@ Jankurai exists to make agent-native engineering boring in the right way. The re
 The operating loop is:
 
 ```text
-intent -> bounded authority -> proof lanes -> evidence -> repair or exception expiry -> reusable primitives
+intent -> kickoff -> bounded authority -> proof lanes -> evidence -> repair or exception expiry -> reusable primitives
 ```
 
 That loop is the product, the standard, and the paper thesis at the same time. It changes the center of gravity from "can a human keep all of this in their head?" to "can the repo prove the change with the smallest credible lane?"
@@ -38,12 +38,12 @@ Agent-generated code is cheap. Wrong code is also cheap. The new bottleneck is t
 
 Jankurai is the control plane for that workflow. It does not replace taste, product judgment, or human accountability. It gives those decisions a machine-readable boundary so agents can act quickly without turning the repo into a guessing game.
 
-The product is the operating loop, not a single scanner. `context-pack` bounds the task, owner and test maps route the change, `prove` writes receipts and an evidence index, `proof-verify` checks those receipts against the current repo, `audit` emits the repair queue, `repair-plan` keeps fixes narrow, `exceptions expire` prevents permanent waivers, and `registry`/`cell` turn repeated repairs into reusable primitives.
+The product is the operating loop, not a single scanner. `kickoff` turns user intent into a no-write handoff with read-first files, ownership boundaries, proof lanes, stop conditions, clarifying questions, and next commands; `context-pack` then bounds the task, owner and test maps route the change, `prove` writes receipts and an evidence index, `proof-verify` checks those receipts against the current repo, `audit` emits the repair queue, `repair-plan` keeps fixes narrow, `exceptions expire` prevents permanent waivers, and `registry`/`cell` turn repeated repairs into reusable primitives.
 
 ## Practical Consequences
 
 - Humans supply intent, constraints, and risk tolerance.
-- Jankurai turns that intent into bounded authority for the agent or reviewer.
+- Jankurai turns that intent into a kickoff receipt, then bounded authority for the agent or reviewer.
 - Jankurai routes the change to the smallest proof lane that covers the risk.
 - The audit emits JSON and Markdown so humans and agents see the same truth.
 - Repair plans are dry-run first and real apply remains gated.
@@ -54,11 +54,19 @@ The product is the operating loop, not a single scanner. `context-pack` bounds t
 
 First-hour adoption must be safe for both new and large existing repos:
 
-- no-write first: scan, adopt, and init dry-run write only requested artifacts under `target/jankurai/`
+- no-write first: kickoff, scan, adopt, and init dry-run write only requested artifacts under `target/jankurai/`
 - advisory by default: observe-mode CI uploads reports without enforcing score 85
 - ratchet after baseline: score gates start only after the team accepts a baseline
 - migration route: repos far from the target stack use `migration-target` and Phase 11 slice planning
 - reusable cells: Phase 10 cells remain evidence and dry-run/prove surfaces until mutating installs are separately designed
+
+First-hour route:
+
+```text
+intent -> kickoff -> context-pack -> prove -> witness -> repair / exception
+```
+
+That route keeps the first response planning-safe. `kickoff` is the no-write intake step, `context-pack` narrows the workspace, `prove` and `witness` supply the merge evidence, and repair or exception handling is only chosen after the repository facts are visible.
 
 ## Success Criteria
 
