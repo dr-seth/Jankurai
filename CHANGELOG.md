@@ -8,7 +8,7 @@ Jankurai is pre-1.0. Public CLI behavior, report schemas, generated scaffold pat
 
 No user-facing changes yet.
 
-## 0.8.14 - 2026-05-09
+## 0.8.14 - 2026-05-10
 
 ### Added
 
