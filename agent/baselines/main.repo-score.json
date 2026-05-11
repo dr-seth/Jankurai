@@ -1,22 +1,22 @@
 {
-  "report_fingerprint": "sha256:eaa7dbd192750edfd11fb907d00858d0374dea3f0848fa209160bea7ef57522e",
-  "input_fingerprint": "sha256:d69b2f94f0e3989f752cb7edb6727ec3a1f97608f0df542711c14b87fb8e4e37",
-  "policy_fingerprint": "sha256:b611c60891bbe909864e3b18682f34d172a019c1edfa1599619c60af97e13c76",
+  "report_fingerprint": "sha256:ed065b81c4bb03b32e2cb41cbc778b407b082948ab49989cdb35ac05d616afde",
+  "input_fingerprint": "sha256:5da585c6c2ae8cb055db6f71e96e42aa923800e9f15eb78d1195cb40380363af",
+  "policy_fingerprint": "sha256:99f672377e117de068d7d00f0bfca6f39f397185b82aa0d4448bc1e1dab24153",
   "manifest_fingerprints": {
-    "owner_map": "sha256:3bd706525d0620e9e6ff460abf269f9ad91e7b77a76c2286a637c0d89a9d40c3",
-    "test_map": "sha256:52c01e86eb96a5f2f2fbe9906ccf3da5da9801f34dae00bfa143111793b5d1fd",
+    "owner_map": "sha256:74293910b2da1ff157d0181b18ce597edddfa53fc1fb7970297c5b789cb260b0",
+    "test_map": "sha256:0470aca37c1062bddf6cf99587750e7db02ac3ac11de8db9b93e95cc22a7b502",
     "generated_zones": "sha256:362e46400aaf3ed924edc3985f56f201859cbf214de4a5516da1112b16e2abe5",
     "boundaries": "sha256:51292d205b2ab7672cda0da1f49ce3bf812dc66dde10b9cf707e32f913f4fb50",
     "proof_lanes": "sha256:a51fde4292de99662c641d617b6c83f3b710aedc6261678089dcaa30c9d2bfab",
-    "standard_version": "sha256:e365b408383d45b8b62273b7fc21002d3fbabf3f0384e6142e75285804ce25f2"
+    "standard_version": "sha256:e52e0f70555f7f2219625c7b1df9682e667dbdaa9cf03b8fab4e4846c056f839"
   },
   "dirty_worktree": false,
-  "generated_at": "1778085866",
+  "generated_at": "1778499222",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
-  "auditor_version": "0.8.11",
-  "schema_version": "1.6.0",
+  "auditor_version": "0.8.16",
+  "schema_version": "1.7.0",
   "paper_edition": "2026.05-ed8",
   "target_stack_id": "rust-ts-vite-react-postgres-bounded-python",
   "target_stack": "Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service",
@@ -25,9 +25,9 @@
   "conformance_decision": "pass",
   "conformance_blockers": [],
   "repo": ".",
-  "run_id": "1778085866",
-  "started_at": "1778085866",
-  "elapsed_ms": 22855,
+  "run_id": "1778499222",
+  "started_at": "1778499222",
+  "elapsed_ms": 33838,
   "scope": {
     "mode": "full",
     "paths": []
@@ -54,7 +54,7 @@
     }
   },
   "git": {
-    "head": "cf7d7d7",
+    "head": "bc45511",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -73,8 +73,8 @@
     ],
     "mode": "standard",
     "standard_version": "0.8.0",
-    "auditor_version": "0.8.11",
-    "schema_version": "1.6.0",
+    "auditor_version": "0.8.16",
+    "schema_version": "1.7.0",
     "paper_edition": "2026.05-ed8",
     "target_stack": "rust-ts-vite-react-postgres-bounded-python"
   },
@@ -329,7 +329,7 @@
         "security lane present",
         "canonical security lane wrapper present",
         "agent-readiness audit gate found in CI",
-        "rust bad-behavior advisory signals: 70",
+        "rust bad-behavior advisory signals: 87",
         "typescript bad-behavior advisory signals: 5",
         "ci bad-behavior advisory signals: 1",
         "gittools bad-behavior advisory signals: 1",
@@ -345,10 +345,10 @@
       "score": 100,
       "weighted_points": 12.0,
       "evidence": [
-        "largest authored code file: crates/tuiwright/src/render.rs (309 LOC)",
+        "largest authored code file: crates/tuiwright/src/render.rs (327 LOC)",
         "most code files stay under 300 LOC",
         "authored code stays below hard LOC limits with no shape markers",
-        "rust bad-behavior advisory signals: 70",
+        "rust bad-behavior advisory signals: 87",
         "typescript bad-behavior advisory signals: 5",
         "ci bad-behavior advisory signals: 1",
         "gittools bad-behavior advisory signals: 1",
@@ -508,34 +508,6 @@
         "crates/jankurai/src/audit/analyzers/mod.rs",
         "crates/jankurai/src/audit/mod.rs"
       ]
-    },
-    "artifact": {
-      "path": "target/jankurai/ux-qa.json",
-      "report_count": 10,
-      "worst_decision": "pass",
-      "total_violations": 0,
-      "summary_errors": 0,
-      "summary_warnings": 0,
-      "reports_missing_required_states": 0,
-      "missing_state_names": [],
-      "artifact_counts_by_kind": {
-        "accessibility": 10,
-        "aria-snapshot": 10,
-        "screenshot": 10,
-        "visual-baseline": 10,
-        "visual-diff": 10
-      },
-      "reports_missing_required_artifacts": 0,
-      "missing_artifact_kinds": [],
-      "reports_missing_required_accessibility_artifact": 0,
-      "accessibility_violation_total": 0,
-      "accessibility_incomplete_total": 0,
-      "accessibility_pass_total": 220,
-      "artifact_fingerprint_count": 50,
-      "visual_baseline_missing": 0,
-      "visual_baseline_changed": 10,
-      "visual_baseline_review": 0,
-      "visual_baseline_block": 0
     }
   },
   "tool_adoption": {
@@ -1040,23 +1012,7 @@
       "cost-budget"
     ]
   },
-  "security_evidence": {
-    "artifact": {
-      "path": "target/jankurai/security/evidence.json",
-      "envelope_exit_code": 0,
-      "elapsed_ms": 4062,
-      "wrapper_strict": true,
-      "profile": "ci",
-      "commands_ran": 4,
-      "commands_skipped": 1,
-      "commands_failed": 0,
-      "required_commands_skipped": 0,
-      "required_commands_failed": 0,
-      "blocking_commands": [],
-      "generated_at": "1778085843",
-      "git_head": "cf7d7d74fa7df16ea446847caa0a291cd8624707"
-    }
-  },
+  "security_evidence": {},
   "boundaries": {
     "artifact": {
       "path": "agent/boundaries.toml",
