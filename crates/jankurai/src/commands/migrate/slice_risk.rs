@@ -106,6 +106,10 @@ static NUMPY_RANDOM_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?i)\b(np\.random|numpy\.random|random\.seed|np\.random\.seed)\b")
         .expect("numpy random")
 });
+static PRIOR_FAILURE_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?i)\b(previous|prior|after|on)\s+failure\b|\bfailure[_ -]?hook\b")
+        .expect("prior failure")
+});
 static MODEL_SINGLETON_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?i)\b(OnceCell|Lazy|singleton|get_instance|instance\(\)|static\s+INSTANCE|static\s+MODEL)\b")
         .expect("singleton")
@@ -117,6 +121,16 @@ static PROSE_ENV_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?i)\benv(?:ironment)?\s+(?:var(?:iable)?\s+)?(?P<name>[A-Z][A-Z0-9_]{2,})\b")
         .expect("prose env regex")
 });
+
+const THREAD_COUNT_ENV_NAMES: &[&str] = &[
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "RAYON_NUM_THREADS",
+    "TORCH_NUM_THREADS",
+    "NUM_THREADS",
+];
 
 pub fn run(args: SliceRiskArgs) -> Result<()> {
     let repo = canonicalize_repo(&args.repo)?;
@@ -359,6 +373,28 @@ fn scan_text(origin: &str, text: &str, ext: Option<&str>) -> Vec<SliceSignal> {
                 SignalDecision::Review,
                 vec![format!("{origin}:{}", idx + 1), line.trim().to_string()],
                 "seed or isolate numpy random state before equivalence checks",
+                Some(origin.to_string()),
+                Some(idx + 1),
+            ));
+        }
+        if contains_any(line, THREAD_COUNT_ENV_NAMES) {
+            signals.push(signal(
+                "thread-count-env",
+                "low",
+                SignalDecision::Review,
+                vec![format!("{origin}:{}", idx + 1), line.trim().to_string()],
+                "pin thread-count env vars explicitly so the slice stays reproducible across machines",
+                Some(origin.to_string()),
+                Some(idx + 1),
+            ));
+        }
+        if PRIOR_FAILURE_RE.is_match(line) {
+            signals.push(signal(
+                "prior-failure-hook",
+                "low",
+                SignalDecision::Review,
+                vec![format!("{origin}:{}", idx + 1), line.trim().to_string()],
+                "treat prior-failure hooks as advisory until the recovery path and fallback state are proven",
                 Some(origin.to_string()),
                 Some(idx + 1),
             ));

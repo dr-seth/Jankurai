@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::commands::postmortem::parse_failure_mode;
 use crate::validation::{self, ArtifactSchema};
 
 pub struct DoctorArgs {
@@ -16,7 +17,7 @@ pub struct DoctorArgs {
 pub fn run(args: DoctorArgs) -> Result<()> {
     let repo = args.repo;
     let mut diagnostics = Vec::new();
-    let progress = crate::ui::CliProgress::new("checking repository health", 10);
+    let progress = crate::ui::CliProgress::new("checking repository health", 11);
     progress.tick("required files");
     for rel in [
         "AGENTS.md",
@@ -61,6 +62,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     check_committed_ux_artifacts(&repo, &mut diagnostics);
     progress.tick("paper and receipt checks");
     check_legacy_paper_sources(&repo, &mut diagnostics);
+    check_severity_discipline(&repo, &mut diagnostics);
     check_receipt_exports(&repo, &mut diagnostics);
     check_proof_ledger(&repo, &mut diagnostics);
     check_security_evidence(&repo, &mut diagnostics);
@@ -604,6 +606,141 @@ fn check_legacy_paper_sources(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
     }
 }
 
+fn check_severity_discipline(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    for root in prose_scan_roots(repo) {
+        for file in files_under(&root) {
+            if !is_prose_file(&file) {
+                continue;
+            }
+            let Ok(text) = fs::read_to_string(&file) else {
+                continue;
+            };
+            scan_severity_prose(repo, &file, &text, diagnostics);
+        }
+    }
+}
+
+fn prose_scan_roots(repo: &Path) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    for rel in [
+        "README.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "SUPPORT.md",
+    ] {
+        let path = repo.join(rel);
+        if path.exists() {
+            roots.push(path);
+        }
+    }
+    let docs = repo.join("docs");
+    if docs.exists() {
+        roots.push(docs);
+    }
+    roots
+}
+
+fn is_prose_file(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or_default(),
+        "md" | "markdown" | "txt" | "adoc"
+    )
+}
+
+fn scan_severity_prose(repo: &Path, path: &Path, text: &str, diagnostics: &mut Vec<Diagnostic>) {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut in_fence = false;
+    for (idx, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_fence = !in_fence;
+            continue;
+        }
+        if in_fence {
+            continue;
+        }
+        if is_trailer_line(trimmed) {
+            continue;
+        }
+        if !contains_severity_claim(trimmed) {
+            continue;
+        }
+        if is_bare_critical_word(trimmed) {
+            continue;
+        }
+        if trailer_window_has_justification(&lines, idx) {
+            continue;
+        }
+        if let Some(value) = blocker_type_value(trimmed) {
+            let _ = parse_failure_mode(value);
+        }
+        diagnostics.push(Diagnostic {
+            check_id: "severity-discipline".into(),
+            severity: "medium".into(),
+            path: display_rel(repo, path),
+            message: "severity claim should carry Severity-Justified: or Blocker-Type: evidence"
+                .into(),
+        });
+    }
+}
+
+fn contains_severity_claim(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    if lower.contains("catastrophic") {
+        return true;
+    }
+    if !(lower.contains("critical") || lower.contains("high")) {
+        return false;
+    }
+    [
+        "risk",
+        "severity",
+        "issue",
+        "outage",
+        "blocker",
+        "failure",
+        "regression",
+        "impact",
+        "problem",
+        "bug",
+    ]
+    .iter()
+    .any(|term| lower.contains(term))
+}
+
+fn is_bare_critical_word(line: &str) -> bool {
+    matches!(line.to_ascii_lowercase().as_str(), "critical" | "high")
+}
+
+fn is_trailer_line(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    lower.starts_with("severity-justified:") || lower.starts_with("blocker-type:")
+}
+
+fn blocker_type_value(line: &str) -> Option<&str> {
+    line.split_once(':').and_then(|(left, right)| {
+        if left.trim().eq_ignore_ascii_case("blocker-type") {
+            Some(right.trim())
+        } else {
+            None
+        }
+    })
+}
+
+fn trailer_window_has_justification(lines: &[&str], idx: usize) -> bool {
+    let start = idx.saturating_sub(2);
+    let end = (idx + 2).min(lines.len().saturating_sub(1));
+    for line in &lines[start..=end] {
+        if is_trailer_line(line.trim()) {
+            return true;
+        }
+    }
+    false
+}
+
 fn legacy_paper_sources_marked(repo: &Path) -> bool {
     fs::read_to_string(repo.join("paper/sections/README.md"))
         .map(|text| text.contains("legacy-only") && text.contains("paper/tex/"))
@@ -903,6 +1040,9 @@ fn diagnostic_kind(diagnostic: &Diagnostic) -> DiagnosticKind {
     if check_id.contains("export") {
         return DiagnosticKind::Export;
     }
+    if check_id.contains("severity") {
+        return DiagnosticKind::Policy;
+    }
     DiagnosticKind::Other
 }
 
@@ -920,7 +1060,12 @@ fn common_fixes(diagnostic: &Diagnostic, kind: &DiagnosticKind) -> Vec<String> {
             "re-run `cargo test -p jankurai`".into(),
         ],
         DiagnosticKind::Policy => vec![
-            "update the policy file so the runtime and schema agree".into(),
+            if diagnostic.check_id.contains("severity") {
+                "add a Severity-Justified: or Blocker-Type: trailer that names the failure mode"
+                    .into()
+            } else {
+                "update the policy file so the runtime and schema agree".into()
+            },
             "re-run `doctor` after the edit".into(),
         ],
         DiagnosticKind::Tool => vec![

@@ -109,6 +109,10 @@
       "command": "just score",
       "purpose": "verify machine-readable maps and policy remain scannable"
     },
+    ".jankurai/postmortems/": {
+      "command": "cargo test -p jankurai --test postmortem_smoke",
+      "purpose": "verify durable postmortem records and read-only views remain schema-bound"
+    },
     "tips/phases/logs/": {
       "command": "cargo run -p jankurai -- lane . --changed tips/phases/logs/README.txt --out target/jankurai/phase-proof.json --md target/jankurai/phase-proof.md",
       "purpose": "verify phase logs remain routed as tracked append-only agent history"
@@ -152,6 +156,26 @@
     "crates/jankurai/": {
       "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify the audit package compiles and still emits JSON/Markdown"
+    },
+    "crates/jankurai/src/commands/postmortem.rs": {
+      "command": "cargo test -p jankurai --test postmortem_smoke",
+      "purpose": "verify the durable postmortem record surface and read-only list/show/read views"
+    },
+    "crates/jankurai/src/commands/doctor.rs": {
+      "command": "cargo test -p jankurai --test doctor_severity",
+      "purpose": "verify severity-discipline prose detection and trailer suppression"
+    },
+    "crates/jankurai/tests/postmortem_smoke.rs": {
+      "command": "cargo test -p jankurai --test postmortem_smoke",
+      "purpose": "verify postmortem record storage, listing, showing, and reading"
+    },
+    "crates/jankurai/tests/doctor_severity.rs": {
+      "command": "cargo test -p jankurai --test doctor_severity",
+      "purpose": "verify catastrophic prose, trailer suppression, and bare critical false-positive guards"
+    },
+    "crates/jankurai/tests/fixtures/postmortem/": {
+      "command": "cargo test -p jankurai --test postmortem_smoke",
+      "purpose": "verify durable postmortem fixture records and failure-mode enum coverage"
     },
     "crates/jankurai/tests/language_bad_behavior.rs": {
       "command": "cargo test -p jankurai --test language_bad_behavior",

@@ -46,6 +46,7 @@
     ".cursor/": "agent",
     ".claude/": "agent",
     ".agents/": "agent",
+    ".jankurai/": "workspace",
     "paper/": "paper",
     "reference/": "read-only",
     "tips/phases/logs/": "agent",

@@ -17,6 +17,9 @@ Every durable or generated machine-readable surface should either validate again
 | `target/jankurai/migration-prompt-verification.md` | Semantic: `migration_prompt_verify` | Human summary of verified, invalid, and review claim outcomes |
 | `target/jankurai/migration-slice-risk.json` | `schemas/migration-slice-risk.schema.json`; `migration_slice_risk`, `schema_contracts` | Static migration slice preflight envelope from `jankurai migrate slice-risk` |
 | `target/jankurai/migration-slice-risk.md` | Semantic: `migration_slice_risk` | Human summary of environment and cross-runtime blockers for the selected slice |
+| `.jankurai/postmortems/*.toml` | `schemas/postmortem.schema.json`; `postmortem_smoke`, `schema_contracts` | Durable postmortem records written only by `jankurai postmortem record` |
+| `target/jankurai/postmortem-list.json` | Semantic: `postmortem_smoke` | Read-only summary of durable postmortem records |
+| `target/jankurai/postmortem-record.md` | Semantic: `postmortem_smoke` | Human summary for a recorded or inspected postmortem |
 | `target/jankurai/adoption-plan.json` | `schemas/adoption-plan.schema.json`; `adoption_ux`, `schema_contracts` | No-write first-hour adoption plan emitted by `jankurai adopt` |
 | `agent/tool-adoption.toml` | `schemas/tool-adoption.schema.json`; `schema_contracts`, `doctor` | Tool rollout readiness and per-tool mode selection |
 | `agent/vibe-coverage.toml` | `schemas/vibe-coverage-source.schema.json`; `vibe_coverage_smoke`, `vibe_coverage_semantic`, `schema_contracts` | Canonical source-row mapping for `tips/vibe_coding/*.txt` with reviewed canonical groups, detector status, and evidence status |

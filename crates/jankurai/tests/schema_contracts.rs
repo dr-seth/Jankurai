@@ -430,6 +430,48 @@ fn cell_registry_and_manifest_schemas_parse() {
         .get("coverage_verdicts")
         .is_some());
 
+    let postmortem_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/postmortem.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        postmortem_schema["$id"],
+        "https://jankurai.dev/schemas/postmortem.schema.json"
+    );
+    assert_eq!(
+        postmortem_schema["properties"]["failure_mode"]["enum"],
+        serde_json::json!([
+            "aspirational-spec",
+            "env-prerequisite",
+            "interop-runtime",
+            "equivalence-gap",
+            "cutover-rollback",
+            "perf-regression"
+        ])
+    );
+    let postmortem = serde_json::json!({
+        "schema_version": "1.0.0",
+        "postmortem_id": "alpha",
+        "title": "Missing env bootstrap",
+        "owner": "tools",
+        "failure_mode": "env-prerequisite",
+        "severity": "high",
+        "blocker_type": "env-prerequisite",
+        "summary": "The migration stalled because the required environment variable was absent.",
+        "evidence": [
+            "MODEL_HMAC_KEY was not present",
+            "local handoff could not start"
+        ],
+        "actions": [
+            "document the prerequisite in the runbook",
+            "add a preflight check before the cutover step"
+        ],
+        "notes": ["captured after a failed handoff"],
+        "source": "docs/incidents/alpha.md",
+        "recorded_at": "2026-05-11T00:00:00Z"
+    });
+    validation::validate_value(&repo, ArtifactSchema::Postmortem, &postmortem).unwrap();
+
     let doctor_receipt: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(repo.join("schemas/doctor-receipt.schema.json")).unwrap(),
     )

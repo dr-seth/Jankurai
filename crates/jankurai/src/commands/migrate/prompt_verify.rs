@@ -228,12 +228,15 @@ fn extract_claims(document: &str) -> Vec<ClaimCandidate> {
             in_fence = !in_fence;
             continue;
         }
-        if in_fence || trimmed.is_empty() {
+        if in_fence || trimmed.is_empty() || line_is_refutation(trimmed) {
             continue;
         }
 
         for cap in PATH_LINE_RE.captures_iter(line) {
             let raw = format!("{}:{}", &cap["path"], &cap["line"]);
+            if is_extension_like_ref(&cap["path"]) {
+                continue;
+            }
             if seen.insert(format!("path:{raw}")) {
                 claims.push(ClaimCandidate {
                     claim_type: ClaimType::PathLine,
@@ -271,6 +274,35 @@ fn extract_claims(document: &str) -> Vec<ClaimCandidate> {
     }
 
     claims
+}
+
+fn line_is_refutation(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    lower.starts_with('>')
+        || (lower.starts_with('|')
+            && (lower.contains("false")
+                || lower.contains("reality")
+                || lower.contains("actually")
+                || lower.contains("no llm call")))
+}
+
+fn is_extension_like_ref(path: &str) -> bool {
+    let normalized = path.trim();
+    if normalized.contains('/') {
+        return false;
+    }
+    if normalized.ends_with(".md")
+        || normalized.ends_with(".txt")
+        || normalized.ends_with(".rs")
+        || normalized.ends_with(".py")
+        || normalized.ends_with(".ts")
+        || normalized.ends_with(".tsx")
+        || normalized.ends_with(".js")
+        || normalized.ends_with(".jsx")
+    {
+        return false;
+    }
+    normalized.contains('.')
 }
 
 fn verify_path_line(

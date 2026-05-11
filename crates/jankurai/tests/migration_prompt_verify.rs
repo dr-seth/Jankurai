@@ -115,6 +115,30 @@ fn prompt_verifier_rejects_invalid_claims_in_strict_mode() {
 
 #[cfg(unix)]
 #[test]
+fn prompt_verifier_skips_refutation_rows_blockquotes_and_dotted_refs() {
+    let repo_dir = tempdir().unwrap();
+    fs::create_dir_all(repo_dir.path().join("docs")).unwrap();
+    fs::write(repo_dir.path().join("prompt.md"), "- docs/guide.md:1\n> src/ignored.rs:3\n| False | reality | actually | no LLM call |\n- pkg.module:8\n").unwrap();
+    fs::write(repo_dir.path().join("docs/guide.md"), "guide claim\n").unwrap();
+
+    let (output, _dir, json_path, _) =
+        run_prompt_verify(&repo_dir.path().to_path_buf(), "prompt.md", false);
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&json_path).unwrap()).unwrap();
+    assert_eq!(report["decision"], "pass");
+    assert_eq!(report["claims_total"], 1);
+    assert_eq!(report["claims_verified"], 1);
+    assert_eq!(report["claims_invalid"], 0);
+    assert_eq!(report["claims_review"], 0);
+}
+
+#[test]
 fn prompt_verifier_rejects_repo_local_symlink_escape_as_claim_invalid() {
     use std::os::unix::fs::symlink;
 

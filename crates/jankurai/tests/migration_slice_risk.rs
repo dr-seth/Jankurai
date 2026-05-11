@@ -179,6 +179,48 @@ fn slice_risk_keeps_docs_only_hmac_prerequisites_non_blocking() {
 }
 
 #[test]
+fn slice_risk_flags_thread_count_env_and_prior_failure_hooks() {
+    let repo_dir = tempdir().unwrap();
+    fs::create_dir_all(repo_dir.path().join("docs")).unwrap();
+    fs::write(
+        repo_dir.path().join("docs/notes.md"),
+        "OMP_NUM_THREADS=2 for reproducibility\nretry after prior failure in the hook\n",
+    )
+    .unwrap();
+    fs::write(
+        repo_dir.path().join("plan.json"),
+        plan_json(
+            "thread-hooks",
+            r#"["docs/"]"#,
+            "\"OMP_NUM_THREADS=2; retry after prior failure\"",
+        ),
+    )
+    .unwrap();
+
+    let (output, _dir, json_path, _) =
+        run_slice_risk(&repo_dir.path().to_path_buf(), "thread-hooks", false);
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&json_path).unwrap()).unwrap();
+    assert_eq!(report["decision"], "pass");
+    assert!(report["signals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|signal| signal["kind"] == "thread-count-env"));
+    assert!(report["signals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|signal| signal["kind"] == "prior-failure-hook"));
+}
+
+#[test]
 fn slice_risk_extracts_prose_env_names_for_check_env() {
     let repo_dir = tempdir().unwrap();
     fs::write(

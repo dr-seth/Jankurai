@@ -19,6 +19,7 @@ pub mod kickoff;
 pub mod migrate;
 pub mod optimize;
 pub mod paper;
+pub mod postmortem;
 pub mod proof;
 pub mod proofbind;
 pub mod proofmark;

@@ -70,7 +70,14 @@ pub const AGENCY_PATTERNS: &[&str] = &[
 ];
 
 pub const FALSE_GREEN_PATTERNS: &[&str] = &[
-    ".skip(",
+    "test.skip(",
+    "it.skip(",
+    "describe.skip(",
+    "pytest.mark.skip",
+    "pytest.mark.skipif(",
+    "pytest.skip(",
+    "unittest.skip(",
+    "self.skipTest(",
     ".only(",
     "xtest(",
     "xit(",
@@ -503,16 +510,22 @@ pub fn todo_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 }
 
 pub fn fallback_hits(ctx: &AuditContext) -> Vec<FindingHit> {
-    let hits = pattern_hits_filtered(
+    let mut hits = pattern_hits_filtered(
         &product_code_files(ctx),
         FALLBACK_PATTERNS,
         Some("HLT-001-DEAD-MARKER"),
     );
+    hits.retain(|hit| !line_looks_like_framework_fallback_service(&hit.text));
     if hits.len() <= 1 {
         vec![]
     } else {
         hits
     }
+}
+
+fn line_looks_like_framework_fallback_service(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    lower.contains("fallback_service(") || lower.contains(".fallback_service(")
 }
 
 /// Matches an `api_key:` style assignment. Capture group 1 holds the right-hand-side
@@ -1589,7 +1602,8 @@ pub fn wrong_layer_db_hits(ctx: &AuditContext) -> Vec<FindingHit> {
 }
 
 pub fn duplicate_blocks(ctx: &AuditContext) -> Vec<FindingHit> {
-    let mut seen = std::collections::HashMap::new();
+    let mut seen: std::collections::HashMap<String, Vec<(String, usize)>> =
+        std::collections::HashMap::new();
     let mut dups = vec![];
     for file in product_code_files(ctx) {
         let lines: Vec<_> = file
@@ -1617,15 +1631,32 @@ pub fn duplicate_blocks(ctx: &AuditContext) -> Vec<FindingHit> {
                 }
             })
             .collect();
-        for win in lines.windows(8) {
+        for (start_idx, win) in lines.windows(8).enumerate() {
+            let start_line = start_idx + 1;
             let body = win.join("\n");
-            if let Some(prev) = seen.insert(body.clone(), format!("{}:1", file.rel_path)) {
-                dups.push(FindingHit::new(
-                    &file.rel_path,
-                    1,
-                    &format!("duplicate block also appears at {}", prev),
-                ));
+            let prevs = seen.entry(body.clone()).or_default();
+            if prevs.iter().any(|(path, prev_start)| {
+                path == &file.rel_path && start_line.abs_diff(*prev_start) < 8
+            }) {
+                continue;
             }
+            if let Some((prev_path, prev_start)) = prevs.first() {
+                dups.push(FindingHit {
+                    path: file.rel_path.clone(),
+                    line: Some(start_line),
+                    text: format!(
+                        "duplicate block also appears at {}:{}",
+                        prev_path, prev_start
+                    ),
+                    matched_term: Some("duplicate block".into()),
+                    agent_fix: "extract the shared block into a helper or keep the block unique per file so overlapping windows do not trip the detector".into(),
+                    problem: format!(
+                        "duplicate block also appears at {}:{}",
+                        prev_path, prev_start
+                    ),
+                });
+            }
+            prevs.push((file.rel_path.clone(), start_line));
         }
     }
     dups
@@ -2083,6 +2114,23 @@ mod tests {
     }
 
     #[test]
+    fn fallback_hits_ignores_framework_fallback_service_and_keeps_real_fallbacks() {
+        let text = "let policy = \"unbounded retry\";\n// fallback: use typed state\nrouter.fallback_service(handler);\n";
+        let ctx = make_ctx(vec![product_file("apps/api/src/router.rs", text)]);
+        let hits = fallback_hits(&ctx);
+        assert_eq!(hits.len(), 2, "expected only the real fallback markers");
+        assert!(
+            hits.iter()
+                .all(|hit| !hit.text.contains("fallback_service")),
+            "framework fallback_service API should not be reported"
+        );
+        assert!(hits.iter().any(|hit| hit.text.contains("unbounded retry")));
+        assert!(hits
+            .iter()
+            .any(|hit| hit.text.contains("fallback: use typed state")));
+    }
+
+    #[test]
     fn todo_patterns_no_longer_flag_argument_slots_identifier() {
         let line = "const argumentSlots = commandPrompt.match(argumentSlotRegex);";
         for pattern in TODO_PATTERNS {
@@ -2105,6 +2153,28 @@ mod tests {
         assert!(
             !matched.is_empty(),
             "expected at least one TODO/placeholder pattern to match"
+        );
+    }
+
+    #[test]
+    fn false_green_patterns_do_not_flag_iterator_skip() {
+        let text = "const values = items.iter().skip(1).collect();\n";
+        let ctx = make_ctx(vec![product_file("apps/web/src/widgets.test.ts", text)]);
+        assert!(
+            false_green_hits(&ctx).is_empty(),
+            "iterator skip should not be treated as a false-green test skip"
+        );
+    }
+
+    #[test]
+    fn false_green_patterns_flag_test_framework_skip() {
+        let text = "it.skip(\"smoke path\", () => {});\n";
+        let ctx = make_ctx(vec![product_file("apps/web/src/widgets.test.ts", text)]);
+        let hits = false_green_hits(&ctx);
+        assert_eq!(hits.len(), 1);
+        assert!(
+            hits[0].text.contains("it.skip("),
+            "framework skip call should be detected"
         );
     }
 
@@ -2140,6 +2210,54 @@ mod tests {
             hits.is_empty(),
             "nearby allow comment should suppress input_boundary_hits, got {} hits",
             hits.len()
+        );
+    }
+
+    #[test]
+    fn duplicate_blocks_ignores_overlapping_windows_from_same_file() {
+        let text = [
+            "fn overlap() {",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "}",
+        ]
+        .join("\n");
+        let ctx = make_ctx(vec![product_file("apps/api/src/overlap.rs", &text)]);
+        assert!(
+            duplicate_blocks(&ctx).is_empty(),
+            "overlapping duplicate windows in the same file should be ignored"
+        );
+    }
+
+    #[test]
+    fn duplicate_blocks_still_flags_same_block_in_another_file() {
+        let block = [
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+            "    let alpha = 1234567890;",
+        ]
+        .join("\n");
+        let ctx = make_ctx(vec![
+            product_file("apps/api/src/a.rs", &block),
+            product_file("apps/api/src/b.rs", &block),
+        ]);
+        let hits = duplicate_blocks(&ctx);
+        assert_eq!(hits.len(), 1, "expected a cross-file duplicate finding");
+        assert!(
+            hits[0].text.contains("apps/api/src/a.rs"),
+            "duplicate report should reference the first file"
         );
     }
 

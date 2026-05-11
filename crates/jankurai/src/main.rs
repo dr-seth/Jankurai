@@ -3,8 +3,9 @@ use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
     adopt, agent, badge, bench, cell, certify, conformance, context_pack, doctor, exceptions,
-    govern, history, hooks, init, kickoff, migrate, optimize, paper, proof, proofbind, proofmark,
-    publish, registry, repair, repair_plan, rules, rust, score, security, update, vibe, witness,
+    govern, history, hooks, init, kickoff, migrate, optimize, paper, postmortem, proof, proofbind,
+    proofmark, publish, registry, repair, repair_plan, rules, rust, score, security, update, vibe,
+    witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -92,6 +93,7 @@ enum Commands {
         #[command(subcommand)]
         command: ExceptionCommand,
     },
+    Postmortem(PostmortemArgs),
     Adapters {
         #[command(subcommand)]
         command: AdapterCommand,
@@ -258,6 +260,14 @@ enum ProofMarkCommand {
 #[derive(Subcommand, Debug)]
 enum ExceptionCommand {
     Expire(ExceptionExpireArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum PostmortemCommand {
+    Record(PostmortemRecordArgs),
+    List(PostmortemListArgs),
+    Show(PostmortemShowArgs),
+    Read(PostmortemReadArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -1027,6 +1037,56 @@ struct ExceptionExpireArgs {
     /// Exit with failure when the report status is blocked (expired or invalid exceptions). Expiring-soon remains status complete.
     #[arg(long)]
     strict: bool,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct PostmortemArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[command(subcommand)]
+    command: Option<PostmortemCommand>,
+}
+
+#[derive(Args, Debug)]
+struct PostmortemRecordArgs {
+    #[arg(value_name = "PATH")]
+    input: String,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct PostmortemListArgs {
+    #[arg(long, value_name = "PATH", default_value = ".jankurai/postmortems")]
+    root: String,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct PostmortemShowArgs {
+    #[arg(long, default_value = ".jankurai/postmortems")]
+    root: String,
+    #[arg(long, value_name = "POSTMORTEM_ID")]
+    postmortem_id: String,
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct PostmortemReadArgs {
+    #[arg(value_name = "PATH")]
+    path: String,
     #[arg(long, value_name = "PATH")]
     out: Option<String>,
     #[arg(long, value_name = "PATH")]
@@ -1856,6 +1916,45 @@ fn main() -> anyhow::Result<()> {
                 })?;
             }
         },
+        Some(Commands::Postmortem(args)) => {
+            let repo = args.repo;
+            match args.command {
+                Some(PostmortemCommand::Record(command)) => {
+                    postmortem::run_record(postmortem::PostmortemRecordArgs {
+                        repo: repo.clone(),
+                        input: command.input,
+                        out: command.out,
+                        md: command.md,
+                    })?;
+                }
+                Some(PostmortemCommand::List(command)) => {
+                    postmortem::run_list(postmortem::PostmortemListArgs {
+                        repo: repo.clone(),
+                        root: command.root,
+                        out: command.out,
+                        md: command.md,
+                    })?;
+                }
+                Some(PostmortemCommand::Show(command)) => {
+                    postmortem::run_show(postmortem::PostmortemShowArgs {
+                        repo: repo.clone(),
+                        root: command.root,
+                        postmortem_id: command.postmortem_id,
+                        out: command.out,
+                        md: command.md,
+                    })?;
+                }
+                Some(PostmortemCommand::Read(command)) => {
+                    postmortem::run_read(postmortem::PostmortemReadArgs {
+                        repo: repo.clone(),
+                        path: command.path,
+                        out: command.out,
+                        md: command.md,
+                    })?;
+                }
+                None => {}
+            }
+        }
         Some(Commands::Adapters { command }) => match command {
             AdapterCommand::Verify(args) => run_adapters_verify(args)?,
             AdapterCommand::Sync(args) => run_adapters_sync(args)?,
