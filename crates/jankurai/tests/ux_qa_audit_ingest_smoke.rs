@@ -1,9 +1,58 @@
 use jankurai::audit::run_audit;
+use jankurai::render::render_markdown;
 use std::fs;
+use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 
 fn thin_repo(dir: &std::path::Path) {
+    fs::create_dir_all(dir.join("agent")).unwrap();
+    fs::write(
+        dir.join("AGENTS.md"),
+        "Read `agent/JANKURAI_STANDARD.md` first.\n",
+    )
+    .unwrap();
     fs::write(dir.join("README.md"), "# thin repo\n").unwrap();
+    fs::write(dir.join("Justfile"), "check:\n    cargo test\n").unwrap();
+    fs::create_dir_all(dir.join("docs")).unwrap();
+    fs::write(dir.join("docs/architecture.md"), "# architecture\n").unwrap();
+    fs::write(dir.join("docs/testing.md"), "# testing\n").unwrap();
+    fs::write(
+        dir.join("agent/JANKURAI_STANDARD.md"),
+        "Standard version: `0.5.0`\n",
+    )
+    .unwrap();
+}
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+}
+
+fn tuiwright_fixture(name: &str) -> PathBuf {
+    repo_root()
+        .join("crates/jankurai/tests/fixtures/tuiwright")
+        .join(name)
+}
+
+fn copy_tree(src: &Path, dest: &Path) {
+    fs::create_dir_all(dest).unwrap();
+    for entry in fs::read_dir(src).unwrap() {
+        let entry = entry.unwrap();
+        let ty = entry.file_type().unwrap();
+        let dest_path = dest.join(entry.file_name());
+        if ty.is_dir() {
+            copy_tree(&entry.path(), &dest_path);
+        } else if ty.is_file() {
+            fs::create_dir_all(dest_path.parent().unwrap()).unwrap();
+            fs::copy(entry.path(), &dest_path).unwrap();
+        }
+    }
+}
+
+fn seed_tuiwright_fixture(repo: &Path, name: &str) {
+    thin_repo(repo);
+    copy_tree(&tuiwright_fixture(name), repo);
 }
 
 fn one_report(decision: &str, summary: (u64, u64)) -> serde_json::Value {
@@ -260,4 +309,92 @@ fn audit_without_ux_qa_file_leaves_artifact_none() {
 
     let report = run_audit(dir.path(), &[]).unwrap();
     assert!(report.ux_qa.artifact.is_none());
+}
+
+#[test]
+fn audit_collects_tuiwright_evidence_and_renders_a_summary_line() {
+    let dir = tempdir().unwrap();
+    seed_tuiwright_fixture(dir.path(), "full");
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    let tuiwright = report
+        .ux_qa
+        .evidence
+        .get("tuiwright")
+        .and_then(|value| value.as_object())
+        .expect("tuiwright evidence");
+    assert_eq!(
+        tuiwright
+            .get("surface_detected")
+            .and_then(|value| value.as_bool()),
+        Some(true)
+    );
+    assert_eq!(
+        tuiwright.get("flow_count").and_then(|value| value.as_u64()),
+        Some(2)
+    );
+    assert_eq!(
+        tuiwright
+            .get("test_files")
+            .and_then(|value| value.as_array())
+            .map(|items| items.len()),
+        Some(1)
+    );
+    assert!(
+        tuiwright
+            .get("assertion_count")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0)
+            >= 4,
+        "expected at least four assertion signals"
+    );
+    assert!(
+        tuiwright
+            .get("action_count")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0)
+            >= 4,
+        "expected at least four action signals"
+    );
+    let artifact_counts = tuiwright
+        .get("artifact_counts")
+        .and_then(|value| value.as_object())
+        .expect("artifact counts");
+    assert!(
+        artifact_counts
+            .get("screenshot")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0)
+            >= 1
+    );
+    assert!(
+        artifact_counts
+            .get("stop_recording_gif")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0)
+            >= 1
+    );
+    assert!(
+        artifact_counts
+            .get("trace_path")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0)
+            >= 1
+    );
+
+    let md = render_markdown(&report);
+    assert!(md.contains("Tuiwright TUI flows: `2` flow(s) across `1` file(s)"));
+    assert!(md.contains("artifacts=`"));
+    assert!(md.contains("screenshot="));
+}
+
+#[test]
+fn audit_ignores_helper_code_and_assertion_free_tuiwright_mentions() {
+    let dir = tempdir().unwrap();
+    seed_tuiwright_fixture(dir.path(), "gap");
+
+    let report = run_audit(dir.path(), &[]).unwrap();
+    assert!(report.ux_qa.evidence.get("tuiwright").is_none());
+    let md = render_markdown(&report);
+    assert!(!md.contains("Tuiwright TUI flows:"));
 }

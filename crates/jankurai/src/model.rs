@@ -390,6 +390,16 @@ pub struct VibeCoverageSummary {
     pub top_gaps: Vec<VibeCoverageGap>,
 }
 
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+pub struct CoverageEvidenceSummary {
+    pub artifact: String,
+    pub status: String,
+    pub sources_total: usize,
+    pub sources_present: usize,
+    pub hard_findings: usize,
+    pub soft_findings: usize,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Report {
     pub report_fingerprint: String,
@@ -438,6 +448,8 @@ pub struct Report {
     pub profile_structure: ProfileStructureReadiness,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vibe_coverage: Option<VibeCoverageSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub coverage_evidence: Option<CoverageEvidenceSummary>,
     pub findings: Vec<Finding>,
     pub agent_fix_queue: Vec<AgentFix>,
 }

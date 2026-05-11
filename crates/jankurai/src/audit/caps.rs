@@ -273,6 +273,12 @@ pub const CAP_SPECS: &[CapSpec] = &[
         rule_id: Some("HLT-040-REPO-ROT-BAD-BEHAVIOR"),
         hardness: "soft",
     },
+    CapSpec {
+        key: "comment-hygiene-dangerous-residue",
+        max_score: 72,
+        rule_id: Some("HLT-041-COMMENT-HYGIENE"),
+        hardness: "hard",
+    },
 ];
 
 pub const CAPS: &[(&str, i32)] = &[
@@ -320,6 +326,7 @@ pub const CAPS: &[(&str, i32)] = &[
     ("release-bad-behavior", 70),
     ("web-security-bad-behavior", 68),
     ("repo-rot-bad-behavior", 88),
+    ("comment-hygiene-dangerous-residue", 72),
 ];
 
 pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> Vec<String> {
@@ -414,7 +421,9 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     if !scan::input_boundary_hits(ctx).is_empty() {
         caps.push("input-boundary-gap".into());
     }
-    if !scan::agent_tool_supply_hits(ctx).is_empty() {
+    if !scan::agent_tool_supply_hits(ctx).is_empty()
+        || crate::audit::zyal::summary(ctx).hard_findings > 0
+    {
         caps.push("agent-tool-supply-chain-gap".into());
     }
     if !scan::release_readiness_hits(ctx).is_empty() {
@@ -465,6 +474,9 @@ pub fn caps_applied(ctx: &AuditContext, has_destructive_migration_sql: bool) -> 
     }
     if crate::audit::repo_rot::summary(ctx).hard_findings > 0 {
         caps.push("repo-rot-bad-behavior".into());
+    }
+    if crate::audit::language_rules::comments::summary(ctx).hard_findings > 0 {
+        caps.push("comment-hygiene-dangerous-residue".into());
     }
     caps
 }

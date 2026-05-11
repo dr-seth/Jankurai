@@ -41,6 +41,10 @@ id = "vibe-coverage"
 mode = "auto"
 
 [[tools]]
+id = "coverage-evidence"
+mode = "auto"
+
+[[tools]]
 id = "authz-matrix"
 mode = "auto"
 

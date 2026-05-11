@@ -3,6 +3,7 @@ pub mod baseline;
 pub mod boundaries_artifact;
 pub mod boundary_reclassification;
 pub mod caps;
+pub mod coverage;
 pub mod evidence;
 pub mod file_kinds;
 pub mod finding_builder;
@@ -22,6 +23,7 @@ pub mod scan;
 pub mod security_artifact;
 pub mod ux_artifact;
 pub mod web_security;
+pub mod zyal;
 
 use crate::model::*;
 use anyhow::Result;
@@ -136,13 +138,15 @@ pub fn run_audit_timed_with_options(
     let analyzers_started = Instant::now();
     let dimensions = analyzers::all_dimensions(&ctx, &profile_structure);
     timings.record_duration("analyzers", analyzers_started.elapsed());
+    let coverage_ingest = coverage::load_score_ingest(root);
     let raw_score = dimensions
         .iter()
         .map(|d| d.weighted_points)
         .sum::<f64>()
         .round() as i32;
     let destructive_sql_hits = scan::destructive_sql_hits(&ctx);
-    let caps_applied = caps_applied(&ctx, !destructive_sql_hits.is_empty());
+    let mut caps_applied = caps_applied(&ctx, !destructive_sql_hits.is_empty());
+    coverage::apply_coverage_caps(&mut caps_applied, &coverage_ingest);
     let final_score = caps_applied
         .iter()
         .filter_map(|c| CAPS.iter().find(|(id, _)| id == c).map(|(_, m)| *m))
@@ -152,7 +156,7 @@ pub fn run_audit_timed_with_options(
     let security_evidence_artifact = security_artifact::load_report_summary(root);
     let tool_adoption = analyzers::tool_adoption::status(&ctx);
     let findings_started = Instant::now();
-    let findings = build_findings(
+    let mut findings = build_findings(
         &ctx,
         &dimensions,
         &profile_structure,
@@ -163,6 +167,7 @@ pub fn run_audit_timed_with_options(
         security_evidence_artifact.as_ref(),
         &destructive_sql_hits,
     );
+    findings.extend(coverage::score_findings(&coverage_ingest));
     let agent_fix_queue = fix_queue::build_agent_fix_queue(&findings);
     timings.record_duration("findings", findings_started.elapsed());
     let decision = report_decision(final_score, &findings, &policy);
@@ -232,6 +237,7 @@ pub fn run_audit_timed_with_options(
         },
         profile_structure: profile_structure.clone(),
         vibe_coverage: crate::commands::vibe::audit_summary(root),
+        coverage_evidence: coverage_ingest.summary,
         findings,
         agent_fix_queue,
     };
@@ -1061,6 +1067,18 @@ fn build_findings(
             hit.line,
             Some(hit.matched_term.into()),
             Some(hit.reason),
+        );
+    }
+    for hit in zyal::findings(ctx) {
+        b.add_with_rule(
+            "HLT-024-AGENT-TOOL-SUPPLY-GAP",
+            &hit.path,
+            &hit.problem,
+            &hit.fix,
+            hit.evidence,
+            hit.line,
+            hit.matched_term,
+            hit.reason,
         );
     }
     if !scan::agent_tool_supply_hits(ctx).is_empty() {

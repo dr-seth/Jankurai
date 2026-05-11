@@ -864,6 +864,26 @@ pub const RULES: &[RuleSpec] = &[
         cap_key: Some("repo-rot-bad-behavior"),
         confidence_policy: ConfidencePolicy::Medium,
     },
+    RuleSpec {
+        id: "HLT-041-COMMENT-HYGIENE",
+        name: "Dangerous comment hygiene",
+        category: "vibe",
+        tlr: "Entropy",
+        lane: "fast",
+        docs_url: "docs/BAD_COMMENTS.md",
+        owner_hint: "tools",
+        evidence_kind: "repository-scan",
+        severity: "high",
+        repairable: true,
+        repair_eligibility: RepairEligibility::AgentAssisted,
+        repair_risk: RepairRisk::Medium,
+        repair_reason:
+            "comment cleanup is scoped but must not remove intentional safety documentation",
+        status: RuleStatus::Stable,
+        standard_section: "Comment Hygiene",
+        cap_key: Some("comment-hygiene-dangerous-residue"),
+        confidence_policy: ConfidencePolicy::High,
+    },
 ];
 
 pub fn all() -> &'static [RuleSpec] {

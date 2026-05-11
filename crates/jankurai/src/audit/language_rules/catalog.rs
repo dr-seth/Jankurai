@@ -11,6 +11,7 @@ pub enum Language {
     Git,
     GitTools,
     Release,
+    Comments,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,6 +104,7 @@ pub fn all() -> &'static [LanguageRule] {
         rules.extend_from_slice(crate::audit::language_rules::git::catalog());
         rules.extend_from_slice(crate::audit::language_rules::gittools::catalog());
         rules.extend_from_slice(crate::audit::language_rules::release::catalog());
+        rules.extend_from_slice(crate::audit::language_rules::comments::catalog());
         rules
     });
     RULES.as_slice()

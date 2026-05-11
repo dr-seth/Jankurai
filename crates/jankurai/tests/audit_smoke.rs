@@ -1377,7 +1377,20 @@ fn audit_repo_root_still_has_no_findings() {
         .join("..");
     let report = run_audit(&repo, &[]).unwrap();
 
-    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    let unexpected = report
+        .findings
+        .iter()
+        .filter(|finding| !finding.check_id.ends_with(":coverage-evidence"))
+        .collect::<Vec<_>>();
+    assert!(unexpected.is_empty(), "{:?}", unexpected);
+    assert!(
+        report
+            .findings
+            .iter()
+            .all(|finding| finding.hardness == "soft"),
+        "{:?}",
+        report.findings
+    );
     assert!(report
         .dimensions
         .iter()

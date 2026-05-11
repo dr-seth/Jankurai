@@ -67,6 +67,8 @@ pub enum ArtifactSchema {
     ScoreTrend,
     VibeCoverageSource,
     VibeCoverageReport,
+    CoverageSources,
+    CoverageAudit,
     ReadmeBadge,
 }
 
@@ -132,6 +134,8 @@ impl ArtifactSchema {
             Self::ScoreTrend => "score-trend.schema.json",
             Self::VibeCoverageSource => "vibe-coverage-source.schema.json",
             Self::VibeCoverageReport => "vibe-coverage-report.schema.json",
+            Self::CoverageSources => "coverage-sources.schema.json",
+            Self::CoverageAudit => "coverage-audit.schema.json",
             Self::ReadmeBadge => "readme-badge.schema.json",
         }
     }
@@ -234,6 +238,15 @@ pub fn validate_vibe_coverage_source_toml_text(repo: &Path, text: &str) -> Resul
     let json_value = serde_json::to_value(&toml_value)
         .context("convert vibe coverage TOML to JSON for schema validation")?;
     validate_value(repo, ArtifactSchema::VibeCoverageSource, &json_value)?;
+    Ok(json_value)
+}
+
+pub fn validate_coverage_sources_toml_text(repo: &Path, text: &str) -> Result<Value> {
+    let toml_value: toml::Value =
+        toml::from_str(text).context("parse agent/coverage-sources.toml")?;
+    let json_value = serde_json::to_value(&toml_value)
+        .context("convert coverage sources TOML to JSON for schema validation")?;
+    validate_value(repo, ArtifactSchema::CoverageSources, &json_value)?;
     Ok(json_value)
 }
 

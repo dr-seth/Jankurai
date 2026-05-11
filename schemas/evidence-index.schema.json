@@ -121,6 +121,7 @@
     "ux_qa_report_digest": { "type": "string" },
     "security_evidence_path": { "type": "string" },
     "repo_score_json_path": { "type": "string" },
+    "coverage_audit_path": { "type": "string" },
     "sarif_path": { "type": "string" },
     "github_step_summary_path": { "type": "string" },
     "repair_queue_jsonl_path": { "type": "string" },

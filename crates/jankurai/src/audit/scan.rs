@@ -143,6 +143,9 @@ pub fn is_test_or_example_path(path: &str) -> bool {
         || lower.ends_with(".spec.rs")
         || lower.ends_with(".test.ts")
         || lower.ends_with(".spec.ts")
+        || lower.ends_with("_tests.rs")
+        || lower.ends_with("/tests.rs")
+        || lower == "tests.rs"
 }
 
 pub fn is_generated_or_reference_path(path: &str) -> bool {

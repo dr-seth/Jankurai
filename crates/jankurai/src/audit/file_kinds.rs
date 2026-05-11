@@ -113,6 +113,7 @@ const TEXT_EXTS: &[&str] = &[
     ".ts",
     ".tsx",
     ".txt",
+    ".zyal",
     ".yaml",
     ".yml",
 ];

@@ -2,10 +2,10 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
-    adopt, agent, badge, bench, cell, certify, conformance, context_pack, doctor, exceptions,
-    govern, history, hooks, init, kickoff, migrate, optimize, paper, postmortem, proof, proofbind,
-    proofmark, publish, registry, repair, repair_plan, rules, rust, score, security, update, vibe,
-    witness,
+    adopt, agent, badge, bench, cell, certify, conformance, context_pack, coverage, doctor,
+    exceptions, govern, history, hooks, init, kickoff, migrate, optimize, paper, postmortem, proof,
+    proofbind, proofmark, publish, registry, repair, repair_plan, rules, rust, score, security,
+    update, vibe, witness,
 };
 use jankurai::render::{render_markdown, write_json, write_markdown};
 use jankurai::report::issues::IssueFormat;
@@ -121,6 +121,10 @@ enum Commands {
         #[command(subcommand)]
         command: SecurityCommand,
     },
+    Coverage {
+        #[command(subcommand)]
+        command: CoverageCommand,
+    },
     Vibe {
         #[command(subcommand)]
         command: VibeCommand,
@@ -184,6 +188,12 @@ enum IssuesCommand {
 #[derive(Subcommand, Debug)]
 enum SecurityCommand {
     Run(SecurityRunArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum CoverageCommand {
+    /// Parses coverage/proof artifacts. Does not run tests or external coverage tools.
+    Audit(CoverageAuditArgs),
 }
 
 #[derive(Subcommand, Debug)]
@@ -1349,6 +1359,26 @@ struct SecurityRunArgs {
 }
 
 #[derive(Args, Debug)]
+struct CoverageAuditArgs {
+    #[arg(default_value = ".", value_parser = parse_repo_arg)]
+    repo: PathBuf,
+    #[arg(long, value_name = "PATH", default_value = coverage::DEFAULT_CONFIG_PATH)]
+    config: String,
+    #[arg(long, value_name = "PATH", default_value = coverage::DEFAULT_JSON_PATH)]
+    json: String,
+    #[arg(long, value_name = "PATH", default_value = coverage::DEFAULT_MD_PATH)]
+    md: String,
+    #[arg(long, value_name = "REV")]
+    changed_from: Option<String>,
+    #[arg(long)]
+    strict: bool,
+    #[arg(long, default_value_t = coverage::DEFAULT_MAX_ARTIFACT_BYTES)]
+    max_artifact_bytes: u64,
+    #[arg(long, default_value_t = coverage::DEFAULT_MAX_FINDINGS)]
+    max_findings: usize,
+}
+
+#[derive(Args, Debug)]
 struct VibeCoverageArgs {
     #[arg(default_value = ".", value_parser = parse_repo_arg)]
     repo: PathBuf,
@@ -1997,6 +2027,20 @@ fn main() -> anyhow::Result<()> {
                     out: args.out,
                     strict: args.strict,
                     profile: args.profile,
+                })?;
+            }
+        },
+        Some(Commands::Coverage { command }) => match command {
+            CoverageCommand::Audit(args) => {
+                coverage::run_audit(coverage::CoverageAuditArgs {
+                    repo: args.repo,
+                    config: args.config,
+                    json: args.json,
+                    md: args.md,
+                    changed_from: args.changed_from,
+                    strict: args.strict,
+                    max_artifact_bytes: args.max_artifact_bytes,
+                    max_findings: args.max_findings,
                 })?;
             }
         },

@@ -1,6 +1,7 @@
 use crate::model::Report;
 use crate::report::proof;
 use anyhow::Result;
+use serde_json::Value;
 use std::fs;
 
 pub fn write_json(path: &str, content: &str) -> Result<()> {
@@ -174,6 +175,50 @@ pub fn render_markdown(report: &Report) -> String {
             report.ux_qa.missing_categories.join(", ")
         }
     );
+    if let Some(tuiwright) = report
+        .ux_qa
+        .evidence
+        .get("tuiwright")
+        .and_then(Value::as_object)
+    {
+        let flows = tuiwright
+            .get("flow_count")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        let files = tuiwright
+            .get("test_files")
+            .and_then(Value::as_array)
+            .map(|items| items.len())
+            .unwrap_or(0);
+        let assertions = tuiwright
+            .get("assertion_count")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        let actions = tuiwright
+            .get("action_count")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        let artifact_counts = tuiwright
+            .get("artifact_counts")
+            .and_then(Value::as_object)
+            .map(|counts| {
+                if counts.is_empty() {
+                    "none".into()
+                } else {
+                    counts
+                        .iter()
+                        .map(|(kind, count)| format!("{kind}={}", count.as_u64().unwrap_or(0)))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                }
+            })
+            .unwrap_or_else(|| "none".into());
+        let _ = writeln!(
+            out,
+            "- Tuiwright TUI flows: `{}` flow(s) across `{}` file(s); assertions=`{}` actions=`{}` artifacts=`{}`",
+            flows, files, assertions, actions, artifact_counts
+        );
+    }
     if let Some(art) = &report.ux_qa.artifact {
         let _ = writeln!(out);
         let _ = writeln!(out, "### Ingested UX QA report (`{}`)", art.path);
@@ -408,6 +453,23 @@ pub fn render_markdown(report: &Report) -> String {
                 );
             }
         }
+    }
+    if let Some(summary) = &report.coverage_evidence {
+        let _ = writeln!(out);
+        let _ = writeln!(out, "## Coverage Evidence");
+        let _ = writeln!(out);
+        let _ = writeln!(out, "- Artifact: `{}`", summary.artifact);
+        let _ = writeln!(out, "- Status: `{}`", summary.status);
+        let _ = writeln!(
+            out,
+            "- Sources: total=`{}` present=`{}`",
+            summary.sources_total, summary.sources_present
+        );
+        let _ = writeln!(
+            out,
+            "- Findings: hard=`{}` soft=`{}`",
+            summary.hard_findings, summary.soft_findings
+        );
     }
     let _ = writeln!(out);
     let _ = writeln!(out, "## Findings");

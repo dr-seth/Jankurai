@@ -10,6 +10,7 @@ pub mod security;
 pub mod shape;
 pub mod speed;
 pub mod tool_adoption;
+pub mod tuiwright;
 
 use super::helpers::AuditContext;
 use crate::model::ProfileStructureReadiness;
@@ -45,7 +46,7 @@ pub fn all_dimensions(
 pub fn ux_qa_status(ctx: &AuditContext) -> UxQaReadiness {
     use super::helpers::*;
 
-    let evidence = serde_json::json!({
+    let mut evidence = serde_json::json!({
         "storybook": paths_with(ctx, &[".storybook/", ".stories.", ".story."], &["@storybook", "storybook", "component story format", "csf"]),
         "playwright_visual": paths_with(ctx, &[], &["tohavescreenshot", "page.screenshot", "locator.screenshot", "visual comparisons", "screenshotpath"]),
         "visual_review": paths_with(ctx, &["backstop", "loki", "argos", "chromatic", "percy", "applitools"], &["@argos-ci", "argos", "chromatic", "percy", "applitools", "backstopjs", "loki", "visual regression", "visual review"]),
@@ -56,6 +57,15 @@ pub fn ux_qa_status(ctx: &AuditContext) -> UxQaReadiness {
         "geometry_runtime": paths_with(ctx, &["packages/ux-qa", "ux-qa"], &["@jankurai/ux-qa", "jankurai-ux-qa", "analyzepage", "expectnouxviolations", "edge clearance", "target size", "getboundingclientrect"]),
         "artifact_backed_proof": paths_with(ctx, &["ux-qa-artifacts", "test-results", "playwright-report"], &["--artifacts-dir", "--screenshot", "--aria-snapshot", "artifactpath", "artifactsdir", "ariasnapshot", "tohavescreenshot", "tomatchariasnapshot", "page.screenshot", "trace"]),
     });
+    if let Some(tuiwright) = tuiwright::analyze(ctx) {
+        evidence
+            .as_object_mut()
+            .expect("ux evidence object")
+            .insert(
+                "tuiwright".into(),
+                serde_json::to_value(tuiwright).expect("serialize tuiwright evidence"),
+            );
+    }
     let web_surface = has_web_surface(ctx);
     let missing = if !web_surface {
         vec![]

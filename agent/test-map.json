@@ -109,6 +109,14 @@
       "command": "just score",
       "purpose": "verify machine-readable maps and policy remain scannable"
     },
+    "agent/coverage-sources.toml": {
+      "command": "cargo test -p jankurai --test coverage_audit_smoke && just score",
+      "purpose": "verify coverage evidence source routing and score import"
+    },
+    "agent/zyal/": {
+      "command": "cargo test -p jankurai --test zyal_audit && just score",
+      "purpose": "verify canonical ZYAL runbooks stay under agent/zyal and only use the .zyal extension"
+    },
     ".jankurai/postmortems/": {
       "command": "cargo test -p jankurai --test postmortem_smoke",
       "purpose": "verify durable postmortem records and read-only views remain schema-bound"
@@ -120,6 +128,10 @@
     "docs/": {
       "command": "just score",
       "purpose": "verify docs remain agent-readable and routed"
+    },
+    "docs/COVERAGE_*.md": {
+      "command": "just score",
+      "purpose": "verify coverage evidence docs remain routed through the score lane"
     },
     "conformance/": {
       "command": "just conformance",
@@ -136,6 +148,10 @@
     "schemas/": {
       "command": "cargo test -p jankurai && npm --workspace @jankurai/ux-qa run build",
       "purpose": "verify schema-carrying Rust and TypeScript reports still compile"
+    },
+    "schemas/coverage-*.schema.json": {
+      "command": "cargo test -p jankurai --test schema_contracts",
+      "purpose": "verify coverage evidence schemas and fixtures"
     },
     "contracts/": {
       "command": "just score",
@@ -156,6 +172,26 @@
     "crates/jankurai/": {
       "command": "cargo test -p jankurai && cargo run -p jankurai -- versions",
       "purpose": "verify the audit package compiles and still emits JSON/Markdown"
+    },
+    "crates/jankurai/src/commands/coverage.rs": {
+      "command": "cargo test -p jankurai --test coverage_audit_smoke && cargo test -p jankurai",
+      "purpose": "verify coverage audit command behavior"
+    },
+    "crates/jankurai/src/audit/coverage.rs": {
+      "command": "cargo test -p jankurai --test coverage_audit_smoke && cargo test -p jankurai --lib audit::coverage",
+      "purpose": "verify coverage parsers and evidence normalization"
+    },
+    "crates/jankurai/src/audit/analyzers/tuiwright.rs": {
+      "command": "cargo test -p jankurai --test ux_qa_audit_ingest_smoke && cargo test -p jankurai --test report_compatibility_guard",
+      "purpose": "verify Tuiwright evidence detection and rendered UX summary output"
+    },
+    "crates/jankurai/tests/fixtures/coverage/": {
+      "command": "cargo test -p jankurai --test coverage_audit_smoke",
+      "purpose": "verify coverage parser fixture contracts"
+    },
+    "crates/jankurai/tests/fixtures/tuiwright/": {
+      "command": "cargo test -p jankurai --test ux_qa_audit_ingest_smoke",
+      "purpose": "verify the checked-in Tuiwright audit fixtures for full and gap coverage cases"
     },
     "crates/jankurai/src/commands/postmortem.rs": {
       "command": "cargo test -p jankurai --test postmortem_smoke",

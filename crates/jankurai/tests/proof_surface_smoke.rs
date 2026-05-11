@@ -232,6 +232,12 @@ fn prove_writes_receipts_and_logs() {
     let ux_report = r#"{"reports":[{"schemaVersion":"1.4.0","toolVersion":"0.5.0","url":"about:blank","checkedAt":"2026-05-02T12:00:00.000Z","viewport":{"width":1280,"height":720},"metrics":{"scrollWidth":1280,"clientWidth":1280,"scrollHeight":720,"clientHeight":720},"elements":[],"violations":[],"artifacts":[],"summary":{"errors":0,"warnings":0,"byRule":{}},"decision":"pass"}]}"#;
     fs::write(work.join("ux-qa.json"), ux_report).unwrap();
     fs::write(work.join("security/evidence.json"), "{}\n").unwrap();
+    fs::create_dir_all(work.join("coverage")).unwrap();
+    fs::write(
+        work.join("coverage/coverage-audit.json"),
+        r#"{"schema_version":1,"generated_by":"jankurai coverage audit","repo_root":".","config_path":"agent/coverage-sources.toml","strict":false,"changed_from":null,"summary":{"status":"pass","sources_total":0,"sources_present":0,"sources_missing":0,"hard_findings":0,"soft_findings":0},"sources":[],"findings":[]}"#,
+    )
+    .unwrap();
     fs::write(repo.path().join("agent/repo-score.json"), "{\"score\":0}\n").unwrap();
     fs::write(work.join("jankurai.sarif"), "{}\n").unwrap();
     fs::write(work.join("summary.md"), "# summary\n").unwrap();
@@ -294,6 +300,10 @@ generated_type_paths = []
     assert_eq!(
         evidence_value["repo_score_json_path"],
         "agent/repo-score.json"
+    );
+    assert_eq!(
+        evidence_value["coverage_audit_path"],
+        "target/jankurai/coverage/coverage-audit.json"
     );
     assert_eq!(
         evidence_value["sarif_path"],

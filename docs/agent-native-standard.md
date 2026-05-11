@@ -33,6 +33,9 @@ Every repository claiming `HL3` or higher MUST include:
 - `agent/JANKURAI_STANDARD.md` copied or vendored from this standard.
 - `agent/owner-map.json` mapping paths to owners and allowed dependencies.
 - `agent/test-map.json` mapping paths to validation lanes.
+- `agent/zyal/**/*.zyal` as the canonical ZYAL runbook root. `agent/zyal/README.md`
+  may exist as the only non-runbook file, and `.zyal.yml` / `.zyal.yaml` are
+  legacy forms that should be renamed.
 - `agent/generated-zones.toml` or equivalent generated-file manifest.
 - `agent/standard-version.toml` binding paper, standard, audit, schema, and artifact versions.
 - `agent/repo-score.json` produced by CI.
@@ -105,10 +108,13 @@ Stable rule IDs:
 | `HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP` | Reference-profile cells drift from canonical folder names or miss local AGENTS guidance |
 | `HLT-039-WEB-SECURITY-BAD-BEHAVIOR` | Web apps expose high-confidence security hazards such as public Vite dev servers, client secrets, browser token storage, or credentialed wildcard CORS |
 | `HLT-040-REPO-ROT-BAD-BEHAVIOR` | Active source contains ambiguous old, backup, copied, parked, or hard-disabled code without owner, proof lane, expiry, and cleanup plan |
+| `HLT-041-COMMENT-HYGIENE` | Source code contains dangerous comments admitting unsafe behavior, temporary hacks, or AI scaffolding |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-040` are detector-backed catalog IDs in the bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed in this release. `HLT-030` through `HLT-041` are detector-backed catalog IDs in the bad-behavior family.
 
 Centerline drift is the delta between claimed conformance and observed repository behavior. Hard caps are versioned policy, not final empirical truth.
+
+Coverage evidence is proof support, not a score category. Line coverage is reachability; mutation, property, integration, API, database, UX, accessibility, and container evidence are stronger behavior signals. Missing optional coverage tools cannot block merge. Required proof gaps on changed critical surfaces route to the existing HLT rule for that surface.
 
 ## 3. Hard Gates
 
@@ -320,6 +326,7 @@ Coverage means behavior proof, not line count.
 - Adapters need contract/integration tests against real or faithful services.
 - Database migrations need forward apply, rollback policy, constraint checks, and tenant isolation checks when multi-tenant.
 - TypeScript UI needs component tests, rendered UX geometry checks, visual/a11y evidence, and Playwright for critical browser journeys.
+- Rust TUI surfaces MAY use Tuiwright as positive rendered UX evidence when tests combine `Page::spawn` or `SpawnConfig` with at least one wait/assertion and, ideally, interaction or artifact signals. Audit consumes that evidence but does not run Tuiwright itself. Missing Tuiwright proof stays advisory unless a repository declares required TUI flows in an explicit manifest.
 - Approved Python AI/data exceptions need golden evals, model IO contract tests, data-shape tests, reproducibility seeds, and a containment/migration plan.
 - Bugs require regression tests in the owner cell that failed.
 - Every external boundary needs success, validation failure, retryable failure, and permanent failure coverage.
@@ -332,6 +339,7 @@ Recommended browser lane: Playwright for end-to-end flows because it exercises r
 ## 11.1 Rendered UX And Browser-Step QA
 
 Browser QA is first-class but risk-routed. Critical flows, auth, payments, admin actions, onboarding, canvas/3D surfaces, and layout-sensitive components SHOULD have Playwright traces or screenshots in the PR lane. Rendered UX proof SHOULD combine Storybook states, screenshots, ARIA snapshots, accessibility scans, CLS checks, generated mocks, design-token evidence, and DOM geometry rules for edge clearance, target size, overlap, clipping, wrapping, overflow, sticky obstruction, focus visibility, form labels, and nested scrollbars. Full viewport/device matrices MAY run nightly or at release unless the changed path directly touches those surfaces.
+Rust TUI proof MAY use Tuiwright evidence instead of browser proof when the surface is terminal-native: a flow counts only when a real Rust test uses `Page::spawn` or `SpawnConfig` plus an assertion or wait, and screenshots, GIFs, and traces are supporting artifacts rather than proof by themselves. The audit reads that evidence but does not execute Tuiwright during repo scoring.
 
 Required evidence for high-risk UI repairs:
 

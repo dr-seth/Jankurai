@@ -148,6 +148,8 @@ pub struct ProofEvidenceIndex {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repo_score_json_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coverage_audit_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sarif_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub github_step_summary_path: Option<String>,
@@ -392,6 +394,10 @@ fn execute_proof_plan(args: ProveArgs, plan: ProofPlan, plan_path_str: String) -
             "target/jankurai/security/evidence.json",
         ),
         repo_score_json_path: optional_repo_relative_existing(&args.repo, "agent/repo-score.json"),
+        coverage_audit_path: optional_repo_relative_existing(
+            &args.repo,
+            "target/jankurai/coverage/coverage-audit.json",
+        ),
         sarif_path: optional_repo_relative_existing(&args.repo, "target/jankurai/jankurai.sarif"),
         github_step_summary_path: optional_repo_relative_existing(
             &args.repo,

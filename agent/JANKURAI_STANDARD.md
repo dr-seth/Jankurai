@@ -64,9 +64,12 @@ Source-of-truth order:
    commands.
 8. `agent/tool-adoption.toml`: optional tool lanes and CI-backed replacement
    evidence.
-9. `docs/testing.md`: detailed testing, UX, security, proofbind, proofmark,
+9. `agent/zyal/**/*.zyal`: canonical checked-in ZYAL runbooks. The only
+   allowed non-runbook file in that tree is `agent/zyal/README.md`, and legacy
+   `.zyal.yml` / `.zyal.yaml` files are audit findings.
+10. `docs/testing.md`: detailed testing, UX, security, proofbind, proofmark,
    migration, history, and conformance command behavior.
-10. `docs/artifact-contracts.md` and `schemas/`: JSON/TOML artifact contracts.
+11. `docs/artifact-contracts.md` and `schemas/`: JSON/TOML artifact contracts.
 
 Operational surfaces:
 
@@ -200,8 +203,9 @@ Stop or fix first when any condition is true:
 | `HLT-038-REFERENCE-PROFILE-STRUCTURE-GAP` | Reference-profile cells drift from canonical folder names or miss local AGENTS guidance |
 | `HLT-039-WEB-SECURITY-BAD-BEHAVIOR` | Web apps expose high-confidence security hazards such as public Vite dev servers, client secrets, browser token storage, or credentialed wildcard CORS |
 | `HLT-040-REPO-ROT-BAD-BEHAVIOR` | Active source contains ambiguous old, backup, copied, parked, or hard-disabled code without owner, proof lane, expiry, and cleanup plan |
+| `HLT-041-COMMENT-HYGIENE` | Source code contains dangerous comments admitting unsafe behavior, temporary hacks, or AI scaffolding |
 
-`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-040` are detector-backed catalog IDs in the bad-behavior family.
+`HLT-029-RUST-BAD-BEHAVIOR` is detector-backed now. `HLT-030` through `HLT-041` are detector-backed catalog IDs in the bad-behavior family.
 
 ## Ownership Boundaries
 
@@ -255,6 +259,8 @@ Required lane names:
 - `release`: all merge gates
 
 Tool replacement counts only when a Jankurai lane runs in CI and uploads the expected artifact evidence. Local config is readiness only; it does not count as replacement proof.
+
+Coverage evidence is proof support, not a score category. Line coverage is reachability; mutation, property, integration, API, DB, UX, accessibility, and container evidence are stronger behavior signals. Missing optional coverage tools cannot block merge, while required proof gaps on changed critical surfaces route to the existing HLT rule for that surface.
 
 ## Audit Output
 

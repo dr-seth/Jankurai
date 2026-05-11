@@ -27,6 +27,19 @@ requires_network = false
 destructive = false
 
 [[lane]]
+name = "coverage-audit"
+command = "cargo run -p jankurai -- coverage audit . --config agent/coverage-sources.toml --json target/jankurai/coverage/coverage-audit.json --md target/jankurai/coverage/coverage-audit.md"
+purpose = "parse deterministic coverage and proof-gap artifacts without running external tools"
+command_id = "lane.coverage-audit"
+kind = "analysis"
+cost = 8
+rules_covered = ["HLT-004-UNMAPPED-PROOF", "HLT-008-FALSE-GREEN-RISK", "HLT-013-RENDERED-UX-GAP", "HLT-014-A11Y-GAP", "HLT-016-SUPPLY-CHAIN-DRIFT", "HLT-021-DESTRUCTIVE-MIGRATION", "HLT-022-AUTHZ-ISOLATION-GAP", "HLT-023-INPUT-BOUNDARY-GAP", "HLT-032-DOCKER-BAD-BEHAVIOR"]
+required_artifacts = ["target/jankurai/coverage/coverage-audit.json", "target/jankurai/coverage/coverage-audit.md"]
+timeout_seconds = 900
+requires_network = false
+destructive = false
+
+[[lane]]
 name = "paper"
 command = "just paper"
 purpose = "build paper/jankurai.pdf from paper/jankurai.tex and paper/tex/"

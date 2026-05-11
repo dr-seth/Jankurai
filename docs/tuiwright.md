@@ -159,6 +159,14 @@ cargo test -p my-tui-tests
 
 Upload `target/tuiwright/**` as CI artifacts on failure.
 
+## Audit Evidence
+
+Jankurai's audit can recognize Tuiwright-covered Rust test flows as positive rendered UX evidence. A flow counts when a Rust test uses `Page::spawn` or `SpawnConfig` together with a wait or assertion such as `wait_for_text`, `wait_for_regex`, `expect_screen`, or `expect_locator`.
+
+Actions such as `press`, `type_text`, `paste`, `click_cell`, and `resize` strengthen the evidence. `screenshot`, `stop_recording_gif`, and `trace_path` are counted as supporting artifacts, but screenshots alone are not proof.
+
+The audit does not run Tuiwright itself. Missing Tuiwright evidence does not create a finding unless a future explicit manifest declares required TUI flows.
+
 ## Architecture
 
 ```text

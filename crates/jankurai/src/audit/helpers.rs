@@ -275,6 +275,15 @@ pub const TOOL_ADOPTION_CATALOG: &[ToolAdoptionCatalogEntry] = &[
         applicability: tool_vibe_coverage_applicable,
     },
     ToolAdoptionCatalogEntry {
+        id: "coverage-evidence",
+        category: "proof",
+        replaced_tools: &["manual coverage report review", "ad hoc mutation survivor review"],
+        local_command: "jankurai coverage audit . --config agent/coverage-sources.toml --json target/jankurai/coverage/coverage-audit.json --md target/jankurai/coverage/coverage-audit.md",
+        ci_command: "jankurai coverage audit . --config agent/coverage-sources.toml --json target/jankurai/coverage/coverage-audit.json --md target/jankurai/coverage/coverage-audit.md",
+        artifact_paths: &["target/jankurai/coverage/coverage-audit.json", "target/jankurai/coverage/coverage-audit.md"],
+        applicability: tool_coverage_evidence_applicable,
+    },
+    ToolAdoptionCatalogEntry {
         id: "authz-matrix",
         category: "security",
         replaced_tools: &["manual authz matrix review"],
@@ -463,6 +472,12 @@ fn tool_vibe_coverage_applicable(ctx: &AuditContext) -> bool {
     ctx.all_files
         .iter()
         .any(|f| f.rel_path == "agent/vibe-coverage.toml")
+}
+
+fn tool_coverage_evidence_applicable(ctx: &AuditContext) -> bool {
+    ctx.all_files
+        .iter()
+        .any(|f| f.rel_path == "agent/coverage-sources.toml")
 }
 
 fn tool_authz_matrix_applicable(ctx: &AuditContext) -> bool {
@@ -805,6 +820,7 @@ pub fn is_runtime_stack_surface(file: &FileInfo, self_audit: bool) -> bool {
         && !file.rel_path.starts_with("tests/")
         && !file.rel_path.starts_with("tips/")
         && !file.rel_path.starts_with("tools/")
+        && !crate::audit::scan::is_test_or_example_path(&file.rel_path)
 }
 
 pub fn product_files(ctx: &AuditContext) -> Vec<FileInfo> {

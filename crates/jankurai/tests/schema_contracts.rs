@@ -13,6 +13,66 @@ fn repo_root() -> PathBuf {
 }
 
 #[test]
+fn coverage_schemas_parse_and_fixtures_validate() {
+    let repo = repo_root();
+    let sources_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/coverage-sources.schema.json")).unwrap(),
+    )
+    .unwrap();
+    let audit_schema: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(repo.join("schemas/coverage-audit.schema.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        sources_schema["$id"],
+        "https://jankurai.dev/schemas/coverage-sources.schema.json"
+    );
+    assert_eq!(
+        audit_schema["$id"],
+        "https://jankurai.dev/schemas/coverage-audit.schema.json"
+    );
+
+    let config = fs::read_to_string(
+        repo.join("crates/jankurai/tests/fixtures/coverage/minimal_coverage_sources.toml"),
+    )
+    .unwrap();
+    validation::validate_coverage_sources_toml_text(&repo, &config).unwrap();
+
+    let audit = serde_json::json!({
+        "schema_version": 1,
+        "generated_by": "jankurai coverage audit",
+        "repo_root": ".",
+        "config_path": "agent/coverage-sources.toml",
+        "strict": false,
+        "changed_from": null,
+        "summary": {
+            "status": "pass",
+            "sources_total": 1,
+            "sources_present": 1,
+            "sources_missing": 0,
+            "hard_findings": 0,
+            "soft_findings": 0
+        },
+        "sources": [{
+            "id": "fixture-lcov",
+            "kind": "line_coverage",
+            "format": "lcov",
+            "mode": "required",
+            "status": "pass",
+            "artifact_paths": ["coverage/lcov.info"],
+            "matched_artifact": "coverage/lcov.info",
+            "applies_to": ["crates/**/*.rs"],
+            "owner": "tools",
+            "lane": "coverage-audit",
+            "metrics": {"total_lines": 1},
+            "parser_warnings": []
+        }],
+        "findings": []
+    });
+    validation::validate_value(&repo, ArtifactSchema::CoverageAudit, &audit).unwrap();
+}
+
+#[test]
 fn adoption_plan_schema_parses_and_fixture_validates() {
     let repo = repo_root();
     let schema: serde_json::Value = serde_json::from_str(
@@ -354,6 +414,7 @@ fn cell_registry_and_manifest_schemas_parse() {
     assert!(ei_props.contains_key("ux_qa_report_path"));
     assert!(ei_props.contains_key("security_evidence_path"));
     assert!(ei_props.contains_key("repo_score_json_path"));
+    assert!(ei_props.contains_key("coverage_audit_path"));
     assert!(ei_props.contains_key("sarif_path"));
     assert!(ei_props.contains_key("github_step_summary_path"));
     assert!(ei_props.contains_key("repair_queue_jsonl_path"));
@@ -365,6 +426,7 @@ fn cell_registry_and_manifest_schemas_parse() {
         "ux_qa_report_digest",
         "security_evidence_path",
         "repo_score_json_path",
+        "coverage_audit_path",
         "sarif_path",
         "github_step_summary_path",
         "repair_queue_jsonl_path",

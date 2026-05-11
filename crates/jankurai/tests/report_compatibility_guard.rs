@@ -133,6 +133,22 @@ fn sidecar_report_exports_stay_semantically_parseable() {
         md_text.contains("# jankurai Repo Score"),
         "markdown score should keep a stable title"
     );
+    if let Some(tuiwright) = report["ux_qa"]["evidence"]["tuiwright"].as_object() {
+        assert!(
+            md_text.contains("Tuiwright TUI flows:"),
+            "markdown score should surface Tuiwright proof when present"
+        );
+        assert_eq!(tuiwright["surface_detected"], true);
+        assert!(
+            tuiwright["flow_count"].as_u64().unwrap_or(0) > 0,
+            "when present, Tuiwright proof should expose at least one flow"
+        );
+    } else {
+        assert!(
+            !md_text.contains("Tuiwright TUI flows:"),
+            "markdown score should not invent Tuiwright proof when the evidence is absent"
+        );
+    }
 
     let summary = fs::read_to_string(tmp.path().join("summary.md")).unwrap();
     assert!(
@@ -205,6 +221,39 @@ fn repo_score_markdown_keeps_stable_sections() {
             "repo-score.md should not invent vibe coverage when the report omits it"
         );
     }
+    if report["coverage_evidence"].is_object() {
+        assert!(
+            md.contains("## Coverage Evidence"),
+            "repo-score.md should include coverage evidence when the report carries it"
+        );
+    } else {
+        assert!(
+            !md.contains("## Coverage Evidence"),
+            "repo-score.md should not invent coverage evidence when the report omits it"
+        );
+    }
+}
+
+#[test]
+fn repo_score_schema_keeps_coverage_evidence_optional() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = repo_root();
+    let mut report = run_full_audit_export(&repo, tmp.path());
+    report.as_object_mut().unwrap().remove("coverage_evidence");
+    validation::validate_value(&repo, ArtifactSchema::RepoScore, &report).unwrap();
+
+    report.as_object_mut().unwrap().insert(
+        "coverage_evidence".into(),
+        serde_json::json!({
+            "artifact": "target/jankurai/coverage/coverage-audit.json",
+            "status": "warn",
+            "sources_total": 2,
+            "sources_present": 1,
+            "hard_findings": 0,
+            "soft_findings": 1
+        }),
+    );
+    validation::validate_value(&repo, ArtifactSchema::RepoScore, &report).unwrap();
 }
 
 #[test]
