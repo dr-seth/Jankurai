@@ -45,6 +45,13 @@ pub struct PromptClaim {
 struct ClaimCandidate {
     claim_type: ClaimType,
     claim: String,
+    /// The symbol the doc *claims* lives at this location, extracted from the
+    /// nearest backtick-delimited identifier on the same line. Used by
+    /// `verify_path_line` to detect symbol-name mismatches (e.g. doc says
+    /// `_sense_formalize` at `engine.py:382` but the actual symbol there is
+    /// `_sense` — without this check, the existing path-line verifier would
+    /// report verified because *something* lives at L382).
+    expected_symbol: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,6 +146,24 @@ static CLASS_RE: Lazy<Regex> = Lazy::new(|| {
 });
 static LLM_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)\bllm call\b").expect("llm regex"));
 
+/// Captures backtick-delimited tokens like `` `_sense_formalize` `` or
+/// `` `AARAEngine.invoke()` ``. The doc-side "claimed symbol" is then the
+/// trailing identifier of the last such token on the line, before the
+/// `path:line` reference position.
+static BACKTICK_TOKEN_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"`([^`]+)`").expect("backtick-token regex"));
+
+/// Matches the leading symbol of a Python/Rust definition or class header,
+/// e.g. `def _sense(...)` or `class Foo(Bar):` or `fn run(...)`. Used by
+/// `verify_path_line` to read the actual symbol at the claimed line so it
+/// can be compared to the doc's `expected_symbol`.
+static DEF_SYMBOL_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"^\s*(?:async\s+)?(?:def|class|fn|pub\s+fn|pub\s+async\s+fn)\s+([A-Za-z_][A-Za-z0-9_]*)",
+    )
+    .expect("def-symbol regex")
+});
+
 pub fn run(args: PromptVerifyArgs) -> Result<()> {
     let repo = canonicalize_repo(&args.repo)?;
     let document_path = resolve_repo_relative_existing(&repo, &args.document)?;
@@ -153,7 +178,11 @@ pub fn run(args: PromptVerifyArgs) -> Result<()> {
 
     for candidate in candidates {
         let (decision, evidence, note) = match candidate.claim_type {
-            ClaimType::PathLine => verify_path_line(&repo, &candidate.claim)?,
+            ClaimType::PathLine => verify_path_line(
+                &repo,
+                &candidate.claim,
+                candidate.expected_symbol.as_deref(),
+            )?,
             ClaimType::ModuleSymbol => verify_module_symbol(&repo, &candidate.claim)?,
             ClaimType::ClassClaim => verify_class_claim(&repo, &candidate.claim)?,
             ClaimType::LlmCall => verify_llm_call(&repo, &candidate.claim)?,
@@ -238,9 +267,12 @@ fn extract_claims(document: &str) -> Vec<ClaimCandidate> {
                 continue;
             }
             if seen.insert(format!("path:{raw}")) {
+                let expected_symbol =
+                    nearest_backtick_symbol_before(line, cap.get(0).unwrap().start());
                 claims.push(ClaimCandidate {
                     claim_type: ClaimType::PathLine,
                     claim: raw,
+                    expected_symbol,
                 });
             }
         }
@@ -251,6 +283,7 @@ fn extract_claims(document: &str) -> Vec<ClaimCandidate> {
                 claims.push(ClaimCandidate {
                     claim_type: ClaimType::ModuleSymbol,
                     claim: raw,
+                    expected_symbol: None,
                 });
             }
         }
@@ -261,19 +294,45 @@ fn extract_claims(document: &str) -> Vec<ClaimCandidate> {
                 claims.push(ClaimCandidate {
                     claim_type: ClaimType::ClassClaim,
                     claim: raw,
+                    expected_symbol: None,
                 });
             }
         }
 
-        if LLM_RE.is_match(line) && seen.insert(format!("llm:{}", trimmed)) {
+        if LLM_RE.is_match(line)
+            && !line_negates_llm_call(line)
+            && seen.insert(format!("llm:{}", trimmed))
+        {
             claims.push(ClaimCandidate {
                 claim_type: ClaimType::LlmCall,
                 claim: trimmed.to_string(),
+                expected_symbol: None,
             });
         }
     }
 
     claims
+}
+
+/// Suppress LLM-call claims on lines that explicitly deny the call —
+/// e.g. "NOT an LLM call", "no LLM call", "is not a LLM call". The
+/// `LLM_RE` pattern matches the substring `llm call` itself, which fires
+/// false positives in docs that describe what something *isn't* (a common
+/// pattern in v2 scoping docs that retract v1 over-claims).
+fn line_negates_llm_call(line: &str) -> bool {
+    let lower = line.to_ascii_lowercase();
+    [
+        "not an llm call",
+        "not a llm call",
+        "no llm call",
+        "no llm sdk",
+        "no llm sdk in fn body",
+        "isn't an llm call",
+        "is not an llm call",
+        "without llm call",
+    ]
+    .iter()
+    .any(|needle| lower.contains(needle))
 }
 
 fn line_is_refutation(line: &str) -> bool {
@@ -308,6 +367,7 @@ fn is_extension_like_ref(path: &str) -> bool {
 fn verify_path_line(
     repo: &Path,
     claim: &str,
+    expected_symbol: Option<&str>,
 ) -> Result<(ClaimDecision, Vec<String>, Option<String>)> {
     let (path, line) = claim.rsplit_once(':').context("parse path:line claim")?;
     let line_number: usize = line
@@ -387,6 +447,38 @@ fn verify_path_line(
             Some("comment-only line".to_string()),
         ));
     }
+    if let Some(expected) = expected_symbol {
+        let actual = DEF_SYMBOL_RE
+            .captures(line_text)
+            .and_then(|c| c.get(1).map(|m| m.as_str().to_string()));
+        match actual {
+            Some(found) if found != expected => {
+                return Ok((
+                    ClaimDecision::Invalid,
+                    vec![
+                        format!("{}:{}", canonical.display(), line_number),
+                        line_text.trim().to_string(),
+                        format!("expected `{expected}` but found `{found}` at this line"),
+                    ],
+                    Some("symbol mismatch".to_string()),
+                ));
+            }
+            None => {
+                return Ok((
+                    ClaimDecision::Invalid,
+                    vec![
+                        format!("{}:{}", canonical.display(), line_number),
+                        line_text.trim().to_string(),
+                        format!(
+                            "expected def/class for `{expected}` here but line is a use-site or non-definition"
+                        ),
+                    ],
+                    Some("use-site, not def-site".to_string()),
+                ));
+            }
+            _ => {}
+        }
+    }
     Ok((
         ClaimDecision::Verified,
         vec![
@@ -395,6 +487,32 @@ fn verify_path_line(
         ],
         None,
     ))
+}
+
+/// Walks backward from `pos` along `line`, returning the trailing identifier of
+/// the nearest backtick-delimited token (e.g. `` `_sense_formalize` `` →
+/// `Some("_sense_formalize")`, `` `AARAEngine.invoke()` `` → `Some("invoke")`).
+/// Returns `None` when no backtick token precedes the position. This is the
+/// claim-side "expected symbol" feed for `verify_path_line`.
+fn nearest_backtick_symbol_before(line: &str, pos: usize) -> Option<String> {
+    let prefix = line.get(..pos)?;
+    let mut last: Option<String> = None;
+    for cap in BACKTICK_TOKEN_RE.captures_iter(prefix) {
+        let token = cap.get(1)?.as_str();
+        let tail = token
+            .rsplit(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .find(|s| !s.is_empty())
+            .unwrap_or("");
+        if !tail.is_empty()
+            && tail
+                .chars()
+                .next()
+                .map_or(false, |c| c.is_alphabetic() || c == '_')
+        {
+            last = Some(tail.to_string());
+        }
+    }
+    last
 }
 
 fn verify_module_symbol(

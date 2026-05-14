@@ -1,0 +1,46 @@
+# Expected output spec for verify-prompt verb fixtures
+# Format: $ command -> exit code + key diagnostic lines that MUST appear.
+#
+# verify-prompt resolves each (file, line, symbol, shape) claim in the input
+# doc against the source files in the same directory (or a configured source
+# root). It is REQUIRED to re-derive evidence — AST resolve the symbol, count
+# lines of the resolved callable, inspect imports in the body. Regex-matching
+# the source-file content for the claim's description text is INSUFFICIENT
+# (Rule 9 — evidence over labels).
+
+[fixture: negative_v1.md, source_root: . (contains synthetic_engine_stub.py + synthetic_aara_api_stub.py)]
+$ jankurai migrate verify-prompt negative_v1.md
+exit_code: 1
+required_diagnostic_lines (substring match; order-insensitive):
+  - "synthetic_engine_stub.py:382"        # claim says callable; actually comment line
+  - "_sense_formalize"                   # symbol doesn't exist
+  - "synthetic_engine_stub.py:674"        # claim says `_decide_route_via_llm`; actual symbol is `_decide`
+  - "_decide_route_via_llm"
+  - "synthetic_engine_stub.py:1476"
+  - "_verify_with_llm_judge"             # symbol doesn't exist
+  - "synthetic_engine_stub.py:1693"
+  - "_extract_answer_from_result"        # symbol exists but shape mismatch (claim: LLM call; actual: 24-line dict extractor)
+  - "EAN.extract_atoms"                  # symbol does not exist; nearest: EAN.predict
+  - "synthetic_aara_api_stub.py:170"
+  - "invoke"                             # returns dict not str (shape mismatch)
+  - "SpeaksLanguageCore"                 # path mismatch: bridge.py vs language_core_bridge.py
+required_summary_line: "7 of 8 claims falsified" OR equivalent counter.
+
+[fixture: positive_v2.md, source_root: . ]
+$ jankurai migrate verify-prompt positive_v2.md
+exit_code: 0
+required_summary_line: "all claims verified" OR equivalent.
+
+[adversarial: shape regex bypass test]
+# Demonstrates Rule 9 — the test suite MUST NOT pass when the verb only
+# regex-matches the description text against the file. Specifically: if the
+# v1 doc says "_extract_answer_from_result is the final NL summarization call",
+# and a hypothetical verb implementation regex-greps for "summarization" in
+# synthetic_engine_stub.py around line 1693 and finds it absent, that's OK;
+# but if the verb only checks for SDK import strings ("anthropic", "openai")
+# and finds them absent, that's INSUFFICIENT. The verb must compute the AST
+# shape: line count of resolved callable + presence of structured return.
+# Upstream tests for this verb MUST include a check that swapping in a 24-line
+# synthetic stub that *does* import `anthropic` at module level but doesn't
+# call it from `_extract_answer_from_result`'s body still surfaces the shape
+# mismatch correctly.
