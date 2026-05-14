@@ -153,16 +153,73 @@ static LLM_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)\bllm call\b").expect
 static BACKTICK_TOKEN_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"`([^`]+)`").expect("backtick-token regex"));
 
-/// Matches the leading symbol of a Python/Rust definition or class header,
-/// e.g. `def _sense(...)` or `class Foo(Bar):` or `fn run(...)`. Used by
-/// `verify_path_line` to read the actual symbol at the claimed line so it
-/// can be compared to the doc's `expected_symbol`.
-static DEF_SYMBOL_RE: Lazy<Regex> = Lazy::new(|| {
+/// Matches Python/Rust definition or class headers, e.g. `def _sense(...)`,
+/// `class Foo(Bar):`, `fn run(...)`, `pub async fn handle(...)`. Covers Rust
+/// `impl` block methods because `^\s*` admits any leading whitespace.
+static PY_RUST_SYMBOL_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"^\s*(?:async\s+)?(?:def|class|fn|pub\s+fn|pub\s+async\s+fn)\s+([A-Za-z_][A-Za-z0-9_]*)",
     )
-    .expect("def-symbol regex")
+    .expect("py/rust symbol regex")
 });
+
+/// Matches TypeScript / JavaScript class methods AND top-level function
+/// declarations. Class-method shape: optional access modifiers (`public`,
+/// `private`, `protected`, `static`, `readonly`, `override`) + optional
+/// `async` + name + open-paren or generic. Top-level shape: optional
+/// `export` + optional `default` + `function` + name. The regex is anchored
+/// to the start-of-trimmed-line so it does not fire on `foo.bar()` use-sites.
+static TS_SYMBOL_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"^\s*(?:export\s+(?:default\s+)?)?(?:(?:public|private|protected|static|readonly|override|async)\s+)*(?:function\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\s*[(<]",
+    )
+    .expect("ts symbol regex")
+});
+
+/// Matches TS/JS `const|let|var` bindings — including arrow-function,
+/// function-expression, and constant bindings:
+/// `export const foo = () => {}`, `const bar = function() {}`,
+/// `let baz: Engine = makeEngine()`. The binding's name is the captured
+/// symbol; what follows the `=` is irrelevant for the symbol-name check.
+static TS_BINDING_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"^\s*(?:export\s+(?:default\s+)?)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*[:=]",
+    )
+    .expect("ts binding regex")
+});
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SourceLang {
+    PyRust,
+    TsJs,
+    Other,
+}
+
+fn source_lang_for(path: &Path) -> SourceLang {
+    match path.extension().and_then(|e| e.to_str()).unwrap_or("") {
+        "py" | "rs" => SourceLang::PyRust,
+        "ts" | "tsx" | "js" | "jsx" | "mjs" | "cjs" => SourceLang::TsJs,
+        _ => SourceLang::Other,
+    }
+}
+
+/// Extract the symbol at `line_text` using the language-appropriate regex.
+/// Returns `Some(name)` on a real def/class/method/binding, `None` when the
+/// line is a use-site or other non-definition. Hot path of `verify_path_line`'s
+/// symbol-mismatch check.
+fn extract_symbol_at_line(line_text: &str, lang: SourceLang) -> Option<String> {
+    let try_re = |re: &Regex| {
+        re.captures(line_text)
+            .and_then(|c| c.get(1).map(|m| m.as_str().to_string()))
+    };
+    match lang {
+        SourceLang::PyRust => try_re(&PY_RUST_SYMBOL_RE),
+        SourceLang::TsJs => try_re(&TS_SYMBOL_RE).or_else(|| try_re(&TS_BINDING_RE)),
+        SourceLang::Other => try_re(&PY_RUST_SYMBOL_RE)
+            .or_else(|| try_re(&TS_SYMBOL_RE))
+            .or_else(|| try_re(&TS_BINDING_RE)),
+    }
+}
 
 pub fn run(args: PromptVerifyArgs) -> Result<()> {
     let repo = canonicalize_repo(&args.repo)?;
@@ -448,9 +505,8 @@ fn verify_path_line(
         ));
     }
     if let Some(expected) = expected_symbol {
-        let actual = DEF_SYMBOL_RE
-            .captures(line_text)
-            .and_then(|c| c.get(1).map(|m| m.as_str().to_string()));
+        let lang = source_lang_for(&canonical);
+        let actual = extract_symbol_at_line(line_text, lang);
         match actual {
             Some(found) if found != expected => {
                 return Ok((

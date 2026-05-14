@@ -112,6 +112,15 @@ pub fn run(args: DoctorArgs) -> Result<()> {
         "migration-plan-json",
         "migration-plan-schema",
     );
+    check_json_artifact(
+        &repo,
+        &mut diagnostics,
+        "target/jankurai/migration-prompt-verification.json",
+        ArtifactSchema::MigrationPromptVerification,
+        "migration-prompt-verification-read",
+        "migration-prompt-verification-json",
+        "migration-prompt-verification-schema",
+    );
 
     progress.tick("rank diagnostics");
     let diagnostics = enrich_diagnostics(diagnostics);
