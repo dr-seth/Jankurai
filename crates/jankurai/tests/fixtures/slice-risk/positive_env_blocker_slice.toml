@@ -1,0 +1,33 @@
+# slice-risk fixture: env-prerequisite BLOCKER case
+#
+# Models Phase 3d Atlas: cascade torch.load on a stale-format checkpoint that
+# the slice's equivalence test depends on. slice-risk must enumerate the
+# checkpoint as a required env-prerequisite, attempt to validate it, and
+# surface the blocker BEFORE the slice acceptance ceremony begins.
+
+[slice]
+id = "synthetic-cascade-runner-2026-05"
+# target_dir omitted at v0 — synthetic target tree ships with ARY-2031.
+# Until then the [prerequisites] + [interop] tables are the full fixture.
+target_language = "rust"
+source_language = "python"
+ports_from = "synthetic_python_runner.py"
+
+[prerequisites.checkpoints]
+# Files the slice's equivalence test loads. slice-risk MUST surface the
+# load-method (torch.load with weights_only=True) and check the file exists +
+# can be loaded by that method.
+required = [
+  { path = "models/synthetic_cascade.pt", load_method = "torch.load", load_kwargs = { weights_only = true } },
+]
+
+[prerequisites.secrets]
+# Keys the slice needs at gate time. slice-risk MUST surface absent keys as
+# blockers, not warnings.
+required = [
+  "QORCH_TEAM_GATE_HMAC_KEY",
+]
+
+[gates]
+equivalence = "smoke_1k_python_vs_rust"
+adversarial = "fixture_set_a"

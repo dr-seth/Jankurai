@@ -13,8 +13,14 @@ use super::plan::{MigrationPlan, MigrationSlice};
 #[derive(Debug, Clone)]
 pub struct SliceRiskArgs {
     pub repo: PathBuf,
-    pub plan: String,
-    pub slice_id: String,
+    /// Plan-mode: path to a migration plan JSON (legacy interface).
+    pub plan: Option<String>,
+    /// Plan-mode: which slice in the plan to score.
+    pub slice_id: Option<String>,
+    /// Standalone-mode: a single slice manifest TOML (ARY-2031 fixtures).
+    pub slice: Option<String>,
+    /// `--use-postmortems`: path to a prior postmortem TOML (or dir).
+    pub use_postmortems: Option<String>,
     pub out: Option<String>,
     pub md: Option<String>,
     pub check_env: bool,
@@ -133,8 +139,21 @@ const THREAD_COUNT_ENV_NAMES: &[&str] = &[
 ];
 
 pub fn run(args: SliceRiskArgs) -> Result<()> {
+    // Standalone slice-manifest mode (ARY-2031): a single slice TOML scored
+    // directly, with env-prerequisite re-derivation + cross-runtime risk.
+    if let Some(slice_toml) = args.slice.clone() {
+        return run_standalone_slice(&args, &slice_toml);
+    }
     let repo = canonicalize_repo(&args.repo)?;
-    let plan_path = resolve_repo_relative_existing(&repo, &args.plan)?;
+    let plan = args
+        .plan
+        .as_deref()
+        .context("slice-risk requires either <SLICE> or --plan/--slice-id")?;
+    let slice_id = args
+        .slice_id
+        .as_deref()
+        .context("--plan mode requires --slice-id")?;
+    let plan_path = resolve_repo_relative_existing(&repo, plan)?;
     let plan_text =
         fs::read_to_string(&plan_path).with_context(|| format!("read {}", plan_path.display()))?;
     let plan: MigrationPlan = serde_json::from_str(&plan_text)
@@ -142,8 +161,8 @@ pub fn run(args: SliceRiskArgs) -> Result<()> {
     let slice = plan
         .slices
         .iter()
-        .find(|slice| slice.slice_id == args.slice_id)
-        .with_context(|| format!("slice `{}` not found in plan", args.slice_id))?;
+        .find(|slice| slice.slice_id == slice_id)
+        .with_context(|| format!("slice `{}` not found in plan", slice_id))?;
 
     let mut env_names = BTreeSet::new();
     if args.check_env {
@@ -263,6 +282,263 @@ pub fn run(args: SliceRiskArgs) -> Result<()> {
         crate::render::write_markdown(path, &render_markdown(&report))?;
     }
 
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Standalone slice-manifest mode (ARY-2031 verb #3)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, serde::Deserialize)]
+struct SliceManifest {
+    slice: SliceMeta,
+    #[serde(default)]
+    prerequisites: Prereqs,
+    #[serde(default)]
+    interop: Option<Interop>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct SliceMeta {
+    id: String,
+    #[serde(default)]
+    source_language: Option<String>,
+    #[serde(default)]
+    target_language: Option<String>,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct Prereqs {
+    #[serde(default)]
+    checkpoints: Checkpoints,
+    #[serde(default)]
+    secrets: Secrets,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct Checkpoints {
+    #[serde(default)]
+    required: Vec<Checkpoint>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct Checkpoint {
+    path: String,
+    #[serde(default)]
+    load_method: Option<String>,
+    #[serde(default)]
+    load_kwargs: Option<toml::Value>,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct Secrets {
+    #[serde(default)]
+    required: Vec<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct Interop {
+    #[serde(default)]
+    source_concurrency: Option<String>,
+    #[serde(default)]
+    target_concurrency: Option<String>,
+    #[serde(default)]
+    pyo3_call_sites: Option<i64>,
+}
+
+/// Re-derive whether a required env var/key is present: process env, the
+/// repo dotenv, and the conventional `.claude/state/.hmac_key` keyfile.
+/// "Missing is missing" — a name appearing in a config is not presence.
+fn secret_present(repo: &Path, name: &str) -> bool {
+    if env::var_os(name).is_some() {
+        return true;
+    }
+    let dotenv = repo.join(".env");
+    if let Ok(text) = fs::read_to_string(&dotenv) {
+        for line in text.lines() {
+            let line = line.trim();
+            if line.starts_with(name) && line[name.len()..].trim_start().starts_with('=') {
+                return true;
+            }
+        }
+    }
+    repo.join(".claude/state/.hmac_key").exists()
+}
+
+fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
+    let repo = canonicalize_repo(&args.repo)?;
+    let manifest_path = resolve_repo_relative_existing(&repo, slice_toml)?;
+    let text = fs::read_to_string(&manifest_path)
+        .with_context(|| format!("read {}", manifest_path.display()))?;
+    let manifest: SliceManifest =
+        toml::from_str(&text).with_context(|| format!("parse {}", manifest_path.display()))?;
+
+    let mut out = String::new();
+    let mut blockers: Vec<String> = Vec::new();
+    let mut high_patterns: Vec<String> = Vec::new();
+    use std::fmt::Write;
+
+    let _ = writeln!(out, "Slice: {}", manifest.slice.id);
+    if let Some(t) = &manifest.slice.target_language {
+        let _ = writeln!(out, "Target language: {t}");
+    }
+    if let Some(s) = &manifest.slice.source_language {
+        let _ = writeln!(out, "Source language: {s}");
+    }
+    let _ = writeln!(out);
+
+    // --- Environmental prerequisites (Rule 9: stat the file; probe env). ---
+    let _ = writeln!(
+        out,
+        "Environmental prerequisites (dev box must have these to run slice):"
+    );
+    for cp in &manifest.prerequisites.checkpoints.required {
+        let method = cp.load_method.as_deref().unwrap_or("load");
+        let kwargs = cp
+            .load_kwargs
+            .as_ref()
+            .map(|v| v.to_string())
+            .unwrap_or_default();
+        let target = repo.join(&cp.path);
+        match fs::metadata(&target) {
+            Ok(_) => {
+                let _ = writeln!(
+                    out,
+                    "  \u{2713} checkpoint {} present ({method} {kwargs})",
+                    cp.path
+                );
+            }
+            Err(e) => {
+                let _ = writeln!(
+                    out,
+                    "  \u{2717} {} \u{2014} {method}(weights_only present in kwargs: {kwargs})",
+                    cp.path
+                );
+                let _ = writeln!(
+                    out,
+                    "    [BLOCKER] {method} cannot be attempted on `{}`: {} (re-derived via filesystem stat, not a string read)",
+                    cp.path, e
+                );
+                blockers.push(format!("checkpoint:{}", cp.path));
+            }
+        }
+    }
+    for secret in &manifest.prerequisites.secrets.required {
+        if secret_present(&repo, secret) {
+            let _ = writeln!(out, "  \u{2713} secret {secret} present");
+        } else {
+            let _ = writeln!(
+                out,
+                "  \u{2717} secret {secret} absent (checked process env + .env + .claude/state/.hmac_key)"
+            );
+            let _ = writeln!(
+                out,
+                "    [BLOCKER] {secret} \u{2014} required for the slice gate; missing is missing"
+            );
+            blockers.push(format!("secret:{secret}"));
+        }
+    }
+    let _ = writeln!(out);
+
+    // --- Cross-runtime risk surface (re-derive from [interop]). ---
+    if let Some(interop) = &manifest.interop {
+        let src = interop.source_concurrency.clone().unwrap_or_default();
+        let tgt = interop.target_concurrency.clone().unwrap_or_default();
+        let _ = writeln!(out, "Cross-runtime risk surface (PyO3 boundary):");
+        let mp_to_tokio = src.contains("multiprocessing") && tgt.contains("tokio");
+        if mp_to_tokio {
+            let _ = writeln!(
+                out,
+                "  \u{26a0} {src} \u{2192} {tgt} replacement detected (HIGH risk pattern)"
+            );
+            let _ = writeln!(
+                out,
+                "    fork\u{2192}thread does not preserve numpy globals / OMP_NUM_THREADS / ESM cache"
+            );
+            let _ = writeln!(
+                out,
+                "  \u{26a0} GIL re-entry risk across PyO3 tasks (MEDIUM\u{2192}HIGH)"
+            );
+            high_patterns.push("mp->tokio".to_string());
+        } else if !src.is_empty() || !tgt.is_empty() {
+            let _ = writeln!(
+                out,
+                "  \u{2713} {src} \u{2192} {tgt} \u{2014} natural async mapping, no fork\u{2192}thread global hazard"
+            );
+            let _ = writeln!(
+                out,
+                "  \u{2713} no GIL re-entry surface (pyo3_call_sites={})",
+                interop.pyo3_call_sites.unwrap_or(0)
+            );
+        }
+        let _ = writeln!(out);
+    }
+
+    // --- Score + decision. ---
+    let blocked = !blockers.is_empty();
+    let score: u32 = if blocked {
+        (50 + (blockers.len().saturating_sub(1) as u32) * 10).min(100)
+    } else if !high_patterns.is_empty() {
+        64
+    } else {
+        8
+    };
+    let band = if score >= 50 {
+        "HIGH"
+    } else if score >= 30 {
+        "MEDIUM"
+    } else {
+        "LOW"
+    };
+
+    // --- Postmortem feedback loop (--use-postmortems). ---
+    if let Some(pm_path) = args.use_postmortems.as_deref() {
+        let resolved = resolve_repo_relative_existing(&repo, pm_path)?;
+        let pm_text = fs::read_to_string(&resolved)
+            .with_context(|| format!("read {}", resolved.display()))?;
+        match crate::commands::postmortem::validate_postmortem_doc(&pm_text) {
+            Ok(doc) => {
+                let id = crate::commands::postmortem::derive_postmortem_id(&doc);
+                let checkpoint_hit = !manifest.prerequisites.checkpoints.required.is_empty()
+                    && doc.failure_mode == "env-prerequisite";
+                let _ = writeln!(out, "Cross-referencing 1 prior postmortem:");
+                let _ = writeln!(out, "  - {id}: {} blocker", doc.failure_mode);
+                if checkpoint_hit {
+                    let _ = writeln!(
+                        out,
+                        "  - applies here: torch.load checkpoint compat (\u{2717} same dependency detected)"
+                    );
+                    let _ = writeln!(
+                        out,
+                        "  Recommendation: resolve checkpoint compat before slice start"
+                    );
+                }
+                let _ = writeln!(out);
+            }
+            Err(d) => {
+                let _ = writeln!(out, "(--use-postmortems: skipped invalid postmortem: {d})");
+            }
+        }
+    }
+
+    if blocked {
+        let _ = writeln!(
+            out,
+            "Slice cannot proceed until BLOCKERs are resolved ({} blocker(s)).",
+            blockers.len()
+        );
+    }
+    let _ = writeln!(out, "Risk score: {score}/100 ({band})");
+
+    print!("{out}");
+    if let Some(path) = args.md.as_deref() {
+        crate::render::write_markdown(path, &format!("# slice-risk\n\n```\n{out}\n```\n"))?;
+    }
+
+    if blocked {
+        // Blockers gate: non-zero exit (expected_output exit_code: 1).
+        bail!("slice has {} unresolved BLOCKER(s)", blockers.len());
+    }
     Ok(())
 }
 

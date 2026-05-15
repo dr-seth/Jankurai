@@ -1,0 +1,27 @@
+# slice-risk fixture: NEGATIVE-CONTROL clean case
+#
+# A pure HTTP service port (think Safety Kernel Phase 3a). No Python interop,
+# no shared globals, no checkpoint loads. slice-risk MUST score this LOW and
+# emit no BLOCKER lines.
+
+[slice]
+id = "synthetic-http-service-2026-05"
+# target_dir omitted at v0 — synthetic target tree ships with ARY-2031.
+target_language = "rust"
+source_language = "python"
+ports_from = "synthetic_python_http_service.py"
+
+[prerequisites.checkpoints]
+required = []
+
+[prerequisites.secrets]
+required = []
+
+[interop]
+source_concurrency = "asyncio.Task"
+target_concurrency = "tokio::task"
+pyo3_call_sites = 0
+
+[gates]
+equivalence = "smoke_replay_request_corpus"
+adversarial = "fixture_set_c"

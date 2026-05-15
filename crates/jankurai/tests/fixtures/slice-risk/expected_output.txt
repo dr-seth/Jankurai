@@ -1,0 +1,61 @@
+# Expected output spec for slice-risk verb fixtures.
+
+[fixture: positive_env_blocker_slice.toml]
+$ jankurai migrate slice-risk positive_env_blocker_slice.toml
+exit_code: 1   # blockers fail the verb
+required diagnostic lines (substring match; order-insensitive):
+  - "Environmental prerequisites"
+  - "models/synthetic_cascade.pt"
+  - "torch.load"
+  - "weights_only"
+  - "[BLOCKER]"
+  - "QORCH_TEAM_GATE_HMAC_KEY"
+  - "Slice cannot proceed until BLOCKERs are resolved"
+required risk-score line: "Risk score:" (any integer 50..100 acceptable)
+
+[fixture: positive_mp_to_tokio_slice.toml]
+$ jankurai migrate slice-risk positive_mp_to_tokio_slice.toml
+exit_code: 0   # advisory, not gating
+required diagnostic lines:
+  - "Cross-runtime risk surface"
+  - "multiprocessing"
+  - "tokio"
+  - "HIGH risk pattern"
+  - "numpy globals" OR "OMP_NUM_THREADS" OR "ESM cache"   # at least one named global
+  - "GIL re-entry"
+required risk-score line: "Risk score: 5x/100" through "Risk score: 8x/100" (HIGH band, 50–89)
+
+[fixture: negative_safety_kernel_slice.toml]
+$ jankurai migrate slice-risk negative_safety_kernel_slice.toml
+exit_code: 0
+forbidden lines (any of these is a FAIL — over-flagging the negative control):
+  - "[BLOCKER]"
+  - "HIGH risk pattern"
+required risk-score line: "Risk score:" with score < 30 (LOW band)
+
+[Rule 9 — evidence over labels]
+The verb MUST re-derive evidence. At v0 (TOML-only fixtures, no target trees
+shipped — see README §"Current shape") the verb re-derives from the TOML +
+the live environment:
+  - For checkpoint blockers: when the slice declares a checkpoint at
+    `prerequisites.checkpoints.required[].path`, the verb MUST attempt the
+    declared `load_method` (e.g. `torch.load(...)`) on the referenced file,
+    capture the exception, and report the exception class. Reading the path
+    string out of the TOML is NOT acceptable evidence.
+  - For env-var blockers: check `os.environ` + the conventional dotenv path
+    + the keyfile path (e.g. `.claude/state/.hmac_key`); a missing key is
+    a missing key. Don't just check that the key NAME appears in a config.
+  - For mp→tokio risk at v0: re-derive from `[interop]` source/target
+    concurrency strings in the TOML (current fixtures). When ARY-2031 adds
+    the target trees, also AST-walk the Python source for actual
+    `multiprocessing.Pool` invocations and AST-walk the Rust target for
+    `tokio::spawn` / `tokio::task` calls. Regex-matching the strings in
+    source files is NOT acceptable evidence at any version.
+
+[Postmortem feedback loop — verb #4 interaction]
+$ jankurai migrate slice-risk positive_env_blocker_slice.toml \
+    --use-postmortems ../postmortem-record/positive/atlas-2026-05.toml
+required additional line:
+  - "Cross-referencing 1 prior postmortem"
+  - "2026-05-phase-3d-atlas"
+  - "applies here: torch.load checkpoint compat"

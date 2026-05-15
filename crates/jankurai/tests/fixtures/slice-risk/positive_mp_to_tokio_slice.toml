@@ -1,0 +1,30 @@
+# slice-risk fixture: cross-runtime HIGH-risk case
+#
+# Source uses multiprocessing.Pool (fork semantics, isolated GIL per worker).
+# Target Rust uses tokio::task (shared process, shared GIL across PyO3 tasks).
+# slice-risk must surface the swap as HIGH risk: numpy globals, ESM cache,
+# OMP_NUM_THREADS not preserved fork→thread.
+
+[slice]
+id = "synthetic-async-worker-pool-2026-05"
+# target_dir omitted at v0 — synthetic target tree ships with ARY-2031.
+target_language = "rust"
+source_language = "python"
+ports_from = "synthetic_python_workerpool.py"
+
+[prerequisites.checkpoints]
+required = []
+
+[prerequisites.secrets]
+required = []
+
+[interop]
+# slice-risk MUST detect the swap from a Python source signature into a Rust
+# target signature and warn.
+source_concurrency = "multiprocessing.Pool"
+target_concurrency = "tokio::task"
+pyo3_call_sites = 8
+
+[gates]
+equivalence = "smoke_1k_python_vs_rust"
+adversarial = "fixture_set_b"
