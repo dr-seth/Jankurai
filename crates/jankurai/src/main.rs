@@ -919,6 +919,11 @@ struct MigrateSliceRiskArgs {
     /// repo root (no `..`); advisory — a bad path is skipped, not fatal.
     #[arg(long, value_name = "PATH")]
     use_postmortems: Option<String>,
+    /// Opt-in: attempt the declared loader on present, repo-confined
+    /// checkpoints to capture the real exception class. Off by default —
+    /// slice-risk is exec-free unless this flag is passed.
+    #[arg(long)]
+    probe_python: bool,
     /// JSON report path. Plan-mode: defaults to
     /// `target/jankurai/migration-slice-risk.json`. Standalone-mode:
     /// no default (report goes to stdout); when given, the plain-text
@@ -1838,6 +1843,7 @@ fn main() -> anyhow::Result<()> {
                     slice_id: command.slice_id,
                     slice: command.slice,
                     use_postmortems: command.use_postmortems,
+                    probe_python: command.probe_python,
                     out,
                     md,
                     check_env: command.check_env,

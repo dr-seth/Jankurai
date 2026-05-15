@@ -21,6 +21,9 @@ pub struct SliceRiskArgs {
     pub slice: Option<String>,
     /// `--use-postmortems`: repo-relative path to a prior postmortem TOML.
     pub use_postmortems: Option<String>,
+    /// `--probe-python`: opt-in, attempt the declared loader on present,
+    /// repo-confined checkpoints. Default stays exec-free (stat only).
+    pub probe_python: bool,
     pub out: Option<String>,
     pub md: Option<String>,
     pub check_env: bool,
@@ -366,8 +369,58 @@ fn secret_present(repo: &Path, name: &str) -> bool {
     }
     // The conventional keyfile only evidences an HMAC signing key; it says
     // nothing about any other secret name.
-    name.to_ascii_uppercase().contains("HMAC")
-        && repo.join(".claude/state/.hmac_key").exists()
+    name.to_ascii_uppercase().contains("HMAC") && repo.join(".claude/state/.hmac_key").exists()
+}
+
+/// Confine a manifest-declared path to the repo root. Rejects absolute
+/// paths and any `..` traversal so a hostile slice TOML cannot turn the
+/// checkpoint `fs::metadata` probe into a filesystem existence-oracle
+/// outside the repo (purple-team finding, ARY-2031 slice 2).
+fn safe_repo_path(repo: &Path, rel: &str) -> std::result::Result<PathBuf, String> {
+    let candidate = Path::new(rel);
+    if candidate.is_absolute() {
+        return Err("absolute paths are not allowed".to_string());
+    }
+    for component in candidate.components() {
+        match component {
+            Component::Normal(_) | Component::CurDir => {}
+            Component::ParentDir => return Err("path traversal (`..`) is not allowed".to_string()),
+            Component::RootDir | Component::Prefix(_) => {
+                return Err("absolute paths are not allowed".to_string())
+            }
+        }
+    }
+    Ok(repo.join(candidate))
+}
+
+/// Opt-in (`--probe-python`): attempt the declared loader on an *existing*,
+/// repo-confined checkpoint to capture the real exception class. Default
+/// stays exec-free (stat only). The loader is allowlisted and the path is
+/// passed via argv (never a shell), so a manifest cannot inject a command.
+fn probe_python_loader(method: &str, path: &Path) -> Option<String> {
+    let snippet = match method {
+        "torch.load" => "import torch,sys; torch.load(sys.argv[1], weights_only=True)",
+        "pickle.load" => "import pickle,sys; pickle.load(open(sys.argv[1],'rb'))",
+        "joblib.load" => "import joblib,sys; joblib.load(sys.argv[1])",
+        _ => return Some(format!("loader `{method}` not in probe allowlist")),
+    };
+    let output = std::process::Command::new("python3")
+        .arg("-c")
+        .arg(snippet)
+        .arg(path)
+        .output()
+        .ok()?;
+    if output.status.success() {
+        Some("loaded cleanly".to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let last = stderr
+            .lines()
+            .rev()
+            .find(|l| l.contains("Error") || l.contains("Exception"))
+            .unwrap_or_else(|| stderr.lines().last().unwrap_or("unknown error"));
+        Some(last.trim().to_string())
+    }
 }
 
 fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
@@ -404,12 +457,35 @@ fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
             .as_ref()
             .map(|v| v.to_string())
             .unwrap_or_default();
-        let target = repo.join(&cp.path);
-        match fs::metadata(&target) {
-            Ok(_) => {
+        let target = match safe_repo_path(&repo, &cp.path) {
+            Ok(p) => p,
+            Err(why) => {
                 let _ = writeln!(
                     out,
-                    "  \u{2713} checkpoint {} present ({method} {kwargs})",
+                    "  \u{2717} {} \u{2014} unsafe checkpoint path",
+                    cp.path
+                );
+                let _ = writeln!(
+                    out,
+                    "    [BLOCKER] checkpoint path `{}` rejected: {why} (slice manifests must declare repo-relative paths)",
+                    cp.path
+                );
+                blockers.push(format!("unsafe-path:{}", cp.path));
+                continue;
+            }
+        };
+        match fs::metadata(&target) {
+            Ok(_) => {
+                let probe = if args.probe_python {
+                    probe_python_loader(method, &target)
+                        .map(|r| format!("; probe: {r}"))
+                        .unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                let _ = writeln!(
+                    out,
+                    "  \u{2713} checkpoint {} present ({method} {kwargs}){probe}",
                     cp.path
                 );
             }
@@ -514,12 +590,9 @@ fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
         // postmortem must NOT discard the slice-risk analysis above. Mirror
         // the invalid-doc branch — warn and continue (never `?`).
         let loaded = resolve_repo_relative_existing(&repo, pm_path).and_then(|resolved| {
-            fs::read_to_string(&resolved)
-                .with_context(|| format!("read {}", resolved.display()))
+            fs::read_to_string(&resolved).with_context(|| format!("read {}", resolved.display()))
         });
-        match loaded.map(|pm_text| {
-            crate::commands::postmortem::validate_postmortem_doc(&pm_text)
-        }) {
+        match loaded.map(|pm_text| crate::commands::postmortem::validate_postmortem_doc(&pm_text)) {
             Err(e) => {
                 let _ = writeln!(out, "(--use-postmortems: skipped: {e:#})");
             }

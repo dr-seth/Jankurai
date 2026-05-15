@@ -1,0 +1,24 @@
+# slice-risk ADVERSARIAL fixture: checkpoint path traversal.
+#
+# A hostile slice manifest declaring a checkpoint OUTSIDE the repo. Without
+# the path guard this becomes a filesystem existence-oracle (the verb would
+# `fs::metadata` an absolute/`..` path). slice-risk MUST reject the path as
+# a BLOCKER and never stat outside the repo. (purple-team finding, slice 2)
+
+[slice]
+id = "synthetic-path-traversal-2026-05"
+target_language = "rust"
+source_language = "python"
+ports_from = "synthetic_python_runner.py"
+
+[prerequisites.checkpoints]
+required = [
+  { path = "../../../../../../etc/passwd", load_method = "torch.load", load_kwargs = { weights_only = true } },
+]
+
+[prerequisites.secrets]
+required = []
+
+[gates]
+equivalence = "smoke_1k_python_vs_rust"
+adversarial = "fixture_set_a"

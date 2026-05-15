@@ -182,6 +182,57 @@ fn slice_risk_use_postmortems_emits_feedback_loop() {
     }
 }
 
+#[test]
+fn slice_risk_rejects_checkpoint_path_traversal() {
+    // Rule 8 adversarial: a manifest declaring `../../../etc/passwd` must
+    // be rejected as a BLOCKER, NOT stat'd outside the repo (purple-team
+    // existence-oracle finding, slice 2).
+    let (ok, stdout, stderr) = run_in_repo(
+        "",
+        None,
+        &[
+            "slice-risk",
+            "fx/slice-risk/adversarial_path_traversal_slice.toml",
+        ],
+    );
+    assert!(!ok, "path-traversal manifest must be gated (exit non-zero)");
+    let all = format!("{stdout}{stderr}");
+    assert!(
+        all.contains("[BLOCKER]") && all.contains("path traversal"),
+        "must reject `..` path as a blocker:\n{all}"
+    );
+    // The probe must never have run / never stat'd /etc: the only evidence
+    // is the rejection, and "present" must NOT appear for that path.
+    assert!(
+        !all.contains("/etc/passwd present"),
+        "stat leaked outside repo:\n{all}"
+    );
+}
+
+#[test]
+fn slice_risk_is_exec_free_by_default() {
+    // Without --probe-python the verb must not depend on a python
+    // interpreter: the env-blocker fixture (absent checkpoint) still
+    // produces its stat-derived blocker and the exact same exit code.
+    let (ok, stdout, _e) = run_in_repo(
+        "",
+        None,
+        &[
+            "slice-risk",
+            "fx/slice-risk/positive_env_blocker_slice.toml",
+        ],
+    );
+    assert!(!ok);
+    assert!(
+        stdout.contains("re-derived via filesystem stat, not a string read"),
+        "default path must stay exec-free / stat-based:\n{stdout}"
+    );
+    assert!(
+        !stdout.contains("probe:"),
+        "probe must not run unless --probe-python is passed:\n{stdout}"
+    );
+}
+
 fn extract_score(text: &str) -> Option<u32> {
     let line = text.lines().find(|l| l.contains("Risk score:"))?;
     let after = line.split("Risk score:").nth(1)?;
