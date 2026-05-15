@@ -53,8 +53,13 @@ the live environment:
     source files is NOT acceptable evidence at any version.
 
 [Postmortem feedback loop — verb #4 interaction]
-$ jankurai migrate slice-risk positive_env_blocker_slice.toml \
-    --use-postmortems ../postmortem-record/positive/atlas-2026-05.toml
+# --use-postmortems is resolved repo-relative and must stay inside the repo
+# root (no `..`); pass a path reachable from the repo root, e.g. the
+# postmortem-record fixture tree copied alongside slice-risk:
+$ jankurai migrate slice-risk fx/slice-risk/positive_env_blocker_slice.toml \
+    --use-postmortems fx/postmortem-record/positive/atlas-2026-05.toml
+# A missing/unreadable/invalid postmortem is advisory: it is skipped with a
+# "(--use-postmortems: skipped ...)" line and never discards the analysis.
 required additional line:
   - "Cross-referencing 1 prior postmortem"
   - "2026-05-phase-3d-atlas"

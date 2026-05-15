@@ -149,6 +149,30 @@ pub fn derive_postmortem_id(doc: &PostmortemDoc) -> String {
     format!("{ym}-{slug}")
 }
 
+/// True iff `text` parses as a QO-schema postmortem (a top-level
+/// `[postmortem]` table). The legacy `PostmortemEntry` reader cannot parse
+/// these, so `list`/`show`/`read` must skip/reject them rather than fail.
+pub fn is_qo_schema_text(text: &str) -> bool {
+    toml::from_str::<toml::Value>(text)
+        .ok()
+        .and_then(|v| v.get("postmortem").map(|p| p.is_table()))
+        .unwrap_or(false)
+}
+
+/// The derived id becomes a filename under `.jankurai/postmortems/`. It is
+/// built from attacker-controllable `slice`/`date` fields, so it must be a
+/// single safe path component — no separators, no `..`, no root/prefix.
+fn ensure_safe_record_id(id: &str) -> Result<()> {
+    let mut comps = Path::new(id).components();
+    match (comps.next(), comps.next()) {
+        (Some(Component::Normal(_)), None) => Ok(()),
+        _ => bail!(
+            "derived postmortem id `{id}` is not a safe filename component \
+             (path separators or traversal in slice/date)"
+        ),
+    }
+}
+
 /// Canonical hash: re-serialize the parsed TOML with stable key ordering and
 /// sha256 it. Comment/whitespace differences in the source do not affect it,
 /// so round-trip equality is content-equivalence, not byte-equality.
@@ -223,7 +247,17 @@ pub fn validate_postmortem_doc(text: &str) -> std::result::Result<PostmortemDoc,
         Some(v) => v,
     };
 
-    let date = get_str("date").ok_or_else(|| "missing required field: date".to_string())?;
+    // Accept both a quoted string and an idiomatic unquoted TOML date
+    // literal (`date = 2026-05-13`), which the parser yields as a Datetime.
+    // `canonical_json` already stringifies Datetime, so the hash stays stable.
+    let date = pm
+        .get("date")
+        .and_then(|v| {
+            v.as_str()
+                .map(str::to_string)
+                .or_else(|| v.as_datetime().map(|d| d.to_string()))
+        })
+        .ok_or_else(|| "missing required field: date".to_string())?;
     let slice = get_str("slice").ok_or_else(|| "missing required field: slice".to_string())?;
 
     // `[lessons]` must be a structurally present section (commented = absent).
@@ -249,11 +283,7 @@ pub fn run_record(args: PostmortemRecordArgs) -> Result<()> {
     // Schema dispatch: a top-level `[postmortem]` table is the QO slice
     // postmortem schema (ARY-2032); anything else is the legacy
     // schema_version/postmortem_id entry, kept for back-compat.
-    let is_qo_schema = toml::from_str::<toml::Value>(&input_text)
-        .ok()
-        .and_then(|v| v.get("postmortem").map(|p| p.is_table()))
-        .unwrap_or(false);
-    if is_qo_schema {
+    if is_qo_schema_text(&input_text) {
         return run_record_qo(&repo, &input_text, &args);
     }
     run_record_legacy(&repo, input_text, &args)
@@ -261,11 +291,13 @@ pub fn run_record(args: PostmortemRecordArgs) -> Result<()> {
 
 fn run_record_legacy(repo: &Path, input_text: String, args: &PostmortemRecordArgs) -> Result<()> {
     let entry = parse_entry(repo, &input_text)?;
-    let record_path = args
-        .out
-        .as_deref()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| postmortem_root(repo).join(format!("{}.toml", entry.postmortem_id)));
+    let record_path = match args.out.as_deref() {
+        Some(out) => PathBuf::from(out),
+        None => {
+            ensure_safe_record_id(&entry.postmortem_id)?;
+            postmortem_root(repo).join(format!("{}.toml", entry.postmortem_id))
+        }
+    };
     if let Some(parent) = record_path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -297,15 +329,19 @@ fn run_record_qo(repo: &Path, input_text: &str, args: &PostmortemRecordArgs) -> 
     };
 
     let id = derive_postmortem_id(&doc);
-    let record_path = args
-        .out
-        .as_deref()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| postmortem_root(repo).join(format!("{id}.toml")));
+    let record_path = match args.out.as_deref() {
+        Some(out) => PathBuf::from(out),
+        None => {
+            // No explicit --out: the id is interpolated straight into the
+            // on-disk path, so reject any separator/traversal before write.
+            ensure_safe_record_id(&id)?;
+            postmortem_root(repo).join(format!("{id}.toml"))
+        }
+    };
     if let Some(parent) = record_path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&record_path, &input_text)?;
+    fs::write(&record_path, input_text)?;
 
     // Rule 9 round-trip: re-read, re-validate, canonical-hash must match.
     let written = fs::read_to_string(&record_path)
@@ -526,6 +562,13 @@ fn parse_entry(repo: &Path, text: &str) -> Result<PostmortemEntry> {
 
 fn read_entry(repo: &Path, path: &Path) -> Result<PostmortemEntry> {
     let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    if is_qo_schema_text(&text) {
+        bail!(
+            "{} is a QO-schema postmortem ([postmortem] table); legacy \
+             show/read operate on schema_version entries only",
+            path.display()
+        );
+    }
     parse_entry(repo, &text)
 }
 
@@ -543,7 +586,14 @@ fn collect_entries(repo: &Path, root: &Path) -> Result<Vec<PostmortemEntry>> {
         if entry.file_type().is_dir() || path.extension().and_then(|e| e.to_str()) != Some("toml") {
             continue;
         }
-        entries.push(read_entry(repo, path)?);
+        let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+        // QO-schema records live in the same root but are not legacy
+        // entries; skip them so one `postmortem record` cannot poison the
+        // entire legacy listing.
+        if is_qo_schema_text(&text) {
+            continue;
+        }
+        entries.push(parse_entry(repo, &text)?);
     }
     entries.sort_by(|left, right| left.postmortem_id.cmp(&right.postmortem_id));
     Ok(entries)

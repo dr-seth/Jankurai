@@ -19,7 +19,7 @@ pub struct SliceRiskArgs {
     pub slice_id: Option<String>,
     /// Standalone-mode: a single slice manifest TOML (ARY-2031 fixtures).
     pub slice: Option<String>,
-    /// `--use-postmortems`: path to a prior postmortem TOML (or dir).
+    /// `--use-postmortems`: repo-relative path to a prior postmortem TOML.
     pub use_postmortems: Option<String>,
     pub out: Option<String>,
     pub md: Option<String>,
@@ -347,8 +347,10 @@ struct Interop {
 }
 
 /// Re-derive whether a required env var/key is present: process env, the
-/// repo dotenv, and the conventional `.claude/state/.hmac_key` keyfile.
-/// "Missing is missing" — a name appearing in a config is not presence.
+/// repo dotenv, and — only for HMAC-key secrets — the conventional
+/// `.claude/state/.hmac_key` keyfile. "Missing is missing" — a name
+/// appearing in a config is not presence, and an unrelated keyfile must
+/// never satisfy an arbitrarily-named secret (it would mask its BLOCKER).
 fn secret_present(repo: &Path, name: &str) -> bool {
     if env::var_os(name).is_some() {
         return true;
@@ -362,7 +364,10 @@ fn secret_present(repo: &Path, name: &str) -> bool {
             }
         }
     }
-    repo.join(".claude/state/.hmac_key").exists()
+    // The conventional keyfile only evidences an HMAC signing key; it says
+    // nothing about any other secret name.
+    name.to_ascii_uppercase().contains("HMAC")
+        && repo.join(".claude/state/.hmac_key").exists()
 }
 
 fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
@@ -409,11 +414,23 @@ fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
                 );
             }
             Err(e) => {
-                let _ = writeln!(
-                    out,
-                    "  \u{2717} {} \u{2014} {method}(weights_only present in kwargs: {kwargs})",
-                    cp.path
-                );
+                // Rule 9: derive the phrasing from the manifest, never assert
+                // a torch-specific `weights_only` for loaders/kwargs that
+                // don't have it.
+                let has_weights_only = cp
+                    .load_kwargs
+                    .as_ref()
+                    .and_then(|v| v.as_table())
+                    .map(|t| t.contains_key("weights_only"))
+                    .unwrap_or(false);
+                let detail = if has_weights_only {
+                    format!("{method}(weights_only present in kwargs: {kwargs})")
+                } else if !kwargs.is_empty() {
+                    format!("{method}(load_kwargs: {kwargs})")
+                } else {
+                    format!("{method}()")
+                };
+                let _ = writeln!(out, "  \u{2717} {} \u{2014} {detail}", cp.path);
                 let _ = writeln!(
                     out,
                     "    [BLOCKER] {method} cannot be attempted on `{}`: {} (re-derived via filesystem stat, not a string read)",
@@ -493,11 +510,20 @@ fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
 
     // --- Postmortem feedback loop (--use-postmortems). ---
     if let Some(pm_path) = args.use_postmortems.as_deref() {
-        let resolved = resolve_repo_relative_existing(&repo, pm_path)?;
-        let pm_text = fs::read_to_string(&resolved)
-            .with_context(|| format!("read {}", resolved.display()))?;
-        match crate::commands::postmortem::validate_postmortem_doc(&pm_text) {
-            Ok(doc) => {
+        // The cross-reference is advisory: a missing/unreadable/invalid
+        // postmortem must NOT discard the slice-risk analysis above. Mirror
+        // the invalid-doc branch — warn and continue (never `?`).
+        let loaded = resolve_repo_relative_existing(&repo, pm_path).and_then(|resolved| {
+            fs::read_to_string(&resolved)
+                .with_context(|| format!("read {}", resolved.display()))
+        });
+        match loaded.map(|pm_text| {
+            crate::commands::postmortem::validate_postmortem_doc(&pm_text)
+        }) {
+            Err(e) => {
+                let _ = writeln!(out, "(--use-postmortems: skipped: {e:#})");
+            }
+            Ok(Ok(doc)) => {
                 let id = crate::commands::postmortem::derive_postmortem_id(&doc);
                 let checkpoint_hit = !manifest.prerequisites.checkpoints.required.is_empty()
                     && doc.failure_mode == "env-prerequisite";
@@ -515,7 +541,7 @@ fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
                 }
                 let _ = writeln!(out);
             }
-            Err(d) => {
+            Ok(Err(d)) => {
                 let _ = writeln!(out, "(--use-postmortems: skipped invalid postmortem: {d})");
             }
         }
@@ -531,6 +557,18 @@ fn run_standalone_slice(args: &SliceRiskArgs, slice_toml: &str) -> Result<()> {
     let _ = writeln!(out, "Risk score: {score}/100 ({band})");
 
     print!("{out}");
+    // `--out` in standalone mode persists the plain-text report (it is not a
+    // JSON artifact here as it is in plan mode); honoring it keeps the flag
+    // from being a silent no-op.
+    if let Some(path) = args.out.as_deref() {
+        if let Some(parent) = Path::new(path).parent() {
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("create {}", parent.display()))?;
+            }
+        }
+        fs::write(path, &out).with_context(|| format!("write {path}"))?;
+    }
     if let Some(path) = args.md.as_deref() {
         crate::render::write_markdown(path, &format!("# slice-risk\n\n```\n{out}\n```\n"))?;
     }

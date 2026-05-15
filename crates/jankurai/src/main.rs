@@ -914,14 +914,20 @@ struct MigrateSliceRiskArgs {
     /// Plan-mode (legacy): which slice in the plan to score.
     #[arg(long, value_name = "SLICE_ID")]
     slice_id: Option<String>,
-    /// Cross-reference a prior postmortem TOML (or directory) and emit
-    /// "applies here:" guidance when a past failure mode recurs.
+    /// Cross-reference a prior postmortem TOML and emit "applies here:"
+    /// guidance when a past failure mode recurs. Must resolve inside the
+    /// repo root (no `..`); advisory — a bad path is skipped, not fatal.
     #[arg(long, value_name = "PATH")]
     use_postmortems: Option<String>,
-    /// Optional JSON report path (plan-mode default kept for back-compat).
+    /// JSON report path. Plan-mode: defaults to
+    /// `target/jankurai/migration-slice-risk.json`. Standalone-mode:
+    /// no default (report goes to stdout); when given, the plain-text
+    /// report is written there.
     #[arg(long, value_name = "PATH")]
     out: Option<String>,
-    /// Optional markdown report path.
+    /// Markdown report path. Plan-mode: defaults to
+    /// `target/jankurai/migration-slice-risk.md`. Standalone-mode: no
+    /// default unless given.
     #[arg(long, value_name = "PATH")]
     md: Option<String>,
     #[arg(long)]
@@ -1816,14 +1822,24 @@ fn main() -> anyhow::Result<()> {
                 })?;
             }
             Some(MigrateCommand::SliceRisk(command)) => {
+                // Plan-mode (legacy) keeps writing the documented default
+                // artifacts when no path is given; standalone-mode keeps the
+                // Option semantics (stdout / optional file).
+                let plan_mode = command.slice.is_none();
+                let out = command.out.or_else(|| {
+                    plan_mode.then(|| "target/jankurai/migration-slice-risk.json".to_string())
+                });
+                let md = command.md.or_else(|| {
+                    plan_mode.then(|| "target/jankurai/migration-slice-risk.md".to_string())
+                });
                 migrate::run_slice_risk(migrate::SliceRiskArgs {
                     repo: args.repo,
                     plan: command.plan,
                     slice_id: command.slice_id,
                     slice: command.slice,
                     use_postmortems: command.use_postmortems,
-                    out: command.out,
-                    md: command.md,
+                    out,
+                    md,
                     check_env: command.check_env,
                 })?;
             }

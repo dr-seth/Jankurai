@@ -316,3 +316,234 @@ fn postmortem_record_commented_field_is_absent_not_present() {
         "commented field wrongly treated as present:\n{all}"
     );
 }
+
+// --- ultrareview regression tests ---
+
+/// bug_001: an unrelated `.claude/state/.hmac_key` keyfile must NOT satisfy
+/// an arbitrarily-named (non-HMAC) required secret. The slice must still
+/// block.
+#[test]
+fn slice_risk_keyfile_does_not_mask_unrelated_secret() {
+    let repo = tempdir().unwrap();
+    fs::create_dir_all(repo.path().join(".claude/state")).unwrap();
+    fs::write(repo.path().join(".claude/state/.hmac_key"), b"deadbeef").unwrap();
+    let manifest = r#"
+[slice]
+id = "needs-stripe"
+target_language = "rust"
+source_language = "python"
+
+[prerequisites.secrets]
+required = [ "STRIPE_API_KEY" ]
+"#;
+    fs::write(repo.path().join("slice.toml"), manifest).unwrap();
+    let out = Command::new(binary())
+        .arg("migrate")
+        .arg(repo.path())
+        .arg("slice-risk")
+        .arg("slice.toml")
+        .env_remove("STRIPE_API_KEY")
+        .output()
+        .unwrap();
+    let all = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        !out.status.success(),
+        "unrelated keyfile masked the secret blocker:\n{all}"
+    );
+    assert!(
+        all.contains("[BLOCKER]") && all.contains("STRIPE_API_KEY"),
+        "missing STRIPE_API_KEY blocker:\n{all}"
+    );
+}
+
+/// bug_003: a postmortem whose `slice` contains path traversal must be
+/// rejected before any write, and nothing may land outside the repo.
+#[test]
+fn postmortem_record_rejects_path_traversal_slice() {
+    let repo = tempdir().unwrap();
+    let sentinel = std::env::temp_dir().join("jankurai_pwn_regression.toml");
+    let _ = fs::remove_file(&sentinel);
+    let doc = r#"
+[postmortem]
+date = "2026-05-01"
+slice = "x/../../../../../../../../tmp/jankurai_pwn_regression"
+failure_mode = "env-prerequisite"
+outcome = "blocked"
+
+[lessons]
+text = "pwn"
+"#;
+    fs::write(repo.path().join("evil.toml"), doc).unwrap();
+    let out = run_postmortem(repo.path(), "evil.toml");
+    let all = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(!out.status.success(), "traversal accepted:\n{all}");
+    assert!(
+        all.contains("safe filename component"),
+        "missing traversal diagnostic:\n{all}"
+    );
+    assert!(
+        !sentinel.exists(),
+        "wrote outside the repo to {}",
+        sentinel.display()
+    );
+}
+
+/// bug_021: a recorded QO postmortem must not poison the legacy
+/// `postmortem list` (it shares the default root).
+#[test]
+fn postmortem_list_survives_a_recorded_qo_record() {
+    let repo = pm_repo();
+    let rec = run_postmortem(repo.path(), "postmortem-record/positive/atlas-2026-05.toml");
+    assert!(rec.status.success(), "QO record should succeed");
+    let list = Command::new(binary())
+        .arg("postmortem")
+        .arg(repo.path())
+        .arg("list")
+        .output()
+        .unwrap();
+    assert!(
+        list.status.success(),
+        "list hard-failed after a QO record:\n{}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+}
+
+/// bug_022: an idiomatic unquoted TOML date literal must be accepted.
+#[test]
+fn postmortem_record_accepts_native_date_literal() {
+    let repo = tempdir().unwrap();
+    let doc = r#"
+[postmortem]
+date = 2026-05-13
+slice = "phase-x-runner"
+failure_mode = "env-prerequisite"
+outcome = "blocked"
+
+[lessons]
+text = "native date literal must validate"
+"#;
+    fs::write(repo.path().join("native_date.toml"), doc).unwrap();
+    let out = run_postmortem(repo.path(), "native_date.toml");
+    let all = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        out.status.success(),
+        "unquoted date literal rejected:\n{all}"
+    );
+    assert!(
+        all.contains("written to") && all.contains("2026-05-phase-x"),
+        "unexpected record output:\n{all}"
+    );
+}
+
+/// merged_bug_004: legacy plan-mode with no `--out`/`--md` must still write
+/// the documented default artifacts.
+#[test]
+fn slice_risk_plan_mode_writes_default_artifacts() {
+    let repo = tempdir().unwrap();
+    copy_dir(&fx("migration/slice-risk/repo"), &repo.path().to_path_buf());
+    // CI runs the verb from the repo root; default artifacts are written
+    // relative to cwd (matching the pre-PR clap-default behavior).
+    let out = Command::new(binary())
+        .current_dir(repo.path())
+        .arg("migrate")
+        .arg(repo.path())
+        .arg("slice-risk")
+        .arg("--plan")
+        .arg("plan.json")
+        .arg("--slice-id")
+        .arg("model-port")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "plan mode failed:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        repo.path()
+            .join("target/jankurai/migration-slice-risk.json")
+            .exists(),
+        "default JSON artifact not written"
+    );
+    assert!(
+        repo.path()
+            .join("target/jankurai/migration-slice-risk.md")
+            .exists(),
+        "default MD artifact not written"
+    );
+}
+
+/// merged_bug_010: a missing `--use-postmortems` path is advisory — it must
+/// be skipped, not discard the slice-risk analysis or the blocker gate.
+#[test]
+fn slice_risk_missing_postmortem_path_is_non_fatal() {
+    let (ok, stdout, stderr) = run_in_repo(
+        "",
+        None,
+        &[
+            "slice-risk",
+            "fx/slice-risk/positive_env_blocker_slice.toml",
+            "--use-postmortems",
+            "fx/does-not-exist.toml",
+        ],
+    );
+    let all = format!("{stdout}{stderr}");
+    assert!(!ok, "blockers must still gate (exit non-zero)");
+    assert!(
+        all.contains("Environmental prerequisites") && all.contains("[BLOCKER]"),
+        "analysis was discarded by a bad postmortem path:\n{all}"
+    );
+    assert!(
+        all.contains("(--use-postmortems: skipped"),
+        "missing advisory skip line:\n{all}"
+    );
+}
+
+/// bug_007: a non-torch loader with no kwargs must not assert
+/// "weights_only present in kwargs".
+#[test]
+fn slice_risk_checkpoint_line_does_not_fabricate_weights_only() {
+    let repo = tempdir().unwrap();
+    let manifest = r#"
+[slice]
+id = "pickle-loader"
+target_language = "rust"
+source_language = "python"
+
+[prerequisites.checkpoints]
+required = [ { path = "models/missing.pkl", load_method = "pickle.load" } ]
+"#;
+    fs::write(repo.path().join("slice.toml"), manifest).unwrap();
+    let out = Command::new(binary())
+        .arg("migrate")
+        .arg(repo.path())
+        .arg("slice-risk")
+        .arg("slice.toml")
+        .output()
+        .unwrap();
+    let all = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let cp_line = all
+        .lines()
+        .find(|l| l.contains("models/missing.pkl") && l.contains('\u{2717}'))
+        .unwrap_or_else(|| panic!("no checkpoint failure line:\n{all}"));
+    assert!(
+        cp_line.contains("pickle.load") && !cp_line.contains("weights_only"),
+        "fabricated weights_only for a non-torch loader: `{cp_line}`"
+    );
+}
