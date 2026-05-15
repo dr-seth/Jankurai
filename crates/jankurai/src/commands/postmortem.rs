@@ -111,26 +111,171 @@ struct PostmortemListReport {
     notes: Vec<String>,
 }
 
+/// The six valid `failure_mode` enum values (QO postmortem schema).
+const FAILURE_MODE_VALUES: &[&str] = &[
+    "aspirational-spec",
+    "env-prerequisite",
+    "interop-runtime",
+    "equivalence-gap",
+    "cutover-rollback",
+    "perf-regression",
+];
+
+/// The three valid `outcome` enum values.
+const OUTCOME_VALUES: &[&str] = &["blocked", "rolled_back", "shipped_with_caveats"];
+
+/// A validated QO-schema postmortem document (`[postmortem]`/`[evidence]`/
+/// `[lessons]`/`[follow_ups]`). Distinct from the legacy `PostmortemEntry`
+/// (schema_version/postmortem_id/title/owner) which `list`/`show`/`read`
+/// still use — kept side-by-side for back-compat.
+pub struct PostmortemDoc {
+    pub date: String,
+    pub slice: String,
+    pub failure_mode: String,
+    pub outcome: String,
+    /// The whole parsed table, used for the canonical round-trip hash.
+    value: toml::Value,
+}
+
+/// Derive the on-disk id: `<YYYY-MM>-<slice with trailing "-runner" trimmed>`.
+/// `date="2026-05-13"`, `slice="phase-3d-atlas-runner"` → `2026-05-phase-3d-atlas`.
+pub fn derive_postmortem_id(doc: &PostmortemDoc) -> String {
+    let ym = doc.date.get(..7).unwrap_or(&doc.date);
+    let slug = doc
+        .slice
+        .strip_suffix("-runner")
+        .unwrap_or(&doc.slice)
+        .to_string();
+    format!("{ym}-{slug}")
+}
+
+/// Canonical hash: re-serialize the parsed TOML with stable key ordering and
+/// sha256 it. Comment/whitespace differences in the source do not affect it,
+/// so round-trip equality is content-equivalence, not byte-equality.
+pub fn canonical_hash(doc: &PostmortemDoc) -> String {
+    use sha2::{Digest, Sha256};
+    // serde_json with sorted keys gives a deterministic canonical form.
+    let json = canonical_json(&doc.value);
+    let mut hasher = Sha256::new();
+    hasher.update(json.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+fn canonical_json(value: &toml::Value) -> String {
+    // toml::Value -> serde_json::Value, then serialize with BTree-sorted keys.
+    fn conv(v: &toml::Value) -> serde_json::Value {
+        match v {
+            toml::Value::String(s) => serde_json::Value::String(s.clone()),
+            toml::Value::Integer(i) => serde_json::Value::from(*i),
+            toml::Value::Float(f) => serde_json::Value::from(*f),
+            toml::Value::Boolean(b) => serde_json::Value::Bool(*b),
+            toml::Value::Datetime(d) => serde_json::Value::String(d.to_string()),
+            toml::Value::Array(a) => serde_json::Value::Array(a.iter().map(conv).collect()),
+            toml::Value::Table(t) => {
+                let mut map = serde_json::Map::new();
+                let mut keys: Vec<&String> = t.keys().collect();
+                keys.sort();
+                for k in keys {
+                    map.insert(k.clone(), conv(&t[k]));
+                }
+                serde_json::Value::Object(map)
+            }
+        }
+    }
+    serde_json::to_string(&conv(value)).unwrap_or_default()
+}
+
+/// Validate the QO postmortem schema with precise, spec-mandated
+/// diagnostics. Parses with a real TOML parser first (Rule 9: a commented
+/// `# failure_mode = ...` is *absent*, never satisfies the required check).
+/// Returns `Err(diagnostic)` — the string is printed verbatim then exit 1.
+pub fn validate_postmortem_doc(text: &str) -> std::result::Result<PostmortemDoc, String> {
+    let value: toml::Value =
+        toml::from_str(text).map_err(|e| format!("postmortem TOML parse error: {e}"))?;
+    let pm = value
+        .get("postmortem")
+        .and_then(|v| v.as_table())
+        .ok_or_else(|| "missing required section: [postmortem]".to_string())?;
+
+    let get_str = |k: &str| pm.get(k).and_then(|v| v.as_str()).map(str::to_string);
+
+    let failure_mode = match get_str("failure_mode") {
+        None => return Err("missing required field: failure_mode".to_string()),
+        Some(v) if !FAILURE_MODE_VALUES.contains(&v.as_str()) => {
+            return Err(format!(
+                "invalid enum value for failure_mode: `{v}`\n  valid values: {}",
+                FAILURE_MODE_VALUES.join(", ")
+            ));
+        }
+        Some(v) => v,
+    };
+
+    let outcome = match get_str("outcome") {
+        None => return Err("missing required field: outcome".to_string()),
+        Some(v) if !OUTCOME_VALUES.contains(&v.as_str()) => {
+            let suggestion = OUTCOME_VALUES
+                .iter()
+                .find(|cand| v.starts_with(*cand) || cand.starts_with(v.as_str()))
+                .map(|c| format!("\n  did you mean: {c}"))
+                .unwrap_or_default();
+            return Err(format!("invalid enum value for outcome: `{v}`{suggestion}"));
+        }
+        Some(v) => v,
+    };
+
+    let date = get_str("date").ok_or_else(|| "missing required field: date".to_string())?;
+    let slice = get_str("slice").ok_or_else(|| "missing required field: slice".to_string())?;
+
+    // `[lessons]` must be a structurally present section (commented = absent).
+    if value.get("lessons").and_then(|v| v.as_table()).is_none() {
+        return Err("missing required section: [lessons]".to_string());
+    }
+
+    Ok(PostmortemDoc {
+        date,
+        slice,
+        failure_mode,
+        outcome,
+        value,
+    })
+}
+
 pub fn run_record(args: PostmortemRecordArgs) -> Result<()> {
     let repo = canonicalize_repo(&args.repo)?;
     let input_path = resolve_repo_relative_existing(&repo, &args.input)?;
     let input_text = fs::read_to_string(&input_path)
         .with_context(|| format!("read {}", input_path.display()))?;
-    let entry = parse_entry(&repo, &input_text)?;
-    let record_path =
-        args.out.as_deref().map(PathBuf::from).unwrap_or_else(|| {
-            postmortem_root(&repo).join(format!("{}.toml", entry.postmortem_id))
-        });
+
+    // Schema dispatch: a top-level `[postmortem]` table is the QO slice
+    // postmortem schema (ARY-2032); anything else is the legacy
+    // schema_version/postmortem_id entry, kept for back-compat.
+    let is_qo_schema = toml::from_str::<toml::Value>(&input_text)
+        .ok()
+        .and_then(|v| v.get("postmortem").map(|p| p.is_table()))
+        .unwrap_or(false);
+    if is_qo_schema {
+        return run_record_qo(&repo, &input_text, &args);
+    }
+    run_record_legacy(&repo, input_text, &args)
+}
+
+fn run_record_legacy(repo: &Path, input_text: String, args: &PostmortemRecordArgs) -> Result<()> {
+    let entry = parse_entry(repo, &input_text)?;
+    let record_path = args
+        .out
+        .as_deref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| postmortem_root(repo).join(format!("{}.toml", entry.postmortem_id)));
     if let Some(parent) = record_path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&record_path, input_text)?;
+    fs::write(&record_path, &input_text)?;
     let report = PostmortemRecordReport {
         schema_version: entry.schema_version.clone(),
         command: "jankurai postmortem record".to_string(),
         status: "complete".to_string(),
         repo: repo.display().to_string(),
-        root: postmortem_root(&repo).display().to_string(),
+        root: postmortem_root(repo).display().to_string(),
         record_path: record_path.display().to_string(),
         record: entry,
         notes: vec!["postmortem record written only when explicitly requested".to_string()],
@@ -139,6 +284,60 @@ pub fn run_record(args: PostmortemRecordArgs) -> Result<()> {
         crate::render::write_markdown(path, &render_record_markdown(&report))?;
     }
     println!("{}", serde_json::to_string_pretty(&report)?);
+    Ok(())
+}
+
+fn run_record_qo(repo: &Path, input_text: &str, args: &PostmortemRecordArgs) -> Result<()> {
+    let doc = match validate_postmortem_doc(input_text) {
+        Ok(doc) => doc,
+        Err(diagnostic) => {
+            eprintln!("{diagnostic}");
+            bail!("postmortem validation failed");
+        }
+    };
+
+    let id = derive_postmortem_id(&doc);
+    let record_path = args
+        .out
+        .as_deref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| postmortem_root(repo).join(format!("{id}.toml")));
+    if let Some(parent) = record_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&record_path, &input_text)?;
+
+    // Rule 9 round-trip: re-read, re-validate, canonical-hash must match.
+    let written = fs::read_to_string(&record_path)
+        .with_context(|| format!("re-read {}", record_path.display()))?;
+    let reparsed = validate_postmortem_doc(&written)
+        .map_err(|d| anyhow::anyhow!("round-trip re-validation failed: {d}"))?;
+    let h_in = canonical_hash(&doc);
+    let h_out = canonical_hash(&reparsed);
+    if h_in != h_out {
+        bail!("round-trip canonical-hash mismatch: {h_in} != {h_out}");
+    }
+
+    let rel = record_path
+        .strip_prefix(repo)
+        .unwrap_or(&record_path)
+        .display()
+        .to_string();
+    println!("written to {rel}");
+    println!("canonical-hash: {h_in}");
+    println!(
+        "postmortem: {} / {} / {}",
+        doc.failure_mode, doc.outcome, id
+    );
+    if let Some(path) = args.md.as_deref() {
+        crate::render::write_markdown(
+            path,
+            &format!(
+                "# postmortem record\n\n- id: `{id}`\n- failure_mode: `{}`\n- outcome: `{}`\n- canonical-hash: `{h_in}`\n",
+                doc.failure_mode, doc.outcome
+            ),
+        )?;
+    }
     Ok(())
 }
 

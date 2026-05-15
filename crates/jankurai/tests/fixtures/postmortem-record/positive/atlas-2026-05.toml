@@ -1,0 +1,36 @@
+[postmortem]
+date = "2026-05-13"
+slice = "phase-3d-atlas-runner"
+issue = "ARY-1993"
+outcome = "blocked"
+failure_mode = "env-prerequisite"
+severity = "medium"
+
+[evidence]
+signals_observed = [
+  "torch.load weights_only=True fails on existing drug_interaction_net.pt",
+  "HMAC trailer-signing key absent at slice start time",
+  "Linear closed Done while PR #349 still DO NOT MERGE — cross-surface state mismatch",
+]
+signals_that_would_have_caught = [
+  "jankurai migrate slice-risk: env-prerequisites check",
+  "closeout cross-surface state check (Linear vs GitHub vs main HEAD)",
+]
+
+[lessons]
+text = """
+The slice plan assumed dev box could run cascade equivalence tests.
+In practice, scientific-ML codebases have non-portable env deps that
+must be enumerated before slice acceptance ceremony begins. Same
+class as Phase 5b v1 aspirational-spec: assume nothing about the
+running shape of the environment until it has been grep-verified.
+"""
+prevents_pattern = [
+  "torch.load on stale-format checkpoint",
+  "missing trailer-signing key on dev box",
+  "Linear closure ahead of GitHub merge state",
+]
+
+[follow_ups]
+linear_issues = ["ARY-2001"]
+related_postmortems = []

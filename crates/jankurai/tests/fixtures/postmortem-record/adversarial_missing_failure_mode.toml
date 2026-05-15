@@ -1,0 +1,22 @@
+# Adversarial: required `failure_mode` field is absent. Verb MUST reject
+# with schema error citing the missing field by name.
+
+[postmortem]
+date = "2026-05-13"
+slice = "synthetic-broken-slice"
+issue = "ARY-9999"
+outcome = "blocked"
+# failure_mode = "..."   <-- intentionally missing
+severity = "medium"
+
+[evidence]
+signals_observed = ["something happened"]
+signals_that_would_have_caught = ["a better check"]
+
+[lessons]
+text = "we learned a thing."
+prevents_pattern = ["the thing that happened"]
+
+[follow_ups]
+linear_issues = []
+related_postmortems = []

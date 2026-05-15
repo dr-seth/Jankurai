@@ -1,0 +1,21 @@
+# Adversarial: `[lessons]` section is structurally absent. Verb MUST reject —
+# a postmortem without a lessons block can't feed back into slice-risk.
+
+[postmortem]
+date = "2026-05-13"
+slice = "synthetic-no-lessons-slice"
+issue = "ARY-9999"
+outcome = "rolled_back"
+failure_mode = "perf-regression"
+severity = "high"
+
+[evidence]
+signals_observed = ["latency spike"]
+signals_that_would_have_caught = ["pre-prod load test"]
+
+# [lessons]   <-- intentionally absent
+# text = ...
+
+[follow_ups]
+linear_issues = []
+related_postmortems = []

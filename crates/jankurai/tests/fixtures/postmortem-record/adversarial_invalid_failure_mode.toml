@@ -1,0 +1,22 @@
+# Adversarial: failure_mode is not in the enum. Verb MUST reject with an
+# enum-violation error AND list the valid enum values.
+
+[postmortem]
+date = "2026-05-13"
+slice = "synthetic-bad-enum-slice"
+issue = "ARY-9999"
+outcome = "blocked"
+failure_mode = "totally-made-up-mode"   # not in enum
+severity = "medium"
+
+[evidence]
+signals_observed = ["nope"]
+signals_that_would_have_caught = ["nope"]
+
+[lessons]
+text = "this should not validate."
+prevents_pattern = []
+
+[follow_ups]
+linear_issues = []
+related_postmortems = []

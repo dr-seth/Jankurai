@@ -904,22 +904,26 @@ struct MigrateVerifyPromptArgs {
 
 #[derive(Args, Debug)]
 struct MigrateSliceRiskArgs {
+    /// Standalone slice-manifest TOML to score directly (ARY-2031). When
+    /// given, --plan/--slice-id are not required.
+    #[arg(value_name = "SLICE")]
+    slice: Option<String>,
+    /// Plan-mode (legacy): path to a migration plan JSON.
     #[arg(long, value_name = "PATH")]
-    plan: String,
+    plan: Option<String>,
+    /// Plan-mode (legacy): which slice in the plan to score.
     #[arg(long, value_name = "SLICE_ID")]
-    slice_id: String,
-    #[arg(
-        long,
-        value_name = "PATH",
-        default_value = "target/jankurai/migration-slice-risk.json"
-    )]
-    out: String,
-    #[arg(
-        long,
-        value_name = "PATH",
-        default_value = "target/jankurai/migration-slice-risk.md"
-    )]
-    md: String,
+    slice_id: Option<String>,
+    /// Cross-reference a prior postmortem TOML (or directory) and emit
+    /// "applies here:" guidance when a past failure mode recurs.
+    #[arg(long, value_name = "PATH")]
+    use_postmortems: Option<String>,
+    /// Optional JSON report path (plan-mode default kept for back-compat).
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    /// Optional markdown report path.
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
     #[arg(long)]
     check_env: bool,
 }
@@ -1816,8 +1820,10 @@ fn main() -> anyhow::Result<()> {
                     repo: args.repo,
                     plan: command.plan,
                     slice_id: command.slice_id,
-                    out: Some(command.out),
-                    md: Some(command.md),
+                    slice: command.slice,
+                    use_postmortems: command.use_postmortems,
+                    out: command.out,
+                    md: command.md,
                     check_env: command.check_env,
                 })?;
             }

@@ -1,0 +1,23 @@
+# Adversarial: outcome typo. Verb MUST reject — close-but-not-exact enum
+# values are a common bug class; the verb must not "helpfully accept"
+# `blocked-ish` as `blocked`.
+
+[postmortem]
+date = "2026-05-13"
+slice = "synthetic-typo-slice"
+issue = "ARY-9999"
+outcome = "blocked-ish"       # typo; not in enum
+failure_mode = "env-prerequisite"
+severity = "medium"
+
+[evidence]
+signals_observed = []
+signals_that_would_have_caught = []
+
+[lessons]
+text = "this should not validate."
+prevents_pattern = []
+
+[follow_ups]
+linear_issues = []
+related_postmortems = []

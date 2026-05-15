@@ -1,0 +1,47 @@
+# Expected output spec for `jankurai postmortem record` verb fixtures.
+
+[fixture: positive/atlas-2026-05.toml]
+$ jankurai postmortem record positive/atlas-2026-05.toml
+exit_code: 0
+required diagnostic line: "written to .jankurai/postmortems/2026-05-phase-3d-atlas.toml"
+side effect: file exists at .jankurai/postmortems/2026-05-phase-3d-atlas.toml with content equivalent to input
+  (canonical-hash equality, not string equality — allow comment / whitespace normalization)
+
+[fixture: adversarial_missing_failure_mode.toml]
+$ jankurai postmortem record adversarial_missing_failure_mode.toml
+exit_code: 1
+required diagnostic line: "missing required field: failure_mode"
+
+[fixture: adversarial_invalid_failure_mode.toml]
+$ jankurai postmortem record adversarial_invalid_failure_mode.toml
+exit_code: 1
+required diagnostic lines:
+  - "invalid enum value for failure_mode"
+  - "totally-made-up-mode"
+  - "valid values:"
+  - "aspirational-spec, env-prerequisite, interop-runtime, equivalence-gap, cutover-rollback, perf-regression"
+    (substring; the line listing the enum values must include all six)
+
+[fixture: adversarial_outcome_typo.toml]
+$ jankurai postmortem record adversarial_outcome_typo.toml
+exit_code: 1
+required diagnostic lines:
+  - "invalid enum value for outcome"
+  - "blocked-ish"
+  - "did you mean: blocked"      # close-match suggestion is OPTIONAL but if produced must point at the right enum
+
+[fixture: adversarial_missing_lessons.toml]
+$ jankurai postmortem record adversarial_missing_lessons.toml
+exit_code: 1
+required diagnostic line: "missing required section: [lessons]"
+
+[Rule 9 — evidence over labels]
+The verb MUST parse the TOML with a real parser (toml/tomli/serde_toml) and
+validate against the schema, not regex-match the field names against the
+text. Specifically:
+  - A comment line like `# failure_mode = "env-prerequisite"` (commented out)
+    MUST NOT satisfy the required-field check.
+  - A field that's present but with a typo MUST be detected (not silently
+    coerced).
+  - The accept path MUST also write the postmortem out and re-read it to
+    confirm round-trip equivalence (hash-based check).
