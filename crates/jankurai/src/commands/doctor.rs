@@ -50,6 +50,7 @@ pub fn run(args: DoctorArgs) -> Result<()> {
     check_generated_zones_schema(&repo, &mut diagnostics);
     check_proof_lanes_schema(&repo, &mut diagnostics);
     check_standard_version_schema(&repo, &mut diagnostics);
+    check_ai_audit_config(&repo, &mut diagnostics);
     progress.tick("lockfiles and score freshness");
     check_lockfiles(&repo, &mut diagnostics);
     check_root_score_artifacts(&repo, &mut diagnostics);
@@ -348,6 +349,68 @@ fn check_audit_policy_schema(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
             path: "agent/audit-policy.toml".into(),
             message: format!("audit policy failed schema validation: {err}"),
         });
+    }
+}
+
+/// `jankurai ai audit` config hygiene. The verb emits no schema-validated
+/// artifact (stdout table + optional --json by design), so the doctor
+/// integration is a config-soundness check: when `agent/ai-audit.toml`
+/// exists it must parse and its `[heuristics]` thresholds must be the
+/// right scalar types. A broken config silently mis-tiers every call site,
+/// so catching it in `doctor` is the meaningful health signal.
+fn check_ai_audit_config(repo: &Path, diagnostics: &mut Vec<Diagnostic>) {
+    let path = repo.join("agent/ai-audit.toml");
+    if !path.is_file() {
+        return;
+    }
+    let Ok(text) = fs::read_to_string(&path) else {
+        diagnostics.push(Diagnostic {
+            check_id: "ai-audit-config-read".into(),
+            severity: "medium".into(),
+            path: "agent/ai-audit.toml".into(),
+            message: "could not read agent/ai-audit.toml".into(),
+        });
+        return;
+    };
+    let value: toml::Value = match toml::from_str(&text) {
+        Ok(v) => v,
+        Err(err) => {
+            diagnostics.push(Diagnostic {
+                check_id: "ai-audit-config-schema".into(),
+                severity: "medium".into(),
+                path: "agent/ai-audit.toml".into(),
+                message: format!("ai-audit config is not valid TOML: {err}"),
+            });
+            return;
+        }
+    };
+    if let Some(h) = value.get("heuristics").and_then(|v| v.as_table()) {
+        let int_keys = ["classify_max_tokens_max", "generate_max_tokens_min"];
+        let num_keys = ["classify_temperature_max"];
+        for k in int_keys {
+            if let Some(v) = h.get(k) {
+                if v.as_integer().is_none() {
+                    diagnostics.push(Diagnostic {
+                        check_id: "ai-audit-config-schema".into(),
+                        severity: "medium".into(),
+                        path: "agent/ai-audit.toml".into(),
+                        message: format!("[heuristics].{k} must be an integer"),
+                    });
+                }
+            }
+        }
+        for k in num_keys {
+            if let Some(v) = h.get(k) {
+                if v.as_float().is_none() && v.as_integer().is_none() {
+                    diagnostics.push(Diagnostic {
+                        check_id: "ai-audit-config-schema".into(),
+                        severity: "medium".into(),
+                        path: "agent/ai-audit.toml".into(),
+                        message: format!("[heuristics].{k} must be a number"),
+                    });
+                }
+            }
+        }
     }
 }
 
