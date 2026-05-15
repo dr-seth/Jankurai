@@ -2,7 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use jankurai::audit::policy::AuditMode;
 use jankurai::audit::{run_audit, run_audit_timed_with_options, AuditOptions};
 use jankurai::commands::{
-    adopt, agent, badge, bench, cell, certify, conformance, context_pack, coverage, doctor,
+    adopt, agent, ai, badge, bench, cell, certify, conformance, context_pack, coverage, doctor,
     exceptions, govern, history, hooks, init, kickoff, migrate, optimize, paper, postmortem, proof,
     proofbind, proofmark, publish, registry, repair, repair_plan, rules, rust, score, security,
     update, vibe, witness,
@@ -35,6 +35,10 @@ struct Cli {
 enum Commands {
     Audit(AuditArgs),
     Adopt(AdoptArgs),
+    Ai {
+        #[command(subcommand)]
+        command: AiCommand,
+    },
     Badge(BadgeCliArgs),
     Init(InitArgs),
     Update(UpdateArgs),
@@ -880,6 +884,27 @@ struct MigrateArgs {
 enum MigrateCommand {
     VerifyPrompt(MigrateVerifyPromptArgs),
     SliceRisk(MigrateSliceRiskArgs),
+}
+
+#[derive(Subcommand, Debug)]
+enum AiCommand {
+    /// Scan directories for AI/LLM call sites and classify by replaceability tier.
+    Audit(AiAuditArgs),
+}
+
+#[derive(Args, Debug)]
+struct AiAuditArgs {
+    #[arg(value_name = "DIR", required = true, num_args = 1..)]
+    dirs: Vec<PathBuf>,
+    /// Optional ai-audit.toml config (heuristic thresholds, bridges, overrides).
+    #[arg(long, value_name = "PATH")]
+    config: Option<PathBuf>,
+    /// Optional JSON report path (stdout table is always printed).
+    #[arg(long, value_name = "PATH")]
+    out: Option<String>,
+    /// Optional markdown report path.
+    #[arg(long, value_name = "PATH")]
+    md: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -1801,6 +1826,16 @@ fn main() -> anyhow::Result<()> {
                 md: args.md,
             })?;
         }
+        Some(Commands::Ai { command }) => match command {
+            AiCommand::Audit(command) => {
+                ai::run(ai::AiAuditArgs {
+                    dirs: command.dirs,
+                    config: command.config,
+                    out: command.out,
+                    md: command.md,
+                })?;
+            }
+        },
         Some(Commands::Migrate(args)) => match args.command {
             Some(MigrateCommand::VerifyPrompt(command)) => {
                 migrate::run_prompt_verify(migrate::PromptVerifyArgs {

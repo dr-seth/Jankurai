@@ -1,0 +1,47 @@
+# Expected output spec for `jankurai ai audit` verb fixtures.
+# The asserter MUST re-derive evidence (AST resolve, parse imports, inspect
+# call shapes) and not regex-match descriptions.
+
+$ jankurai ai audit source_fixtures/
+exit_code: 0
+
+required diagnostic lines (substring match; order-insensitive):
+  - "trading_nl_classify.py"
+  - "CLASSIFY"
+  - "tier_2"
+  - "trading_nl_generate.py"
+  - "GENERATE"
+  - "tier_3"
+  - "channel_wrapper.py"
+  - "WRAPPER"
+  - "meta_rsi_agent.py"
+  - "AGENT"
+  - "integrated_module.py"
+  - "INTEGRATED"
+  - "tier_1"
+  - "oauth_falsepositive.py"
+  - "FALSE_POSITIVE"
+  - "tier_4"
+  - "llm_settings_falsepositive.py"
+
+required summary lines:
+  - "Tier 1 (already integrated):  1 file"
+  - "Tier 2 (replaceable):"
+  - "Tier 3 (permanent):"
+  - "Tier 4 (false positive):      2 files"
+
+[Rule 9 — evidence over labels]
+The asserter MUST verify that the verb's classification re-derives from AST
+parse + import inspection, not from regex-matching SDK names against file
+content. To exercise this:
+
+  1. Run on `source_fixtures/oauth_falsepositive.py` alone.
+     - "Tier 4"        (oauth.py result MUST be tier_4; AST proves no anthropic import)
+
+  2. Run on `source_fixtures/llm_settings_falsepositive.py` alone.
+     - "Tier 4"        (settings keys are not call sites)
+
+  3. Run on a synthetic file that imports `anthropic` at module level but
+     never calls `client.messages.create(...)` (just a dangling import). The
+     verb MUST output zero call sites for that file:
+     - "no_call_site"  (or skip)

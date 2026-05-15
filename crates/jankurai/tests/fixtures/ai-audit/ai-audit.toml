@@ -1,0 +1,33 @@
+# Example project-level configuration for `jankurai ai audit`.
+# Threshold tuning, allow-list, deny-list, and tier-override hooks.
+
+[heuristics]
+# Numeric thresholds for tier classification.
+classify_max_tokens_max = 500          # call with max_tokens <= 500 is a CLASSIFY candidate
+classify_temperature_max = 0.3         # temperature <= 0.3 is a CLASSIFY candidate
+wrapper_enumerated_options_min = 4     # system_prompt with >= 4 enumerated options → WRAPPER candidate
+generate_max_tokens_min = 1000         # max_tokens >= 1000 → GENERATE candidate
+
+[bridges]
+# Names of project-internal nano-bridge modules. A file importing any of these
+# is classified Tier 1 INTEGRATED.
+nano_bridge_modules = [
+    "arya_speaks.language_core",
+    "arya_speaks.language_core.llm_adapter",
+]
+
+[false_positives]
+# Files matched by these globs are always Tier 4 if they have NO module-level
+# import of an SDK package. (Settings-only files, oauth allow-lists, etc.)
+glob_overrides = [
+    "**/oauth.py",
+    "**/llm_settings.py",
+    "**/auth/trusted_domains.py",
+]
+
+[overrides]
+# Manual per-site overrides — escape hatch when heuristics misclassify.
+# Format: [["<file>", <line>, "<tier>"]]
+manual = [
+    # Example: ["packages/foo/bar.py", 123, "tier_3"],
+]
