@@ -203,6 +203,108 @@ fn source_lang_for(path: &Path) -> SourceLang {
     }
 }
 
+/// Parse a Rust source file with `syn` and collect every defined item
+/// identifier — fns, structs, enums, traits, type aliases, consts, statics,
+/// the self-type of `impl` blocks, and the methods inside `impl`/`trait`
+/// bodies, recursing through inline `mod`s. Returns `None` when the source
+/// does not parse (the caller then falls back to the regex resolver, so a
+/// non-parseable fixture never regresses behavior).
+///
+/// This is the deeper-AST upgrade for `.rs` claims (ARY-2029): the
+/// *existence* of a claimed symbol is re-derived from a real parser, not a
+/// `^\s*fn NAME` regex that a string literal or macro body could spoof.
+/// (`syn` spans need `proc-macro2`'s `span-locations`, which is not a
+/// dependency here, so line-precision still comes from the structural
+/// scan; membership comes from the AST.)
+fn rust_ast_symbols(src: &str) -> Option<BTreeSet<String>> {
+    let file = syn::parse_file(src).ok()?;
+    let mut out = BTreeSet::new();
+    fn walk(items: &[syn::Item], out: &mut BTreeSet<String>) {
+        for item in items {
+            match item {
+                syn::Item::Fn(f) => {
+                    out.insert(f.sig.ident.to_string());
+                }
+                syn::Item::Struct(s) => {
+                    out.insert(s.ident.to_string());
+                }
+                syn::Item::Enum(e) => {
+                    out.insert(e.ident.to_string());
+                }
+                syn::Item::Trait(t) => {
+                    out.insert(t.ident.to_string());
+                    for ti in &t.items {
+                        if let syn::TraitItem::Fn(m) = ti {
+                            out.insert(m.sig.ident.to_string());
+                        }
+                    }
+                }
+                syn::Item::Type(t) => {
+                    out.insert(t.ident.to_string());
+                }
+                syn::Item::Const(c) => {
+                    out.insert(c.ident.to_string());
+                }
+                syn::Item::Static(s) => {
+                    out.insert(s.ident.to_string());
+                }
+                syn::Item::Impl(i) => {
+                    if let syn::Type::Path(tp) = &*i.self_ty {
+                        if let Some(seg) = tp.path.segments.last() {
+                            out.insert(seg.ident.to_string());
+                        }
+                    }
+                    for ii in &i.items {
+                        if let syn::ImplItem::Fn(m) = ii {
+                            out.insert(m.sig.ident.to_string());
+                        }
+                    }
+                }
+                syn::Item::Mod(m) => {
+                    if let Some((_, inner)) = &m.content {
+                        walk(inner, out);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    walk(&file.items, &mut out);
+    Some(out)
+}
+
+/// Cheap Levenshtein distance (no external crate) for parser-grade
+/// nearest-symbol suggestions when a claimed `.rs` symbol is not in the
+/// `syn` AST set. Bounded by the longest identifier in a source file, so
+/// the O(n·m) DP is trivially small in practice.
+fn lev(a: &str, b: &str) -> usize {
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        cur[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            cur[j + 1] = (prev[j + 1] + 1).min(cur[j] + 1).min(prev[j] + cost);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
+}
+
+/// Closest item in the `syn` AST set to `target` by edit distance, used to
+/// surface a "did you mean" hint when a claimed `.rs` symbol does not parse
+/// as a real definition. Returns `None` when nothing is within an edit
+/// distance of `target.len() / 2 + 1` (avoids nonsense suggestions).
+fn nearest_ast_symbol<'a>(ast: &'a BTreeSet<String>, target: &str) -> Option<&'a str> {
+    let budget = target.len() / 2 + 1;
+    ast.iter()
+        .map(|s| (lev(s, target), s.as_str()))
+        .filter(|(d, _)| *d <= budget)
+        .min_by_key(|(d, _)| *d)
+        .map(|(_, s)| s)
+}
+
 /// Extract the symbol at `line_text` using the language-appropriate regex.
 /// Returns `Some(name)` on a real def/class/method/binding, `None` when the
 /// line is a use-site or other non-definition. Hot path of `verify_path_line`'s
@@ -506,16 +608,46 @@ fn verify_path_line(
     }
     if let Some(expected) = expected_symbol {
         let lang = source_lang_for(&canonical);
+        let is_rust = canonical
+            .extension()
+            .and_then(|e| e.to_str())
+            .map_or(false, |e| e == "rs");
+        // Deeper AST re-derivation for `.rs` claims (ARY-2029): parse the
+        // whole file with `syn` and treat the parsed item set as the
+        // authority on whether `expected` exists as a real definition.
+        // `None` => source did not parse, fall back to the regex resolver
+        // with no behavior change (a non-parseable fixture never regresses).
+        let ast = if is_rust {
+            rust_ast_symbols(&text)
+        } else {
+            None
+        };
         let actual = extract_symbol_at_line(line_text, lang);
         match actual {
             Some(found) if found != expected => {
+                let mut evidence = vec![
+                    format!("{}:{}", canonical.display(), line_number),
+                    line_text.trim().to_string(),
+                    format!("expected `{expected}` but found `{found}` at this line"),
+                ];
+                if let Some(ast) = &ast {
+                    if ast.contains(expected) {
+                        evidence.push(format!(
+                            "syn AST: `{expected}` is defined elsewhere in this file (claimed line defines `{found}`)"
+                        ));
+                    } else if let Some(near) = nearest_ast_symbol(ast, expected) {
+                        evidence.push(format!(
+                            "syn AST: `{expected}` is not a parsed item in this file; nearest is `{near}`"
+                        ));
+                    } else {
+                        evidence.push(format!(
+                            "syn AST: `{expected}` is not a parsed item in this file"
+                        ));
+                    }
+                }
                 return Ok((
                     ClaimDecision::Invalid,
-                    vec![
-                        format!("{}:{}", canonical.display(), line_number),
-                        line_text.trim().to_string(),
-                        format!("expected `{expected}` but found `{found}` at this line"),
-                    ],
+                    evidence,
                     Some("symbol mismatch".to_string()),
                 ));
             }
@@ -532,7 +664,34 @@ fn verify_path_line(
                     Some("use-site, not def-site".to_string()),
                 ));
             }
-            _ => {}
+            _ => {
+                // Regex says the line *is* the definition of `expected`.
+                // For Rust, cross-check against the `syn` AST: a
+                // `fn expected` that lives inside a string literal, a
+                // macro body, or a doc comment matches `PY_RUST_SYMBOL_RE`
+                // but is NOT a parsed item. Regex-match alone would call
+                // this Verified — the AST is what makes the re-derivation
+                // evidence-grade (Rule 9), not label-grade.
+                if let Some(ast) = &ast {
+                    if !ast.contains(expected) {
+                        let mut evidence = vec![
+                            format!("{}:{}", canonical.display(), line_number),
+                            line_text.trim().to_string(),
+                            format!(
+                                "line text matches a `{expected}` definition but `syn` does not parse it as a real item (string literal / macro body / not a top-level def)"
+                            ),
+                        ];
+                        if let Some(near) = nearest_ast_symbol(ast, expected) {
+                            evidence.push(format!("nearest syn item: `{near}`"));
+                        }
+                        return Ok((
+                            ClaimDecision::Invalid,
+                            evidence,
+                            Some("regex-only symbol (not a syn item)".to_string()),
+                        ));
+                    }
+                }
+            }
         }
     }
     Ok((
